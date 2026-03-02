@@ -1,18 +1,18 @@
 {
-  "name": "rrze-answers",
-  "version": "1.0.24",
+  "name": "rrze-appointment",
+  "version": "0.0.01",
   "description": "Plugin to create FAQs and synchronize them from the FAU network. Usable as a shortcode, block, or widget.",
   "author": "RRZE Webteam",
   "license": "GPL-2.0-or-later",
   "main": "build/index.js",
-  "textdomain": "rrze-answers",
+  "textdomain": "rrze-appointment",
   "browserslist": [
     "extends @wordpress/browserslist-config"
   ],
   "scripts": {
-    "start": "wp-scripts start faq=./blocks/faq/index.js faq-widget=./blocks/faq-widget/index.js glossary=./blocks/glossary/index.js placeholder=./blocks/placeholder/index.js src/js/rrze-answers-accordion.js src/js/rrze-answers-import-ui.js --webpack-copy-php",
+    "start": "wp-scripts start faq=./blocks/faq/index.js faq-widget=./blocks/faq-widget/index.js glossary=./blocks/glossary/index.js placeholder=./blocks/placeholder/index.js src/js/rrze-appointment-accordion.js src/js/rrze-appointment-import-ui.js --webpack-copy-php",
     "build": "npm-run-all build:js build:css increment-version",
-    "build:js": "wp-scripts build faq=./blocks/faq/index.js faq-widget=./blocks/faq-widget/index.js glossary=./blocks/glossary/index.js placeholder=./blocks/placeholder/index.js src/js/rrze-answers-accordion.js src/js/rrze-answers-import-ui.js src/js/rrze-answers-search.js --webpack-copy-php",
+    "build:js": "wp-scripts build faq=./blocks/faq/index.js faq-widget=./blocks/faq-widget/index.js glossary=./blocks/glossary/index.js placeholder=./blocks/placeholder/index.js src/js/rrze-appointment-accordion.js src/js/rrze-appointment-import-ui.js src/js/rrze-appointment-search.js --webpack-copy-php",
     "build:css": "sass src/sass:build/css --style compressed --no-source-map",
     "increment-version": "node increment-version.js patch",
     "format": "wp-scripts format",
@@ -23,7 +23,7 @@
     "plugin-zip": "wp-scripts plugin-zip",
     "test:e2e": "wp-scripts test-e2e",
     "test:unit": "wp-scripts test-unit-js",
-    "i18n:make-pot": "wp i18n make-pot build/ languages/rrze-answers.pot",
+    "i18n:make-pot": "wp i18n make-pot build/ languages/rrze-appointment.pot",
     "i18n:make-json": "wp i18n make-json build/ --no-purge",
     "version:patch": "npm version patch && npm run i18n:make-pot && npm run i18n:make-json",
     "version:prerelease": "npm version prerelease && npm run i18n:make-pot && npm run i18n:make-json"
