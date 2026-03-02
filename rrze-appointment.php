@@ -18,12 +18,10 @@ Requires PHP:       8.2
 namespace RRZE\Appointment;
 
 use RRZE\Appointment\Main;
-use RRZE\Appointment\Common\Tools;
 use RRZE\Appointment\Common\Plugin\Plugin;
 
 defined('ABSPATH') || exit;
 
-const RRZE_ANSWERS_PLUGIN = 'rrze-appointment/rrze-appointment.php';
 
 /**
  * ------------------------------------------------------------
@@ -109,13 +107,9 @@ function load_textdomain(): void
 
 function register_blocks(): void
 {
-    // register_block_type_from_metadata(__DIR__ . '/blocks/appointment');
-
-    // $appointment_handle         = generate_block_asset_handle('rrze-appointment/appointment', 'editorScript');
-
-    // $path = plugin_dir_path(__FILE__) . 'languages';
-
-    // wp_set_script_translations($appointment_handle, 'rrze-appointment', $path);
+    register_block_type( __DIR__ . '/build' );
+    $script_handle = generate_block_asset_handle( 'create-block/rrze-appointment', 'editorScript' );
+    wp_set_script_translations( $script_handle, 'rrze-appointment', plugin_dir_path( __FILE__ ) . 'languages' );
 }
 
 /**
@@ -173,6 +167,6 @@ function loaded(): void
     // Initialize plugin.
     main();
 
-    // add_action('init', __NAMESPACE__ . '\register_blocks');
+    add_action('init', __NAMESPACE__ . '\register_blocks');
 }
 
