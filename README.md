@@ -1,4 +1,4 @@
-# RRZE Answers
+# RRZE Appointment
 
 [![Version](https://img.shields.io/github/package-json/v/rrze-webteam/rrze-appointment/main?label=Version)](https://github.com/RRZE-Webteam/rrze-appointment)
 [![Release Version](https://img.shields.io/github/v/release/rrze-webteam/rrze-appointment?label=Release+Version)](https://github.com/RRZE-Webteam/rrze-appointment/releases/)
