@@ -8,7 +8,7 @@ Stable tag: 0.0.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Plugin for creating and maintaining apppointments. Usable as a block.
+Plugin for creating and maintaining appointments. Usable as a block.
 
 == Description ==
 
