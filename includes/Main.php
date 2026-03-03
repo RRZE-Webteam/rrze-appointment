@@ -146,6 +146,39 @@ class Main
             'min' => true,
             'max' => true,
             'step' => true,
+            'required' => true,
+        ]);
+
+        $allowed_tags['form'] = array_merge($allowed_tags['form'] ?? [], [
+            'action' => true,
+            'method' => true,
+            'id' => true,
+            'class' => true,
+        ]);
+
+        $allowed_tags['fieldset'] = array_merge($allowed_tags['fieldset'] ?? [], [
+            'id' => true,
+            'class' => true,
+        ]);
+
+        $allowed_tags['legend'] = array_merge($allowed_tags['legend'] ?? [], [
+            'id' => true,
+            'class' => true,
+        ]);
+
+        $allowed_tags['label'] = array_merge($allowed_tags['label'] ?? [], [
+            'for' => true,
+            'id' => true,
+            'class' => true,
+        ]);
+
+        $allowed_tags['button'] = array_merge($allowed_tags['button'] ?? [], [
+            'type' => true,
+            'name' => true,
+            'value' => true,
+            'id' => true,
+            'class' => true,
+            'disabled' => true,
         ]);
 
         return $allowed_tags;
@@ -201,5 +234,4 @@ class Main
     }
 
 }
-
 

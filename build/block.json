@@ -13,13 +13,33 @@
       "type": "string",
       "default": ""
     },
-    "date": {
+    "startDate": {
       "type": "string",
       "default": ""
     },
-    "time": {
+    "useEndDate": {
+      "type": "boolean",
+      "default": false
+    },
+    "endDate": {
       "type": "string",
       "default": ""
+    },
+    "startTime": {
+      "type": "string",
+      "default": "09:00"
+    },
+    "endTime": {
+      "type": "string",
+      "default": "17:00"
+    },
+    "duration": {
+      "type": "number",
+      "default": 30
+    },
+    "breakDuration": {
+      "type": "number",
+      "default": 0
     },
     "location": {
       "type": "string",
@@ -30,5 +50,7 @@
       "default": ""
     }
   },
-  "editorScript": "file:./index.js"
+  "editorScript": "file:./index.js",
+  "viewScript": "file:./view.js",
+  "style": "file:./style.css"
 }

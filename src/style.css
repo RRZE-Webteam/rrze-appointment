@@ -1,0 +1,79 @@
+.rrze-appointment__calendar {
+    margin-bottom: 1rem;
+}
+
+.rrze-appointment__calendar-month {
+    margin-bottom: 1rem;
+}
+
+.rrze-appointment__calendar-title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.rrze-appointment__calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(2rem, 1fr));
+    gap: 0.35rem;
+}
+
+.rrze-appointment__weekday {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    color: #555;
+}
+
+.rrze-appointment__calendar-empty,
+.rrze-appointment__calendar-day {
+    min-height: 2.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rrze-appointment__calendar-day {
+    border: 1px solid #d0d7de;
+    border-radius: 0.35rem;
+    background: #fff;
+}
+
+.rrze-appointment__calendar-day.is-available {
+    background: #e8f1ff;
+    border-color: #7da7f7;
+    color: #1448a8;
+    cursor: pointer;
+}
+
+.rrze-appointment__calendar-day.is-active {
+    background: #0b5ed7;
+    border-color: #0b5ed7;
+    color: #fff;
+}
+
+.rrze-appointment__day-slots,
+.rrze-appointment__slots-grouped {
+    margin: 1rem 0;
+}
+
+.rrze-appointment__date-group {
+    margin-bottom: 0.85rem;
+}
+
+.rrze-appointment__date-title {
+    margin: 0 0 0.35rem;
+    font-size: 1rem;
+}
+
+.rrze-appointment__slot-option {
+    display: block;
+    margin: 0.2rem 0;
+}
+
+.rrze-appointment__slot-option input {
+    margin-right: 0.45rem;
+}
+
+.rrze-appointment__day-slots.is-hidden {
+    display: none;
+}
