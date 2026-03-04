@@ -13,6 +13,10 @@
       "type": "string",
       "default": ""
     },
+    "selectedDates": {
+      "type": "array",
+      "default": []
+    },
     "startDate": {
       "type": "string",
       "default": ""

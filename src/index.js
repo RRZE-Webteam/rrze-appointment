@@ -1,11 +1,11 @@
 import { registerBlockType } from '@wordpress/blocks';
 import {
+    Button,
     DatePicker,
     PanelBody,
     SelectControl,
     TextControl,
-    TextareaControl,
-    ToggleControl
+    TextareaControl
 } from '@wordpress/components';
 import { InspectorControls } from '@wordpress/block-editor';
 import { Fragment } from '@wordpress/element';
@@ -54,23 +54,62 @@ function formatDate(dateObj) {
     return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
 }
 
+function normalizeDateList(values) {
+    if (!Array.isArray(values)) {
+        return [];
+    }
+
+    return [...new Set(values.map(normalizePickerDate).filter(Boolean))].sort();
+}
+
+function getDateRange(startDate, endDate) {
+    if (!startDate || !endDate || endDate < startDate) {
+        return [];
+    }
+
+    const fromDate = new Date(`${startDate}T00:00:00`);
+    const toDate = new Date(`${endDate}T00:00:00`);
+    if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
+        return [];
+    }
+
+    const dates = [];
+    const currentDate = new Date(fromDate);
+    while (currentDate <= toDate) {
+        dates.push(formatDate(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
+        if (dates.length >= 366) {
+            break;
+        }
+    }
+
+    return dates;
+}
+
+function getCalendarDates(attributes) {
+    const selectedDates = normalizeDateList(attributes.selectedDates);
+    if (selectedDates.length > 0) {
+        return selectedDates;
+    }
+
+    if (!attributes.startDate) {
+        return [];
+    }
+
+    const selectedEndDate = (attributes.useEndDate && attributes.endDate) ? attributes.endDate : attributes.startDate;
+    return getDateRange(attributes.startDate, selectedEndDate);
+}
+
 function generateTimeSlots(attributes) {
     const {
-        startDate,
-        endDate,
-        useEndDate,
         startTime,
         endTime,
         duration,
         breakDuration
     } = attributes;
 
-    if (!startDate) {
-        return [];
-    }
-
-    const selectedEndDate = (useEndDate && endDate) ? endDate : startDate;
-    if (selectedEndDate < startDate) {
+    const calendarDates = getCalendarDates(attributes);
+    if (calendarDates.length === 0) {
         return [];
     }
 
@@ -94,17 +133,8 @@ function generateTimeSlots(attributes) {
         return [];
     }
 
-    const fromDate = new Date(`${startDate}T00:00:00`);
-    const toDate = new Date(`${selectedEndDate}T00:00:00`);
-    if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
-        return [];
-    }
-
     const slots = [];
-    const currentDate = new Date(fromDate);
-
-    while (currentDate <= toDate) {
-        const dateString = formatDate(currentDate);
+    for (const dateString of calendarDates) {
         let slotStart = startMinutes;
 
         while (slotStart + slotDuration <= endMinutes) {
@@ -121,8 +151,6 @@ function generateTimeSlots(attributes) {
 
             slotStart += slotDuration + pauseMinutes;
         }
-
-        currentDate.setDate(currentDate.getDate() + 1);
 
         if (slots.length >= 1000) {
             break;
@@ -168,9 +196,6 @@ registerBlockType('rrze/appointment', {
     edit({ attributes, setAttributes }) {
         const {
             title,
-            startDate,
-            useEndDate,
-            endDate,
             startTime,
             endTime,
             duration,
@@ -179,6 +204,7 @@ registerBlockType('rrze/appointment', {
             description
         } = attributes;
 
+        const calendarDates = getCalendarDates(attributes);
         const slots = generateTimeSlots(attributes);
 
         return (
@@ -191,11 +217,57 @@ registerBlockType('rrze/appointment', {
                             onChange={(value) => setAttributes({ title: value })}
                         />
 
-                        <p><strong>Start</strong></p>
+                        <p><strong>Kalender-Ansicht</strong></p>
+                        <p>Ein Klick auf ein Datum fügt es hinzu oder entfernt es wieder.</p>
                         <DatePicker
-                            currentDate={startDate || undefined}
-                            onChange={(value) => setAttributes({ startDate: normalizePickerDate(value) })}
+                            currentDate={calendarDates[calendarDates.length - 1] || undefined}
+                            onChange={(value) => {
+                                const selectedDate = normalizePickerDate(value);
+                                if (!selectedDate) {
+                                    return;
+                                }
+
+                                const dateSet = new Set(calendarDates);
+                                if (dateSet.has(selectedDate)) {
+                                    dateSet.delete(selectedDate);
+                                } else {
+                                    dateSet.add(selectedDate);
+                                }
+
+                                const nextDates = Array.from(dateSet).sort();
+
+                                setAttributes({
+                                    selectedDates: nextDates,
+                                    startDate: nextDates[0] || '',
+                                    endDate: nextDates[nextDates.length - 1] || '',
+                                    useEndDate: nextDates.length > 1
+                                });
+                            }}
                         />
+                        {calendarDates.length > 0 && (
+                            <div>
+                                {calendarDates.map((date) => (
+                                    <Button
+                                        key={date}
+                                        variant="secondary"
+                                        isSmall
+                                        onClick={() => {
+                                            const nextDates = calendarDates.filter((d) => d !== date);
+                                            setAttributes({
+                                                selectedDates: nextDates,
+                                                startDate: nextDates[0] || '',
+                                                endDate: nextDates[nextDates.length - 1] || '',
+                                                useEndDate: nextDates.length > 1
+                                            });
+                                        }}
+                                        style={{ marginRight: '6px', marginBottom: '6px' }}
+                                    >
+                                        {date} x
+                                    </Button>
+                                ))}
+                            </div>
+                        )}
+
                         <TextControl
                             label="Startzeit"
                             type="time"
@@ -203,20 +275,6 @@ registerBlockType('rrze/appointment', {
                             value={startTime}
                             onChange={(value) => setAttributes({ startTime: value })}
                         />
-
-                        <ToggleControl
-                            label="Enddatum verwenden (optional)"
-                            checked={useEndDate}
-                            onChange={(value) => setAttributes({ useEndDate: value })}
-                        />
-
-                        <p><strong>Ende</strong></p>
-                        {useEndDate && (
-                            <DatePicker
-                                currentDate={endDate || startDate || undefined}
-                                onChange={(value) => setAttributes({ endDate: normalizePickerDate(value) })}
-                            />
-                        )}
                         <TextControl
                             label="Endzeit"
                             type="time"
@@ -281,9 +339,9 @@ registerBlockType('rrze/appointment', {
 
                     <form className="rrze-appointment__form">
                         <fieldset className="rrze-appointment__slots-grouped">
-                            <legend>Alle Termine (gruppiert nach Datum)</legend>
+                            <legend>Alle Termine</legend>
                             {slots.length > 0 ? renderGroupedSlots(slots, 'rrze_appointment_slot_preview') : (
-                                <p>Bitte Start/Ende, Dauer und Pause korrekt setzen.</p>
+                                <p>Bitte mindestens einen Tag sowie Startzeit, Endzeit, Dauer und Pause setzen.</p>
                             )}
                         </fieldset>
                     </form>
