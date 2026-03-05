@@ -6,7 +6,7 @@ import {
     TextControl,
     TextareaControl
 } from '@wordpress/components';
-import { InspectorControls } from '@wordpress/block-editor';
+import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
 import { Fragment, useMemo, useState } from '@wordpress/element';
 
 function parseTimeToMinutes(time) {
@@ -183,17 +183,20 @@ function renderGroupedSlots(slots, name) {
     return Object.entries(groups).map(([date, dateSlots]) => (
         <div className="rrze-appointment__date-group" key={date}>
             <h4 className="rrze-appointment__date-title">{date}</h4>
+            <div className="rrze-appointment__slot-grid">
             {dateSlots.map((slot) => (
                 <label className="rrze-appointment__slot-option" key={slot.value}>
                     <input
+                        className="rrze-appointment__slot-radio"
                         type="radio"
                         name={name}
                         value={slot.value}
                         required
                     />
-                    <span>{slot.timeRange}</span>
+                    <span className="rrze-appointment__slot-button">{slot.timeRange}</span>
                 </label>
             ))}
+            </div>
         </div>
     ));
 }
@@ -298,6 +301,7 @@ registerBlockType('rrze/appointment', {
 
         const calendarDates = getCalendarDates(attributes);
         const slots = generateTimeSlots(attributes);
+        const blockProps = useBlockProps();
 
         return (
             <Fragment>
@@ -394,19 +398,21 @@ registerBlockType('rrze/appointment', {
                     </PanelBody>
                 </InspectorControls>
 
-                <div className="rrze-appointment-block">
-                    <h3>{title || 'Termin-Titel'}</h3>
-                    {description && <p>{description}</p>}
-                    {location && <p><strong>Ort:</strong> {location}</p>}
+                <div {...blockProps}>
+                    <div className="rrze-appointment-block" style={{ pointerEvents: 'none' }}>
+                        <h3>{title || 'Termin-Titel'}</h3>
+                        {description && <p>{description}</p>}
+                        {location && <p><strong>Ort:</strong> {location}</p>}
 
-                    <form className="rrze-appointment__form">
-                        <fieldset className="rrze-appointment__slots-grouped">
-                            <legend>Alle Termine</legend>
-                            {slots.length > 0 ? renderGroupedSlots(slots, 'rrze_appointment_slot_preview') : (
-                                <p>Bitte mindestens einen Tag sowie Startzeit, Endzeit, Dauer und Pause setzen.</p>
-                            )}
-                        </fieldset>
-                    </form>
+                        <form className="rrze-appointment__form">
+                            <fieldset className="rrze-appointment__slots-grouped">
+                                <legend>Alle Termine</legend>
+                                {slots.length > 0 ? renderGroupedSlots(slots, 'rrze_appointment_slot_preview') : (
+                                    <p>Bitte mindestens einen Tag sowie Startzeit, Endzeit, Dauer und Pause setzen.</p>
+                                )}
+                            </fieldset>
+                        </form>
+                    </div>
                 </div>
             </Fragment>
         );

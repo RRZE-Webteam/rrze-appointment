@@ -88,6 +88,7 @@
             const slots = dateMap.get(date) || [];
 
             daySlotsList.innerHTML = '';
+            daySlotsList.className = 'rrze-appointment__day-slots-list rrze-appointment__slot-grid';
 
             if (slots.length === 0) {
                 daySlotsFieldset.classList.add('is-hidden');
@@ -103,6 +104,7 @@
                 label.className = 'rrze-appointment__slot-option';
 
                 const input = document.createElement('input');
+                input.className = 'rrze-appointment__slot-radio';
                 input.type = 'radio';
                 input.name = 'rrze_appointment_slot';
                 input.value = slot.value;
@@ -110,6 +112,7 @@
                 input.checked = slot.value === checked;
 
                 const span = document.createElement('span');
+                span.className = 'rrze-appointment__slot-button';
                 span.textContent = slot.label;
 
                 label.appendChild(input);

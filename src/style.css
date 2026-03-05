@@ -65,13 +65,43 @@
     font-size: 1rem;
 }
 
-.rrze-appointment__slot-option {
-    display: block;
-    margin: 0.2rem 0;
+.rrze-appointment__slot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.4rem;
 }
 
-.rrze-appointment__slot-option input {
-    margin-right: 0.45rem;
+.rrze-appointment__slot-option {
+    position: relative;
+    display: block;
+}
+
+.rrze-appointment__slot-radio {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.rrze-appointment__slot-button {
+    display: block;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid #d0d7de;
+    border-radius: 0.35rem;
+    background: #fff;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.rrze-appointment__slot-option:hover .rrze-appointment__slot-button {
+    border-color: #7da7f7;
+    background: #f3f8ff;
+}
+
+.rrze-appointment__slot-radio:checked + .rrze-appointment__slot-button {
+    background: #0b5ed7;
+    border-color: #0b5ed7;
+    color: #fff;
 }
 
 .rrze-appointment__day-slots.is-hidden {
