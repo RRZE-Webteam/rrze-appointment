@@ -1,30 +1,13 @@
 import { registerBlockType } from '@wordpress/blocks';
 import {
     Button,
-    DatePicker,
     PanelBody,
     SelectControl,
     TextControl,
     TextareaControl
 } from '@wordpress/components';
 import { InspectorControls } from '@wordpress/block-editor';
-import { Fragment } from '@wordpress/element';
-
-function normalizePickerDate(value) {
-    if (!value) {
-        return '';
-    }
-
-    if (typeof value === 'string') {
-        return value.slice(0, 10);
-    }
-
-    if (value instanceof Date && !Number.isNaN(value.getTime())) {
-        return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
-    }
-
-    return '';
-}
+import { Fragment, useMemo, useState } from '@wordpress/element';
 
 function parseTimeToMinutes(time) {
     if (!time || typeof time !== 'string') {
@@ -54,12 +37,35 @@ function formatDate(dateObj) {
     return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
 }
 
+function parseDateString(value) {
+    if (!value || typeof value !== 'string') {
+        return null;
+    }
+
+    const [year, month, day] = value.split('-').map(Number);
+    if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+        return null;
+    }
+
+    return new Date(year, month - 1, day);
+}
+
 function normalizeDateList(values) {
     if (!Array.isArray(values)) {
         return [];
     }
 
-    return [...new Set(values.map(normalizePickerDate).filter(Boolean))].sort();
+    return [...new Set(values.map((value) => {
+        if (typeof value === 'string') {
+            return value.slice(0, 10);
+        }
+
+        if (value instanceof Date && !Number.isNaN(value.getTime())) {
+            return formatDate(value);
+        }
+
+        return '';
+    }).filter(Boolean))].sort();
 }
 
 function getDateRange(startDate, endDate) {
@@ -192,6 +198,92 @@ function renderGroupedSlots(slots, name) {
     ));
 }
 
+function CalendarMultiSelect({ selectedDates, onToggleDate }) {
+    const today = new Date();
+    const selectedSet = useMemo(() => new Set(selectedDates), [selectedDates]);
+    const latestSelected = selectedDates[selectedDates.length - 1];
+    const latestSelectedDate = parseDateString(latestSelected);
+    const [viewDate, setViewDate] = useState(() => new Date(
+        latestSelectedDate ? latestSelectedDate.getFullYear() : today.getFullYear(),
+        latestSelectedDate ? latestSelectedDate.getMonth() : today.getMonth(),
+        1
+    ));
+
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const startsOnMonday = (new Date(year, month, 1).getDay() + 6) % 7;
+    const weekdayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+
+    const dayButtons = [];
+    for (let i = 0; i < startsOnMonday; i++) {
+        dayButtons.push(<div key={`empty-${i}`} />);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateString = formatDate(new Date(year, month, day));
+        const isSelected = selectedSet.has(dateString);
+
+        dayButtons.push(
+            <button
+                key={dateString}
+                type="button"
+                onClick={() => onToggleDate(dateString)}
+                aria-label={dateString}
+                style={{
+                    height: '30px',
+                    border: '1px solid #dcdcde',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    background: isSelected ? 'var(--wp-admin-theme-color, #007cba)' : '#fff',
+                    color: isSelected ? '#fff' : '#1e1e1e',
+                    fontWeight: isSelected ? 600 : 400
+                }}
+            >
+                {day}
+            </button>
+        );
+    }
+
+    return (
+        <div style={{ marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <Button
+                    variant="secondary"
+                    isSmall
+                    onClick={() => setViewDate(new Date(year, month - 1, 1))}
+                >
+                    {'<'}
+                </Button>
+                <strong>
+                    {viewDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}
+                </strong>
+                <Button
+                    variant="secondary"
+                    isSmall
+                    onClick={() => setViewDate(new Date(year, month + 1, 1))}
+                >
+                    {'>'}
+                </Button>
+            </div>
+            <div
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+                    gap: '4px'
+                }}
+            >
+                {weekdayNames.map((name) => (
+                    <div key={name} style={{ fontSize: '12px', textAlign: 'center', color: '#50575e' }}>
+                        {name}
+                    </div>
+                ))}
+                {dayButtons}
+            </div>
+        </div>
+    );
+}
+
 registerBlockType('rrze/appointment', {
     edit({ attributes, setAttributes }) {
         const {
@@ -219,14 +311,9 @@ registerBlockType('rrze/appointment', {
 
                         <p><strong>Kalender-Ansicht</strong></p>
                         <p>Ein Klick auf ein Datum fügt es hinzu oder entfernt es wieder.</p>
-                        <DatePicker
-                            currentDate={calendarDates[calendarDates.length - 1] || undefined}
-                            onChange={(value) => {
-                                const selectedDate = normalizePickerDate(value);
-                                if (!selectedDate) {
-                                    return;
-                                }
-
+                        <CalendarMultiSelect
+                            selectedDates={calendarDates}
+                            onToggleDate={(selectedDate) => {
                                 const dateSet = new Set(calendarDates);
                                 if (dateSet.has(selectedDate)) {
                                     dateSet.delete(selectedDate);
@@ -235,7 +322,6 @@ registerBlockType('rrze/appointment', {
                                 }
 
                                 const nextDates = Array.from(dateSet).sort();
-
                                 setAttributes({
                                     selectedDates: nextDates,
                                     startDate: nextDates[0] || '',
@@ -244,30 +330,6 @@ registerBlockType('rrze/appointment', {
                                 });
                             }}
                         />
-                        {calendarDates.length > 0 && (
-                            <div>
-                                {calendarDates.map((date) => (
-                                    <Button
-                                        key={date}
-                                        variant="secondary"
-                                        isSmall
-                                        onClick={() => {
-                                            const nextDates = calendarDates.filter((d) => d !== date);
-                                            setAttributes({
-                                                selectedDates: nextDates,
-                                                startDate: nextDates[0] || '',
-                                                endDate: nextDates[nextDates.length - 1] || '',
-                                                useEndDate: nextDates.length > 1
-                                            });
-                                        }}
-                                        style={{ marginRight: '6px', marginBottom: '6px' }}
-                                    >
-                                        {date} x
-                                    </Button>
-                                ))}
-                            </div>
-                        )}
-
                         <TextControl
                             label="Startzeit"
                             type="time"
