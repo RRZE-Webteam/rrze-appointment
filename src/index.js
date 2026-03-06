@@ -329,6 +329,7 @@ function renderPreviewCalendar(slots) {
 
 function CalendarMultiSelect({ selectedDates, onToggleDate }) {
     const today = new Date();
+    const todayString = formatDate(today);
     const selectedSet = useMemo(() => new Set(selectedDates), [selectedDates]);
     const latestSelected = selectedDates[selectedDates.length - 1];
     const latestSelectedDate = parseDateString(latestSelected);
@@ -352,20 +353,28 @@ function CalendarMultiSelect({ selectedDates, onToggleDate }) {
     for (let day = 1; day <= daysInMonth; day++) {
         const dateString = formatDate(new Date(year, month, day));
         const isSelected = selectedSet.has(dateString);
+        const isPast = dateString < todayString;
 
         dayButtons.push(
             <button
                 key={dateString}
                 type="button"
-                onClick={() => onToggleDate(dateString)}
+                onClick={() => {
+                    if (!isPast) {
+                        onToggleDate(dateString);
+                    }
+                }}
                 aria-label={dateString}
+                disabled={isPast}
                 style={{
                     height: '30px',
                     border: '1px solid #dcdcde',
                     borderRadius: '4px',
-                    cursor: 'pointer',
-                    background: isSelected ? 'var(--wp-admin-theme-color, #007cba)' : '#fff',
-                    color: isSelected ? '#fff' : '#1e1e1e',
+                    cursor: isPast ? 'not-allowed' : 'pointer',
+                    background: isPast
+                        ? '#f0f0f1'
+                        : (isSelected ? 'var(--wp-admin-theme-color, #007cba)' : '#fff'),
+                    color: isPast ? '#8c8f94' : (isSelected ? '#fff' : '#1e1e1e'),
                     fontWeight: isSelected ? 600 : 400
                 }}
             >
