@@ -1,4 +1,5 @@
 import { registerBlockType } from '@wordpress/blocks';
+import './style.css';
 import {
     Button,
     PanelBody,
@@ -199,6 +200,44 @@ function renderGroupedSlots(slots, name) {
             </div>
         </div>
     ));
+}
+
+function renderGroupedSlotsAccordion(slots, name) {
+    const groups = groupSlotsByDate(slots);
+
+    return (
+        <details className="rrze-appointment__accordion rrze-appointment__slots-grouped" open>
+            <summary>Alle Termin</summary>
+            <div className="rrze-appointment__accordion-content">
+                {Object.entries(groups).map(([date, dateSlots], index) => (
+                    <details className="rrze-appointment__date-group" key={date} open={index === 0}>
+                        <summary className="rrze-appointment__date-title">{date}</summary>
+                        <div className="rrze-appointment__slot-grid" data-date={date}>
+                            {dateSlots.map((slot) => (
+                                <div className="rrze-appointment__slot-item" key={slot.value}>
+                                    <input
+                                        className="rrze-appointment__slot-radio"
+                                        type="radio"
+                                        name={name}
+                                        value={slot.value}
+                                        data-label={slot.timeRange}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        className="rrze-appointment__slot-button"
+                                        data-slot-value={slot.value}
+                                    >
+                                        {slot.timeRange}
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </details>
+                ))}
+            </div>
+        </details>
+    );
 }
 
 function CalendarMultiSelect({ selectedDates, onToggleDate }) {
@@ -443,20 +482,21 @@ registerBlockType('rrze/appointment', {
                             <div className="rrze-appointment__day-slots-list" />
                         </fieldset>
 
-                        <fieldset className="rrze-appointment__slots-grouped">
-                            <legend>Alle Termine (gruppiert nach Datum)</legend>
-                            {renderGroupedSlots(slots, 'rrze_appointment_slot')}
-                        </fieldset>
+                        {renderGroupedSlotsAccordion(slots, 'rrze_appointment_slot')}
+
+                        <div className="rrze-appointment__selected-info is-hidden">
+                            <p className="rrze-appointment__selected-text" />
+                            <button type="button" className="rrze-appointment__book-button">
+                                Buchen
+                            </button>
+                            <p className="rrze-appointment__book-status" />
+                        </div>
                     </Fragment>
                 ) : (
                     <p className="rrze-appointment__missing-slot">
                         Keine Timeslots verfügbar.
                     </p>
                 )}
-
-                <button type="submit" className="rrze-appointment__submit" disabled={slots.length === 0}>
-                    Termin buchen
-                </button>
             </form>
         );
     }

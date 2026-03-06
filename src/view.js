@@ -18,25 +18,39 @@
         return ((end.getFullYear() - start.getFullYear()) * 12) + (end.getMonth() - start.getMonth());
     }
 
+    function parseSlotValue(value) {
+        const [date, timeRange = ''] = value.split(' ');
+        const [startTime = ''] = timeRange.split('-');
+
+        return {
+            date,
+            time: startTime,
+            value
+        };
+    }
+
     function buildDateMap(inputs) {
         const map = new Map();
 
         inputs.forEach((input) => {
             const value = input.value || '';
-            const [date] = value.split(' ');
-            if (!date) {
+            const parsed = parseSlotValue(value);
+            if (!parsed.date) {
                 return;
             }
 
-            const label = input.closest('label')?.querySelector('span')?.textContent?.trim() || value;
+            const label = input.dataset.label?.trim() || input.closest('button')?.textContent?.trim()
+                || input.closest('label')?.querySelector('span')?.textContent?.trim()
+                || value;
 
-            if (!map.has(date)) {
-                map.set(date, []);
+            if (!map.has(parsed.date)) {
+                map.set(parsed.date, []);
             }
 
-            map.get(date).push({
+            map.get(parsed.date).push({
                 value,
-                label
+                label,
+                time: parsed.time
             });
         });
 
@@ -48,8 +62,12 @@
         const daySlotsFieldset = form.querySelector('.rrze-appointment__day-slots');
         const daySlotsList = form.querySelector('.rrze-appointment__day-slots-list');
         const groupedFieldset = form.querySelector('.rrze-appointment__slots-grouped');
+        const selectedInfo = form.querySelector('.rrze-appointment__selected-info');
+        const selectedText = form.querySelector('.rrze-appointment__selected-text');
+        const bookButton = form.querySelector('.rrze-appointment__book-button');
+        const bookStatus = form.querySelector('.rrze-appointment__book-status');
 
-        if (!calendar || !daySlotsFieldset || !daySlotsList || !groupedFieldset) {
+        if (!calendar || !daySlotsFieldset || !daySlotsList || !groupedFieldset || !selectedInfo || !selectedText || !bookButton || !bookStatus) {
             return;
         }
 
@@ -70,18 +88,46 @@
         const totalMonths = getMonthDiff(firstDate, lastDate);
 
         let activeDate = availableDates[0];
-        const preselected = form.querySelector('input[name="rrze_appointment_slot"]:checked');
-        if (preselected) {
-            const [selectedDate] = preselected.value.split(' ');
-            if (dateSet.has(selectedDate)) {
-                activeDate = selectedDate;
-            }
-        }
+        let selectedSlotValue = '';
 
-        function syncAllRadios(value) {
-            form.querySelectorAll('input[name="rrze_appointment_slot"]').forEach((input) => {
+        function markHiddenInput(value) {
+            groupedInputs.forEach((input) => {
                 input.checked = input.value === value;
             });
+        }
+
+        function showSelection(value) {
+            const parsed = parseSlotValue(value);
+            if (!parsed.date || !parsed.time) {
+                return;
+            }
+
+            selectedSlotValue = value;
+            markHiddenInput(value);
+
+            selectedText.textContent = `Ihr Termin am ${parsed.date} um ${parsed.time}`;
+            selectedInfo.classList.remove('is-hidden');
+            bookStatus.textContent = '';
+        }
+
+        function createSlotButton(slot) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'rrze-appointment__slot-button';
+            button.textContent = slot.label;
+            button.dataset.slotValue = slot.value;
+
+            if (selectedSlotValue && slot.value === selectedSlotValue) {
+                button.classList.add('is-active');
+            }
+
+            button.addEventListener('click', () => {
+                showSelection(slot.value);
+                renderDaySlots(activeDate);
+                renderGroupedSlots();
+            });
+
+            return button;
         }
 
         function renderDaySlots(date) {
@@ -97,27 +143,20 @@
 
             daySlotsFieldset.classList.remove('is-hidden');
 
-            const checked = form.querySelector('input[name="rrze_appointment_slot"]:checked')?.value || '';
-
             slots.forEach((slot) => {
-                const label = document.createElement('label');
-                label.className = 'rrze-appointment__slot-option';
+                daySlotsList.appendChild(createSlotButton(slot));
+            });
+        }
 
-                const input = document.createElement('input');
-                input.className = 'rrze-appointment__slot-radio';
-                input.type = 'radio';
-                input.name = 'rrze_appointment_slot';
-                input.value = slot.value;
-                input.required = true;
-                input.checked = slot.value === checked;
+        function renderGroupedSlots() {
+            groupedFieldset.querySelectorAll('.rrze-appointment__slot-grid').forEach((grid) => {
+                const date = grid.dataset.date;
+                const slots = dateMap.get(date) || [];
 
-                const span = document.createElement('span');
-                span.className = 'rrze-appointment__slot-button';
-                span.textContent = slot.label;
-
-                label.appendChild(input);
-                label.appendChild(span);
-                daySlotsList.appendChild(label);
+                grid.innerHTML = '';
+                slots.forEach((slot) => {
+                    grid.appendChild(createSlotButton(slot));
+                });
             });
         }
 
@@ -188,28 +227,17 @@
             }
         }
 
-        form.addEventListener('change', (event) => {
-            const target = event.target;
-            if (!(target instanceof HTMLInputElement)) {
+        bookButton.addEventListener('click', () => {
+            if (!selectedSlotValue) {
                 return;
             }
 
-            if (target.name !== 'rrze_appointment_slot' || !target.checked) {
-                return;
-            }
-
-            syncAllRadios(target.value);
-
-            const [selectedDate] = target.value.split(' ');
-            if (selectedDate && selectedDate !== activeDate) {
-                activeDate = selectedDate;
-                renderCalendar();
-                renderDaySlots(activeDate);
-            }
+            bookStatus.textContent = 'gebucht';
         });
 
         renderCalendar();
         renderDaySlots(activeDate);
+        renderGroupedSlots();
     }
 
     document.querySelectorAll('form.rrze-appointment').forEach((form) => {
