@@ -207,7 +207,7 @@ function renderGroupedSlotsAccordion(slots, name) {
 
     return (
         <details className="rrze-appointment__accordion rrze-appointment__slots-grouped" open>
-            <summary>Alle Termin</summary>
+            <summary>Alle Termine</summary>
             <div className="rrze-appointment__accordion-content">
                 {Object.entries(groups).map(([date, dateSlots], index) => (
                     <details className="rrze-appointment__date-group" key={date} open={index === 0}>
@@ -237,6 +237,93 @@ function renderGroupedSlotsAccordion(slots, name) {
                 ))}
             </div>
         </details>
+    );
+}
+
+function renderPreviewCalendar(slots) {
+    const groupedSlots = groupSlotsByDate(slots);
+    const dates = Object.keys(groupedSlots).sort();
+
+    if (dates.length === 0) {
+        return null;
+    }
+
+    const weekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+    const firstDate = parseDateString(dates[0]);
+    const lastDate = parseDateString(dates[dates.length - 1]);
+
+    if (!firstDate || !lastDate) {
+        return null;
+    }
+
+    const totalMonths = ((lastDate.getFullYear() - firstDate.getFullYear()) * 12) + (lastDate.getMonth() - firstDate.getMonth());
+    const activeDate = dates[0];
+
+    return (
+        <Fragment>
+            <div className="rrze-appointment__calendar">
+                {Array.from({ length: totalMonths + 1 }).map((_, index) => {
+                    const monthDate = new Date(firstDate.getFullYear(), firstDate.getMonth() + index, 1);
+                    const year = monthDate.getFullYear();
+                    const monthIndex = monthDate.getMonth();
+                    const firstWeekdayIndex = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
+                    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+
+                    return (
+                        <div className="rrze-appointment__calendar-month" key={String(year) + "-" + String(monthIndex)}>
+                            <div className="rrze-appointment__calendar-title">
+                                {monthDate.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
+                            </div>
+                            <div className="rrze-appointment__calendar-grid">
+                                {weekdays.map((weekday) => (
+                                    <div className="rrze-appointment__weekday" key={weekday}>{weekday}</div>
+                                ))}
+                                {Array.from({ length: firstWeekdayIndex }).map((__, emptyIndex) => (
+                                    <div className="rrze-appointment__calendar-empty" key={"empty-" + String(year) + "-" + String(monthIndex) + "-" + String(emptyIndex)} />
+                                ))}
+                                {Array.from({ length: daysInMonth }).map((__, dayIndex) => {
+                                    const day = dayIndex + 1;
+                                    const dateString = String(year) + "-" + String(monthIndex + 1).padStart(2, "0") + "-" + String(day).padStart(2, "0");
+                                    const isAvailable = dates.includes(dateString);
+                                    const isActive = dateString === activeDate;
+                                    const classNames = ["rrze-appointment__calendar-day"];
+
+                                    if (isAvailable) {
+                                        classNames.push("is-available");
+                                    }
+
+                                    if (isActive) {
+                                        classNames.push("is-active");
+                                    }
+
+                                    return (
+                                        <button
+                                            key={dateString}
+                                            type="button"
+                                            className={classNames.join(" ")}
+                                            disabled={!isAvailable}
+                                        >
+                                            {day}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            <fieldset className="rrze-appointment__day-slots">
+                <legend>Uhrzeiten am ausgewählten Tag</legend>
+                <div className="rrze-appointment__day-slots-list rrze-appointment__slot-grid">
+                    {groupedSlots[activeDate].map((slot) => (
+                        <span className="rrze-appointment__slot-button" key={slot.value}>
+                            {slot.timeRange}
+                        </span>
+                    ))}
+                </div>
+            </fieldset>
+        </Fragment>
     );
 }
 
@@ -438,18 +525,20 @@ registerBlockType('rrze/appointment', {
                 </InspectorControls>
 
                 <div {...blockProps}>
-                    <div className="rrze-appointment-block" style={{ pointerEvents: 'none' }}>
+                    <div className="rrze-appointment-block">
                         <h3>{title || 'Termin-Titel'}</h3>
                         {description && <p>{description}</p>}
                         {location && <p><strong>Ort:</strong> {location}</p>}
 
                         <form className="rrze-appointment__form">
-                            <fieldset className="rrze-appointment__slots-grouped">
-                                <legend>Alle Termine</legend>
-                                {slots.length > 0 ? renderGroupedSlots(slots, 'rrze_appointment_slot_preview') : (
-                                    <p>Bitte mindestens einen Tag sowie Startzeit, Endzeit, Dauer und Pause setzen.</p>
-                                )}
-                            </fieldset>
+                            {slots.length > 0 ? (
+                                <Fragment>
+                                    {renderPreviewCalendar(slots)}
+                                    {renderGroupedSlotsAccordion(slots, 'rrze_appointment_slot_preview')}
+                                </Fragment>
+                            ) : (
+                                <p>Bitte mindestens einen Tag sowie Startzeit, Endzeit, Dauer und Pause setzen.</p>
+                            )}
                         </form>
                     </div>
                 </div>
