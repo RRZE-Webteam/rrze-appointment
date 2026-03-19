@@ -37,6 +37,10 @@
       "type": "string",
       "default": "17:00"
     },
+    "dateOverrides": {
+      "type": "object",
+      "default": {}
+    },
     "duration": {
       "type": "number",
       "default": 30

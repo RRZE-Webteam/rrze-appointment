@@ -8,7 +8,7 @@ import {
     TextareaControl
 } from '@wordpress/components';
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
-import { Fragment, useMemo, useState } from '@wordpress/element';
+import { Fragment, useEffect, useMemo, useState } from '@wordpress/element';
 
 function parseTimeToMinutes(time) {
     if (!time || typeof time !== 'string') {
@@ -111,6 +111,7 @@ function generateTimeSlots(attributes) {
     const {
         startTime,
         endTime,
+        dateOverrides,
         duration,
         breakDuration
     } = attributes;
@@ -120,16 +121,11 @@ function generateTimeSlots(attributes) {
         return [];
     }
 
-    const startMinutes = parseTimeToMinutes(startTime);
-    const endMinutes = parseTimeToMinutes(endTime);
     const slotDuration = Number(duration);
     const pauseMinutes = Number(breakDuration);
 
     if (
-        startMinutes === null
-        || endMinutes === null
-        || endMinutes <= startMinutes
-        || !Number.isFinite(slotDuration)
+        !Number.isFinite(slotDuration)
         || slotDuration <= 0
         || slotDuration % 15 !== 0
         || !Number.isFinite(pauseMinutes)
@@ -140,8 +136,19 @@ function generateTimeSlots(attributes) {
         return [];
     }
 
+    const overrides = (dateOverrides && typeof dateOverrides === 'object') ? dateOverrides : {};
     const slots = [];
     for (const dateString of calendarDates) {
+        const override = overrides[dateString] || {};
+        const dayStartTime = override.startTime || startTime;
+        const dayEndTime = override.endTime || endTime;
+        const startMinutes = parseTimeToMinutes(dayStartTime);
+        const endMinutes = parseTimeToMinutes(dayEndTime);
+
+        if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
+            continue;
+        }
+
         let slotStart = startMinutes;
 
         while (slotStart + slotDuration <= endMinutes) {
@@ -428,6 +435,7 @@ registerBlockType('rrze/appointment', {
             title,
             startTime,
             endTime,
+            dateOverrides,
             duration,
             breakDuration,
             location,
@@ -437,6 +445,19 @@ registerBlockType('rrze/appointment', {
         const calendarDates = getCalendarDates(attributes);
         const slots = generateTimeSlots(attributes);
         const blockProps = useBlockProps();
+        const [activeDate, setActiveDate] = useState(calendarDates[0] || '');
+
+        useEffect(() => {
+            if (!activeDate || !calendarDates.includes(activeDate)) {
+                setActiveDate(calendarDates[0] || '');
+            }
+        }, [activeDate, calendarDates]);
+
+        const firstDate = calendarDates[0] || '';
+        const activeOverrides = (dateOverrides && typeof dateOverrides === 'object') ? dateOverrides : {};
+        const activeOverride = activeDate ? (activeOverrides[activeDate] || {}) : {};
+        const effectiveStartTime = activeOverride.startTime || startTime;
+        const effectiveEndTime = activeOverride.endTime || endTime;
 
         return (
             <Fragment>
@@ -454,8 +475,11 @@ registerBlockType('rrze/appointment', {
                             selectedDates={calendarDates}
                             onToggleDate={(selectedDate) => {
                                 const dateSet = new Set(calendarDates);
+                                const overridesNext = { ...((dateOverrides && typeof dateOverrides === 'object') ? dateOverrides : {}) };
+                                const wasSelected = dateSet.has(selectedDate);
                                 if (dateSet.has(selectedDate)) {
                                     dateSet.delete(selectedDate);
+                                    delete overridesNext[selectedDate];
                                 } else {
                                     dateSet.add(selectedDate);
                                 }
@@ -465,23 +489,60 @@ registerBlockType('rrze/appointment', {
                                     selectedDates: nextDates,
                                     startDate: nextDates[0] || '',
                                     endDate: nextDates[nextDates.length - 1] || '',
-                                    useEndDate: nextDates.length > 1
+                                    useEndDate: nextDates.length > 1,
+                                    dateOverrides: overridesNext
                                 });
+
+                                if (wasSelected) {
+                                    if (activeDate === selectedDate) {
+                                        setActiveDate(nextDates[0] || '');
+                                    }
+                                } else {
+                                    setActiveDate(selectedDate);
+                                }
                             }}
                         />
                         <TextControl
                             label="Startzeit"
                             type="time"
                             step={300}
-                            value={startTime}
-                            onChange={(value) => setAttributes({ startTime: value })}
+                            value={effectiveStartTime}
+                            onChange={(value) => {
+                                if (activeDate && activeDate !== firstDate) {
+                                    setAttributes({
+                                        dateOverrides: {
+                                            ...activeOverrides,
+                                            [activeDate]: {
+                                                ...activeOverride,
+                                                startTime: value
+                                            }
+                                        }
+                                    });
+                                    return;
+                                }
+                                setAttributes({ startTime: value });
+                            }}
                         />
                         <TextControl
                             label="Endzeit"
                             type="time"
                             step={300}
-                            value={endTime}
-                            onChange={(value) => setAttributes({ endTime: value })}
+                            value={effectiveEndTime}
+                            onChange={(value) => {
+                                if (activeDate && activeDate !== firstDate) {
+                                    setAttributes({
+                                        dateOverrides: {
+                                            ...activeOverrides,
+                                            [activeDate]: {
+                                                ...activeOverride,
+                                                endTime: value
+                                            }
+                                        }
+                                    });
+                                    return;
+                                }
+                                setAttributes({ endTime: value });
+                            }}
                         />
 
                         <SelectControl
