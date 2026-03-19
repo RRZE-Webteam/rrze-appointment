@@ -334,7 +334,7 @@ function renderPreviewCalendar(slots) {
     );
 }
 
-function CalendarMultiSelect({ selectedDates, onToggleDate }) {
+function CalendarMultiSelect({ selectedDates, activeDate, onToggleDate }) {
     const today = new Date();
     const todayString = formatDate(today);
     const selectedSet = useMemo(() => new Set(selectedDates), [selectedDates]);
@@ -358,9 +358,31 @@ function CalendarMultiSelect({ selectedDates, onToggleDate }) {
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
-        const dateString = formatDate(new Date(year, month, day));
+        const dayDate = new Date(year, month, day);
+        const dateString = formatDate(dayDate);
         const isSelected = selectedSet.has(dateString);
         const isPast = dateString < todayString;
+        const isToday = dateString === todayString;
+        const isActive = !!activeDate && dateString === activeDate;
+        const dayOfWeek = dayDate.getDay(); // 0 = Sunday, 6 = Saturday
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+        const baseBackground = isPast
+            ? '#f0f0f1'
+            : (isWeekend ? '#f3f4f6' : '#fff');
+        const selectedBackground = isSelected
+            ? 'var(--wp-admin-theme-color, #007cba)'
+            : baseBackground;
+        const textColor = isPast
+            ? '#8c8f94'
+            : (isSelected ? '#fff' : '#1e1e1e');
+        let borderColor = '#dcdcde';
+        if (isToday) {
+            borderColor = '#2f7d32';
+        }
+        if (isActive) {
+            borderColor = '#d63638';
+        }
 
         dayButtons.push(
             <button
@@ -375,13 +397,11 @@ function CalendarMultiSelect({ selectedDates, onToggleDate }) {
                 disabled={isPast}
                 style={{
                     height: '30px',
-                    border: '1px solid #dcdcde',
+                    border: `2px solid ${borderColor}`,
                     borderRadius: '4px',
                     cursor: isPast ? 'not-allowed' : 'pointer',
-                    background: isPast
-                        ? '#f0f0f1'
-                        : (isSelected ? 'var(--wp-admin-theme-color, #007cba)' : '#fff'),
-                    color: isPast ? '#8c8f94' : (isSelected ? '#fff' : '#1e1e1e'),
+                    background: selectedBackground,
+                    color: textColor,
                     fontWeight: isSelected ? 600 : 400
                 }}
             >
@@ -473,6 +493,7 @@ registerBlockType('rrze/appointment', {
                         <p>Ein Klick auf ein Datum fügt es hinzu oder entfernt es wieder.</p>
                         <CalendarMultiSelect
                             selectedDates={calendarDates}
+                            activeDate={activeDate}
                             onToggleDate={(selectedDate) => {
                                 const dateSet = new Set(calendarDates);
                                 const overridesNext = { ...((dateOverrides && typeof dateOverrides === 'object') ? dateOverrides : {}) };
