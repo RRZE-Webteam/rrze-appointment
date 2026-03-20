@@ -1,6 +1,6 @@
 {
   "name": "rrze-appointment",
-  "version": "0.0.55",
+  "version": "0.0.56",
   "description": "Plugin for creating and maintaining appointments. Usable as a block.",
   "author": "RRZE Webteam",
   "license": "GPL-2.0-or-later",

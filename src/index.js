@@ -1,6 +1,6 @@
 import { registerBlockType } from '@wordpress/blocks';
 import { Fragment } from '@wordpress/element';
-import './style.css';
+import './style.scss';
 import Edit from './edit';
 import { generateTimeSlots, renderGroupedSlotsAccordion } from './utils';
 

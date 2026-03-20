@@ -1,0 +1,242 @@
+.rrze-appointment {
+    &__calendar {
+        margin-bottom: 1rem;
+
+        &-month {
+            margin-bottom: 1rem;
+        }
+
+        &-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        &-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(2rem, 1fr));
+            gap: 0.35rem;
+        }
+
+        &-empty,
+        &-day {
+            min-height: 2.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        &-day {
+            border: 1px solid #d0d7de;
+            border-radius: 0.35rem;
+            background: #fff !important;
+            color: #1e1e1e !important;
+
+            &.is-past {
+                background: #f0f0f1 !important;
+                color: #8c8f94 !important;
+                border-color: #dcdcde;
+            }
+
+            &.is-available {
+                background: #7bb725 !important;
+                border-color: #5a8a1a;
+                color: #fff !important;
+                cursor: pointer;
+            }
+
+            &.is-active {
+                background: #04316a !important;
+                border-color: #04316a;
+                color: #fff !important;
+            }
+
+            &.is-today {
+                outline: 2px solid #fff200;
+                outline-offset: -2px;
+            }
+        }
+
+        &-nav {
+            background: none;
+            border: 1px solid #dcdcde;
+            border-radius: 4px;
+            color: #1e1e1e;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            padding: 2px 8px;
+        }
+    }
+
+    &__weekday {
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-align: center;
+        color: #555;
+        background-color: #fff;
+    }
+
+    &__day-slots,
+    &__slots-grouped {
+        margin: 1rem 0;
+    }
+
+    &__day-slots {
+        &.is-hidden {
+            display: none;
+        }
+    }
+
+    &__accordion > summary,
+    &__date-group > summary {
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    &__accordion-content {
+        margin-top: 0.75rem;
+    }
+
+    &__date-group {
+        margin-bottom: 0.85rem;
+    }
+
+    &__date-title {
+        margin: 0 0 0.35rem;
+        font-size: 1rem;
+    }
+
+    &__slot-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.4rem;
+        margin-top: 0.5rem;
+    }
+
+    &__slot-item {
+        position: relative;
+        display: block;
+    }
+
+    &__slot-option {
+        position: relative;
+        display: block;
+
+        &:hover .rrze-appointment__slot-button {
+            border-color: #7da7f7;
+            background: #f3f8ff;
+        }
+    }
+
+    &__slot-radio {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+
+        &:checked + .rrze-appointment__slot-button {
+            background: #0b5ed7;
+            border-color: #0b5ed7;
+            color: #fff;
+        }
+    }
+
+    &__slot-button {
+        display: block;
+        width: 100%;
+        padding: 0.5rem 0.65rem;
+        border: 1px solid #d0d7de;
+        border-radius: 0.35rem;
+        background: #fff;
+        color: #1e1e1e;
+        text-align: center;
+        cursor: pointer;
+        transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+        &:hover {
+            border-color: #7da7f7;
+            background: #f3f8ff;
+        }
+
+        &.is-active {
+            background: #0b5ed7;
+            border-color: #0b5ed7;
+            color: #fff;
+        }
+    }
+
+    &__slot-delete,
+    &__slot-add {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 1px solid #d0d7de;
+        background: #fff;
+        color: #1e1e1e;
+        font-size: 16px;
+        line-height: 1;
+        cursor: pointer;
+        transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+
+    &__slot-delete {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        width: 24px;
+        height: 24px;
+        border-color: #d63638;
+        color: #d63638;
+        background: #fff;
+
+        &:hover {
+            background: #fff5f5;
+            border-color: #b32d2e;
+            color: #b32d2e;
+        }
+    }
+
+    &__slot-add {
+        width: 100%;
+        height: 100%;
+        min-height: 40px;
+        border-style: dashed;
+        color: #0b5ed7;
+
+        &:hover {
+            background: #f3f8ff;
+            border-color: #7da7f7;
+        }
+    }
+
+    &__selected-info {
+        margin-top: 1rem;
+
+        &.is-hidden {
+            display: none;
+        }
+    }
+
+    &__selected-text {
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+
+    &__book-button {
+        border: 1px solid #0b5ed7;
+        border-radius: 0.35rem;
+        background: #0b5ed7;
+        color: #fff;
+        padding: 0.45rem 0.85rem;
+        cursor: pointer;
+    }
+
+    &__book-status {
+        margin-top: 0.45rem;
+    }
+}

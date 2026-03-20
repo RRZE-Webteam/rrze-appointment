@@ -184,7 +184,6 @@
 
             const titleRow = document.createElement('div');
             titleRow.className = 'rrze-appointment__calendar-title';
-            titleRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;';
 
             const prevBtn = document.createElement('button');
             prevBtn.type = 'button';
