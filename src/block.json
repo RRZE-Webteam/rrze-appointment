@@ -56,6 +56,10 @@
     "description": {
       "type": "string",
       "default": ""
+    },
+    "recurrence": {
+      "type": "object",
+      "default": {}
     }
   },
   "editorScript": "file:./index.js",

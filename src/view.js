@@ -6,6 +6,14 @@
         return new Date(year, (month || 1) - 1, day || 1);
     }
 
+    function formatDateDisplay(value) {
+        const dateObj = parseDate(value);
+        if (Number.isNaN(dateObj.getTime())) {
+            return value;
+        }
+        return dateObj.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
     function formatMonthTitle(dateObj) {
         return dateObj.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
     }
@@ -105,7 +113,7 @@
             selectedSlotValue = value;
             markHiddenInput(value);
 
-            selectedText.textContent = `Ihr Termin am ${parsed.date} um ${parsed.time}`;
+            selectedText.textContent = `Ihr Termin am ${formatDateDisplay(parsed.date)} um ${parsed.time}`;
             selectedInfo.classList.remove('is-hidden');
             bookStatus.textContent = '';
         }
