@@ -137,9 +137,17 @@ function PreviewCalendar({ slots, onRemoveSlot, onAddSlot }) {
                         {Array.from({ length: daysInMonth }).map((_, dayIndex) => {
                             const day = dayIndex + 1;
                             const dateString = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                            const today = new Date();
+                            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                            const dayOfWeek = new Date(year, monthIndex, day).getDay();
+                            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                            const isPast = dateString < todayStr;
+                            const isToday = dateString === todayStr;
                             const isAvailable = dates.includes(dateString);
                             const isActive = dateString === activeDate;
                             const classNames = ['rrze-appointment__calendar-day'];
+                            if (isPast || isWeekend) classNames.push('is-past');
+                            if (isToday) classNames.push('is-today');
                             if (isAvailable) classNames.push('is-available');
                             if (isActive) classNames.push('is-active');
                             return (

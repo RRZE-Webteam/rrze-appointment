@@ -22,7 +22,7 @@
     font-weight: 600;
     text-align: center;
     color: #555;
-    background-color: none;
+    background-color: #fff;
 }
 
 .rrze-appointment__calendar-empty,
@@ -36,46 +36,30 @@
 .rrze-appointment__calendar-day {
     border: 1px solid #d0d7de;
     border-radius: 0.35rem;
-    background: #fff;
-    color: #1e1e1e;
-}
-
-.rrze-appointment__calendar-day:disabled {
-    color: #8c8f94;
-    background: #fff;
-    border-color: #dcdcde;
+    background: #fff !important;
+    color: #1e1e1e !important;
 }
 
 .rrze-appointment__calendar-day.is-past {
-    background: #f0f0f1;
-    color: #8c8f94;
+    background: #f0f0f1 !important;
+    color: #8c8f94 !important;
     border-color: #dcdcde;
 }
 
 .rrze-appointment__calendar-day.is-available {
-    background: #d6e4f7;
-    border-color: #04316a;
-    color: #04316a;
+    background: #7BB725 !important;
+    border-color: #5a8a1a;
+    color: #fff !important;
     cursor: pointer;
 }
 
 .rrze-appointment__calendar-day.is-active {
-    background: #7BB725;
-    border-color: #5a8a1a;
-    color: #fff;
+    background: #04316a !important;
+    border-color: #04316a;
+    color: #fff !important;
 }
 
 .rrze-appointment__calendar-day.is-today {
-    outline: 2px solid #fff200;
-    outline-offset: -2px;
-}
-
-.rrze-appointment__calendar-day.is-available.is-today {
-    outline: 2px solid #fff200;
-    outline-offset: -2px;
-}
-
-.rrze-appointment__calendar-day.is-active.is-today {
     outline: 2px solid #fff200;
     outline-offset: -2px;
 }
