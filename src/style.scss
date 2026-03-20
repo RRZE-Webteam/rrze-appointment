@@ -42,40 +42,48 @@
             justify-content: center;
         }
 
+        $cal-border-default:    #c8c9c7; // Cool Gray 3 C
+        $cal-bg-past:           #d9d9d6; // Cool Gray 1 C
+        $cal-text-past:         #97999b; // Cool Gray 7 C
+        $cal-bg-available:      #D0E2CC;
+        $cal-border-available:  #007a5e;
+        $cal-bg-active:         #8eb4d5;
+        $cal-today-outline:     #ffc72c;
+
         &-day {
-            border: 1px solid #d0d7de;
+            border: 1px solid $cal-border-default;
             border-radius: 0.35rem;
             background: #fff !important;
             color: #1e1e1e !important;
 
             &.is-past {
-                background: #f0f0f1 !important;
-                color: #8c8f94 !important;
-                border-color: #dcdcde;
+                background: $cal-bg-past !important;
+                color: $cal-text-past !important;
+                border-color: $cal-bg-past;
             }
 
             &.is-available {
-                background: #6dd0f6 !important;
-                border-color: #005287;
+                background: $cal-bg-available !important;
+                border-color: $cal-border-available;
                 color: #fff !important;
                 cursor: pointer;
             }
 
             &.is-active {
-                background: #04316a !important;
-                border-color: #04316a;
+                background: $cal-bg-active !important;
+                border-color: $cal-bg-active;
                 color: #fff !important;
             }
 
             &.is-today {
-                outline: 2px solid #fff200;
+                outline: 2px solid $cal-today-outline;
                 outline-offset: -2px;
             }
         }
 
         &-nav {
             background: none;
-            border: 1px solid #dcdcde;
+            border: 1px solid $cal-border-default;
             border-radius: 4px;
             color: #1e1e1e;
             cursor: pointer;
