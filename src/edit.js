@@ -99,97 +99,97 @@ function CalendarMultiSelect({ selectedDates, activeDate, onToggleDate }) {
     );
 }
 
-function renderPreviewCalendar(slots, { onRemoveSlot, onAddSlot } = {}) {
+function PreviewCalendar({ slots, onRemoveSlot, onAddSlot }) {
     const groupedSlots = groupSlotsByDate(slots);
     const dates = Object.keys(groupedSlots).sort();
     if (dates.length === 0) return null;
 
-    const weekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
     const firstDate = parseDateString(dates[0]);
-    const lastDate = parseDateString(dates[dates.length - 1]);
-    if (!firstDate || !lastDate) return null;
+    if (!firstDate) return null;
 
-    const totalMonths = ((lastDate.getFullYear() - firstDate.getFullYear()) * 12) + (lastDate.getMonth() - firstDate.getMonth());
-    const activeDate = dates[0];
+    const [viewDate, setViewDate] = useState(() => new Date(firstDate.getFullYear(), firstDate.getMonth(), 1));
+    const [activeDate, setActiveDate] = useState(dates[0]);
+
+    const year = viewDate.getFullYear();
+    const monthIndex = viewDate.getMonth();
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+    const firstWeekdayIndex = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
+    const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+
+    const activeDateSlots = activeDate ? (groupedSlots[activeDate] || []) : [];
 
     return (
         <Fragment>
             <div className="rrze-appointment__calendar">
-                {Array.from({ length: totalMonths + 1 }).map((_, index) => {
-                    const monthDate = new Date(firstDate.getFullYear(), firstDate.getMonth() + index, 1);
-                    const year = monthDate.getFullYear();
-                    const monthIndex = monthDate.getMonth();
-                    const firstWeekdayIndex = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
-                    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-
-                    return (
-                        <div className="rrze-appointment__calendar-month" key={String(year) + "-" + String(monthIndex)}>
-                            <div className="rrze-appointment__calendar-title">
-                                {monthDate.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
-                            </div>
-                            <div className="rrze-appointment__calendar-grid">
-                                {weekdays.map((weekday) => (
-                                    <div className="rrze-appointment__weekday" key={weekday}>{weekday}</div>
-                                ))}
-                                {Array.from({ length: firstWeekdayIndex }).map((__, emptyIndex) => (
-                                    <div className="rrze-appointment__calendar-empty" key={"empty-" + String(year) + "-" + String(monthIndex) + "-" + String(emptyIndex)} />
-                                ))}
-                                {Array.from({ length: daysInMonth }).map((__, dayIndex) => {
-                                    const day = dayIndex + 1;
-                                    const dateString = String(year) + "-" + String(monthIndex + 1).padStart(2, "0") + "-" + String(day).padStart(2, "0");
-                                    const isAvailable = dates.includes(dateString);
-                                    const isActive = dateString === activeDate;
-                                    const classNames = ["rrze-appointment__calendar-day"];
-                                    if (isAvailable) classNames.push("is-available");
-                                    if (isActive) classNames.push("is-active");
-
-                                    return (
-                                        <button
-                                            key={dateString}
-                                            type="button"
-                                            className={classNames.join(" ")}
-                                            disabled={!isAvailable}
-                                        >
-                                            {day}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    );
-                })}
+                <div className="rrze-appointment__calendar-month">
+                    <div className="rrze-appointment__calendar-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <button type="button" onClick={() => setViewDate(new Date(year, monthIndex - 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}>{'‹'}</button>
+                        <span>{viewDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</span>
+                        <button type="button" onClick={() => setViewDate(new Date(year, monthIndex + 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}>{'›'}</button>
+                    </div>
+                    <div className="rrze-appointment__calendar-grid">
+                        {weekdays.map((w) => (
+                            <div className="rrze-appointment__weekday" key={w}>{w}</div>
+                        ))}
+                        {Array.from({ length: firstWeekdayIndex }).map((_, i) => (
+                            <div className="rrze-appointment__calendar-empty" key={`empty-${i}`} />
+                        ))}
+                        {Array.from({ length: daysInMonth }).map((_, dayIndex) => {
+                            const day = dayIndex + 1;
+                            const dateString = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                            const isAvailable = dates.includes(dateString);
+                            const isActive = dateString === activeDate;
+                            const classNames = ['rrze-appointment__calendar-day'];
+                            if (isAvailable) classNames.push('is-available');
+                            if (isActive) classNames.push('is-active');
+                            return (
+                                <button
+                                    key={dateString}
+                                    type="button"
+                                    className={classNames.join(' ')}
+                                    disabled={!isAvailable}
+                                    onClick={() => isAvailable && setActiveDate(dateString)}
+                                >
+                                    {day}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
             </div>
 
-            <fieldset className="rrze-appointment__day-slots">
-                <legend>Uhrzeiten am ausgewählten Tag</legend>
-                <div className="rrze-appointment__day-slots-list rrze-appointment__slot-grid">
-                    {groupedSlots[activeDate].map((slot) => (
-                        <div className="rrze-appointment__slot-item" key={slot.value}>
-                            <button type="button" className="rrze-appointment__slot-button">{slot.timeRange}</button>
-                            {onRemoveSlot && (
-                                <button
-                                    type="button"
-                                    className="rrze-appointment__slot-delete"
-                                    aria-label={`Uhrzeit ${slot.timeRange} löschen`}
-                                    onClick={() => onRemoveSlot(slot)}
-                                >
-                                    ×
-                                </button>
-                            )}
-                        </div>
-                    ))}
-                    {onAddSlot && (
-                        <button
-                            type="button"
-                            className="rrze-appointment__slot-add"
-                            aria-label={`Uhrzeit am ${formatDateDisplay(activeDate)} hinzufügen`}
-                            onClick={() => onAddSlot(activeDate)}
-                        >
-                            +
-                        </button>
-                    )}
-                </div>
-            </fieldset>
+            {activeDate && activeDateSlots.length > 0 && (
+                <fieldset className="rrze-appointment__day-slots">
+                    <legend>Uhrzeiten am {formatDateDisplay(activeDate)}</legend>
+                    <div className="rrze-appointment__day-slots-list rrze-appointment__slot-grid">
+                        {activeDateSlots.map((slot) => (
+                            <div className="rrze-appointment__slot-item" key={slot.value}>
+                                <button type="button" className="rrze-appointment__slot-button">{slot.timeRange}</button>
+                                {onRemoveSlot && (
+                                    <button
+                                        type="button"
+                                        className="rrze-appointment__slot-delete"
+                                        aria-label={`Uhrzeit ${slot.timeRange} löschen`}
+                                        onClick={() => onRemoveSlot(slot)}
+                                    >
+                                        ×
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                        {onAddSlot && (
+                            <button
+                                type="button"
+                                className="rrze-appointment__slot-add"
+                                aria-label={`Uhrzeit am ${formatDateDisplay(activeDate)} hinzufügen`}
+                                onClick={() => onAddSlot(activeDate)}
+                            >
+                                +
+                            </button>
+                        )}
+                    </div>
+                </fieldset>
+            )}
         </Fragment>
     );
 }
@@ -505,7 +505,7 @@ export default function Edit({ attributes, setAttributes }) {
                     <form className="rrze-appointment__form">
                         {slots.length > 0 ? (
                             <Fragment>
-                                {renderPreviewCalendar(slots, { onRemoveSlot: handleRemoveSlot, onAddSlot: handleOpenAddSlot })}
+                                <PreviewCalendar slots={slots} onRemoveSlot={handleRemoveSlot} onAddSlot={handleOpenAddSlot} />
                                 {renderGroupedSlotsAccordion(slots, 'rrze_appointment_slot_preview', { onRemoveSlot: handleRemoveSlot, onAddSlot: handleOpenAddSlot })}
                             </Fragment>
                         ) : (

@@ -97,6 +97,8 @@
 
         let activeDate = availableDates[0];
         let selectedSlotValue = '';
+        let currentYear = firstDate.getFullYear();
+        let currentMonth = firstDate.getMonth();
 
         function markHiddenInput(value) {
             groupedInputs.forEach((input) => {
@@ -150,6 +152,8 @@
             }
 
             daySlotsFieldset.classList.remove('is-hidden');
+            const legend = daySlotsFieldset.querySelector('legend') || daySlotsFieldset.querySelector('.rrze-appointment__day-slots-title');
+            if (legend) legend.textContent = `Verfügbare Termine am ${formatDateDisplay(date)}`;
 
             slots.forEach((slot) => {
                 daySlotsList.appendChild(createSlotButton(slot));
@@ -171,68 +175,102 @@
         function renderCalendar() {
             calendar.innerHTML = '';
 
-            for (let i = 0; i <= totalMonths; i += 1) {
-                const monthDate = new Date(firstDate.getFullYear(), firstDate.getMonth() + i, 1);
-                const year = monthDate.getFullYear();
-                const monthIndex = monthDate.getMonth();
+            const monthDate = new Date(currentYear, currentMonth, 1);
+            const year = monthDate.getFullYear();
+            const monthIndex = monthDate.getMonth();
 
-                const monthWrapper = document.createElement('div');
-                monthWrapper.className = 'rrze-appointment__calendar-month';
+            const monthWrapper = document.createElement('div');
+            monthWrapper.className = 'rrze-appointment__calendar-month';
 
-                const title = document.createElement('div');
-                title.className = 'rrze-appointment__calendar-title';
-                title.textContent = formatMonthTitle(monthDate);
-                monthWrapper.appendChild(title);
+            const titleRow = document.createElement('div');
+            titleRow.className = 'rrze-appointment__calendar-title';
+            titleRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;';
 
-                const grid = document.createElement('div');
-                grid.className = 'rrze-appointment__calendar-grid';
+            const prevBtn = document.createElement('button');
+            prevBtn.type = 'button';
+            prevBtn.textContent = '‹';
+            prevBtn.className = 'rrze-appointment__calendar-nav';
+            prevBtn.addEventListener('click', () => {
+                const prev = new Date(currentYear, currentMonth - 1, 1);
+                currentYear = prev.getFullYear();
+                currentMonth = prev.getMonth();
+                renderCalendar();
+            });
 
-                WEEKDAYS.forEach((weekday) => {
-                    const cell = document.createElement('div');
-                    cell.className = 'rrze-appointment__weekday';
-                    cell.textContent = weekday;
-                    grid.appendChild(cell);
-                });
+            const nextBtn = document.createElement('button');
+            nextBtn.type = 'button';
+            nextBtn.textContent = '›';
+            nextBtn.className = 'rrze-appointment__calendar-nav';
+            nextBtn.addEventListener('click', () => {
+                const next = new Date(currentYear, currentMonth + 1, 1);
+                currentYear = next.getFullYear();
+                currentMonth = next.getMonth();
+                renderCalendar();
+            });
 
-                const firstWeekdayIndex = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
-                const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+            const titleText = document.createElement('span');
+            titleText.textContent = formatMonthTitle(monthDate);
 
-                for (let e = 0; e < firstWeekdayIndex; e += 1) {
-                    const empty = document.createElement('div');
-                    empty.className = 'rrze-appointment__calendar-empty';
-                    grid.appendChild(empty);
-                }
+            titleRow.appendChild(prevBtn);
+            titleRow.appendChild(titleText);
+            titleRow.appendChild(nextBtn);
+            monthWrapper.appendChild(titleRow);
 
-                for (let day = 1; day <= daysInMonth; day += 1) {
-                    const dateString = toDateString(year, monthIndex, day);
-                    const button = document.createElement('button');
+            const grid = document.createElement('div');
+            grid.className = 'rrze-appointment__calendar-grid';
 
-                    button.type = 'button';
-                    button.className = 'rrze-appointment__calendar-day';
-                    button.textContent = String(day);
+            WEEKDAYS.forEach((weekday) => {
+                const cell = document.createElement('div');
+                cell.className = 'rrze-appointment__weekday';
+                cell.textContent = weekday;
+                grid.appendChild(cell);
+            });
 
-                    if (dateSet.has(dateString)) {
-                        button.classList.add('is-available');
+            const firstWeekdayIndex = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
+            const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
 
-                        if (dateString === activeDate) {
-                            button.classList.add('is-active');
-                        }
-
-                        button.addEventListener('click', () => {
-                            activeDate = dateString;
-                            renderCalendar();
-                            renderDaySlots(activeDate);
-                        });
-                    } else {
-                        button.disabled = true;
-                    }
-
-                    grid.appendChild(button);
-                }
-
-                monthWrapper.appendChild(grid);
-                calendar.appendChild(monthWrapper);
+            for (let e = 0; e < firstWeekdayIndex; e += 1) {
+                const empty = document.createElement('div');
+                empty.className = 'rrze-appointment__calendar-empty';
+                grid.appendChild(empty);
             }
+
+            const today = new Date();
+            const todayStr = toDateString(today.getFullYear(), today.getMonth(), today.getDate());
+
+            for (let day = 1; day <= daysInMonth; day += 1) {
+                const dateString = toDateString(year, monthIndex, day);
+                const dayOfWeek = new Date(year, monthIndex, day).getDay();
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                const isPast = dateString < todayStr;
+                const isToday = dateString === todayStr;
+                const button = document.createElement('button');
+
+                button.type = 'button';
+                button.className = 'rrze-appointment__calendar-day';
+                if (isWeekend || isPast) button.classList.add('is-past');
+                if (isToday) button.classList.add('is-today');
+                button.textContent = String(day);
+
+                if (dateSet.has(dateString)) {
+                    button.classList.add('is-available');
+                    if (dateString === activeDate) {
+                        button.classList.add('is-active');
+                    }
+                    button.addEventListener('click', () => {
+                        activeDate = dateString;
+                        renderCalendar();
+                        renderDaySlots(activeDate);
+                    });
+                } else {
+                    button.disabled = true;
+                }
+
+                grid.appendChild(button);
+            }
+
+            monthWrapper.appendChild(grid);
+            calendar.appendChild(monthWrapper);
         }
 
         bookButton.addEventListener('click', () => {
