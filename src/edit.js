@@ -99,7 +99,7 @@ function CalendarMultiSelect({ selectedDates, activeDate, onToggleDate }) {
     );
 }
 
-function PreviewCalendar({ slots, onRemoveSlot, onAddSlot }) {
+function PreviewCalendar({ slots, onRemoveSlot, onAddSlot, activeDate, setActiveDate }) {
     const groupedSlots = groupSlotsByDate(slots);
     const dates = Object.keys(groupedSlots).sort();
     if (dates.length === 0) return null;
@@ -108,7 +108,16 @@ function PreviewCalendar({ slots, onRemoveSlot, onAddSlot }) {
     if (!firstDate) return null;
 
     const [viewDate, setViewDate] = useState(() => new Date(firstDate.getFullYear(), firstDate.getMonth(), 1));
-    const [activeDate, setActiveDate] = useState(dates[0]);
+
+    useEffect(() => {
+        if (!activeDate) return;
+        const d = parseDateString(activeDate);
+        if (!d) return;
+        setViewDate((prev) => {
+            if (prev.getFullYear() === d.getFullYear() && prev.getMonth() === d.getMonth()) return prev;
+            return new Date(d.getFullYear(), d.getMonth(), 1);
+        });
+    }, [activeDate]);
 
     const year = viewDate.getFullYear();
     const monthIndex = viewDate.getMonth();
@@ -513,7 +522,7 @@ export default function Edit({ attributes, setAttributes }) {
                     <form className="rrze-appointment__form">
                         {slots.length > 0 ? (
                             <Fragment>
-                                <PreviewCalendar slots={slots} onRemoveSlot={handleRemoveSlot} onAddSlot={handleOpenAddSlot} />
+                                <PreviewCalendar slots={slots} onRemoveSlot={handleRemoveSlot} onAddSlot={handleOpenAddSlot} activeDate={activeDate} setActiveDate={setActiveDate} />
                                 {renderGroupedSlotsAccordion(slots, 'rrze_appointment_slot_preview', { onRemoveSlot: handleRemoveSlot, onAddSlot: handleOpenAddSlot })}
                             </Fragment>
                         ) : (

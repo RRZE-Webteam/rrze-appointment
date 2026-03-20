@@ -34,11 +34,12 @@ class Main
     public function onInit()
     {
         $this->defaults = new Defaults();
-        // $this->settings();
 
         add_action('wp_enqueue_scripts', [$this, 'enqueueAssets']);
         add_action('enqueue_block_assets', [$this, 'enqueueAssets']);
         add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets']);
+        add_action('wp_ajax_rrze_appointment_book', [$this, 'handleBooking']);
+        add_action('wp_ajax_nopriv_rrze_appointment_book', [$this, 'handleBooking']);
     }
 
 
@@ -226,7 +227,87 @@ class Main
      */
     public function enqueueAssets()
     {
+        $viewHandle = 'rrze-appointment-view-script';
+        if (wp_script_is($viewHandle, 'registered')) {
+            wp_localize_script($viewHandle, 'rrze_appointment', [
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'nonce'   => wp_create_nonce('rrze_appointment_book'),
+            ]);
+        }
+    }
 
+    public function handleBooking(): void
+    {
+        check_ajax_referer('rrze_appointment_book', 'nonce');
+
+        $slot     = sanitize_text_field($_POST['slot'] ?? '');
+        $title    = sanitize_text_field($_POST['title'] ?? 'Termin');
+        $location = sanitize_text_field($_POST['location'] ?? '');
+
+        if (!$slot) {
+            wp_send_json_error('Kein Termin angegeben.');
+        }
+
+        // Parse slot: "YYYY-MM-DD HH:MM-HH:MM"
+        [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
+        [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
+
+        if (!$datePart || !$startTime || !$endTime) {
+            wp_send_json_error('Ungültiges Termin-Format.');
+        }
+
+        $tz      = wp_timezone();
+        $dtStart = new \DateTime($datePart . 'T' . $startTime . ':00', $tz);
+        $dtEnd   = new \DateTime($datePart . 'T' . $endTime . ':00', $tz);
+        $now     = new \DateTime('now', new \DateTimeZone('UTC'));
+        $tzId    = $tz->getName();
+        $uid     = wp_generate_uuid4() . '@' . parse_url(home_url(), PHP_URL_HOST);
+
+        $ics = implode("\r\n", [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//RRZE Appointment//DE',
+            'CALSCALE:GREGORIAN',
+            'METHOD:REQUEST',
+            'BEGIN:VEVENT',
+            'UID:' . $uid,
+            'DTSTAMP:' . $now->format('Ymd\THis\Z'),
+            'DTSTART;TZID=' . $tzId . ':' . $dtStart->format('Ymd\THis'),
+            'DTEND;TZID='   . $tzId . ':' . $dtEnd->format('Ymd\THis'),
+            'SUMMARY:' . $title,
+            'LOCATION:' . $location,
+            'END:VEVENT',
+            'END:VCALENDAR',
+        ]);
+
+        $adminEmail = get_option('admin_email');
+        $subject    = sprintf('Neue Buchung: %s am %s', $title, $dtStart->format('d.m.Y H:i'));
+        $message    = sprintf(
+            "Neue Terminbuchung:\n\nTermin: %s\nDatum: %s\nZeit: %s – %s\nOrt: %s",
+            $title,
+            $dtStart->format('d.m.Y'),
+            $startTime,
+            $endTime,
+            $location ?: '–'
+        );
+
+        $headers = ['Content-Type: text/plain; charset=UTF-8'];
+
+        // Temp-Datei korrekt anlegen: erst tempnam(), dann Inhalt schreiben
+        $tmpDir  = get_temp_dir();
+        $tmpFile = tempnam($tmpDir, 'rrze_appt_');
+        rename($tmpFile, $tmpFile . '.ics');
+        $tmpFile = $tmpFile . '.ics';
+        file_put_contents($tmpFile, $ics);
+
+        $sent = wp_mail($adminEmail, $subject, $message, $headers, [$tmpFile]);
+        @unlink($tmpFile);
+
+        if ($sent) {
+            wp_send_json_success();
+        } else {
+            wp_send_json_error('E-Mail konnte nicht gesendet werden.');
+        }
     }
 
     public function enqueueAdminAssets()

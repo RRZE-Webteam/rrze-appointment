@@ -12,7 +12,10 @@ registerBlockType('rrze/appointment', {
         const slots = generateTimeSlots(attributes);
 
         return (
-            <form className="rrze-appointment" method="post" action="">
+            <form className="rrze-appointment" method="post" action=""
+                data-title={title}
+                data-location={location}
+            >
                 {title && <h3 className="rrze-appointment__title">{title}</h3>}
                 {description && (
                     <div className="rrze-appointment__description">{description}</div>
@@ -32,11 +35,7 @@ registerBlockType('rrze/appointment', {
 
                         {renderGroupedSlotsAccordion(slots, 'rrze_appointment_slot')}
 
-                        <div className="rrze-appointment__selected-info is-hidden">
-                            <p className="rrze-appointment__selected-text" />
-                            <button type="button" className="rrze-appointment__book-button">Buchen</button>
-                            <p className="rrze-appointment__book-status" />
-                        </div>
+                        <div className="rrze-appointment__selected-info is-hidden" aria-live="polite" />
                     </Fragment>
                 ) : (
                     <p className="rrze-appointment__missing-slot">Keine Timeslots verfügbar.</p>

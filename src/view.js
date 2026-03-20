@@ -70,12 +70,8 @@
         const daySlotsFieldset = form.querySelector('.rrze-appointment__day-slots');
         const daySlotsList = form.querySelector('.rrze-appointment__day-slots-list');
         const groupedFieldset = form.querySelector('.rrze-appointment__slots-grouped');
-        const selectedInfo = form.querySelector('.rrze-appointment__selected-info');
-        const selectedText = form.querySelector('.rrze-appointment__selected-text');
-        const bookButton = form.querySelector('.rrze-appointment__book-button');
-        const bookStatus = form.querySelector('.rrze-appointment__book-status');
 
-        if (!calendar || !daySlotsFieldset || !daySlotsList || !groupedFieldset || !selectedInfo || !selectedText || !bookButton || !bookStatus) {
+        if (!calendar || !daySlotsFieldset || !daySlotsList || !groupedFieldset) {
             return;
         }
 
@@ -106,18 +102,97 @@
             });
         }
 
-        function showSelection(value) {
+        function openOverlay(value) {
             const parsed = parseSlotValue(value);
-            if (!parsed.date || !parsed.time) {
-                return;
-            }
+            if (!parsed.date || !parsed.time) return;
 
             selectedSlotValue = value;
             markHiddenInput(value);
 
-            selectedText.textContent = `Ihr Termin am ${formatDateDisplay(parsed.date)} um ${parsed.time}`;
-            selectedInfo.classList.remove('is-hidden');
-            bookStatus.textContent = '';
+            const overlay = document.createElement('div');
+            overlay.className = 'rrze-appointment__overlay';
+            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('aria-modal', 'true');
+
+            const box = document.createElement('div');
+            box.className = 'rrze-appointment__overlay-box';
+
+            const text = document.createElement('p');
+            text.className = 'rrze-appointment__overlay-text';
+            text.textContent = `Ihr Termin am ${formatDateDisplay(parsed.date)} um ${parsed.time}`;
+
+            const status = document.createElement('p');
+            status.className = 'rrze-appointment__overlay-status';
+
+            const actions = document.createElement('div');
+            actions.className = 'rrze-appointment__overlay-actions';
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.type = 'button';
+            confirmBtn.className = 'rrze-appointment__overlay-confirm';
+            confirmBtn.textContent = 'Buchen';
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.className = 'rrze-appointment__overlay-cancel';
+            cancelBtn.textContent = 'Abbrechen';
+
+            function closeOverlay() {
+                overlay.remove();
+            }
+
+            cancelBtn.addEventListener('click', closeOverlay);
+            overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });
+            document.addEventListener('keydown', function onKey(e) {
+                if (e.key === 'Escape') { closeOverlay(); document.removeEventListener('keydown', onKey); }
+            });
+
+            confirmBtn.addEventListener('click', () => {
+                confirmBtn.disabled = true;
+                cancelBtn.disabled = true;
+                status.textContent = 'Wird gebucht…';
+
+                const data = new FormData();
+                data.append('action', 'rrze_appointment_book');
+                data.append('nonce', window.rrze_appointment?.nonce || '');
+                data.append('slot', value);
+                data.append('title', form.dataset.title || '');
+                data.append('location', form.dataset.location || '');
+
+                fetch(window.rrze_appointment?.ajaxUrl || '/wp-admin/admin-ajax.php', {
+                    method: 'POST',
+                    body: data
+                })
+                    .then((r) => r.json())
+                    .then((res) => {
+                        if (res.success) {
+                            status.textContent = 'Termin gebucht! Eine Bestätigung wurde versendet.';
+                            confirmBtn.remove();
+                            cancelBtn.textContent = 'Schließen';
+                            cancelBtn.disabled = false;
+                            renderDaySlots(activeDate);
+                            renderGroupedSlots();
+                        } else {
+                            status.textContent = res.data || 'Fehler beim Buchen.';
+                            confirmBtn.disabled = false;
+                            cancelBtn.disabled = false;
+                        }
+                    })
+                    .catch(() => {
+                        status.textContent = 'Netzwerkfehler. Bitte erneut versuchen.';
+                        confirmBtn.disabled = false;
+                        cancelBtn.disabled = false;
+                    });
+            });
+
+            actions.appendChild(confirmBtn);
+            actions.appendChild(cancelBtn);
+            box.appendChild(text);
+            box.appendChild(status);
+            box.appendChild(actions);
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+            confirmBtn.focus();
         }
 
         function createSlotButton(slot) {
@@ -132,7 +207,7 @@
             }
 
             button.addEventListener('click', () => {
-                showSelection(slot.value);
+                openOverlay(slot.value);
                 renderDaySlots(activeDate);
                 renderGroupedSlots();
             });
@@ -271,14 +346,6 @@
             monthWrapper.appendChild(grid);
             calendar.appendChild(monthWrapper);
         }
-
-        bookButton.addEventListener('click', () => {
-            if (!selectedSlotValue) {
-                return;
-            }
-
-            bookStatus.textContent = 'gebucht';
-        });
 
         renderCalendar();
         renderDaySlots(activeDate);
