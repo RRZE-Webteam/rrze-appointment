@@ -117,11 +117,16 @@ export function generateTimeSlots(attributes) {
             slotStart += slotDuration + pauseMinutes;
         }
 
-        extraSlots.forEach((extraStart) => {
+        extraSlots.forEach((extraEntry) => {
+            const hasPipe = typeof extraEntry === 'string' && extraEntry.includes('|');
+            const extraStart = hasPipe ? extraEntry.split('|')[0] : extraEntry;
+            const extraEnd = hasPipe ? extraEntry.split('|')[1] : null;
             const extraStartMinutes = parseTimeToMinutes(extraStart);
             if (extraStartMinutes === null) return;
-            const extraEndMinutes = extraStartMinutes + slotDuration;
-            if (extraEndMinutes > (24 * 60)) return;
+            const extraEndMinutes = extraEnd
+                ? parseTimeToMinutes(extraEnd)
+                : extraStartMinutes + slotDuration;
+            if (extraEndMinutes === null || extraEndMinutes > (24 * 60)) return;
             const startLabel = minutesToTime(extraStartMinutes);
             const endLabel = minutesToTime(extraEndMinutes);
             addSlot({

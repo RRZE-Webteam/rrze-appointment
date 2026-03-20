@@ -219,6 +219,7 @@ export default function Edit({ attributes, setAttributes }) {
     const [activeDate, setActiveDate] = useState(calendarDates[0] || '');
     const [addSlotDate, setAddSlotDate] = useState(null);
     const [addSlotTime, setAddSlotTime] = useState('');
+    const [addSlotEndTime, setAddSlotEndTime] = useState('');
     const [addSlotError, setAddSlotError] = useState('');
 
     useEffect(() => {
@@ -273,7 +274,10 @@ export default function Edit({ attributes, setAttributes }) {
         let nextExtras = currentExtras;
 
         if (slot.isExtra) {
-            nextExtras = currentExtras.filter((time) => time !== slot.startTime);
+            nextExtras = currentExtras.filter((entry) => {
+                const entryStart = entry.includes('|') ? entry.split('|')[0] : entry;
+                return entryStart !== slot.startTime;
+            });
         } else {
             removedSlots.add(slot.value);
         }
@@ -293,17 +297,22 @@ export default function Edit({ attributes, setAttributes }) {
     const handleOpenAddSlot = (date) => {
         setAddSlotDate(date);
         setAddSlotTime('');
+        setAddSlotEndTime('');
         setAddSlotError('');
     };
 
     const handleConfirmAddSlot = () => {
-        if (!addSlotDate || !addSlotTime) return;
+        if (!addSlotDate || !addSlotTime || !addSlotEndTime) return;
         const newStartMinutes = parseTimeToMinutes(addSlotTime);
-        if (newStartMinutes === null) {
+        const newEndMinutes = parseTimeToMinutes(addSlotEndTime);
+        if (newStartMinutes === null || newEndMinutes === null) {
             setAddSlotError(__('Ungültige Uhrzeit.', 'rrze-appointment'));
             return;
         }
-        const newEndMinutes = newStartMinutes + slotDuration;
+        if (newEndMinutes <= newStartMinutes) {
+            setAddSlotError(__('Endzeit muss nach der Startzeit liegen.', 'rrze-appointment'));
+            return;
+        }
         if (newEndMinutes > 24 * 60) {
             setAddSlotError(__('Uhrzeit überschreitet Tagesende.', 'rrze-appointment'));
             return;
@@ -319,11 +328,14 @@ export default function Edit({ attributes, setAttributes }) {
         const overridesNext = { ...activeOverrides };
         const currentOverride = overridesNext[addSlotDate] || {};
         const nextExtras = Array.isArray(currentOverride.extraSlots) ? [...currentOverride.extraSlots] : [];
-        if (!nextExtras.includes(addSlotTime)) nextExtras.push(addSlotTime);
+        // Store as "HH:MM-HH:MM" to carry custom end time
+        const slotKey = `${addSlotTime}|${addSlotEndTime}`;
+        if (!nextExtras.includes(slotKey)) nextExtras.push(slotKey);
         overridesNext[addSlotDate] = { ...currentOverride, extraSlots: nextExtras };
         setAttributes({ dateOverrides: overridesNext });
         setAddSlotDate(null);
         setAddSlotTime('');
+        setAddSlotEndTime('');
         setAddSlotError('');
     };
 
@@ -500,25 +512,47 @@ export default function Edit({ attributes, setAttributes }) {
                             <p>Bitte mindestens einen Tag sowie Startzeit, Endzeit, Dauer und Pause setzen.</p>
                         )}
                         {addSlotDate && (
-                            <div className="rrze-appointment__add-slot-form">
-                                <p><strong>{__('Neue Uhrzeit für', 'rrze-appointment')} {formatDateDisplay(addSlotDate)}</strong></p>
-                                <TextControl
-                                    label={__('Startzeit', 'rrze-appointment')}
-                                    type="time"
-                                    step={300}
-                                    value={addSlotTime}
-                                    onChange={(value) => { setAddSlotTime(value); setAddSlotError(''); }}
-                                />
-                                {addSlotError && (
-                                    <p style={{ color: '#d63638', margin: '4px 0 8px' }}>{addSlotError}</p>
-                                )}
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <Button variant="primary" onClick={handleConfirmAddSlot}>
-                                        {__('Hinzufügen', 'rrze-appointment')}
-                                    </Button>
-                                    <Button variant="secondary" onClick={() => { setAddSlotDate(null); setAddSlotError(''); }}>
-                                        {__('Abbrechen', 'rrze-appointment')}
-                                    </Button>
+                            <div style={{
+                                position: 'fixed', inset: 0,
+                                background: 'rgba(0,0,0,0.5)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                zIndex: 999999
+                            }}>
+                                <div style={{
+                                    background: '#fff',
+                                    borderRadius: '4px',
+                                    padding: '24px',
+                                    minWidth: '300px',
+                                    boxShadow: '0 4px 24px rgba(0,0,0,0.2)'
+                                }}>
+                                    <p style={{ margin: '0 0 16px' }}>
+                                        <strong>{__('Neue Uhrzeit für', 'rrze-appointment')} {formatDateDisplay(addSlotDate)}</strong>
+                                    </p>
+                                    <TextControl
+                                        label={__('Startzeit', 'rrze-appointment')}
+                                        type="time"
+                                        step={300}
+                                        value={addSlotTime}
+                                        onChange={(value) => { setAddSlotTime(value); setAddSlotError(''); }}
+                                    />
+                                    <TextControl
+                                        label={__('Endzeit', 'rrze-appointment')}
+                                        type="time"
+                                        step={300}
+                                        value={addSlotEndTime}
+                                        onChange={(value) => { setAddSlotEndTime(value); setAddSlotError(''); }}
+                                    />
+                                    {addSlotError && (
+                                        <p style={{ color: '#d63638', margin: '-8px 0 8px' }}>{addSlotError}</p>
+                                    )}
+                                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                        <Button variant="primary" onClick={handleConfirmAddSlot}>
+                                            {__('Hinzufügen', 'rrze-appointment')}
+                                        </Button>
+                                        <Button variant="secondary" onClick={() => { setAddSlotDate(null); setAddSlotError(''); }}>
+                                            {__('Abbrechen', 'rrze-appointment')}
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         )}
