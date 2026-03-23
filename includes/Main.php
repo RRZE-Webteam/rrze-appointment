@@ -241,11 +241,34 @@ class Main
         foreach ($posts as $post) {
             $given  = (string) get_post_meta($post->ID, 'person_givenName', true);
             $family = (string) get_post_meta($post->ID, 'person_familyName', true);
+            $prefix = (string) get_post_meta($post->ID, 'person_honorificPrefix', true);
             $label  = trim("$given $family") ?: $post->post_title;
+            $email  = (string) get_post_meta($post->ID, 'person_email', true);
+
+            // Sprechstunden aus FAUdir-API-Transient lesen
+            $personFaudirId      = (string) get_post_meta($post->ID, 'person_id', true);
+            $consultationHours   = [];
+            if ($personFaudirId !== '') {
+                $transientKey = 'faudir_api_person_' . md5($personFaudirId);
+                $cached       = get_transient($transientKey);
+                if (is_array($cached)) {
+                    $workplaces = $cached['workplaces'] ?? $cached['contacts'] ?? [];
+                    foreach ((array) $workplaces as $wp) {
+                        if (!empty($wp['consultationHours']) && is_array($wp['consultationHours'])) {
+                            $consultationHours = array_merge($consultationHours, $wp['consultationHours']);
+                        }
+                    }
+                }
+            }
+
             $result[] = [
-                'id'    => $post->ID,
-                'label' => $label,
-                'email' => (string) get_post_meta($post->ID, 'person_email', true),
+                'id'               => $post->ID,
+                'label'            => $label,
+                'honorificPrefix'  => $prefix,
+                'givenName'        => $given,
+                'familyName'       => $family,
+                'email'            => $email,
+                'consultationHours'=> $consultationHours,
             ];
         }
 

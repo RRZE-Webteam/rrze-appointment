@@ -4,7 +4,8 @@ import {
     PanelBody,
     SelectControl,
     TextControl,
-    TextareaControl
+    TextareaControl,
+    ToggleControl
 } from '@wordpress/components';
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
 import { Fragment, useEffect, useMemo, useState } from '@wordpress/element';
@@ -222,10 +223,18 @@ export default function Edit({ attributes, setAttributes }) {
         location,
         description,
         recurrence,
-        personId
+        personId,
+        useConsultationHours
     } = attributes;
 
     const faudirPersons = window.rrze_appointment?.persons || [];
+    const selectedPerson = faudirPersons.find((p) => p.id === personId) || null;
+    const hasConsultationHours = selectedPerson?.consultationHours?.length > 0;
+
+    // Titel automatisch aus Person ableiten
+    const derivedTitle = selectedPerson
+        ? `Sprechstunde für ${[selectedPerson.honorificPrefix, selectedPerson.givenName, selectedPerson.familyName].filter(Boolean).join(' ')}${selectedPerson.email ? ` (${selectedPerson.email})` : ''}`
+        : title;
 
     const rec = (recurrence && typeof recurrence === 'object') ? recurrence : {};
     const recFreq = rec.freq || '';
@@ -362,11 +371,47 @@ export default function Edit({ attributes, setAttributes }) {
     return (
         <Fragment>
             <InspectorControls>
+                {faudirPersons.length > 0 && (
+                    <PanelBody title={__('Personen-Einstellungen', 'rrze-appointment')} initialOpen={true}>
+                        <SelectControl
+                            label={__('Person', 'rrze-appointment')}
+                            value={String(personId || 0)}
+                            options={[
+                                { label: __('— keine —', 'rrze-appointment'), value: '0' },
+                                ...faudirPersons.map((p) => ({ label: p.label, value: String(p.id) }))
+                            ]}
+                            onChange={(value) => {
+                                const pid = Number(value);
+                                const person = faudirPersons.find((p) => p.id === pid) || null;
+                                const newTitle = person
+                                    ? `Sprechstunde für ${[person.honorificPrefix, person.givenName, person.familyName].filter(Boolean).join(' ')}${person.email ? ` (${person.email})` : ''}`
+                                    : '';
+                                setAttributes({ personId: pid, title: newTitle, useConsultationHours: false });
+                            }}
+                        />
+                        {hasConsultationHours && (
+                            <ToggleControl
+                                label={__('Sprechstunden automatisch anlegen', 'rrze-appointment')}
+                                help={useConsultationHours
+                                    ? __('Termine werden aus den hinterlegten Sprechstunden übernommen.', 'rrze-appointment')
+                                    : __('Sprechstunden aus FAUdir sind verfügbar.', 'rrze-appointment')
+                                }
+                                checked={!!useConsultationHours}
+                                onChange={(value) => setAttributes({ useConsultationHours: value })}
+                            />
+                        )}
+                        {selectedPerson && !hasConsultationHours && (
+                            <p style={{ fontSize: '12px', color: '#757575' }}>
+                                {__('Keine Sprechstunden in FAUdir hinterlegt.', 'rrze-appointment')}
+                            </p>
+                        )}
+                    </PanelBody>
+                )}
                 <PanelBody title="Termin-Einstellungen" initialOpen={true}>
                     <TextControl
                         label="Titel"
-                        value={title}
-                        onChange={(value) => setAttributes({ title: value })}
+                        value={derivedTitle}
+                        onChange={(value) => setAttributes({ title: value, personId: 0 })}
                     />
 
                     <p><strong>Kalender-Ansicht</strong></p>
@@ -485,20 +530,6 @@ export default function Edit({ attributes, setAttributes }) {
                         onChange={(value) => setAttributes({ description: value })}
                     />
 
-                    {faudirPersons.length > 0 && (
-                        <SelectControl
-                            label={__('Person (FAUdir)', 'rrze-appointment')}
-                            value={String(personId || 0)}
-                            options={[
-                                { label: __('— keine —', 'rrze-appointment'), value: '0' },
-                                ...faudirPersons.map((p) => ({
-                                    label: p.label,
-                                    value: String(p.id)
-                                }))
-                            ]}
-                            onChange={(value) => setAttributes({ personId: Number(value) })}
-                        />
-                    )}
                 </PanelBody>
 
                 <PanelBody title={__('Wiederholen', 'rrze-appointment')} initialOpen={false}>
@@ -533,7 +564,7 @@ export default function Edit({ attributes, setAttributes }) {
 
             <div {...blockProps}>
                 <div className="rrze-appointment-block">
-                    <h3>{title || 'Termin-Titel'}</h3>
+                    <h3>{derivedTitle || 'Termin-Titel'}</h3>
                     {description && <p>{description}</p>}
                     {location && <p><strong>Ort:</strong> {location}</p>}
 

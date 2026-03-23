@@ -64,6 +64,10 @@
     "personId": {
       "type": "number",
       "default": 0
+    },
+    "useConsultationHours": {
+      "type": "boolean",
+      "default": false
     }
   },
   "editorScript": "file:./index.js",
