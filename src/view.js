@@ -96,6 +96,8 @@
         let currentYear = firstDate.getFullYear();
         let currentMonth = firstDate.getMonth();
 
+        const bookedSlots = new Set(window.rrze_appointment?.bookedSlots || []);
+
         function markHiddenInput(value) {
             groupedInputs.forEach((input) => {
                 input.checked = input.value === value;
@@ -158,6 +160,7 @@
                 data.append('slot', value);
                 data.append('title', form.dataset.title || '');
                 data.append('location', form.dataset.location || '');
+                data.append('person_id', form.dataset.personId || '0');
 
                 fetch(window.rrze_appointment?.ajaxUrl || '/wp-admin/admin-ajax.php', {
                     method: 'POST',
@@ -166,10 +169,12 @@
                     .then((r) => r.json())
                     .then((res) => {
                         if (res.success) {
+                            bookedSlots.add(value);
                             status.textContent = 'Termin gebucht! Eine Bestätigung wurde versendet.';
                             confirmBtn.remove();
                             cancelBtn.textContent = 'Schließen';
                             cancelBtn.disabled = false;
+                            renderCalendar();
                             renderDaySlots(activeDate);
                             renderGroupedSlots();
                         } else {
@@ -196,11 +201,18 @@
         }
 
         function createSlotButton(slot) {
+            const isBooked = bookedSlots.has(slot.value);
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'rrze-appointment__slot-button';
             button.textContent = slot.label;
             button.dataset.slotValue = slot.value;
+
+            if (isBooked) {
+                button.classList.add('is-booked');
+                button.disabled = true;
+                return button;
+            }
 
             if (selectedSlotValue && slot.value === selectedSlotValue) {
                 button.classList.add('is-active');
@@ -327,15 +339,22 @@
                 button.textContent = String(day);
 
                 if (dateSet.has(dateString)) {
-                    button.classList.add('is-available');
-                    if (dateString === activeDate) {
-                        button.classList.add('is-active');
+                    const dateSlots = dateMap.get(dateString) || [];
+                    const allBooked = dateSlots.length > 0 && dateSlots.every((s) => bookedSlots.has(s.value));
+
+                    if (!allBooked) button.classList.add('is-available');
+                    if (allBooked) button.classList.add('is-booked');
+                    if (dateString === activeDate) button.classList.add('is-active');
+
+                    if (!allBooked) {
+                        button.addEventListener('click', () => {
+                            activeDate = dateString;
+                            renderCalendar();
+                            renderDaySlots(activeDate);
+                        });
+                    } else {
+                        button.disabled = true;
                     }
-                    button.addEventListener('click', () => {
-                        activeDate = dateString;
-                        renderCalendar();
-                        renderDaySlots(activeDate);
-                    });
                 } else {
                     button.disabled = true;
                 }

@@ -2,13 +2,14 @@ import { Fragment } from '@wordpress/element';
 import { generateTimeSlots, renderGroupedSlotsAccordion } from './utils';
 
 export default function Save({ attributes }) {
-    const { title, location, description } = attributes;
+    const { title, location, description, personId } = attributes;
     const slots = generateTimeSlots(attributes);
 
     return (
         <form className="rrze-appointment" method="post" action=""
             data-title={title}
             data-location={location}
+            data-person-id={personId || 0}
         >
             {title && <h3 className="rrze-appointment__title">{title}</h3>}
             {description && (

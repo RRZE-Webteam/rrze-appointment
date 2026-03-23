@@ -221,8 +221,11 @@ export default function Edit({ attributes, setAttributes }) {
         breakDuration,
         location,
         description,
-        recurrence
+        recurrence,
+        personId
     } = attributes;
+
+    const faudirPersons = window.rrze_appointment?.persons || [];
 
     const rec = (recurrence && typeof recurrence === 'object') ? recurrence : {};
     const recFreq = rec.freq || '';
@@ -481,6 +484,21 @@ export default function Edit({ attributes, setAttributes }) {
                         value={description}
                         onChange={(value) => setAttributes({ description: value })}
                     />
+
+                    {faudirPersons.length > 0 && (
+                        <SelectControl
+                            label={__('Person (FAUdir)', 'rrze-appointment')}
+                            value={String(personId || 0)}
+                            options={[
+                                { label: __('— keine —', 'rrze-appointment'), value: '0' },
+                                ...faudirPersons.map((p) => ({
+                                    label: p.label,
+                                    value: String(p.id)
+                                }))
+                            ]}
+                            onChange={(value) => setAttributes({ personId: Number(value) })}
+                        />
+                    )}
                 </PanelBody>
 
                 <PanelBody title={__('Wiederholen', 'rrze-appointment')} initialOpen={false}>

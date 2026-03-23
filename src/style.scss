@@ -75,6 +75,14 @@
                 color: #fff !important;
             }
 
+            &.is-booked {
+                background: #e8e8e8 !important;
+                border-color: #c8c9c7;
+                color: #97999b !important;
+                cursor: not-allowed;
+                text-decoration: line-through;
+            }
+
             &.is-today {
                 outline: 2px solid $cal-today-outline;
                 outline-offset: -2px;
@@ -188,6 +196,12 @@
     &__slot-item {
         position: relative;
         display: block;
+
+        @media (hover: hover) {
+            &:hover .rrze-appointment__slot-delete {
+                opacity: 1;
+            }
+        }
     }
 
     &__slot-option {
@@ -234,6 +248,14 @@
             border-color: #0b5ed7;
             color: #fff;
         }
+
+        &.is-booked {
+            background: #e8e8e8;
+            border-color: #c8c9c7;
+            color: #97999b;
+            cursor: not-allowed;
+            text-decoration: line-through;
+        }
     }
 
     &__slot-delete,
@@ -262,6 +284,11 @@
         border-color: #d63638;
         color: #d63638;
         background: #fff;
+        transition: opacity 0.15s ease;
+
+        @media (hover: hover) {
+            opacity: 0;
+        }
 
         &:hover {
             background: #fff5f5;

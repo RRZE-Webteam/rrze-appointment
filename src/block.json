@@ -60,6 +60,10 @@
     "recurrence": {
       "type": "object",
       "default": {}
+    },
+    "personId": {
+      "type": "number",
+      "default": 0
     }
   },
   "editorScript": "file:./index.js",

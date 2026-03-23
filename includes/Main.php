@@ -222,6 +222,36 @@ class Main
         $this->settings->build();
     }
 
+    private function getFaudirPersons(): array
+    {
+        if (!post_type_exists('custom_person')) {
+            return [];
+        }
+
+        $posts = get_posts([
+            'post_type'      => 'custom_person',
+            'post_status'    => 'publish',
+            'posts_per_page' => -1,
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+            'no_found_rows'  => true,
+        ]);
+
+        $result = [];
+        foreach ($posts as $post) {
+            $given  = (string) get_post_meta($post->ID, 'person_givenName', true);
+            $family = (string) get_post_meta($post->ID, 'person_familyName', true);
+            $label  = trim("$given $family") ?: $post->post_title;
+            $result[] = [
+                'id'    => $post->ID,
+                'label' => $label,
+                'email' => (string) get_post_meta($post->ID, 'person_email', true),
+            ];
+        }
+
+        return $result;
+    }
+
     /**
      * Enqueue der globale Skripte.
      */
@@ -229,11 +259,29 @@ class Main
     {
         $viewHandle = 'rrze-appointment-view-script';
         if (wp_script_is($viewHandle, 'registered')) {
+            $booked = get_option('rrze_appointment_booked_slots', []);
             wp_localize_script($viewHandle, 'rrze_appointment', [
-                'ajaxUrl' => admin_url('admin-ajax.php'),
-                'nonce'   => wp_create_nonce('rrze_appointment_book'),
+                'ajaxUrl'     => admin_url('admin-ajax.php'),
+                'nonce'       => wp_create_nonce('rrze_appointment_book'),
+                'bookedSlots' => array_values((array) $booked),
+                'persons'     => $this->getFaudirPersons(),
             ]);
         }
+    }
+
+    public function enqueueAdminAssets()
+    {
+        $editorHandle = 'rrze-appointment-editor-script';
+        if (wp_script_is($editorHandle, 'registered')) {
+            wp_localize_script($editorHandle, 'rrze_appointment', [
+                'persons' => $this->getFaudirPersons(),
+            ]);
+        }
+    }
+
+    private function icsEscape(string $value): string
+    {
+        return str_replace(['\\', ';', ',', "\n"], ['\\\\', '\;', '\,', '\n'], $value);
     }
 
     public function handleBooking(): void
@@ -243,12 +291,13 @@ class Main
         $slot     = sanitize_text_field($_POST['slot'] ?? '');
         $title    = sanitize_text_field($_POST['title'] ?? 'Termin');
         $location = sanitize_text_field($_POST['location'] ?? '');
+        $personId = (int) ($_POST['person_id'] ?? 0);
 
         if (!$slot) {
             wp_send_json_error('Kein Termin angegeben.');
         }
 
-        // Parse slot: "YYYY-MM-DD HH:MM-HH:MM"
+        // Slot-Format: "YYYY-MM-DD HH:MM-HH:MM"
         [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
         [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
 
@@ -259,36 +308,53 @@ class Main
         $tz      = wp_timezone();
         $dtStart = new \DateTime($datePart . 'T' . $startTime . ':00', $tz);
         $dtEnd   = new \DateTime($datePart . 'T' . $endTime . ':00', $tz);
-        $now     = new \DateTime('now', new \DateTimeZone('UTC'));
-        $tzId    = $tz->getName();
-        $uid     = wp_generate_uuid4() . '@' . parse_url(home_url(), PHP_URL_HOST);
 
-        $ics = implode("\r\n", [
+        // In UTC konvertieren — kein VTIMEZONE-Block nötig
+        $dtStart->setTimezone(new \DateTimeZone('UTC'));
+        $dtEnd->setTimezone(new \DateTimeZone('UTC'));
+        $now = new \DateTime('now', new \DateTimeZone('UTC'));
+
+        $uid = wp_generate_uuid4() . '@' . parse_url(home_url(), PHP_URL_HOST);
+
+        $lines = [
             'BEGIN:VCALENDAR',
             'VERSION:2.0',
             'PRODID:-//RRZE Appointment//DE',
             'CALSCALE:GREGORIAN',
-            'METHOD:REQUEST',
+            'METHOD:PUBLISH',
             'BEGIN:VEVENT',
             'UID:' . $uid,
             'DTSTAMP:' . $now->format('Ymd\THis\Z'),
-            'DTSTART;TZID=' . $tzId . ':' . $dtStart->format('Ymd\THis'),
-            'DTEND;TZID='   . $tzId . ':' . $dtEnd->format('Ymd\THis'),
-            'SUMMARY:' . $title,
-            'LOCATION:' . $location,
+            'DTSTART:' . $dtStart->format('Ymd\THis\Z'),
+            'DTEND:'   . $dtEnd->format('Ymd\THis\Z'),
+            'SUMMARY:' . $this->icsEscape($title),
+            'LOCATION:' . $this->icsEscape($location),
             'END:VEVENT',
             'END:VCALENDAR',
-        ]);
+        ];
+
+        $ics = implode("\r\n", $lines) . "\r\n";
+
+        $personLine = '';
+        if ($personId > 0) {
+            $pTitle  = (string) get_post_meta($personId, 'person_honorificPrefix', true);
+            $pGiven  = (string) get_post_meta($personId, 'person_givenName', true);
+            $pFamily = (string) get_post_meta($personId, 'person_familyName', true);
+            $pEmail  = (string) get_post_meta($personId, 'person_email', true);
+            $pName   = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
+            $personLine = $pName !== '' ? sprintf("\nPerson: %s%s", $pName, $pEmail !== '' ? " <{$pEmail}>" : '') : '';
+        }
 
         $adminEmail = get_option('admin_email');
         $subject    = sprintf('Neue Buchung: %s am %s', $title, $dtStart->format('d.m.Y H:i'));
         $message    = sprintf(
-            "Neue Terminbuchung:\n\nTermin: %s\nDatum: %s\nZeit: %s – %s\nOrt: %s",
+            "Neue Terminbuchung:\n\nTermin: %s\nDatum: %s\nZeit: %s – %s\nOrt: %s%s",
             $title,
             $dtStart->format('d.m.Y'),
             $startTime,
             $endTime,
-            $location ?: '–'
+            $location ?: '–',
+            $personLine
         );
 
         $headers = ['Content-Type: text/plain; charset=UTF-8'];
@@ -304,14 +370,13 @@ class Main
         @unlink($tmpFile);
 
         if ($sent) {
+            $booked = get_option('rrze_appointment_booked_slots', []);
+            $booked[] = $slot;
+            update_option('rrze_appointment_booked_slots', array_unique($booked), false);
             wp_send_json_success();
         } else {
             wp_send_json_error('E-Mail konnte nicht gesendet werden.');
         }
-    }
-
-    public function enqueueAdminAssets()
-    {
     }
 
 }
