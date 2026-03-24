@@ -375,28 +375,26 @@ class Main
         $adminEmail = get_option('admin_email');
 
         $vars = [
-            '[title]'       => $title,
+            '[titel]'       => $title,
             '[datum]'       => $dtStart->format('d.m.Y'),
             '[uhrzeit]'     => $startTime . ' – ' . $endTime,
             '[ort]'         => $location ?: '–',
-            '[person_name]' => $pName ?? '–',
+            '[person_name]' => $pName ?: '–',
             '[name]'        => $bookerName ?: '–',
             '[email]'       => $bookerEmail ?: '–',
         ];
 
-        $subject = Settings::renderTemplate((string) Settings::get('booking_subject'), $vars);
-        $message = Settings::renderTemplate((string) Settings::get('booking_body'), $vars);
+        $subject  = Settings::renderTemplate((string) Settings::get('booking_subject'), $vars);
+        $plain    = Settings::renderTemplate((string) Settings::get('booking_body'), $vars);
+        $html     = Settings::renderTemplate((string) Settings::get('booking_body_html'), $vars);
 
-        $headers = ['Content-Type: text/plain; charset=UTF-8'];
-
-        // Temp-Datei korrekt anlegen: erst tempnam(), dann Inhalt schreiben
         $tmpDir  = get_temp_dir();
         $tmpFile = tempnam($tmpDir, 'rrze_appt_');
         rename($tmpFile, $tmpFile . '.ics');
         $tmpFile = $tmpFile . '.ics';
         file_put_contents($tmpFile, $ics);
 
-        $sent = wp_mail($adminEmail, $subject, $message, $headers, [$tmpFile]);
+        $sent = Settings::sendMail($adminEmail, $subject, $plain, $html, [$tmpFile]);
         @unlink($tmpFile);
 
         if ($sent) {

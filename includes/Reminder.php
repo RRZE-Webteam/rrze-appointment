@@ -80,7 +80,7 @@ class Reminder
         $dateFormatted = date_i18n(get_option('date_format'), strtotime($datePart));
 
         $vars = [
-            '[title]'       => $title,
+            '[titel]'       => $title,
             '[datum]'       => $dateFormatted,
             '[uhrzeit]'     => $startTime . ' – ' . $endTime,
             '[ort]'         => $location ?: '–',
@@ -96,11 +96,11 @@ class Reminder
             $vars['[person_name]'] = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
         }
 
-        $subject     = Settings::renderTemplate((string) Settings::get('reminder_subject'), $vars);
-        $body        = Settings::renderTemplate((string) Settings::get('reminder_body'), $vars);
-        $bodyBooker  = Settings::renderTemplate((string) Settings::get('reminder_body_booker'), $vars);
-
-        $headers = ['Content-Type: text/plain; charset=UTF-8'];
+        $subject          = Settings::renderTemplate((string) Settings::get('reminder_subject'), $vars);
+        $body             = Settings::renderTemplate((string) Settings::get('reminder_body'), $vars);
+        $bodyHtml         = Settings::renderTemplate((string) Settings::get('reminder_body_html'), $vars);
+        $bodyBooker       = Settings::renderTemplate((string) Settings::get('reminder_body_booker'), $vars);
+        $bodyBookerHtml   = Settings::renderTemplate((string) Settings::get('reminder_body_booker_html'), $vars);
 
         // An Admin / Person senden
         $personEmail = '';
@@ -108,11 +108,11 @@ class Reminder
             $personEmail = (string) get_post_meta($personId, 'person_email', true);
         }
         $toAdmin = $personEmail ?: get_option('admin_email');
-        wp_mail($toAdmin, $subject, $body, $headers);
+        Settings::sendMail($toAdmin, $subject, $body, $bodyHtml);
 
         // An Buchenden senden
         if ($bookerEmail) {
-            wp_mail($bookerEmail, $subject, $bodyBooker, $headers);
+            Settings::sendMail($bookerEmail, $subject, $bodyBooker, $bodyBookerHtml);
         }
     }
 
