@@ -123,6 +123,24 @@
             text.className = 'rrze-appointment__overlay-text';
             text.textContent = `Ihr Termin am ${formatDateDisplay(parsed.date)} um ${parsed.time}`;
 
+            const emailLabel = document.createElement('label');
+            emailLabel.className = 'rrze-appointment__overlay-label';
+            emailLabel.textContent = 'Ihre E-Mail-Adresse (für Erinnerungsmail):';
+            const emailInput = document.createElement('input');
+            emailInput.type = 'email';
+            emailInput.className = 'rrze-appointment__overlay-email';
+            emailInput.placeholder = 'name@example.de';
+            emailLabel.appendChild(emailInput);
+
+            const nameLabel = document.createElement('label');
+            nameLabel.className = 'rrze-appointment__overlay-label';
+            nameLabel.textContent = 'Ihr Name (optional):';
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.className = 'rrze-appointment__overlay-name';
+            nameInput.placeholder = 'Vorname Nachname';
+            nameLabel.appendChild(nameInput);
+
             const status = document.createElement('p');
             status.className = 'rrze-appointment__overlay-status';
 
@@ -161,6 +179,8 @@
                 data.append('title', form.dataset.title || '');
                 data.append('location', form.dataset.location || '');
                 data.append('person_id', form.dataset.personId || '0');
+                data.append('booker_email', emailInput.value.trim());
+                data.append('booker_name', nameInput.value.trim());
 
                 fetch(window.rrze_appointment?.ajaxUrl || '/wp-admin/admin-ajax.php', {
                     method: 'POST',
@@ -193,6 +213,8 @@
             actions.appendChild(confirmBtn);
             actions.appendChild(cancelBtn);
             box.appendChild(text);
+            box.appendChild(emailLabel);
+            box.appendChild(nameLabel);
             box.appendChild(status);
             box.appendChild(actions);
             overlay.appendChild(box);

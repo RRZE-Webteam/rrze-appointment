@@ -5,8 +5,9 @@ namespace RRZE\Appointment;
 use function RRZE\Appointment\plugin;
 
 use RRZE\Appointment\Defaults;
-
-use RRZE\Appointment\Common\Settings\Settings;
+use RRZE\Appointment\Settings;
+use RRZE\Appointment\Reminder;
+use RRZE\Appointment\Common\Settings\Settings as CommonSettings;
 
 
 defined('ABSPATH') || exit;
@@ -34,6 +35,9 @@ class Main
     public function onInit()
     {
         $this->defaults = new Defaults();
+
+        (new Settings())->register();
+        (new Reminder())->register();
 
         add_action('wp_enqueue_scripts', [$this, 'enqueueAssets']);
         add_action('enqueue_block_assets', [$this, 'enqueueAssets']);
@@ -199,7 +203,7 @@ class Main
 
     public function settings()
     {
-        $this->settings = new Settings($this->defaults->get('settings')['page_title']);
+        $this->settings = new CommonSettings($this->defaults->get('settings')['page_title']);
 
         $this->settings->setCapability($this->defaults->get('settings')['capability'])
             ->setOptionName($this->defaults->get('settings')['option_name'])
@@ -311,10 +315,12 @@ class Main
     {
         check_ajax_referer('rrze_appointment_book', 'nonce');
 
-        $slot     = sanitize_text_field($_POST['slot'] ?? '');
-        $title    = sanitize_text_field($_POST['title'] ?? 'Termin');
-        $location = sanitize_text_field($_POST['location'] ?? '');
-        $personId = (int) ($_POST['person_id'] ?? 0);
+        $slot        = sanitize_text_field($_POST['slot'] ?? '');
+        $title       = sanitize_text_field($_POST['title'] ?? 'Termin');
+        $location    = sanitize_text_field($_POST['location'] ?? '');
+        $personId    = (int) ($_POST['person_id'] ?? 0);
+        $bookerEmail = sanitize_email($_POST['booker_email'] ?? '');
+        $bookerName  = sanitize_text_field($_POST['booker_name'] ?? '');
 
         if (!$slot) {
             wp_send_json_error('Kein Termin angegeben.');
@@ -358,27 +364,28 @@ class Main
 
         $ics = implode("\r\n", $lines) . "\r\n";
 
-        $personLine = '';
+        $pName = '';
         if ($personId > 0) {
             $pTitle  = (string) get_post_meta($personId, 'person_honorificPrefix', true);
             $pGiven  = (string) get_post_meta($personId, 'person_givenName', true);
             $pFamily = (string) get_post_meta($personId, 'person_familyName', true);
-            $pEmail  = (string) get_post_meta($personId, 'person_email', true);
             $pName   = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
-            $personLine = $pName !== '' ? sprintf("\nPerson: %s%s", $pName, $pEmail !== '' ? " <{$pEmail}>" : '') : '';
         }
 
         $adminEmail = get_option('admin_email');
-        $subject    = sprintf('Neue Buchung: %s am %s', $title, $dtStart->format('d.m.Y H:i'));
-        $message    = sprintf(
-            "Neue Terminbuchung:\n\nTermin: %s\nDatum: %s\nZeit: %s – %s\nOrt: %s%s",
-            $title,
-            $dtStart->format('d.m.Y'),
-            $startTime,
-            $endTime,
-            $location ?: '–',
-            $personLine
-        );
+
+        $vars = [
+            '[title]'       => $title,
+            '[datum]'       => $dtStart->format('d.m.Y'),
+            '[uhrzeit]'     => $startTime . ' – ' . $endTime,
+            '[ort]'         => $location ?: '–',
+            '[person_name]' => $pName ?? '–',
+            '[name]'        => $bookerName ?: '–',
+            '[email]'       => $bookerEmail ?: '–',
+        ];
+
+        $subject = Settings::renderTemplate((string) Settings::get('booking_subject'), $vars);
+        $message = Settings::renderTemplate((string) Settings::get('booking_body'), $vars);
 
         $headers = ['Content-Type: text/plain; charset=UTF-8'];
 
@@ -396,6 +403,15 @@ class Main
             $booked = get_option('rrze_appointment_booked_slots', []);
             $booked[] = $slot;
             update_option('rrze_appointment_booked_slots', array_unique($booked), false);
+
+            Reminder::scheduleForSlot($slot, [
+                'title'        => $title,
+                'location'     => $location,
+                'person_id'    => $personId,
+                'booker_email' => $bookerEmail,
+                'booker_name'  => $bookerName,
+            ]);
+
             wp_send_json_success();
         } else {
             wp_send_json_error('E-Mail konnte nicht gesendet werden.');

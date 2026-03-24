@@ -190,7 +190,7 @@ function PreviewCalendar({ slots, onRemoveSlot, onAddSlot, activeDate, setActive
                                         aria-label={`Uhrzeit ${slot.timeRange} löschen`}
                                         onClick={() => onRemoveSlot(slot)}
                                     >
-                                        ×
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><line x1="5" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="19" y1="5" x2="5" y2="19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
                                     </button>
                                 )}
                             </div>
@@ -224,6 +224,8 @@ export default function Edit({ attributes, setAttributes }) {
         description,
         recurrence,
         personId,
+        personName,
+        personEmail,
         useConsultationHours
     } = attributes;
 
@@ -231,9 +233,9 @@ export default function Edit({ attributes, setAttributes }) {
     const selectedPerson = faudirPersons.find((p) => p.id === personId) || null;
     const hasConsultationHours = selectedPerson?.consultationHours?.length > 0;
 
-    // Titel automatisch aus Person ableiten
+    // title automatisch aus Person ableiten
     const derivedTitle = selectedPerson
-        ? `Sprechstunde für ${[selectedPerson.honorificPrefix, selectedPerson.givenName, selectedPerson.familyName].filter(Boolean).join(' ')}${selectedPerson.email ? ` (${selectedPerson.email})` : ''}`
+        ? `Sprechstunde von ${[selectedPerson.honorificPrefix, selectedPerson.givenName, selectedPerson.familyName].filter(Boolean).join(' ')}`
         : title;
 
     const rec = (recurrence && typeof recurrence === 'object') ? recurrence : {};
@@ -378,15 +380,21 @@ export default function Edit({ attributes, setAttributes }) {
                             value={String(personId || 0)}
                             options={[
                                 { label: __('— keine —', 'rrze-appointment'), value: '0' },
-                                ...faudirPersons.map((p) => ({ label: p.label, value: String(p.id) }))
+                                ...[...faudirPersons]
+                                    .filter((p) => p.familyName || p.givenName)
+                                    .map((p) => ({
+                                        label: [p.familyName, p.honorificPrefix ? `(${p.honorificPrefix})` : null, p.givenName ? `${p.givenName}` : null].filter(Boolean).join(', '),
+                                        value: String(p.id)
+                                    }))
+                                    .sort((a, b) => a.label.localeCompare(b.label, 'de'))
                             ]}
                             onChange={(value) => {
                                 const pid = Number(value);
                                 const person = faudirPersons.find((p) => p.id === pid) || null;
                                 const newTitle = person
-                                    ? `Sprechstunde für ${[person.honorificPrefix, person.givenName, person.familyName].filter(Boolean).join(' ')}${person.email ? ` (${person.email})` : ''}`
+                                    ? `Sprechstunde von ${[person.honorificPrefix, person.givenName, person.familyName].filter(Boolean).join(' ')}`
                                     : '';
-                                setAttributes({ personId: pid, title: newTitle, useConsultationHours: false });
+                                setAttributes({ personId: pid, title: newTitle, personName: person ? [person.honorificPrefix, person.givenName, person.familyName].filter(Boolean).join(' ') : '', personEmail: person?.email || '', useConsultationHours: false });
                             }}
                         />
                         {hasConsultationHours && (
@@ -405,11 +413,21 @@ export default function Edit({ attributes, setAttributes }) {
                                 {__('Keine Sprechstunden in FAUdir hinterlegt.', 'rrze-appointment')}
                             </p>
                         )}
+                        <TextControl
+                            label={__('Name', 'rrze-appointment')}
+                            value={personName}
+                            onChange={(value) => setAttributes({ personName: value })}
+                        />
+                        <TextControl
+                            label={__('E-Mail', 'rrze-appointment')}
+                            value={personEmail}
+                            onChange={(value) => setAttributes({ personEmail: value })}
+                        />
                     </PanelBody>
                 )}
                 <PanelBody title="Termin-Einstellungen" initialOpen={true}>
                     <TextControl
-                        label="Titel"
+                        label="title"
                         value={derivedTitle}
                         onChange={(value) => setAttributes({ title: value, personId: 0 })}
                     />
@@ -564,7 +582,7 @@ export default function Edit({ attributes, setAttributes }) {
 
             <div {...blockProps}>
                 <div className="rrze-appointment-block">
-                    <h3>{derivedTitle || 'Termin-Titel'}</h3>
+                    <h3>{derivedTitle || 'Termin-title'}</h3>
                     {description && <p>{description}</p>}
                     {location && <p><strong>Ort:</strong> {location}</p>}
 

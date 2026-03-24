@@ -196,6 +196,11 @@
     &__slot-item {
         position: relative;
         display: block;
+        z-index: 0;
+
+        &:hover {
+            z-index: 1;
+        }
 
         @media (hover: hover) {
             &:hover .rrze-appointment__slot-delete {
@@ -284,16 +289,19 @@
         border-color: #d63638;
         color: #d63638;
         background: #fff;
-        transition: opacity 0.15s ease;
+        transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+        padding: 0;
+
+        svg { fill: none; }
 
         @media (hover: hover) {
             opacity: 0;
         }
 
         &:hover {
-            background: #fff5f5;
-            border-color: #b32d2e;
-            color: #b32d2e;
+            background: #d63638;
+            border-color: #d63638;
+            color: #fff;
         }
     }
 
@@ -331,6 +339,25 @@
         &-text {
             font-weight: 600;
             margin: 0 0 0.75rem;
+        }
+
+        &-label {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            margin: 0 0 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        &-email,
+        &-name {
+            margin-top: 0.25rem;
+            padding: 0.4rem 0.6rem;
+            border: 1px solid #8c8f94;
+            border-radius: 0.35rem;
+            font-size: 0.9rem;
+            width: 100%;
         }
 
         &-status {

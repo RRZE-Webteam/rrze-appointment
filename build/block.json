@@ -65,6 +65,14 @@
       "type": "number",
       "default": 0
     },
+    "personName": {
+      "type": "string",
+      "default": ""
+    },
+    "personEmail": {
+      "type": "string",
+      "default": ""
+    },
     "useConsultationHours": {
       "type": "boolean",
       "default": false
