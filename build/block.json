@@ -76,6 +76,10 @@
     "useConsultationHours": {
       "type": "boolean",
       "default": false
+    },
+    "tplId": {
+      "type": "number",
+      "default": 0
     }
   },
   "editorScript": "file:./index.js",

@@ -76,6 +76,7 @@ class Settings
     {
         add_action('admin_menu', [$this, 'addMenuPage']);
         add_action('admin_init', [$this, 'registerSettings']);
+        add_action('admin_print_footer_scripts', [$this, 'renderAdminJs']);
     }
 
     public function addMenuPage(): void
@@ -100,35 +101,16 @@ class Settings
             ]
         );
 
-        add_settings_section('rrze_appointment_general', __('Allgemein', 'rrze-appointment'), '__return_false', 'rrze-appointment-settings');
+        add_settings_section('rrze_appointment_general', '', '__return_false', 'rrze-appointment-settings');
         add_settings_field('reminder_days', __('Erinnerungsmail', 'rrze-appointment'), [$this, 'renderReminderDaysField'], 'rrze-appointment-settings', 'rrze_appointment_general');
-
-        add_settings_section('rrze_appointment_booking_mail', __('Buchungsbestätigung (an Admin / Person)', 'rrze-appointment'), [$this, 'renderSectionDivider'], 'rrze-appointment-settings');
-        add_settings_field('booking_subject', __('Betreff', 'rrze-appointment'), fn() => $this->renderTextField('booking_subject'), 'rrze-appointment-settings', 'rrze_appointment_booking_mail');
-        add_settings_field('booking_body',    __('Mailtext', 'rrze-appointment'),  fn() => $this->renderMailTabs('booking_body', 'booking_body_html'), 'rrze-appointment-settings', 'rrze_appointment_booking_mail');
-
-        add_settings_section('rrze_appointment_reminder_mail', __('Erinnerungsmail', 'rrze-appointment'), [$this, 'renderSectionDivider'], 'rrze-appointment-settings');
-        add_settings_field('reminder_subject',     __('Betreff', 'rrze-appointment'),                     fn() => $this->renderTextField('reminder_subject'),     'rrze-appointment-settings', 'rrze_appointment_reminder_mail');
-        add_settings_field('reminder_body',        __('Mailtext (an Person / Admin)', 'rrze-appointment'), fn() => $this->renderMailTabs('reminder_body', 'reminder_body_html'),               'rrze-appointment-settings', 'rrze_appointment_reminder_mail');
-        add_settings_field('reminder_body_booker', __('Mailtext (an Buchenden)', 'rrze-appointment'),      fn() => $this->renderMailTabs('reminder_body_booker', 'reminder_body_booker_html'),  'rrze-appointment-settings', 'rrze_appointment_reminder_mail');
     }
 
     public function sanitize(array $input): array
     {
         return [
-            'reminder_days'             => (int) ($input['reminder_days'] ?? 0),
-            'booking_subject'           => sanitize_text_field($input['booking_subject'] ?? ''),
-            'booking_body'              => sanitize_textarea_field($input['booking_body'] ?? ''),
-            'booking_body_html'         => wp_kses_post($input['booking_body_html'] ?? ''),
-            'reminder_subject'          => sanitize_text_field($input['reminder_subject'] ?? ''),
-            'reminder_body'             => sanitize_textarea_field($input['reminder_body'] ?? ''),
-            'reminder_body_html'        => wp_kses_post($input['reminder_body_html'] ?? ''),
-            'reminder_body_booker'      => sanitize_textarea_field($input['reminder_body_booker'] ?? ''),
-            'reminder_body_booker_html' => wp_kses_post($input['reminder_body_booker_html'] ?? ''),
+            'reminder_days' => (int) ($input['reminder_days'] ?? 0),
         ];
     }
-
-    // --- Render-Hilfsmethoden ---
 
     public function renderReminderDaysField(): void
     {
@@ -143,94 +125,6 @@ class Settings
         }
         echo '</select>';
         echo '<p class="description">' . esc_html__('Erinnerungsmail an Person und Buchenden X Tage vor dem Termin versenden.', 'rrze-appointment') . '</p>';
-    }
-
-    public function renderSectionDivider(): void
-    {
-        echo '<hr style="margin: 0 0 1rem; border: none; border-top: 1px solid #dcdcde;">';
-    }
-
-    private function renderTextField(string $key): void
-    {
-        $id    = 'rrze_appt_' . $key;
-        $value = (string) self::get($key);
-        printf(
-            '<input type="text" id="%s" name="%s[%s]" value="%s" class="large-text" />',
-            esc_attr($id),
-            esc_attr(self::OPTION_NAME),
-            esc_attr($key),
-            esc_attr($value)
-        );
-        $this->renderInsertButton($id);
-    }
-
-    private function renderMailTabs(string $plainKey, string $htmlKey): void
-    {
-        $plainId = 'rrze_appt_' . $plainKey;
-        $htmlId  = 'rrze_appt_' . $htmlKey;
-        $uid     = esc_attr($plainKey); // eindeutig pro Feld
-        ?>
-        <div class="rrze-appt-tabs" data-uid="<?php echo $uid; ?>">
-            <div class="rrze-appt-tab-nav" style="display:flex;gap:0;margin-bottom:-1px;">
-                <button type="button" class="rrze-appt-tab-btn button" data-tab="plain" style="border-bottom-color:#fff;z-index:1;">
-                    <?php esc_html_e('Plaintext', 'rrze-appointment'); ?>
-                </button>
-                <button type="button" class="rrze-appt-tab-btn button" data-tab="html" style="background:#f6f7f7;border-bottom-color:#dcdcde;">
-                    <?php esc_html_e('HTML', 'rrze-appointment'); ?>
-                </button>
-            </div>
-            <div style="border:1px solid #dcdcde;padding:0.75rem;">
-                <div class="rrze-appt-tab-panel" data-panel="plain">
-                    <?php
-                    $plainValue = (string) self::get($plainKey);
-                    printf(
-                        '<textarea id="%s" name="%s[%s]" rows="6" class="large-text">%s</textarea>',
-                        esc_attr($plainId),
-                        esc_attr(self::OPTION_NAME),
-                        esc_attr($plainKey),
-                        esc_textarea($plainValue)
-                    );
-                    $this->renderInsertButton($plainId);
-                    ?>
-                </div>
-                <div class="rrze-appt-tab-panel" data-panel="html" style="display:none;">
-                    <?php
-                    $htmlValue = (string) self::get($htmlKey);
-                    wp_editor($htmlValue, $htmlId, [
-                        'textarea_name' => self::OPTION_NAME . '[' . $htmlKey . ']',
-                        'textarea_rows' => 10,
-                        'media_buttons' => false,
-                        'teeny'         => false,
-                        'tinymce'       => true,
-                        'quicktags'     => true,
-                    ]);
-                    $this->renderInsertButton($htmlId, true);
-                    ?>
-                </div>
-            </div>
-        </div>
-        <?php
-    }
-
-    private function renderInsertButton(string $targetId, bool $isTinymce = false): void
-    {
-        echo '<div style="position:relative;display:inline-block;margin-top:0.4rem;">';
-        printf(
-            '<button type="button" class="button rrze-appt-insert-btn" data-target="%s" data-tinymce="%s">%s &#9660;</button>',
-            esc_attr($targetId),
-            $isTinymce ? '1' : '0',
-            esc_html__('Platzhalter einfügen', 'rrze-appointment')
-        );
-        echo '<ul class="rrze-appt-insert-dropdown" style="display:none;position:absolute;z-index:100;background:#fff;border:1px solid #dcdcde;box-shadow:0 2px 6px rgba(0,0,0,.15);margin:0;padding:0;list-style:none;min-width:220px;">';
-        foreach (self::PLACEHOLDERS as $tag => $desc) {
-            printf(
-                '<li><button type="button" class="rrze-appt-insert-tag" data-tag="%s" style="display:block;width:100%%;text-align:left;padding:6px 12px;background:none;border:none;cursor:pointer;font-size:13px;"><code>%s</code> <span style="color:#50575e;">%s</span></button></li>',
-                esc_attr($tag),
-                esc_html($tag),
-                esc_html__($desc, 'rrze-appointment')
-            );
-        }
-        echo '</ul></div>';
     }
 
     public function renderPage(): void
@@ -249,11 +143,22 @@ class Settings
                 ?>
             </form>
         </div>
+        <?php
+    }
+
+    public function renderAdminJs(): void
+    {
+        $screen = get_current_screen();
+        if (!$screen) return;
+        $isSettings = $screen->id === 'settings_page_rrze-appointment-settings';
+        $isCpt      = $screen->base === 'post' && $screen->post_type === MailTemplatePost::POST_TYPE;
+        if (!$isSettings && !$isCpt) return;
+        ?>
         <script>
         (function() {
-            var lastField    = null;
-            var lastPos      = 0;
-            var savedBookmark = null; // TinyMCE bookmark
+            var lastField     = null;
+            var lastPos       = 0;
+            var savedBookmark = null;
             var savedEditorId = null;
 
             // --- Tab-Switching ---

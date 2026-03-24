@@ -9,6 +9,7 @@ import {
 } from '@wordpress/components';
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
 import { Fragment, useEffect, useMemo, useState } from '@wordpress/element';
+import apiFetch from '@wordpress/api-fetch';
 import {
     formatDate,
     formatDateDisplay,
@@ -226,8 +227,16 @@ export default function Edit({ attributes, setAttributes }) {
         personId,
         personName,
         personEmail,
-        useConsultationHours
+        useConsultationHours,
+        tplId
     } = attributes;
+
+    const [mailTemplates, setMailTemplates] = useState([]);
+    useEffect(() => {
+        apiFetch({ path: '/wp/v2/rrze-mail-templates?per_page=100&status=publish' })
+            .then((posts) => setMailTemplates(posts.map((p) => ({ value: p.id, label: p.title.rendered }))))
+            .catch(() => {});
+    }, []);
 
     const faudirPersons = window.rrze_appointment?.persons || [];
     const selectedPerson = faudirPersons.find((p) => p.id === personId) || null;
@@ -373,6 +382,17 @@ export default function Edit({ attributes, setAttributes }) {
     return (
         <Fragment>
             <InspectorControls>
+                <PanelBody title={__('Mail-Vorlage', 'rrze-appointment')} initialOpen={false}>
+                    <SelectControl
+                        label={__('Vorlage', 'rrze-appointment')}
+                        value={String(tplId || 0)}
+                        options={[
+                            { label: __('— Standard —', 'rrze-appointment'), value: '0' },
+                            ...mailTemplates.map((t) => ({ label: t.label, value: String(t.value) }))
+                        ]}
+                        onChange={(v) => setAttributes({ tplId: Number(v) })}
+                    />
+                </PanelBody>
                 {faudirPersons.length > 0 && (
                     <PanelBody title={__('Personen-Einstellungen', 'rrze-appointment')} initialOpen={true}>
                         <SelectControl

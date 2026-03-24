@@ -179,6 +179,7 @@
                 data.append('title', form.dataset.title || '');
                 data.append('location', form.dataset.location || '');
                 data.append('person_id', form.dataset.personId || '0');
+                data.append('tpl_id', form.dataset.tplId || '0');
                 data.append('booker_email', emailInput.value.trim());
                 data.append('booker_name', nameInput.value.trim());
 

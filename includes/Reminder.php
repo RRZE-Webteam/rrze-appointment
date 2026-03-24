@@ -2,6 +2,8 @@
 
 namespace RRZE\Appointment;
 
+use RRZE\Appointment\MailTemplatePost;
+
 defined('ABSPATH') || exit;
 
 class Reminder
@@ -76,6 +78,9 @@ class Reminder
         $personId     = (int) ($meta['person_id'] ?? 0);
         $bookerEmail  = $meta['booker_email'] ?? '';
         $bookerName   = $meta['booker_name'] ?? '';
+        $tplId        = (int) ($meta['tpl_id'] ?? 0);
+        $tplAdmin     = $tplId > 0 ? MailTemplatePost::getTemplateForType($tplId, 'reminder_admin')  : null;
+        $tplBooker    = $tplId > 0 ? MailTemplatePost::getTemplateForType($tplId, 'reminder_booker') : null;
 
         $dateFormatted = date_i18n(get_option('date_format'), strtotime($datePart));
 
@@ -96,11 +101,14 @@ class Reminder
             $vars['[person_name]'] = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
         }
 
-        $subject          = Settings::renderTemplate((string) Settings::get('reminder_subject'), $vars);
-        $body             = Settings::renderTemplate((string) Settings::get('reminder_body'), $vars);
-        $bodyHtml         = Settings::renderTemplate((string) Settings::get('reminder_body_html'), $vars);
-        $bodyBooker       = Settings::renderTemplate((string) Settings::get('reminder_body_booker'), $vars);
-        $bodyBookerHtml   = Settings::renderTemplate((string) Settings::get('reminder_body_booker_html'), $vars);
+        $tplAdmin  = $tplId  > 0 ? MailTemplatePost::getTemplateForType($tplId,  'reminder_admin')  : null;
+        $tplBooker = $tplId > 0 ? MailTemplatePost::getTemplateForType($tplId, 'reminder_booker') : null;
+
+        $subject        = Settings::renderTemplate($tplAdmin['subject']   ?? (string) Settings::get('reminder_subject'),          $vars);
+        $body           = Settings::renderTemplate($tplAdmin['body']      ?? (string) Settings::get('reminder_body'),              $vars);
+        $bodyHtml       = Settings::renderTemplate($tplAdmin['body_html'] ?? (string) Settings::get('reminder_body_html'),         $vars);
+        $bodyBooker     = Settings::renderTemplate($tplBooker['subject']  ?? (string) Settings::get('reminder_body_booker'),       $vars);
+        $bodyBookerHtml = Settings::renderTemplate($tplBooker['body_html']?? (string) Settings::get('reminder_body_booker_html'),  $vars);
 
         // An Admin / Person senden
         $personEmail = '';

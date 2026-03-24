@@ -7,6 +7,7 @@ use function RRZE\Appointment\plugin;
 use RRZE\Appointment\Defaults;
 use RRZE\Appointment\Settings;
 use RRZE\Appointment\Reminder;
+use RRZE\Appointment\MailTemplatePost;
 use RRZE\Appointment\Common\Settings\Settings as CommonSettings;
 
 
@@ -28,6 +29,7 @@ class Main
 
     public function __construct()
     {
+        add_action('init', [MailTemplatePost::class, 'register'], 5);
         add_action('init', [$this, 'onInit']);
         add_filter('wp_kses_allowed_html', [$this, 'my_custom_allowed_html'], 10, 2);
     }
@@ -321,6 +323,7 @@ class Main
         $personId    = (int) ($_POST['person_id'] ?? 0);
         $bookerEmail = sanitize_email($_POST['booker_email'] ?? '');
         $bookerName  = sanitize_text_field($_POST['booker_name'] ?? '');
+        $tplId               = (int) ($_POST['tpl_id'] ?? 0);
 
         if (!$slot) {
             wp_send_json_error('Kein Termin angegeben.');
@@ -384,9 +387,11 @@ class Main
             '[email]'       => $bookerEmail ?: '–',
         ];
 
-        $subject  = Settings::renderTemplate((string) Settings::get('booking_subject'), $vars);
-        $plain    = Settings::renderTemplate((string) Settings::get('booking_body'), $vars);
-        $html     = Settings::renderTemplate((string) Settings::get('booking_body_html'), $vars);
+        $tpl = $tplId > 0 ? MailTemplatePost::getTemplateForType($tplId, 'booking') : null;
+
+        $subject  = Settings::renderTemplate($tpl['subject']   ?: (string) Settings::get('booking_subject'),   $vars);
+        $plain    = Settings::renderTemplate($tpl['body']      ?: (string) Settings::get('booking_body'),      $vars);
+        $html     = Settings::renderTemplate($tpl['body_html'] ?: (string) Settings::get('booking_body_html'), $vars);
 
         $tmpDir  = get_temp_dir();
         $tmpFile = tempnam($tmpDir, 'rrze_appt_');
@@ -408,6 +413,7 @@ class Main
                 'person_id'    => $personId,
                 'booker_email' => $bookerEmail,
                 'booker_name'  => $bookerName,
+                'tpl_id'       => $tplId,
             ]);
 
             wp_send_json_success();
