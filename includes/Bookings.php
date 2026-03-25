@@ -3,6 +3,7 @@
 namespace RRZE\Appointment;
 
 use RRZE\Appointment\MailTemplatePost;
+use RRZE\Appointment\TokenManager;
 
 defined('ABSPATH') || exit;
 
@@ -103,20 +104,22 @@ class Bookings
         }
 
         $vars = [
-            '[titel]'       => $title,
-            '[datum]'       => date_i18n(get_option('date_format'), strtotime($datePart)),
-            '[uhrzeit]'     => $startTime . ' – ' . $endTime,
-            '[ort]'         => $location ?: '–',
-            '[person_name]' => $pName ?: '–',
-            '[name]'        => $bookerName ?: '–',
-            '[email]'       => $bookerEmail ?: '–',
+            '[titel]'          => $title,
+            '[datum]'          => date_i18n(get_option('date_format'), strtotime($datePart)),
+            '[uhrzeit]'        => $startTime . ' – ' . $endTime,
+            '[ort]'            => $location ?: '–',
+            '[person_name]'    => $pName ?: '–',
+            '[name]'           => $bookerName ?: '–',
+            '[email]'          => $bookerEmail ?: '–',
+            '[storno_link]'    => '',
+            '[impressum_link]' => TokenManager::imprintUrl(),
         ];
 
-        $tpl = $tplId > 0 ? MailTemplatePost::getTemplateForType($tplId, 'cancellation') : null;
+        $tpl = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'cancellation') ?? []) : [];
 
-        $subject = Settings::renderTemplate($tpl['subject']   ?? __('Stornierung: [titel] am [datum]', 'rrze-appointment'), $vars);
-        $plain   = Settings::renderTemplate($tpl['body']      ?? __("Ihr Termin wurde storniert:\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]", 'rrze-appointment'), $vars);
-        $html    = Settings::renderTemplate($tpl['body_html'] ?? __('<p>Ihr Termin wurde storniert:</p><table><tr><th>Termin</th><td>[titel]</td></tr><tr><th>Datum</th><td>[datum]</td></tr><tr><th>Zeit</th><td>[uhrzeit]</td></tr><tr><th>Ort</th><td>[ort]</td></tr></table>', 'rrze-appointment'), $vars);
+        $subject = Settings::renderTemplate(!empty($tpl['subject'])   ? $tpl['subject']   : __('Stornierung: [titel] am [datum]', 'rrze-appointment'), $vars);
+        $plain   = Settings::renderTemplate(!empty($tpl['body'])      ? $tpl['body']      : "Ihr Termin wurde storniert:\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\n\nImpressum: [impressum_link]", $vars);
+        $html    = Settings::renderTemplate(!empty($tpl['body_html']) ? $tpl['body_html'] : '<p>Ihr Termin wurde storniert:</p><table><tr><th>Termin</th><td>[titel]</td></tr><tr><th>Datum</th><td>[datum]</td></tr><tr><th>Zeit</th><td>[uhrzeit]</td></tr><tr><th>Ort</th><td>[ort]</td></tr></table><p><a href="[impressum_link]">Impressum</a></p>', $vars);
 
         // An Person / Admin
         $toAdmin = '';

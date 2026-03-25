@@ -288,7 +288,7 @@ class Settings
     {
         $backUrl  = add_query_arg(['page' => self::PAGE_SLUG, 'tab' => 'templates'], admin_url('options-general.php'));
         $title    = '';
-        $sections = ['booking' => [], 'reminder_admin' => [], 'reminder_booker' => [], 'cancellation' => []];
+        $sections = ['booking_pending' => [], 'booking' => [], 'reminder_admin' => [], 'reminder_booker' => [], 'cancellation' => []];
 
         if ($id > 0) {
             $post = get_post($id);
@@ -305,10 +305,11 @@ class Settings
         }
 
         $sectionLabels = [
-            'booking'         => __('Buchungsbestätigung (an Admin / Person)', 'rrze-appointment'),
-            'reminder_admin'  => __('Erinnerungsmail (an Person / Admin)', 'rrze-appointment'),
-            'reminder_booker' => __('Erinnerungsmail (an Buchenden)', 'rrze-appointment'),
-            'cancellation'    => __('Stornierung (an alle)', 'rrze-appointment'),
+            'booking_pending' => __('Mail A: Buchungsanfrage (an Buchenden) — verfügbar: [bestaetigungs_link], [impressum_link]', 'rrze-appointment'),
+            'booking'         => __('Mail B: Buchungsbestätigung (an Buchenden + Person/Admin) — verfügbar: [storno_link], [impressum_link]', 'rrze-appointment'),
+            'reminder_admin'  => __('Erinnerungsmail (an Person / Admin) — verfügbar: [impressum_link]', 'rrze-appointment'),
+            'reminder_booker' => __('Erinnerungsmail (an Buchenden) — verfügbar: [impressum_link]', 'rrze-appointment'),
+            'cancellation'    => __('Stornierung (an alle) — verfügbar: [impressum_link]', 'rrze-appointment'),
         ];
         ?>
         <a href="<?php echo esc_url($backUrl); ?>" class="button" style="margin-bottom:1rem;">
