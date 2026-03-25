@@ -402,9 +402,9 @@ export default function Edit({ attributes, setAttributes }) {
                             options={[
                                 { label: __('— keine —', 'rrze-appointment'), value: '0' },
                                 ...[...faudirPersons]
-                                    .filter((p) => p.familyName || p.givenName)
+                                    .filter((p) => p.familyName || p.givenName || p.label)
                                     .map((p) => ({
-                                        label: [p.familyName, p.honorificPrefix ? `(${p.honorificPrefix})` : null, p.givenName ? `${p.givenName}` : null].filter(Boolean).join(', '),
+                                        label: [p.familyName, p.honorificPrefix ? `(${p.honorificPrefix})` : null, p.givenName ? `${p.givenName}` : null].filter(Boolean).join(', ') || p.label,
                                         value: String(p.id)
                                     }))
                                     .sort((a, b) => a.label.localeCompare(b.label, 'de'))
