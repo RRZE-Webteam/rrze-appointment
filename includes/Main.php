@@ -259,6 +259,8 @@ class Main
             // Sprechstunden aus FAUdir-API-Transient lesen
             $personFaudirId      = (string) get_post_meta($post->ID, 'person_id', true);
             $consultationHours   = [];
+            $location            = '';
+            $locationUrl         = '';
             if ($personFaudirId !== '') {
                 $transientKey = 'faudir_api_person_' . md5($personFaudirId);
                 $cached       = get_transient($transientKey);
@@ -267,6 +269,18 @@ class Main
                     foreach ((array) $workplaces as $wp) {
                         if (!empty($wp['consultationHours']) && is_array($wp['consultationHours'])) {
                             $consultationHours = array_merge($consultationHours, $wp['consultationHours']);
+                        }
+                        // Ersten Workplace-Ort verwenden
+                        if ($location === '') {
+                            $parts = array_filter([
+                                $wp['room']             ?? '',
+                                $wp['street']           ?? '',
+                                $wp['addressLocality']  ?? $wp['city'] ?? '',
+                            ]);
+                            $location = implode(', ', $parts);
+                        }
+                        if ($locationUrl === '' && !empty($wp['faumap'])) {
+                            $locationUrl = (string) $wp['faumap'];
                         }
                     }
                 }
@@ -279,6 +293,8 @@ class Main
                 'givenName'        => $given,
                 'familyName'       => $family,
                 'email'            => $email,
+                'location'         => $location,
+                'locationUrl'      => $locationUrl,
                 'consultationHours'=> $consultationHours,
             ];
         }

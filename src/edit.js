@@ -228,7 +228,8 @@ export default function Edit({ attributes, setAttributes }) {
         personName,
         personEmail,
         useConsultationHours,
-        tplId
+        tplId,
+        locationUrl
     } = attributes;
 
     const [mailTemplates, setMailTemplates] = useState([]);
@@ -414,7 +415,7 @@ export default function Edit({ attributes, setAttributes }) {
                                 const newTitle = person
                                     ? `Sprechstunde von ${[person.honorificPrefix, person.givenName, person.familyName].filter(Boolean).join(' ')}`
                                     : '';
-                                setAttributes({ personId: pid, title: newTitle, personName: person ? [person.honorificPrefix, person.givenName, person.familyName].filter(Boolean).join(' ') : '', personEmail: person?.email || '', useConsultationHours: false });
+                                setAttributes({ personId: pid, title: newTitle, personName: person ? [person.honorificPrefix, person.givenName, person.familyName].filter(Boolean).join(' ') : '', personEmail: person?.email || '', location: person?.location || '', locationUrl: person?.locationUrl || '', useConsultationHours: false });
                             }}
                         />
                         {hasConsultationHours && (
@@ -442,6 +443,11 @@ export default function Edit({ attributes, setAttributes }) {
                             label={__('E-Mail', 'rrze-appointment')}
                             value={personEmail}
                             onChange={(value) => setAttributes({ personEmail: value })}
+                        />
+                        <TextControl
+                            label={__('Karte (URL)', 'rrze-appointment')}
+                            value={locationUrl}
+                            onChange={(value) => setAttributes({ locationUrl: value })}
                         />
                     </PanelBody>
                 )}
