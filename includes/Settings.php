@@ -43,7 +43,7 @@ class Settings
     {
         $GLOBALS['rrze_appointment_html_body'] = MailTemplate::wrap($html, $subject);
         add_action('phpmailer_init', [self::class, 'addHtmlPart']);
-        $sent = wp_mail($to, $subject, $plain, ['Content-Type: text/plain; charset=UTF-8'], $attachments);
+        $sent = wp_mail($to, $subject, $plain, [], $attachments);
         remove_action('phpmailer_init', [self::class, 'addHtmlPart']);
         unset($GLOBALS['rrze_appointment_html_body']);
         return $sent;
@@ -53,9 +53,11 @@ class Settings
     {
         $html = $GLOBALS['rrze_appointment_html_body'] ?? '';
         if ($html === '') return;
-        $phpmailer->AltBody = $phpmailer->Body;
+        $phpmailer->CharSet  = 'UTF-8';
+        $phpmailer->AltBody  = $phpmailer->Body;
+        $phpmailer->Body     = $html;
         $phpmailer->isHTML(true);
-        $phpmailer->Body = $html;
+        error_log('RRZE addHtmlPart: AltBody snippet=' . substr($phpmailer->AltBody, 0, 100));
     }
 
     public function register(): void
@@ -288,7 +290,7 @@ class Settings
     {
         $backUrl  = add_query_arg(['page' => self::PAGE_SLUG, 'tab' => 'templates'], admin_url('options-general.php'));
         $title    = '';
-        $sections = ['booking_pending' => [], 'booking' => [], 'reminder_admin' => [], 'reminder_booker' => [], 'cancellation' => []];
+        $sections = ['booking_pending' => [], 'booking_booker' => [], 'booking_host' => [], 'reminder_admin' => [], 'reminder_booker' => [], 'cancellation' => []];
 
         if ($id > 0) {
             $post = get_post($id);
@@ -305,11 +307,12 @@ class Settings
         }
 
         $sectionLabels = [
-            'booking_pending' => __('Mail A: Buchungsanfrage (an Buchenden) — verfügbar: [bestaetigungs_link], [impressum_link]', 'rrze-appointment'),
-            'booking'         => __('Mail B: Buchungsbestätigung (an Buchenden + Person/Admin) — verfügbar: [storno_link], [impressum_link]', 'rrze-appointment'),
-            'reminder_admin'  => __('Erinnerungsmail (an Person / Admin) — verfügbar: [impressum_link]', 'rrze-appointment'),
-            'reminder_booker' => __('Erinnerungsmail (an Buchenden) — verfügbar: [impressum_link]', 'rrze-appointment'),
-            'cancellation'    => __('Stornierung (an alle) — verfügbar: [impressum_link]', 'rrze-appointment'),
+            'booking_pending' => __('Mail A: Anfrage an Buchenden — [bestaetigungs_link], [impressum_link]', 'rrze-appointment'),
+            'booking_booker'  => __('Mail B: Bestätigung an Buchenden — [storno_link], [impressum_link]', 'rrze-appointment'),
+            'booking_host'    => __('Mail B: Bestätigung an Einladenden — [storno_link], [impressum_link]', 'rrze-appointment'),
+            'reminder_admin'  => __('Erinnerung an einladende Person — [storno_link], [impressum_link]', 'rrze-appointment'),
+            'reminder_booker' => __('Erinnerung an Buchenden — [storno_link], [impressum_link]', 'rrze-appointment'),
+            'cancellation'    => __('Stornierung — [impressum_link]', 'rrze-appointment'),
         ];
         ?>
         <a href="<?php echo esc_url($backUrl); ?>" class="button" style="margin-bottom:1rem;">

@@ -22,7 +22,8 @@ class MailTemplatePost
         ]);
 
         foreach (['booking_pending_subject', 'booking_pending_body', 'booking_pending_body_html',
-                  'booking_subject', 'booking_body', 'booking_body_html',
+                  'booking_booker_subject', 'booking_booker_body', 'booking_booker_body_html',
+                  'booking_host_subject', 'booking_host_body', 'booking_host_body_html',
                   'reminder_admin_subject', 'reminder_admin_body', 'reminder_admin_body_html',
                   'reminder_booker_subject', 'reminder_booker_body', 'reminder_booker_body_html',
                   'cancellation_subject', 'cancellation_body', 'cancellation_body_html'] as $field) {
@@ -80,7 +81,7 @@ class MailTemplatePost
             return $result;
         }
 
-        foreach (['booking_pending', 'booking', 'reminder_admin', 'reminder_booker', 'cancellation'] as $key) {
+        foreach (['booking_pending', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation'] as $key) {
             update_post_meta($result, "tpl_{$key}_subject",   sanitize_text_field($data["{$key}_subject"] ?? ''));
             update_post_meta($result, "tpl_{$key}_body",      sanitize_textarea_field($data["{$key}_body"] ?? ''));
             update_post_meta($result, "tpl_{$key}_body_html", wp_kses_post($data["{$key}_body_html"] ?? ''));

@@ -70,7 +70,31 @@ class TokenManager
         $tokens = (array) get_option(self::CANCEL_OPTION, []);
         $tokens[$token] = $slot;
         update_option(self::CANCEL_OPTION, $tokens, false);
+
+        // Token auch im Slot-Meta speichern
+        $allMeta = (array) get_option('rrze_appointment_booked_slots_meta', []);
+        if (isset($allMeta[$slot])) {
+            $allMeta[$slot]['cancel_token'] = $token;
+            update_option('rrze_appointment_booked_slots_meta', $allMeta, false);
+        }
+
         return $token;
+    }
+
+    /**
+     * Gibt die Storno-URL für einen Slot zurück.
+     * Erstellt einen neuen Token falls noch keiner existiert.
+     */
+    public static function getCancelUrlForSlot(string $slot): string
+    {
+        $allMeta = (array) get_option('rrze_appointment_booked_slots_meta', []);
+        $token   = $allMeta[$slot]['cancel_token'] ?? '';
+
+        if (!$token) {
+            $token = self::createCancelToken($slot);
+        }
+
+        return self::cancelUrl($token);
     }
 
     public static function validateCancelToken(string $token): ?string

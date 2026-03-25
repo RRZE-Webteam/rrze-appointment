@@ -48,8 +48,8 @@ class Main
         add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets']);
         add_action('wp_ajax_rrze_appointment_book', [$this, 'handleBooking']);
         add_action('wp_ajax_nopriv_rrze_appointment_book', [$this, 'handleBooking']);
-        add_action('init', [$this, 'handleConfirm']);
-        add_action('init', [$this, 'handleCancel']);
+        add_action('template_redirect', [$this, 'handleConfirm']);
+        add_action('template_redirect', [$this, 'handleCancel']);
         add_action('rrze_appointment_expire_pending', ['RRZE\Appointment\TokenManager', 'expirePending']);
     }
 
@@ -381,9 +381,18 @@ class Main
         ];
 
         $tpl     = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'booking_pending') ?? []) : [];
-        $subject = Settings::renderTemplate(!empty($tpl['subject'])   ? $tpl['subject']   : __('Bitte bestätigen: [titel] am [datum]', 'rrze-appointment'), $vars);
-        $plain   = Settings::renderTemplate(!empty($tpl['body'])      ? $tpl['body']      : "Bitte bestätigen Sie Ihren Termin:\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\n\nBestätigung: [bestaetigungs_link]\n\nImpressum: [impressum_link]", $vars);
-        $html    = Settings::renderTemplate(!empty($tpl['body_html']) ? $tpl['body_html'] : '<p>Bitte bestätigen Sie Ihren Termin:</p><table><tr><th>Termin</th><td>[titel]</td></tr><tr><th>Datum</th><td>[datum]</td></tr><tr><th>Zeit</th><td>[uhrzeit]</td></tr><tr><th>Ort</th><td>[ort]</td></tr></table><p><a href="[bestaetigungs_link]">Termin jetzt bestätigen</a></p><p><a href="[impressum_link]">Impressum</a></p>', $vars);
+        $subject = Settings::renderTemplate(!empty($tpl['subject']) ? $tpl['subject'] : __('Bitte bestätigen: [titel] am [datum]', 'rrze-appointment'), $vars);
+
+        $bodyTpl     = !empty($tpl['body'])      ? $tpl['body']      : "Bitte bestätigen Sie Ihren Termin:\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]";
+        $bodyHtmlTpl = !empty($tpl['body_html']) ? $tpl['body_html'] : '<p>Bitte bestätigen Sie Ihren Termin:</p><table><tr><th>Termin</th><td>[titel]</td></tr><tr><th>Datum</th><td>[datum]</td></tr><tr><th>Zeit</th><td>[uhrzeit]</td></tr><tr><th>Ort</th><td>[ort]</td></tr></table>';
+
+        if (strpos($bodyTpl, '[bestaetigungs_link]') === false)  $bodyTpl     .= "\n\nBestätigung: [bestaetigungs_link]";
+        if (strpos($bodyTpl, '[impressum_link]') === false)       $bodyTpl     .= "\nImpressum: [impressum_link]";
+        if (strpos($bodyHtmlTpl, '[bestaetigungs_link]') === false) $bodyHtmlTpl .= '<p><a href="[bestaetigungs_link]">Termin jetzt bestätigen</a></p>';
+        if (strpos($bodyHtmlTpl, '[impressum_link]') === false)    $bodyHtmlTpl .= '<p><a href="[impressum_link]">Impressum</a></p>';
+
+        $plain = Settings::renderTemplate($bodyTpl, $vars);
+        $html  = Settings::renderTemplate($bodyHtmlTpl, $vars);
 
         Settings::sendMail($bookerEmail, $subject, $plain, $html);
 
@@ -397,9 +406,6 @@ class Main
     {
         $token = sanitize_text_field($_GET['rrze_appt_confirm'] ?? '');
         if (!$token) return;
-
-        // Sicherstellen dass WP vollständig geladen ist
-        if (!did_action('init')) return;
 
         $entry = TokenManager::confirmPending($token);
         if (!$entry) {
@@ -439,11 +445,12 @@ class Main
         $booked[] = $slot;
         update_option('rrze_appointment_booked_slots', array_unique($booked), false);
 
-        // Cancel-Token erstellen
-        $cancelToken = TokenManager::createCancelToken($slot);
-        $cancelUrl   = TokenManager::cancelUrl($cancelToken);
-        $imprintUrl  = TokenManager::imprintUrl();
+        // Meta speichern (vor createCancelToken, damit cancel_token ins Meta geschrieben werden kann)
+        Reminder::scheduleForSlot($slot, $meta);
 
+        // Cancel-Token erstellen und URL holen
+        $cancelUrl  = TokenManager::getCancelUrlForSlot($slot);
+        $imprintUrl = TokenManager::imprintUrl();
         $personId   = (int) ($meta['person_id'] ?? 0);
         $bookerEmail = $meta['booker_email'] ?? '';
         $bookerName  = $meta['booker_name']  ?? '';
@@ -470,28 +477,42 @@ class Main
             '[impressum_link]'     => $imprintUrl,
         ];
 
-        $tpl     = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'booking') ?? []) : [];
-        $subject = Settings::renderTemplate(!empty($tpl['subject'])   ? $tpl['subject']   : __('Buchungsbestätigung: [titel] am [datum]', 'rrze-appointment'), $vars);
-        $plain   = Settings::renderTemplate(!empty($tpl['body'])      ? $tpl['body']      : "Ihr Termin wurde bestätigt:\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\n\nStornieren: [storno_link]\n\nImpressum: [impressum_link]", $vars);
-        $html    = Settings::renderTemplate(!empty($tpl['body_html']) ? $tpl['body_html'] : '<p>Ihr Termin wurde bestätigt:</p><table><tr><th>Termin</th><td>[titel]</td></tr><tr><th>Datum</th><td>[datum]</td></tr><tr><th>Zeit</th><td>[uhrzeit]</td></tr><tr><th>Ort</th><td>[ort]</td></tr></table><p><a href="[storno_link]">Termin stornieren</a></p><p><a href="[impressum_link]">Impressum</a></p>', $vars);
+        // Mail B an Buchenden
+        $tplBooker     = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'booking_booker') ?? []) : [];
+        $subjectBooker = Settings::renderTemplate(!empty($tplBooker['subject']) ? $tplBooker['subject'] : __('Buchungsbestätigung: [titel] am [datum]', 'rrze-appointment'), $vars);
+        $bodyBooker     = !empty($tplBooker['body'])      ? $tplBooker['body']      : "Ihr Termin wurde bestätigt:\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]";
+        $bodyHtmlBooker = !empty($tplBooker['body_html']) ? $tplBooker['body_html'] : '<p>Ihr Termin wurde bestätigt:</p><table><tr><th>Termin</th><td>[titel]</td></tr><tr><th>Datum</th><td>[datum]</td></tr><tr><th>Zeit</th><td>[uhrzeit]</td></tr><tr><th>Ort</th><td>[ort]</td></tr></table>';
+        if (strpos($bodyBooker, '[storno_link]') === false)     $bodyBooker     .= "\n\nStornieren: [storno_link]";
+        if (strpos($bodyBooker, '[impressum_link]') === false)  $bodyBooker     .= "\nImpressum: [impressum_link]";
+        if (strpos($bodyHtmlBooker, '[storno_link]') === false)  $bodyHtmlBooker .= '<p><a href="[storno_link]">Termin stornieren</a></p>';
+        if (strpos($bodyHtmlBooker, '[impressum_link]') === false) $bodyHtmlBooker .= '<p><a href="[impressum_link]">Impressum</a></p>';
+        $plainBooker = Settings::renderTemplate($bodyBooker, $vars);
+        $htmlBooker  = Settings::renderTemplate($bodyHtmlBooker, $vars);
 
-        // ICS-Datei
+        // Mail B an Einladenden
+        $tplHost     = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'booking_host') ?? []) : [];
+        $subjectHost = Settings::renderTemplate(!empty($tplHost['subject']) ? $tplHost['subject'] : __('Neue Buchung: [titel] am [datum]', 'rrze-appointment'), $vars);
+        $bodyHost     = !empty($tplHost['body'])      ? $tplHost['body']      : "Neue Buchung:\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\nGebucht von: [name] ([email])";
+        $bodyHtmlHost = !empty($tplHost['body_html']) ? $tplHost['body_html'] : '<p>Neue Buchung:</p><table><tr><th>Termin</th><td>[titel]</td></tr><tr><th>Datum</th><td>[datum]</td></tr><tr><th>Zeit</th><td>[uhrzeit]</td></tr><tr><th>Ort</th><td>[ort]</td></tr><tr><th>Gebucht von</th><td>[name] ([email])</td></tr></table>';
+        if (strpos($bodyHost, '[storno_link]') === false)     $bodyHost     .= "\n\nStornieren: [storno_link]";
+        if (strpos($bodyHost, '[impressum_link]') === false)  $bodyHost     .= "\nImpressum: [impressum_link]";
+        if (strpos($bodyHtmlHost, '[storno_link]') === false)  $bodyHtmlHost .= '<p><a href="[storno_link]">Termin stornieren</a></p>';
+        if (strpos($bodyHtmlHost, '[impressum_link]') === false) $bodyHtmlHost .= '<p><a href="[impressum_link]">Impressum</a></p>';
+        $plainHost = Settings::renderTemplate($bodyHost, $vars);
+        $htmlHost  = Settings::renderTemplate($bodyHtmlHost, $vars);
+
         $tmpFile = tempnam(get_temp_dir(), 'rrze_appt_') . '.ics';
         file_put_contents($tmpFile, $ics);
 
-        // An Buchenden
-        Settings::sendMail($bookerEmail, $subject, $plain, $html, [$tmpFile]);
+        Settings::sendMail($bookerEmail, $subjectBooker, $plainBooker, $htmlBooker, [$tmpFile]);
 
-        // An Person / Admin
         $adminEmail = get_option('admin_email');
         $toAdmin    = '';
         if ($personId > 0) $toAdmin = (string) get_post_meta($personId, 'person_email', true);
         if (!$toAdmin) $toAdmin = $adminEmail;
-        Settings::sendMail($toAdmin, $subject, $plain, $html, [$tmpFile]);
+        Settings::sendMail($toAdmin, $subjectHost, $plainHost, $htmlHost, [$tmpFile]);
 
         @unlink($tmpFile);
-
-        Reminder::scheduleForSlot($slot, $meta);
 
         wp_die(
             '<p>' . esc_html__('Ihr Termin wurde bestätigt. Eine Bestätigung wurde per E-Mail versendet.', 'rrze-appointment') . '</p>' .

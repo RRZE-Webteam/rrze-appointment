@@ -91,7 +91,7 @@ class Reminder
             '[person_name]'    => '',
             '[name]'           => $bookerName ?: '–',
             '[email]'          => $bookerEmail ?: '–',
-            '[storno_link]'    => '',
+            '[storno_link]'    => TokenManager::getCancelUrlForSlot($slot),
             '[impressum_link]' => TokenManager::imprintUrl(),
         ];
 
