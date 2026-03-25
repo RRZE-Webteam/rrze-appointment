@@ -36,6 +36,48 @@ class MailTemplatePost
         }
     }
 
+    /**
+     * Eingebautes Standard-Template (nicht editierbar).
+     * Wird verwendet wenn tplId = 0.
+     */
+    public static function getDefault(string $type): array
+    {
+        $defaults = [
+            'booking_pending' => [
+                'subject'   => 'Terminanfrage bestätigen: [titel] am [datum]',
+                'body'      => "Bitte bestätigen Sie Ihren Terminwunsch:\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\n\nBestätigung: [bestaetigungs_link]\nStornieren: [storno_link]\n\nImpressum: [impressum_link]",
+                'body_html' => '<p>Bitte bestätigen Sie Ihren Terminwunsch:</p><table><tr><th>Termin</th><td>[titel]</td></tr><tr><th>Datum</th><td>[datum]</td></tr><tr><th>Zeit</th><td>[uhrzeit]</td></tr><tr><th>Ort</th><td>[ort]</td></tr></table><p><a href="[bestaetigungs_link]">Termin jetzt bestätigen</a> &nbsp;|&nbsp; <a href="[storno_link]">Anfrage stornieren</a></p><p><a href="[impressum_link]">Impressum</a></p>',
+            ],
+            'booking_booker' => [
+                'subject'   => 'Buchungsbestätigung: [titel] am [datum]',
+                'body'      => "Ihr Termin wurde bestätigt:\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\n\nStornieren: [storno_link]\n\nImpressum: [impressum_link]",
+                'body_html' => '<p>Ihr Termin wurde bestätigt:</p><table><tr><th>Termin</th><td>[titel]</td></tr><tr><th>Datum</th><td>[datum]</td></tr><tr><th>Zeit</th><td>[uhrzeit]</td></tr><tr><th>Ort</th><td>[ort]</td></tr></table><p><a href="[storno_link]">Termin stornieren</a></p><p><a href="[impressum_link]">Impressum</a></p>',
+            ],
+            'booking_host' => [
+                'subject'   => 'Neue Buchung: [titel] am [datum]',
+                'body'      => "Neue Buchung eingegangen:\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\nGebucht von: [name] ([email])\nNachricht: [nachricht]\n\nStornieren: [storno_link]\n\nImpressum: [impressum_link]",
+                'body_html' => '<p>Neue Buchung eingegangen:</p><table><tr><th>Termin</th><td>[titel]</td></tr><tr><th>Datum</th><td>[datum]</td></tr><tr><th>Zeit</th><td>[uhrzeit]</td></tr><tr><th>Ort</th><td>[ort]</td></tr><tr><th>Gebucht von</th><td>[name] ([email])</td></tr><tr><th>Nachricht</th><td>[nachricht]</td></tr></table><p><a href="[storno_link]">Termin stornieren</a></p><p><a href="[impressum_link]">Impressum</a></p>',
+            ],
+            'reminder_admin' => [
+                'subject'   => 'Erinnerung: [titel] am [datum]',
+                'body'      => "Erinnerung an folgenden Termin:\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\nGebucht von: [name] ([email])\n\nStornieren: [storno_link]\n\nImpressum: [impressum_link]",
+                'body_html' => '<p>Erinnerung an folgenden Termin:</p><table><tr><th>Termin</th><td>[titel]</td></tr><tr><th>Datum</th><td>[datum]</td></tr><tr><th>Zeit</th><td>[uhrzeit]</td></tr><tr><th>Ort</th><td>[ort]</td></tr><tr><th>Gebucht von</th><td>[name] ([email])</td></tr></table><p><a href="[storno_link]">Termin stornieren</a></p><p><a href="[impressum_link]">Impressum</a></p>',
+            ],
+            'reminder_booker' => [
+                'subject'   => 'Erinnerung: [titel] am [datum]',
+                'body'      => "Erinnerung an Ihren Termin:\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\n\nStornieren: [storno_link]\n\nImpressum: [impressum_link]",
+                'body_html' => '<p>Erinnerung an Ihren Termin:</p><table><tr><th>Termin</th><td>[titel]</td></tr><tr><th>Datum</th><td>[datum]</td></tr><tr><th>Zeit</th><td>[uhrzeit]</td></tr><tr><th>Ort</th><td>[ort]</td></tr></table><p><a href="[storno_link]">Termin stornieren</a></p><p><a href="[impressum_link]">Impressum</a></p>',
+            ],
+            'cancellation' => [
+                'subject'   => 'Stornierung: [titel] am [datum]',
+                'body'      => "Ihr Termin wurde storniert:\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\n\nImpressum: [impressum_link]",
+                'body_html' => '<p>Ihr Termin wurde storniert:</p><table><tr><th>Termin</th><td>[titel]</td></tr><tr><th>Datum</th><td>[datum]</td></tr><tr><th>Zeit</th><td>[uhrzeit]</td></tr><tr><th>Ort</th><td>[ort]</td></tr></table><p><a href="[impressum_link]">Impressum</a></p>',
+            ],
+        ];
+
+        return $defaults[$type] ?? ['subject' => '', 'body' => '', 'body_html' => ''];
+    }
+
     public static function getAll(): array
     {
         $posts = get_posts([

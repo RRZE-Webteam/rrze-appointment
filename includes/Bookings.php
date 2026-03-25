@@ -116,14 +116,15 @@ class Bookings
         ];
 
         $tpl = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'cancellation') ?? []) : [];
+        $def = MailTemplatePost::getDefault('cancellation');
 
-        $bodyTpl     = !empty($tpl['body'])      ? $tpl['body']      : "Ihr Termin wurde storniert:\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]";
-        $bodyHtmlTpl = !empty($tpl['body_html']) ? $tpl['body_html'] : '<p>Ihr Termin wurde storniert:</p><table><tr><th>Termin</th><td>[titel]</td></tr><tr><th>Datum</th><td>[datum]</td></tr><tr><th>Zeit</th><td>[uhrzeit]</td></tr><tr><th>Ort</th><td>[ort]</td></tr></table>';
+        $bodyTpl     = !empty($tpl['body'])      ? $tpl['body']      : $def['body'];
+        $bodyHtmlTpl = !empty($tpl['body_html']) ? $tpl['body_html'] : $def['body_html'];
 
-        if (strpos($bodyTpl, '[impressum_link]') === false)     $bodyTpl     .= "\nImpressum: [impressum_link]";
-        if (strpos($bodyHtmlTpl, '[impressum_link]') === false)  $bodyHtmlTpl .= '<p><a href="[impressum_link]">Impressum</a></p>';
+        if (strpos($bodyTpl, '[impressum_link]') === false)    $bodyTpl     .= "\nImpressum: [impressum_link]";
+        if (strpos($bodyHtmlTpl, '[impressum_link]') === false) $bodyHtmlTpl .= '<p><a href="[impressum_link]">Impressum</a></p>';
 
-        $subject = Settings::renderTemplate(!empty($tpl['subject']) ? $tpl['subject'] : __('Stornierung: [titel] am [datum]', 'rrze-appointment'), $vars);
+        $subject = Settings::renderTemplate(!empty($tpl['subject']) ? $tpl['subject'] : $def['subject'], $vars);
         $plain   = Settings::renderTemplate($bodyTpl, $vars);
         $html    = Settings::renderTemplate($bodyHtmlTpl, $vars);
 

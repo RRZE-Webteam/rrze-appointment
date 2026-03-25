@@ -141,6 +141,14 @@
             nameInput.placeholder = 'Vorname Nachname';
             nameLabel.appendChild(nameInput);
 
+            const messageLabel = document.createElement('label');
+            messageLabel.className = 'rrze-appointment__overlay-label';
+            messageLabel.textContent = 'Nachricht (optional):';
+            const messageInput = document.createElement('textarea');
+            messageInput.className = 'rrze-appointment__overlay-message';
+            messageInput.rows = 4;
+            messageLabel.appendChild(messageInput);
+
             const status = document.createElement('p');
             status.className = 'rrze-appointment__overlay-status';
 
@@ -182,6 +190,7 @@
                 data.append('tpl_id', form.dataset.tplId || '0');
                 data.append('booker_email', emailInput.value.trim());
                 data.append('booker_name', nameInput.value.trim());
+                data.append('booker_message', messageInput.value.trim());
 
                 fetch(window.rrze_appointment?.ajaxUrl || '/wp-admin/admin-ajax.php', {
                     method: 'POST',
@@ -216,6 +225,7 @@
             box.appendChild(text);
             box.appendChild(emailLabel);
             box.appendChild(nameLabel);
+            box.appendChild(messageLabel);
             box.appendChild(status);
             box.appendChild(actions);
             overlay.appendChild(box);

@@ -17,6 +17,7 @@ class Settings
         '[person_name]'        => 'Name der zuständigen Person',
         '[name]'               => 'Name des Buchenden',
         '[email]'              => 'E-Mail des Buchenden',
+        '[nachricht]'          => 'Nachricht des Buchenden',
         '[bestaetigungs_link]' => 'Link zur Buchungsbestätigung',
         '[storno_link]'        => 'Link zum Stornieren',
         '[impressum_link]'     => 'Link zum Impressum',
@@ -80,8 +81,8 @@ class Settings
         );
 
         add_menu_page(
-            __('Buchungen', 'rrze-appointment'),
-            __('Buchungen', 'rrze-appointment'),
+            __('Termine', 'rrze-appointment'),
+            __('Termine', 'rrze-appointment'),
             'manage_options',
             'rrze-appointment-bookings',
             [$this, 'renderBookingsPage'],
@@ -156,7 +157,7 @@ class Settings
         if (!current_user_can('manage_options')) return;
         ?>
         <div class="wrap">
-            <h1><?php esc_html_e('Buchungen', 'rrze-appointment'); ?></h1>
+            <h1><?php esc_html_e('Termine', 'rrze-appointment'); ?></h1>
             <?php $this->renderTabBookings(); ?>
         </div>
         <?php
@@ -248,42 +249,39 @@ class Settings
             <?php esc_html_e('Neue Vorlage', 'rrze-appointment'); ?>
         </a>
 
-        <?php if (empty($templates)) : ?>
-            <p><?php esc_html_e('Noch keine Vorlagen vorhanden.', 'rrze-appointment'); ?></p>
-        <?php else : ?>
-            <table class="widefat striped" style="margin-top:0.5rem;">
-                <thead>
+        <table class="widefat striped" style="margin-top:0.5rem;">
+            <thead>
+                <tr>
+                    <th><?php esc_html_e('Titel', 'rrze-appointment'); ?></th>
+                    <th><?php esc_html_e('Aktionen', 'rrze-appointment'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong><?php esc_html_e('Standard', 'rrze-appointment'); ?></strong> <em style="color:#50575e;"><?php esc_html_e('(nicht editierbar)', 'rrze-appointment'); ?></em></td>
+                    <td>&mdash;</td>
+                </tr>
+                <?php foreach ($templates as $tpl) :
+                    $editUrl = add_query_arg(['page' => self::PAGE_SLUG, 'tab' => 'templates', 'edit' => $tpl['id']], admin_url('options-general.php'));
+                ?>
                     <tr>
-                        <th><?php esc_html_e('Titel', 'rrze-appointment'); ?></th>
-                        <th><?php esc_html_e('Aktionen', 'rrze-appointment'); ?></th>
+                        <td><strong><?php echo esc_html($tpl['title'] ?: __('(kein Titel)', 'rrze-appointment')); ?></strong></td>
+                        <td>
+                            <a href="<?php echo esc_url($editUrl); ?>" class="button button-small"><?php esc_html_e('Bearbeiten', 'rrze-appointment'); ?></a>
+                            <form method="post" action="" style="display:inline;">
+                                <?php wp_nonce_field('rrze_appt_tpl_save', 'rrze_appt_tpl_nonce'); ?>
+                                <input type="hidden" name="rrze_appt_tpl_action" value="delete">
+                                <input type="hidden" name="tpl_id" value="<?php echo esc_attr($tpl['id']); ?>">
+                                <button type="submit" class="button button-small" onclick="return confirm('<?php esc_attr_e('Vorlage wirklich löschen?', 'rrze-appointment'); ?>')">
+                                    <?php esc_html_e('Löschen', 'rrze-appointment'); ?>
+                                </button>
+                            </form>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($templates as $tpl) :
-                        $editUrl   = add_query_arg(['page' => self::PAGE_SLUG, 'tab' => 'templates', 'edit' => $tpl['id']], admin_url('options-general.php'));
-                        $deleteUrl = wp_nonce_url(
-                            add_query_arg(['page' => self::PAGE_SLUG, 'tab' => 'templates'], admin_url('options-general.php')),
-                            'rrze_appt_tpl_save', 'rrze_appt_tpl_nonce'
-                        );
-                    ?>
-                        <tr>
-                            <td><strong><?php echo esc_html($tpl['title'] ?: __('(kein Titel)', 'rrze-appointment')); ?></strong></td>
-                            <td>
-                                <a href="<?php echo esc_url($editUrl); ?>" class="button button-small"><?php esc_html_e('Bearbeiten', 'rrze-appointment'); ?></a>
-                                <form method="post" action="" style="display:inline;">
-                                    <?php wp_nonce_field('rrze_appt_tpl_save', 'rrze_appt_tpl_nonce'); ?>
-                                    <input type="hidden" name="rrze_appt_tpl_action" value="delete">
-                                    <input type="hidden" name="tpl_id" value="<?php echo esc_attr($tpl['id']); ?>">
-                                    <button type="submit" class="button button-small" onclick="return confirm('<?php esc_attr_e('Vorlage wirklich löschen?', 'rrze-appointment'); ?>')">
-                                        <?php esc_html_e('Löschen', 'rrze-appointment'); ?>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
+                <?php endforeach; ?>
+            </tbody>
             </table>
-        <?php endif;
+        <?php
     }
 
     private function renderTemplateForm(int $id): void
@@ -457,7 +455,7 @@ class Settings
         </form>
 
         <?php if (empty($bookings)) : ?>
-            <p><?php esc_html_e('Keine Buchungen gefunden.', 'rrze-appointment'); ?></p>
+            <p><?php esc_html_e('Keine Termine gefunden.', 'rrze-appointment'); ?></p>
         <?php else : ?>
             <table class="widefat striped">
                 <thead>

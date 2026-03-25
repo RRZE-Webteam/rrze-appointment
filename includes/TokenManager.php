@@ -22,10 +22,7 @@ class TokenManager
             'expires' => time() + self::PENDING_TTL,
         ];
         update_option(self::PENDING_OPTION, $pending, false);
-
-        // Cron zum Aufräumen
         wp_schedule_single_event(time() + self::PENDING_TTL + 60, 'rrze_appointment_expire_pending', [$token]);
-
         return $token;
     }
 
@@ -50,8 +47,6 @@ class TokenManager
     {
         $pending = (array) get_option(self::PENDING_OPTION, []);
         if (!isset($pending[$token])) return;
-
-        // Slot nur freigeben wenn noch nicht bestätigt
         unset($pending[$token]);
         update_option(self::PENDING_OPTION, $pending, false);
     }
@@ -64,14 +59,17 @@ class TokenManager
 
     // --- Cancel-Tokens ---
 
+    /**
+     * Cancel-Token für eine bestätigte Buchung (löscht gebuchten Slot).
+     */
     public static function createCancelToken(string $slot): string
     {
         $token  = wp_hash($slot . wp_salt() . time());
         $tokens = (array) get_option(self::CANCEL_OPTION, []);
-        $tokens[$token] = $slot;
+        $tokens[$token] = ['slot' => $slot, 'type' => 'booked'];
         update_option(self::CANCEL_OPTION, $tokens, false);
 
-        // Token auch im Slot-Meta speichern
+        // Token im Slot-Meta speichern
         $allMeta = (array) get_option('rrze_appointment_booked_slots_meta', []);
         if (isset($allMeta[$slot])) {
             $allMeta[$slot]['cancel_token'] = $token;
@@ -82,25 +80,44 @@ class TokenManager
     }
 
     /**
-     * Gibt die Storno-URL für einen Slot zurück.
+     * Cancel-Token für eine noch nicht bestätigte Anfrage (löscht Pending-Eintrag).
+     */
+    public static function createPendingCancelToken(string $slot, array $meta): string
+    {
+        $token  = wp_hash($slot . wp_salt() . microtime());
+        $tokens = (array) get_option(self::CANCEL_OPTION, []);
+        $tokens[$token] = ['slot' => $slot, 'type' => 'pending', 'meta' => $meta];
+        update_option(self::CANCEL_OPTION, $tokens, false);
+        return $token;
+    }
+
+    /**
+     * Gibt die Storno-URL für einen bestätigten Slot zurück.
      * Erstellt einen neuen Token falls noch keiner existiert.
      */
     public static function getCancelUrlForSlot(string $slot): string
     {
         $allMeta = (array) get_option('rrze_appointment_booked_slots_meta', []);
         $token   = $allMeta[$slot]['cancel_token'] ?? '';
-
         if (!$token) {
             $token = self::createCancelToken($slot);
         }
-
         return self::cancelUrl($token);
     }
 
-    public static function validateCancelToken(string $token): ?string
+    /**
+     * Gibt den Token-Eintrag zurück: ['slot' => ..., 'type' => 'booked'|'pending']
+     */
+    public static function validateCancelToken(string $token): ?array
     {
         $tokens = (array) get_option(self::CANCEL_OPTION, []);
-        return $tokens[$token] ?? null;
+        $entry  = $tokens[$token] ?? null;
+        if (!$entry) return null;
+        // Rückwärtskompatibilität: alter Eintrag war nur ein String
+        if (is_string($entry)) {
+            return ['slot' => $entry, 'type' => 'booked'];
+        }
+        return $entry;
     }
 
     public static function deleteCancelToken(string $token): void
@@ -129,7 +146,6 @@ class TokenManager
         if (class_exists('\RRZE\Legal\TOS\Endpoint')) {
             return \RRZE\Legal\TOS\Endpoint::endpointUrl('imprint');
         }
-        // Fallback: Seite mit Slug 'impressum'
         $page = get_page_by_path('impressum');
         return $page ? get_permalink($page->ID) : home_url('/impressum/');
     }
