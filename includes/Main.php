@@ -7,6 +7,7 @@ use function RRZE\Appointment\plugin;
 use RRZE\Appointment\Defaults;
 use RRZE\Appointment\Settings;
 use RRZE\Appointment\Reminder;
+use RRZE\Appointment\Bookings;
 use RRZE\Appointment\MailTemplatePost;
 use RRZE\Appointment\Common\Settings\Settings as CommonSettings;
 

@@ -26,30 +26,28 @@ class Reminder
      */
     public static function scheduleForSlot(string $slot, array $meta): void
     {
+        // Meta immer speichern (wird für Buchungs-Verwaltung benötigt)
+        $allMeta        = get_option(self::META_OPTION, []);
+        $allMeta[$slot] = $meta;
+        update_option(self::META_OPTION, $allMeta, false);
+
         $days = (int) Settings::get('reminder_days');
         if ($days < 1) {
             return;
         }
 
-        // Slot-Format: "YYYY-MM-DD HH:MM-HH:MM"
         $datePart = explode(' ', $slot)[0] ?? '';
         if (!$datePart) {
             return;
         }
 
-        $tz          = wp_timezone();
+        $tz           = wp_timezone();
         $reminderDate = new \DateTime($datePart . ' 08:00:00', $tz);
         $reminderDate->modify("-{$days} days");
 
-        // Nicht in der Vergangenheit planen
         if ($reminderDate->getTimestamp() <= time()) {
             return;
         }
-
-        // Meta speichern
-        $allMeta = get_option(self::META_OPTION, []);
-        $allMeta[$slot] = $meta;
-        update_option(self::META_OPTION, $allMeta, false);
 
         wp_schedule_single_event($reminderDate->getTimestamp(), self::CRON_HOOK, [$slot]);
     }
@@ -101,14 +99,11 @@ class Reminder
             $vars['[person_name]'] = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
         }
 
-        $tplAdmin  = $tplId  > 0 ? MailTemplatePost::getTemplateForType($tplId,  'reminder_admin')  : null;
-        $tplBooker = $tplId > 0 ? MailTemplatePost::getTemplateForType($tplId, 'reminder_booker') : null;
-
-        $subject        = Settings::renderTemplate($tplAdmin['subject']   ?? (string) Settings::get('reminder_subject'),          $vars);
-        $body           = Settings::renderTemplate($tplAdmin['body']      ?? (string) Settings::get('reminder_body'),              $vars);
-        $bodyHtml       = Settings::renderTemplate($tplAdmin['body_html'] ?? (string) Settings::get('reminder_body_html'),         $vars);
-        $bodyBooker     = Settings::renderTemplate($tplBooker['subject']  ?? (string) Settings::get('reminder_body_booker'),       $vars);
-        $bodyBookerHtml = Settings::renderTemplate($tplBooker['body_html']?? (string) Settings::get('reminder_body_booker_html'),  $vars);
+        $subject        = Settings::renderTemplate($tplAdmin['subject']   ?? (string) Settings::get('reminder_subject'), $vars);
+        $body           = Settings::renderTemplate($tplAdmin['body']      ?? (string) Settings::get('reminder_body'),     $vars);
+        $bodyHtml       = Settings::renderTemplate($tplAdmin['body_html'] ?? (string) Settings::get('reminder_body_html'), $vars);
+        $bodyBooker     = Settings::renderTemplate($tplBooker['body']     ?? (string) Settings::get('reminder_body_booker'),      $vars);
+        $bodyBookerHtml = Settings::renderTemplate($tplBooker['body_html']?? (string) Settings::get('reminder_body_booker_html'), $vars);
 
         // An Admin / Person senden
         $personEmail = '';
