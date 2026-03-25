@@ -10,13 +10,16 @@ class Settings
     const PAGE_SLUG   = 'rrze-appointment-settings';
 
     const PLACEHOLDERS = [
-        '[titel]'       => 'Titel des Termins',
-        '[datum]'       => 'Datum des Termins',
-        '[uhrzeit]'     => 'Uhrzeit (von – bis)',
-        '[ort]'         => 'Ort / Location',
-        '[person_name]' => 'Name der zuständigen Person',
-        '[name]'        => 'Name des Buchenden',
-        '[email]'       => 'E-Mail des Buchenden',
+        '[titel]'              => 'Titel des Termins',
+        '[datum]'              => 'Datum des Termins',
+        '[uhrzeit]'            => 'Uhrzeit (von – bis)',
+        '[ort]'                => 'Ort / Location',
+        '[person_name]'        => 'Name der zuständigen Person',
+        '[name]'               => 'Name des Buchenden',
+        '[email]'              => 'E-Mail des Buchenden',
+        '[bestaetigungs_link]' => 'Link zur Buchungsbestätigung',
+        '[storno_link]'        => 'Link zum Stornieren',
+        '[impressum_link]'     => 'Link zum Impressum',
     ];
 
     public static function getDefaults(): array

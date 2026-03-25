@@ -9,6 +9,7 @@ use RRZE\Appointment\Settings;
 use RRZE\Appointment\Reminder;
 use RRZE\Appointment\Bookings;
 use RRZE\Appointment\MailTemplatePost;
+use RRZE\Appointment\TokenManager;
 use RRZE\Appointment\Common\Settings\Settings as CommonSettings;
 
 
@@ -47,6 +48,9 @@ class Main
         add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets']);
         add_action('wp_ajax_rrze_appointment_book', [$this, 'handleBooking']);
         add_action('wp_ajax_nopriv_rrze_appointment_book', [$this, 'handleBooking']);
+        add_action('template_redirect', [$this, 'handleConfirm']);
+        add_action('template_redirect', [$this, 'handleCancel']);
+        add_action('rrze_appointment_expire_pending', ['RRZE\Appointment\TokenManager', 'expirePending']);
     }
 
 
@@ -289,11 +293,12 @@ class Main
     {
         $viewHandle = 'rrze-appointment-view-script';
         if (wp_script_is($viewHandle, 'registered')) {
-            $booked = get_option('rrze_appointment_booked_slots', []);
+            $booked  = (array) get_option('rrze_appointment_booked_slots', []);
+            $pending = TokenManager::getPendingSlots();
             wp_localize_script($viewHandle, 'rrze_appointment', [
                 'ajaxUrl'     => admin_url('admin-ajax.php'),
                 'nonce'       => wp_create_nonce('rrze_appointment_book'),
-                'bookedSlots' => array_values((array) $booked),
+                'bookedSlots' => array_values(array_unique(array_merge($booked, $pending))),
                 'persons'     => $this->getFaudirPersons(),
             ]);
         }
@@ -324,49 +329,22 @@ class Main
         $personId    = (int) ($_POST['person_id'] ?? 0);
         $bookerEmail = sanitize_email($_POST['booker_email'] ?? '');
         $bookerName  = sanitize_text_field($_POST['booker_name'] ?? '');
-        $tplId               = (int) ($_POST['tpl_id'] ?? 0);
+        $tplId       = (int) ($_POST['tpl_id'] ?? 0);
 
-        if (!$slot) {
-            wp_send_json_error('Kein Termin angegeben.');
-        }
+        if (!$slot) wp_send_json_error('Kein Termin angegeben.');
+        if (!$bookerEmail) wp_send_json_error('Bitte eine E-Mail-Adresse angeben.');
 
-        // Slot-Format: "YYYY-MM-DD HH:MM-HH:MM"
         [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
         [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
 
-        if (!$datePart || !$startTime || !$endTime) {
-            wp_send_json_error('Ungültiges Termin-Format.');
+        if (!$datePart || !$startTime || !$endTime) wp_send_json_error('Ungültiges Termin-Format.');
+
+        // Slot bereits gebucht oder pending?
+        $booked  = (array) get_option('rrze_appointment_booked_slots', []);
+        $pending = TokenManager::getPendingSlots();
+        if (in_array($slot, $booked, true) || in_array($slot, $pending, true)) {
+            wp_send_json_error('Dieser Termin ist nicht mehr verfügbar.');
         }
-
-        $tz      = wp_timezone();
-        $dtStart = new \DateTime($datePart . 'T' . $startTime . ':00', $tz);
-        $dtEnd   = new \DateTime($datePart . 'T' . $endTime . ':00', $tz);
-
-        // In UTC konvertieren — kein VTIMEZONE-Block nötig
-        $dtStart->setTimezone(new \DateTimeZone('UTC'));
-        $dtEnd->setTimezone(new \DateTimeZone('UTC'));
-        $now = new \DateTime('now', new \DateTimeZone('UTC'));
-
-        $uid = wp_generate_uuid4() . '@' . parse_url(home_url(), PHP_URL_HOST);
-
-        $lines = [
-            'BEGIN:VCALENDAR',
-            'VERSION:2.0',
-            'PRODID:-//RRZE Appointment//DE',
-            'CALSCALE:GREGORIAN',
-            'METHOD:PUBLISH',
-            'BEGIN:VEVENT',
-            'UID:' . $uid,
-            'DTSTAMP:' . $now->format('Ymd\THis\Z'),
-            'DTSTART:' . $dtStart->format('Ymd\THis\Z'),
-            'DTEND:'   . $dtEnd->format('Ymd\THis\Z'),
-            'SUMMARY:' . $this->icsEscape($title),
-            'LOCATION:' . $this->icsEscape($location),
-            'END:VEVENT',
-            'END:VCALENDAR',
-        ];
-
-        $ics = implode("\r\n", $lines) . "\r\n";
 
         $pName = '';
         if ($personId > 0) {
@@ -376,51 +354,172 @@ class Main
             $pName   = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
         }
 
-        $adminEmail = get_option('admin_email');
-
-        $vars = [
-            '[titel]'       => $title,
-            '[datum]'       => $dtStart->format('d.m.Y'),
-            '[uhrzeit]'     => $startTime . ' – ' . $endTime,
-            '[ort]'         => $location ?: '–',
-            '[person_name]' => $pName ?: '–',
-            '[name]'        => $bookerName ?: '–',
-            '[email]'       => $bookerEmail ?: '–',
+        $meta = [
+            'title'        => $title,
+            'location'     => $location,
+            'person_id'    => $personId,
+            'booker_email' => $bookerEmail,
+            'booker_name'  => $bookerName,
+            'tpl_id'       => $tplId,
         ];
 
-        $tpl = $tplId > 0 ? MailTemplatePost::getTemplateForType($tplId, 'booking') : null;
+        $confirmToken = TokenManager::createPending($slot, $meta);
+        $confirmUrl   = TokenManager::confirmUrl($confirmToken);
+        $imprintUrl   = TokenManager::imprintUrl();
 
-        $subject  = Settings::renderTemplate($tpl['subject']   ?: (string) Settings::get('booking_subject'),   $vars);
-        $plain    = Settings::renderTemplate($tpl['body']      ?: (string) Settings::get('booking_body'),      $vars);
-        $html     = Settings::renderTemplate($tpl['body_html'] ?: (string) Settings::get('booking_body_html'), $vars);
+        $vars = [
+            '[titel]'              => $title,
+            '[datum]'              => date_i18n(get_option('date_format'), strtotime($datePart)),
+            '[uhrzeit]'            => $startTime . ' – ' . $endTime,
+            '[ort]'                => $location ?: '–',
+            '[person_name]'        => $pName ?: '–',
+            '[name]'               => $bookerName ?: '–',
+            '[email]'              => $bookerEmail ?: '–',
+            '[bestaetigungs_link]' => $confirmUrl,
+            '[storno_link]'        => '',
+            '[impressum_link]'     => $imprintUrl,
+        ];
 
-        $tmpDir  = get_temp_dir();
-        $tmpFile = tempnam($tmpDir, 'rrze_appt_');
-        rename($tmpFile, $tmpFile . '.ics');
-        $tmpFile = $tmpFile . '.ics';
+        $tpl     = $tplId > 0 ? MailTemplatePost::getTemplateForType($tplId, 'booking') : null;
+        $subject = Settings::renderTemplate($tpl['subject']   ?: __('Bitte bestätigen: [titel] am [datum]', 'rrze-appointment'), $vars);
+        $plain   = Settings::renderTemplate($tpl['body']      ?: __("Bitte bestätigen Sie Ihren Termin:\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\n\nBestätigung: [bestaetigungs_link]\n\nImpressum: [impressum_link]", 'rrze-appointment'), $vars);
+        $html    = Settings::renderTemplate($tpl['body_html'] ?: __('<p>Bitte bestätigen Sie Ihren Termin:</p><table><tr><th>Termin</th><td>[titel]</td></tr><tr><th>Datum</th><td>[datum]</td></tr><tr><th>Zeit</th><td>[uhrzeit]</td></tr><tr><th>Ort</th><td>[ort]</td></tr></table><p><a href="[bestaetigungs_link]">Termin jetzt bestätigen</a></p><p><a href="[impressum_link]">Impressum</a></p>', 'rrze-appointment'), $vars);
+
+        Settings::sendMail($bookerEmail, $subject, $plain, $html);
+
+        wp_send_json_success(['message' => __('Bitte bestätigen Sie Ihren Termin per E-Mail.', 'rrze-appointment')]);
+    }
+
+    /**
+     * Bestätigt eine Buchung via Token-Link.
+     */
+    public function handleConfirm(): void
+    {
+        $token = sanitize_text_field($_GET['rrze_appt_confirm'] ?? '');
+        if (!$token) return;
+
+        $entry = TokenManager::confirmPending($token);
+        if (!$entry) {
+            wp_die(__('Dieser Bestätigungslink ist abgelaufen oder ungültig.', 'rrze-appointment'), '', ['response' => 410]);
+        }
+
+        $slot = $entry['slot'];
+        $meta = $entry['meta'];
+
+        [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
+        [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
+
+        $tz      = wp_timezone();
+        $dtStart = new \DateTime($datePart . 'T' . $startTime . ':00', $tz);
+        $dtEnd   = new \DateTime($datePart . 'T' . $endTime . ':00', $tz);
+        $dtStart->setTimezone(new \DateTimeZone('UTC'));
+        $dtEnd->setTimezone(new \DateTimeZone('UTC'));
+        $now = new \DateTime('now', new \DateTimeZone('UTC'));
+
+        // ICS erstellen
+        $uid   = wp_generate_uuid4() . '@' . parse_url(home_url(), PHP_URL_HOST);
+        $lines = [
+            'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//RRZE Appointment//DE',
+            'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
+            'UID:' . $uid,
+            'DTSTAMP:' . $now->format('Ymd\THis\Z'),
+            'DTSTART:' . $dtStart->format('Ymd\THis\Z'),
+            'DTEND:'   . $dtEnd->format('Ymd\THis\Z'),
+            'SUMMARY:' . $this->icsEscape($meta['title'] ?? ''),
+            'LOCATION:' . $this->icsEscape($meta['location'] ?? ''),
+            'END:VEVENT', 'END:VCALENDAR',
+        ];
+        $ics = implode("\r\n", $lines) . "\r\n";
+
+        // Slot als gebucht markieren
+        $booked   = (array) get_option('rrze_appointment_booked_slots', []);
+        $booked[] = $slot;
+        update_option('rrze_appointment_booked_slots', array_unique($booked), false);
+
+        // Cancel-Token erstellen
+        $cancelToken = TokenManager::createCancelToken($slot);
+        $cancelUrl   = TokenManager::cancelUrl($cancelToken);
+        $imprintUrl  = TokenManager::imprintUrl();
+
+        $personId   = (int) ($meta['person_id'] ?? 0);
+        $bookerEmail = $meta['booker_email'] ?? '';
+        $bookerName  = $meta['booker_name']  ?? '';
+        $tplId       = (int) ($meta['tpl_id'] ?? 0);
+
+        $pName = '';
+        if ($personId > 0) {
+            $pTitle  = (string) get_post_meta($personId, 'person_honorificPrefix', true);
+            $pGiven  = (string) get_post_meta($personId, 'person_givenName', true);
+            $pFamily = (string) get_post_meta($personId, 'person_familyName', true);
+            $pName   = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
+        }
+
+        $vars = [
+            '[titel]'              => $meta['title'] ?? '',
+            '[datum]'              => date_i18n(get_option('date_format'), strtotime($datePart)),
+            '[uhrzeit]'            => $startTime . ' – ' . $endTime,
+            '[ort]'                => ($meta['location'] ?? '') ?: '–',
+            '[person_name]'        => $pName ?: '–',
+            '[name]'               => $bookerName ?: '–',
+            '[email]'              => $bookerEmail ?: '–',
+            '[bestaetigungs_link]' => '',
+            '[storno_link]'        => $cancelUrl,
+            '[impressum_link]'     => $imprintUrl,
+        ];
+
+        $tpl     = $tplId > 0 ? MailTemplatePost::getTemplateForType($tplId, 'booking') : null;
+        $subject = Settings::renderTemplate($tpl['subject']   ?: __('Buchungsbestätigung: [titel] am [datum]', 'rrze-appointment'), $vars);
+        $plain   = Settings::renderTemplate($tpl['body']      ?: __("Ihr Termin wurde bestätigt:\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\n\nStornieren: [storno_link]\n\nImpressum: [impressum_link]", 'rrze-appointment'), $vars);
+        $html    = Settings::renderTemplate($tpl['body_html'] ?: __('<p>Ihr Termin wurde bestätigt:</p><table><tr><th>Termin</th><td>[titel]</td></tr><tr><th>Datum</th><td>[datum]</td></tr><tr><th>Zeit</th><td>[uhrzeit]</td></tr><tr><th>Ort</th><td>[ort]</td></tr></table><p><a href="[storno_link]">Termin stornieren</a></p><p><a href="[impressum_link]">Impressum</a></p>', 'rrze-appointment'), $vars);
+
+        // ICS-Datei
+        $tmpFile = tempnam(get_temp_dir(), 'rrze_appt_') . '.ics';
         file_put_contents($tmpFile, $ics);
 
-        $sent = Settings::sendMail($adminEmail, $subject, $plain, $html, [$tmpFile]);
+        // An Buchenden
+        Settings::sendMail($bookerEmail, $subject, $plain, $html, [$tmpFile]);
+
+        // An Person / Admin
+        $adminEmail = get_option('admin_email');
+        $toAdmin    = '';
+        if ($personId > 0) $toAdmin = (string) get_post_meta($personId, 'person_email', true);
+        if (!$toAdmin) $toAdmin = $adminEmail;
+        Settings::sendMail($toAdmin, $subject, $plain, $html, [$tmpFile]);
+
         @unlink($tmpFile);
 
-        if ($sent) {
-            $booked = get_option('rrze_appointment_booked_slots', []);
-            $booked[] = $slot;
-            update_option('rrze_appointment_booked_slots', array_unique($booked), false);
+        Reminder::scheduleForSlot($slot, $meta);
 
-            Reminder::scheduleForSlot($slot, [
-                'title'        => $title,
-                'location'     => $location,
-                'person_id'    => $personId,
-                'booker_email' => $bookerEmail,
-                'booker_name'  => $bookerName,
-                'tpl_id'       => $tplId,
-            ]);
+        wp_die(
+            '<p>' . esc_html__('Ihr Termin wurde bestätigt. Eine Bestätigung wurde per E-Mail versendet.', 'rrze-appointment') . '</p>' .
+            '<p><a href="' . esc_url(home_url('/')) . '">' . esc_html__('Zurück zur Startseite', 'rrze-appointment') . '</a></p>',
+            esc_html__('Termin bestätigt', 'rrze-appointment'),
+            ['response' => 200]
+        );
+    }
 
-            wp_send_json_success();
-        } else {
-            wp_send_json_error('E-Mail konnte nicht gesendet werden.');
+    /**
+     * Storniert eine Buchung via Token-Link (Buchender oder Gastgeber).
+     */
+    public function handleCancel(): void
+    {
+        $token = sanitize_text_field($_GET['rrze_appt_cancel'] ?? '');
+        if (!$token) return;
+
+        $slot = TokenManager::validateCancelToken($token);
+        if (!$slot) {
+            wp_die(__('Dieser Storno-Link ist ungültig oder wurde bereits verwendet.', 'rrze-appointment'), '', ['response' => 410]);
         }
+
+        TokenManager::deleteCancelToken($token);
+        Bookings::cancel($slot);
+
+        wp_die(
+            '<p>' . esc_html__('Ihr Termin wurde storniert.', 'rrze-appointment') . '</p>' .
+            '<p><a href="' . esc_url(home_url('/')) . '">' . esc_html__('Zurück zur Startseite', 'rrze-appointment') . '</a></p>',
+            esc_html__('Termin storniert', 'rrze-appointment'),
+            ['response' => 200]
+        );
     }
 
 }
