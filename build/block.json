@@ -1,0 +1,92 @@
+{
+  "apiVersion": 2,
+  "name": "rrze/appointment",
+  "title": "RRZE-Appointment",
+  "category": "widgets",
+  "icon": "calendar-alt",
+  "description": "block to create an appointment",
+  "supports": {
+    "html": false
+  },
+  "attributes": {
+    "title": {
+      "type": "string",
+      "default": ""
+    },
+    "selectedDates": {
+      "type": "array",
+      "default": []
+    },
+    "startDate": {
+      "type": "string",
+      "default": ""
+    },
+    "useEndDate": {
+      "type": "boolean",
+      "default": false
+    },
+    "endDate": {
+      "type": "string",
+      "default": ""
+    },
+    "startTime": {
+      "type": "string",
+      "default": "09:00"
+    },
+    "endTime": {
+      "type": "string",
+      "default": "17:00"
+    },
+    "dateOverrides": {
+      "type": "object",
+      "default": {}
+    },
+    "duration": {
+      "type": "number",
+      "default": 30
+    },
+    "breakDuration": {
+      "type": "number",
+      "default": 0
+    },
+    "location": {
+      "type": "string",
+      "default": ""
+    },
+    "locationUrl": {
+      "type": "string",
+      "default": ""
+    },
+    "description": {
+      "type": "string",
+      "default": ""
+    },
+    "recurrence": {
+      "type": "object",
+      "default": {}
+    },
+    "personId": {
+      "type": "number",
+      "default": 0
+    },
+    "personName": {
+      "type": "string",
+      "default": ""
+    },
+    "personEmail": {
+      "type": "string",
+      "default": ""
+    },
+    "useConsultationHours": {
+      "type": "boolean",
+      "default": false
+    },
+    "tplId": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "editorScript": "file:./index.js",
+  "viewScript": "file:./view.js",
+  "style": "file:./style-index.css"
+}
