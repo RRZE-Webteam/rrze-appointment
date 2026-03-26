@@ -240,22 +240,32 @@ export default function Edit({ attributes, setAttributes }) {
             .catch(() => { });
     }, []);
 
-    const faudirPersons = window.rrze_appointment?.persons || [];
+
+    // FAUdir response handling
+    const faudirResponse = window.rrze_appointment?.persons || {
+        error: true,
+        message: 'No data provided.',
+        data: []
+    };
+
+    const faudirPersons = !faudirResponse.error && Array.isArray(faudirResponse.data)
+        ? faudirResponse.data
+        : [];
+
+    const faudirError = faudirResponse.error;
+    const faudirMessage = faudirResponse.message || '';
+
     const selectedPerson = faudirPersons.find((p) => p.id === personId) || null;
 
 
     // Test BK EDIT START
     useEffect(() => {
-        if (!selectedPerson) return;
+        if (faudirError || !selectedPerson) return;
 
         const hours = selectedPerson.consultationHours || [];
         const type = selectedPerson.hoursType || 'unknown';
 
-        if (!hours.length) {
-            alert('No hours available : ' +  JSON.stringify(selectedPerson, null, 2));
-            // console.log('No hours available');
-            return;
-        }
+        if (!hours.length) return;
 
         const weekdayMap = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 
@@ -269,11 +279,8 @@ export default function Edit({ attributes, setAttributes }) {
 
         const label = type === 'office' ? 'Office hours' : 'Consultation hours';
 
-        // choose one:
         alert(`${label}:\n${formatted}`);
-        // console.log(`${label}:\n${formatted}`);
-
-    }, [selectedPerson]);
+    }, [selectedPerson, faudirError]);
 
     // Test BK EDIT END
 
@@ -431,7 +438,13 @@ export default function Edit({ attributes, setAttributes }) {
                         onChange={(v) => setAttributes({ tplId: Number(v) })}
                     />
                 </PanelBody>
-                {faudirPersons.length > 0 && (
+                {faudirError && (
+                    <PanelBody title={__('Personen-Einstellungen', 'rrze-appointment')} initialOpen={true}>
+                        <p style={{ color: '#d63638' }}>{faudirMessage}</p>
+                    </PanelBody>
+                )}
+
+                {!faudirError && faudirPersons.length > 0 && (
                     <PanelBody title={__('Personen-Einstellungen', 'rrze-appointment')} initialOpen={true}>
                         <SelectControl
                             label={__('Person', 'rrze-appointment')}
