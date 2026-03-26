@@ -101,6 +101,7 @@ function CalendarMultiSelect({ selectedDates, activeDate, onToggleDate }) {
     );
 }
 
+
 function PreviewCalendar({ slots, onRemoveSlot, onAddSlot, activeDate, setActiveDate }) {
     const groupedSlots = groupSlotsByDate(slots);
     const dates = Object.keys(groupedSlots).sort();
@@ -191,7 +192,7 @@ function PreviewCalendar({ slots, onRemoveSlot, onAddSlot, activeDate, setActive
                                         aria-label={`Uhrzeit ${slot.timeRange} löschen`}
                                         onClick={() => onRemoveSlot(slot)}
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><line x1="5" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="19" y1="5" x2="5" y2="19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><line x1="5" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" /><line x1="19" y1="5" x2="5" y2="19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" /></svg>
                                     </button>
                                 )}
                             </div>
@@ -236,11 +237,47 @@ export default function Edit({ attributes, setAttributes }) {
     useEffect(() => {
         apiFetch({ path: '/wp/v2/rrze-mail-templates?per_page=100&status=publish' })
             .then((posts) => setMailTemplates(posts.map((p) => ({ value: p.id, label: p.title.rendered }))))
-            .catch(() => {});
+            .catch(() => { });
     }, []);
 
     const faudirPersons = window.rrze_appointment?.persons || [];
     const selectedPerson = faudirPersons.find((p) => p.id === personId) || null;
+
+
+    // Test BK EDIT START
+    useEffect(() => {
+        if (!selectedPerson) return;
+
+        const hours = selectedPerson.consultationHours || [];
+        const type = selectedPerson.hoursType || 'unknown';
+
+        if (!hours.length) {
+            alert('No hours available : ' +  JSON.stringify(selectedPerson, null, 2));
+            // console.log('No hours available');
+            return;
+        }
+
+        const weekdayMap = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+
+        const formatted = hours.map((h) => {
+            const day = weekdayMap[h.weekday] ?? h.weekday;
+            const from = h.from || '';
+            const to = h.to || '';
+            const comment = h.comment ? ` (${h.comment})` : '';
+            return `${day} ${from}-${to}${comment}`;
+        }).join('\n');
+
+        const label = type === 'office' ? 'Office hours' : 'Consultation hours';
+
+        // choose one:
+        alert(`${label}:\n${formatted}`);
+        // console.log(`${label}:\n${formatted}`);
+
+    }, [selectedPerson]);
+
+    // Test BK EDIT END
+
+
     const hasConsultationHours = selectedPerson?.consultationHours?.length > 0;
 
     // title automatisch aus Person ableiten
