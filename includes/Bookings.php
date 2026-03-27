@@ -4,6 +4,7 @@ namespace RRZE\Appointment;
 
 use RRZE\Appointment\MailTemplatePost;
 use RRZE\Appointment\TokenManager;
+use RRZE\Appointment\Common\CustomException;
 
 defined('ABSPATH') || exit;
 
@@ -12,150 +13,151 @@ class Bookings
     const SLOTS_OPTION = 'rrze_appointment_booked_slots';
     const META_OPTION  = 'rrze_appointment_booked_slots_meta';
 
-    /**
-     * Gibt alle Buchungen als sortiertes Array zurück, optional gefiltert.
-     */
     public static function getAll(array $filter = []): array
     {
-        $slots   = (array) get_option(self::SLOTS_OPTION, []);
-        $allMeta = (array) get_option(self::META_OPTION, []);
+        try {
+            $slots   = (array) get_option(self::SLOTS_OPTION, []);
+            $allMeta = (array) get_option(self::META_OPTION, []);
 
-        $bookings = [];
-        foreach ($slots as $slot) {
-            $meta = $allMeta[$slot] ?? [];
-            [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
+            $bookings = [];
+            foreach ($slots as $slot) {
+                $meta = $allMeta[$slot] ?? [];
+                [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
 
-            $booking = [
-                'slot'         => $slot,
-                'date'         => $datePart,
-                'time'         => $timePart,
-                'title'        => $meta['title']        ?? '',
-                'location'     => $meta['location']     ?? '',
-                'person_id'    => (int) ($meta['person_id']    ?? 0),
-                'person_name'  => '',
-                'booker_name'  => $meta['booker_name']  ?? '',
-                'booker_email' => $meta['booker_email'] ?? '',
-                'tpl_id'       => (int) ($meta['tpl_id'] ?? 0),
-            ];
+                $booking = [
+                    'slot'         => $slot,
+                    'date'         => $datePart,
+                    'time'         => $timePart,
+                    'title'        => $meta['title']     ?? '',
+                    'location'     => $meta['location']  ?? '',
+                    'person_id'    => (int) ($meta['person_id'] ?? 0),
+                    'person_name'  => '',
+                    'booker_name'  => $meta['booker_name']  ?? '',
+                    'booker_email' => $meta['booker_email'] ?? '',
+                    'tpl_id'       => (int) ($meta['tpl_id'] ?? 0),
+                ];
 
-            if ($booking['person_id'] > 0) {
-                $pTitle  = (string) get_post_meta($booking['person_id'], 'person_honorificPrefix', true);
-                $pGiven  = (string) get_post_meta($booking['person_id'], 'person_givenName', true);
-                $pFamily = (string) get_post_meta($booking['person_id'], 'person_familyName', true);
-                $booking['person_name'] = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
+                if ($booking['person_id'] > 0) {
+                    $pTitle  = (string) get_post_meta($booking['person_id'], 'person_honorificPrefix', true);
+                    $pGiven  = (string) get_post_meta($booking['person_id'], 'person_givenName', true);
+                    $pFamily = (string) get_post_meta($booking['person_id'], 'person_familyName', true);
+                    $booking['person_name'] = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
+                }
+
+                if (!empty($filter['date_from']) && $datePart < $filter['date_from']) continue;
+                if (!empty($filter['date_to'])   && $datePart > $filter['date_to'])   continue;
+                if (!empty($filter['person_id']) && $booking['person_id'] !== (int) $filter['person_id']) continue;
+
+                $bookings[] = $booking;
             }
 
-            // Filter
-            if (!empty($filter['date_from']) && $datePart < $filter['date_from']) continue;
-            if (!empty($filter['date_to'])   && $datePart > $filter['date_to'])   continue;
-            if (!empty($filter['person_id']) && $booking['person_id'] !== (int) $filter['person_id']) continue;
-
-            $bookings[] = $booking;
+            usort($bookings, fn($a, $b) => strcmp($a['slot'], $b['slot']));
+            return $bookings;
+        } catch (\Exception $e) {
+            throw new CustomException($e->getMessage(), $e->getCode(), null);
         }
-
-        usort($bookings, fn($a, $b) => strcmp($a['slot'], $b['slot']));
-        return $bookings;
     }
 
-    /**
-     * Storniert eine Buchung: entfernt Slot, löscht Meta, cancelt Cron, sendet Storno-Mail.
-     */
     public static function cancel(string $slot): bool
     {
-        $slots = (array) get_option(self::SLOTS_OPTION, []);
-        if (!in_array($slot, $slots, true)) return false;
+        try {
+            $slots = (array) get_option(self::SLOTS_OPTION, []);
+            if (!in_array($slot, $slots, true)) return false;
 
-        $allMeta = (array) get_option(self::META_OPTION, []);
-        $meta    = $allMeta[$slot] ?? [];
+            $allMeta = (array) get_option(self::META_OPTION, []);
+            $meta    = $allMeta[$slot] ?? [];
 
-        // Cron-Job entfernen
-        $timestamp = wp_next_scheduled(Reminder::CRON_HOOK, [$slot]);
-        if ($timestamp) wp_unschedule_event($timestamp, Reminder::CRON_HOOK, [$slot]);
+            $timestamp = wp_next_scheduled(Reminder::CRON_HOOK, [$slot]);
+            if ($timestamp) wp_unschedule_event($timestamp, Reminder::CRON_HOOK, [$slot]);
 
-        // Storno-Mail senden
-        self::sendCancellationMail($slot, $meta);
+            self::sendCancellationMail($slot, $meta);
 
-        // Slot + Meta entfernen
-        update_option(self::SLOTS_OPTION, array_values(array_diff($slots, [$slot])), false);
-        unset($allMeta[$slot]);
-        update_option(self::META_OPTION, $allMeta, false);
+            update_option(self::SLOTS_OPTION, array_values(array_diff($slots, [$slot])), false);
+            unset($allMeta[$slot]);
+            update_option(self::META_OPTION, $allMeta, false);
 
-        return true;
+            return true;
+        } catch (\Exception $e) {
+            throw new CustomException($e->getMessage(), $e->getCode(), null);
+        }
     }
 
     private static function sendCancellationMail(string $slot, array $meta): void
     {
-        [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
-        [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
+        try {
+            [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
+            [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
 
-        $title       = $meta['title']        ?? 'Termin';
-        $location    = $meta['location']     ?? '';
-        $personId    = (int) ($meta['person_id']    ?? 0);
-        $bookerEmail = $meta['booker_email'] ?? '';
-        $bookerName  = $meta['booker_name']  ?? '';
-        $tplId       = (int) ($meta['tpl_id'] ?? 0);
+            $title       = $meta['title']    ?? 'Termin';
+            $location    = $meta['location'] ?? '';
+            $personId    = (int) ($meta['person_id'] ?? 0);
+            $bookerEmail = $meta['booker_email'] ?? '';
+            $bookerName  = $meta['booker_name']  ?? '';
+            $tplId       = (int) ($meta['tpl_id'] ?? 0);
 
-        $pName = '';
-        if ($personId > 0) {
-            $pTitle  = (string) get_post_meta($personId, 'person_honorificPrefix', true);
-            $pGiven  = (string) get_post_meta($personId, 'person_givenName', true);
-            $pFamily = (string) get_post_meta($personId, 'person_familyName', true);
-            $pName   = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
-        }
+            $pName = '';
+            if ($personId > 0) {
+                $pTitle  = (string) get_post_meta($personId, 'person_honorificPrefix', true);
+                $pGiven  = (string) get_post_meta($personId, 'person_givenName', true);
+                $pFamily = (string) get_post_meta($personId, 'person_familyName', true);
+                $pName   = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
+            }
 
-        $vars = [
-            '[titel]'          => $title,
-            '[datum]'          => date_i18n(get_option('date_format'), strtotime($datePart)),
-            '[uhrzeit]'        => $startTime . ' – ' . $endTime,
-            '[ort]'            => $location ?: '–',
-            '[person_name]'    => $pName ?: '–',
-            '[name]'           => $bookerName ?: '–',
-            '[email]'          => $bookerEmail ?: '–',
-            '[storno_link]'    => '',
-            '[impressum_link]' => TokenManager::imprintUrl(),
-        ];
+            $vars = [
+                '[titel]'          => $title,
+                '[datum]'          => date_i18n(get_option('date_format'), strtotime($datePart)),
+                '[uhrzeit]'        => $startTime . ' – ' . $endTime,
+                '[ort]'            => $location ?: '–',
+                '[person_name]'    => $pName ?: '–',
+                '[name]'           => $bookerName ?: '–',
+                '[email]'          => $bookerEmail ?: '–',
+                '[storno_link]'    => '',
+                '[impressum_link]' => TokenManager::imprintUrl(),
+            ];
 
-        $tpl = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'cancellation') ?? []) : [];
-        $def = MailTemplatePost::getDefault('cancellation');
+            $tpl = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'cancellation') ?? []) : [];
+            $def = MailTemplatePost::getDefault('cancellation');
 
-        $bodyTpl     = !empty($tpl['body'])      ? $tpl['body']      : $def['body'];
-        $bodyHtmlTpl = !empty($tpl['body_html']) ? $tpl['body_html'] : $def['body_html'];
+            $bodyTpl     = !empty($tpl['body'])      ? $tpl['body']      : $def['body'];
+            $bodyHtmlTpl = !empty($tpl['body_html']) ? $tpl['body_html'] : $def['body_html'];
 
-        if (strpos($bodyTpl, '[impressum_link]') === false)    $bodyTpl     .= "\nImpressum: [impressum_link]";
-        if (strpos($bodyHtmlTpl, '[impressum_link]') === false) $bodyHtmlTpl .= '<p><a href="[impressum_link]">Impressum</a></p>';
+            if (strpos($bodyTpl, '[impressum_link]') === false)    $bodyTpl     .= "\nImpressum: [impressum_link]";
+            if (strpos($bodyHtmlTpl, '[impressum_link]') === false) $bodyHtmlTpl .= '<p><a href="[impressum_link]">Impressum</a></p>';
 
-        $subject = Settings::renderTemplate(!empty($tpl['subject']) ? $tpl['subject'] : $def['subject'], $vars);
-        $plain   = Settings::renderTemplate($bodyTpl, $vars);
-        $html    = Settings::renderTemplate($bodyHtmlTpl, $vars);
+            $subject = Settings::renderTemplate(!empty($tpl['subject']) ? $tpl['subject'] : $def['subject'], $vars);
+            $plain   = Settings::renderTemplate($bodyTpl, $vars);
+            $html    = Settings::renderTemplate($bodyHtmlTpl, $vars);
 
-        // An Person / Admin
-        $toAdmin = '';
-        if ($personId > 0) $toAdmin = (string) get_post_meta($personId, 'person_email', true);
-        if (!$toAdmin) $toAdmin = get_option('admin_email');
-        Settings::sendMail($toAdmin, $subject, $plain, $html);
+            $toAdmin = $personId > 0 ? (string) get_post_meta($personId, 'person_email', true) : '';
+            if (!$toAdmin) $toAdmin = get_option('admin_email');
+            Settings::sendMail($toAdmin, $subject, $plain, $html);
 
-        if ($bookerEmail) {
-            Settings::sendMail($bookerEmail, $subject, $plain, $html);
+            if ($bookerEmail) {
+                Settings::sendMail($bookerEmail, $subject, $plain, $html);
+            }
+        } catch (\Exception $e) {
+            throw new CustomException($e->getMessage(), $e->getCode(), null);
         }
     }
 
-    /**
-     * Gibt alle eindeutigen Personen aus den Buchungen zurück (für Filter-Dropdown).
-     */
     public static function getPersonsFromBookings(): array
     {
-        $allMeta = (array) get_option(self::META_OPTION, []);
-        $persons = [];
-        foreach ($allMeta as $meta) {
-            $pid = (int) ($meta['person_id'] ?? 0);
-            if ($pid > 0 && !isset($persons[$pid])) {
-                $pTitle  = (string) get_post_meta($pid, 'person_honorificPrefix', true);
-                $pGiven  = (string) get_post_meta($pid, 'person_givenName', true);
-                $pFamily = (string) get_post_meta($pid, 'person_familyName', true);
-                $persons[$pid] = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily]))) ?: "Person #$pid";
+        try {
+            $allMeta = (array) get_option(self::META_OPTION, []);
+            $persons = [];
+            foreach ($allMeta as $meta) {
+                $pid = (int) ($meta['person_id'] ?? 0);
+                if ($pid > 0 && !isset($persons[$pid])) {
+                    $pTitle  = (string) get_post_meta($pid, 'person_honorificPrefix', true);
+                    $pGiven  = (string) get_post_meta($pid, 'person_givenName', true);
+                    $pFamily = (string) get_post_meta($pid, 'person_familyName', true);
+                    $persons[$pid] = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily]))) ?: "Person #$pid";
+                }
             }
+            asort($persons);
+            return $persons;
+        } catch (\Exception $e) {
+            throw new CustomException($e->getMessage(), $e->getCode(), null);
         }
-        asort($persons);
-        return $persons;
     }
 }
