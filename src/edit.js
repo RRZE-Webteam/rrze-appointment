@@ -4,8 +4,7 @@ import {
     PanelBody,
     SelectControl,
     TextControl,
-    TextareaControl,
-    ToggleControl
+    TextareaControl
 } from '@wordpress/components';
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
 import { Fragment, useEffect, useMemo, useState } from '@wordpress/element';
@@ -228,7 +227,6 @@ export default function Edit({ attributes, setAttributes }) {
         personId,
         personName,
         personEmail,
-        useConsultationHours,
         tplId,
         locationUrl
     } = attributes;
@@ -473,22 +471,6 @@ export default function Edit({ attributes, setAttributes }) {
                                 }
                             }}
                         />
-                        {hasConsultationHours && (
-                            <ToggleControl
-                                label={__('Sprechstunden automatisch anlegen', 'rrze-appointment')}
-                                help={useConsultationHours
-                                    ? __('Termine werden aus den hinterlegten Sprechstunden übernommen.', 'rrze-appointment')
-                                    : __('Sprechstunden aus FAUdir sind verfügbar.', 'rrze-appointment')
-                                }
-                                checked={!!useConsultationHours}
-                                onChange={(value) => setAttributes({ useConsultationHours: value })}
-                            />
-                        )}
-                        {selectedPerson && !hasConsultationHours && (
-                            <p style={{ fontSize: '12px', color: '#757575' }}>
-                                {__('Keine Sprechstunden in FAUdir hinterlegt.', 'rrze-appointment')}
-                            </p>
-                        )}
                         <TextControl
                             label={__('Name', 'rrze-appointment')}
                             value={personName}
@@ -665,7 +647,7 @@ export default function Edit({ attributes, setAttributes }) {
                 <div className="rrze-appointment-block">
                     <h3>{derivedTitle || 'Termin-title'}</h3>
                     {description && <p>{description}</p>}
-                    {location && <p><strong>Ort:</strong> {location}</p>}
+                    {location && <p><strong>Ort:</strong> {location}{locationUrl && <> (<a href={locationUrl} target="_blank" rel="noopener noreferrer">Auf der Karte ansehen</a>)</>}</p>}
 
                     <form className="rrze-appointment__form">
                         {slots.length > 0 ? (
