@@ -265,7 +265,11 @@
                     .then((res) => {
                         button.disabled = false;
                         if (res.success && res.data?.needsLogin) {
-                            window.location.href = res.data.loginUrl;
+                            const loginUrl = res.data.loginUrl || '/wp-login.php';
+                            const redirectTo = encodeURIComponent(window.location.href);
+                            window.location.href = loginUrl.includes('redirect_to')
+                                ? loginUrl
+                                : loginUrl + (loginUrl.includes('?') ? '&' : '?') + 'redirect_to=' + redirectTo;
                             return;
                         }
                         const booker = res.success ? (res.data || {}) : {};

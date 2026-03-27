@@ -360,11 +360,11 @@ class Main
     {
         try {
             $booker = Rights::get();
-            // Wenn keine Daten vorhanden, Login erforderlich
             if (empty($booker['idm'])) {
+                $currentUrl = sanitize_url($_SERVER['HTTP_REFERER'] ?? home_url('/'));
                 wp_send_json_success([
                     'needsLogin' => true,
-                    'loginUrl'   => wp_login_url(wp_get_referer() ?: home_url('/')),
+                    'loginUrl'   => wp_login_url($currentUrl),
                 ]);
                 return;
             }
