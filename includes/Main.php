@@ -45,7 +45,7 @@ class Main
 
         add_action('wp_enqueue_scripts', [$this, 'enqueueAssets']);
         add_action('enqueue_block_assets', [$this, 'enqueueAssets']);
-        add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets']);
+        add_action('enqueue_block_editor_assets', [$this, 'enqueueAdminAssets']);
         add_action('wp_ajax_rrze_appointment_book', [$this, 'handleBooking']);
         add_action('wp_ajax_nopriv_rrze_appointment_book', [$this, 'handleBooking']);
         add_action('template_redirect', [$this, 'handleConfirm']);
@@ -233,10 +233,10 @@ class Main
         $this->settings->build();
     }
 
-    private function getFaudirPersons(): array
+    private function getFAUdirPersons(): array
     {
         if (!post_type_exists('custom_person')) {
-            return [];
+            return ['error' => true, 'message' => 'Post type custom_person does not exist.', 'data' => []];
         }
 
         $posts = get_posts([
@@ -246,62 +246,75 @@ class Main
             'orderby'        => 'title',
             'order'          => 'ASC',
             'no_found_rows'  => true,
+            'fields'         => 'ids',
         ]);
 
-        $result = [];
-        foreach ($posts as $post) {
-            $given  = (string) get_post_meta($post->ID, 'person_givenName', true);
-            $family = (string) get_post_meta($post->ID, 'person_familyName', true);
-            $prefix = (string) get_post_meta($post->ID, 'person_honorificPrefix', true);
-            $label  = trim("$given $family") ?: $post->post_title;
-            $email  = (string) get_post_meta($post->ID, 'person_email', true);
+        if (!class_exists('\RRZE\FAUdir\API') || !class_exists('\RRZE\FAUdir\Config')) {
+            return ['error' => true, 'message' => 'FAUdir classes not available.', 'data' => []];
+        }
 
-            // Sprechstunden aus FAUdir-API-Transient lesen
-            $personFaudirId      = (string) get_post_meta($post->ID, 'person_id', true);
-            $consultationHours   = [];
-            $location            = '';
-            $locationUrl         = '';
-            if ($personFaudirId !== '') {
-                $transientKey = 'faudir_api_person_' . md5($personFaudirId);
-                $cached       = get_transient($transientKey);
-                if (is_array($cached)) {
-                    $workplaces = $cached['workplaces'] ?? $cached['contacts'] ?? [];
-                    foreach ((array) $workplaces as $wp) {
-                        if (!empty($wp['consultationHours']) && is_array($wp['consultationHours'])) {
-                            $consultationHours = array_merge($consultationHours, $wp['consultationHours']);
-                        }
-                        // Ersten Workplace-Ort verwenden
-                        if ($location === '') {
-                            $parts = array_filter([
-                                $wp['room']             ?? '',
-                                $wp['street']           ?? '',
-                                $wp['addressLocality']  ?? $wp['city'] ?? '',
-                            ]);
-                            $location = implode(', ', $parts);
-                        }
-                        if ($locationUrl === '' && !empty($wp['faumap'])) {
-                            $locationUrl = (string) $wp['faumap'];
-                        }
+        $config = new \RRZE\FAUdir\Config();
+        $api    = new \RRZE\FAUdir\API($config);
+
+        $result = [];
+        foreach ($posts as $post_id) {
+            $faudir_id = (string) get_post_meta($post_id, 'person_id', true);
+            if ($faudir_id === '') continue;
+
+            $person = $api->getPerson($faudir_id);
+            if (!is_array($person) || empty($person)) continue;
+
+            $given  = $person['givenName'] ?? '';
+            $family = $person['familyName'] ?? '';
+            $prefix = $person['honorificPrefix'] ?? '';
+            $email  = $person['email'] ?? '';
+            $label  = trim("$given $family") ?: get_the_title($post_id);
+
+            $consultationHours = [];
+            $hoursType         = null;
+            $location          = '';
+            $locationUrl       = '';
+
+            foreach ($person['contacts'] ?? [] as $contact) {
+                $contact_id     = $contact['identifier'] ?? '';
+                if (!$contact_id) continue;
+                $contact_detail = $api->getContact($contact_id);
+                if (!is_array($contact_detail)) continue;
+
+                foreach ($contact_detail['workplaces'] ?? [] as $wp) {
+                    if (!empty($wp['consultationHours'])) {
+                        $consultationHours = $wp['consultationHours'];
+                        $hoursType         = 'consultation';
+                    } elseif (!empty($wp['officeHours'])) {
+                        $consultationHours = $wp['officeHours'];
+                        $hoursType         = 'office';
+                    }
+                    if (!empty($consultationHours)) {
+                        $location    = implode(', ', array_filter([$wp['room'] ?? '', $wp['street'] ?? '', $wp['city'] ?? '']));
+                        $locationUrl = $wp['faumap'] ?? '';
+                        break 2;
                     }
                 }
             }
 
             $result[] = [
-                'id'               => $post->ID,
-                'label'            => $label,
-                'honorificPrefix'  => $prefix,
-                'givenName'        => $given,
-                'familyName'       => $family,
-                'email'            => $email,
-                'location'         => $location,
-                'locationUrl'      => $locationUrl,
-                'consultationHours'=> $consultationHours,
+                'id'                => $post_id,
+                'error'             => false,
+                'message'           => '',
+                'label'             => $label,
+                'honorificPrefix'   => $prefix,
+                'givenName'         => $given,
+                'familyName'        => $family,
+                'email'             => $email,
+                'location'          => $location,
+                'locationUrl'       => $locationUrl,
+                'consultationHours' => $consultationHours,
+                'hoursType'         => $hoursType,
             ];
         }
 
-        return $result;
+        return ['error' => false, 'message' => '', 'data' => $result];
     }
-
     /**
      * Enqueue der globale Skripte.
      */
@@ -309,25 +322,26 @@ class Main
     {
         $viewHandle = 'rrze-appointment-view-script';
         if (wp_script_is($viewHandle, 'registered')) {
-            $booked  = (array) get_option('rrze_appointment_booked_slots', []);
+            $booked = (array) get_option('rrze_appointment_booked_slots', []);
             $pending = TokenManager::getPendingSlots();
             wp_localize_script($viewHandle, 'rrze_appointment', [
                 'ajaxUrl'     => admin_url('admin-ajax.php'),
                 'nonce'       => wp_create_nonce('rrze_appointment_book'),
                 'bookedSlots' => array_values(array_unique(array_merge($booked, $pending))),
-                'persons'     => $this->getFaudirPersons(),
             ]);
         }
     }
 
     public function enqueueAdminAssets()
     {
-        $editorHandle = 'rrze-appointment-editor-script';
-        if (wp_script_is($editorHandle, 'registered')) {
-            wp_localize_script($editorHandle, 'rrze_appointment', [
-                'persons' => $this->getFaudirPersons(),
-            ]);
-        }
+        $persons = $this->getFAUdirPersons();
+        echo '<script>window.rrze_appointment = ' . wp_json_encode(['persons' => $persons]) . ';</script>' . "\n";
+    }
+
+    public function handleGetPersons(): void
+    {
+        check_ajax_referer('rrze_appointment_persons', 'nonce');
+        wp_send_json($this->getFAUdirPersons());
     }
 
     private function icsEscape(string $value): string
@@ -339,25 +353,28 @@ class Main
     {
         check_ajax_referer('rrze_appointment_book', 'nonce');
 
-        $slot        = sanitize_text_field($_POST['slot'] ?? '');
-        $title       = sanitize_text_field($_POST['title'] ?? 'Termin');
-        $location    = sanitize_text_field($_POST['location'] ?? '');
-        $personId    = (int) ($_POST['person_id'] ?? 0);
+        $slot = sanitize_text_field($_POST['slot'] ?? '');
+        $title = sanitize_text_field($_POST['title'] ?? 'Termin');
+        $location = sanitize_text_field($_POST['location'] ?? '');
+        $personId = (int) ($_POST['person_id'] ?? 0);
         $bookerEmail = sanitize_email($_POST['booker_email'] ?? '');
-        $bookerName  = sanitize_text_field($_POST['booker_name'] ?? '');
-        $bookerMsg   = sanitize_textarea_field($_POST['booker_message'] ?? '');
-        $tplId       = (int) ($_POST['tpl_id'] ?? 0);
+        $bookerName = sanitize_text_field($_POST['booker_name'] ?? '');
+        $bookerMsg = sanitize_textarea_field($_POST['booker_message'] ?? '');
+        $tplId = (int) ($_POST['tpl_id'] ?? 0);
 
-        if (!$slot) wp_send_json_error('Kein Termin angegeben.');
-        if (!$bookerEmail) wp_send_json_error('Bitte eine E-Mail-Adresse angeben.');
+        if (!$slot)
+            wp_send_json_error('Kein Termin angegeben.');
+        if (!$bookerEmail)
+            wp_send_json_error('Bitte eine E-Mail-Adresse angeben.');
 
         [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
         [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
 
-        if (!$datePart || !$startTime || !$endTime) wp_send_json_error('Ungültiges Termin-Format.');
+        if (!$datePart || !$startTime || !$endTime)
+            wp_send_json_error('Ungültiges Termin-Format.');
 
         // Slot bereits gebucht oder pending?
-        $booked  = (array) get_option('rrze_appointment_booked_slots', []);
+        $booked = (array) get_option('rrze_appointment_booked_slots', []);
         $pending = TokenManager::getPendingSlots();
         if (in_array($slot, $booked, true) || in_array($slot, $pending, true)) {
             wp_send_json_error('Dieser Termin ist nicht mehr verfügbar.');
@@ -365,51 +382,55 @@ class Main
 
         $pName = '';
         if ($personId > 0) {
-            $pTitle  = (string) get_post_meta($personId, 'person_honorificPrefix', true);
-            $pGiven  = (string) get_post_meta($personId, 'person_givenName', true);
+            $pTitle = (string) get_post_meta($personId, 'person_honorificPrefix', true);
+            $pGiven = (string) get_post_meta($personId, 'person_givenName', true);
             $pFamily = (string) get_post_meta($personId, 'person_familyName', true);
-            $pName   = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
+            $pName = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
         }
 
         $meta = [
-            'title'          => $title,
-            'location'       => $location,
-            'person_id'      => $personId,
-            'booker_email'   => $bookerEmail,
-            'booker_name'    => $bookerName,
+            'title' => $title,
+            'location' => $location,
+            'person_id' => $personId,
+            'booker_email' => $bookerEmail,
+            'booker_name' => $bookerName,
             'booker_message' => $bookerMsg,
-            'tpl_id'         => $tplId,
+            'tpl_id' => $tplId,
         ];
 
         $confirmToken = TokenManager::createPending($slot, $meta);
-        $confirmUrl   = TokenManager::confirmUrl($confirmToken);
-        $imprintUrl   = TokenManager::imprintUrl();
+        $confirmUrl = TokenManager::confirmUrl($confirmToken);
+        $imprintUrl = TokenManager::imprintUrl();
 
         $vars = [
-            '[titel]'              => $title,
-            '[datum]'              => date_i18n(get_option('date_format'), strtotime($datePart)),
-            '[uhrzeit]'            => $startTime . ' – ' . $endTime,
-            '[ort]'                => $location ?: '–',
-            '[person_name]'        => $pName ?: '–',
-            '[name]'               => $bookerName ?: '–',
-            '[email]'              => $bookerEmail ?: '–',
-            '[nachricht]'          => $bookerMsg ?: '',
+            '[titel]' => $title,
+            '[datum]' => date_i18n(get_option('date_format'), strtotime($datePart)),
+            '[uhrzeit]' => $startTime . ' – ' . $endTime,
+            '[ort]' => $location ?: '–',
+            '[person_name]' => $pName ?: '–',
+            '[name]' => $bookerName ?: '–',
+            '[email]' => $bookerEmail ?: '–',
+            '[nachricht]' => $bookerMsg ?: '',
             '[bestaetigungs_link]' => $confirmUrl,
-            '[storno_link]'        => TokenManager::cancelUrl(TokenManager::createPendingCancelToken($slot, $meta)),
-            '[impressum_link]'     => $imprintUrl,
+            '[storno_link]' => TokenManager::cancelUrl(TokenManager::createPendingCancelToken($slot, $meta)),
+            '[impressum_link]' => $imprintUrl,
         ];
 
-        $tpl         = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'booking_pending') ?? []) : [];
-        $def         = MailTemplatePost::getDefault('booking_pending');
-        $subject     = Settings::renderTemplate(!empty($tpl['subject']) ? $tpl['subject'] : $def['subject'], $vars);
-        $bodyTpl     = !empty($tpl['body'])      ? $tpl['body']      : $def['body'];
+        $tpl = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'booking_pending') ?? []) : [];
+        $def = MailTemplatePost::getDefault('booking_pending');
+        $subject = Settings::renderTemplate(!empty($tpl['subject']) ? $tpl['subject'] : $def['subject'], $vars);
+        $bodyTpl = !empty($tpl['body']) ? $tpl['body'] : $def['body'];
         $bodyHtmlTpl = !empty($tpl['body_html']) ? $tpl['body_html'] : $def['body_html'];
-        if (strpos($bodyTpl, '[bestaetigungs_link]') === false)    $bodyTpl     .= "\n\nBestätigung: [bestaetigungs_link]";
-        if (strpos($bodyTpl, '[impressum_link]') === false)         $bodyTpl     .= "\nImpressum: [impressum_link]";
-        if (strpos($bodyHtmlTpl, '[bestaetigungs_link]') === false) $bodyHtmlTpl .= '<p><a href="[bestaetigungs_link]">Termin jetzt bestätigen</a></p>';
-        if (strpos($bodyHtmlTpl, '[impressum_link]') === false)     $bodyHtmlTpl .= '<p><a href="[impressum_link]">Impressum</a></p>';
+        if (strpos($bodyTpl, '[bestaetigungs_link]') === false)
+            $bodyTpl .= "\n\nBestätigung: [bestaetigungs_link]";
+        if (strpos($bodyTpl, '[impressum_link]') === false)
+            $bodyTpl .= "\nImpressum: [impressum_link]";
+        if (strpos($bodyHtmlTpl, '[bestaetigungs_link]') === false)
+            $bodyHtmlTpl .= '<p><a href="[bestaetigungs_link]">Termin jetzt bestätigen</a></p>';
+        if (strpos($bodyHtmlTpl, '[impressum_link]') === false)
+            $bodyHtmlTpl .= '<p><a href="[impressum_link]">Impressum</a></p>';
         $plain = Settings::renderTemplate($bodyTpl, $vars);
-        $html  = Settings::renderTemplate($bodyHtmlTpl, $vars);
+        $html = Settings::renderTemplate($bodyHtmlTpl, $vars);
 
         Settings::sendMail($bookerEmail, $subject, $plain, $html);
 
@@ -422,7 +443,8 @@ class Main
     public function handleConfirm(): void
     {
         $token = sanitize_text_field($_GET['rrze_appt_confirm'] ?? '');
-        if (!$token) return;
+        if (!$token)
+            return;
 
         $entry = TokenManager::confirmPending($token);
         if (!$entry) {
@@ -435,30 +457,35 @@ class Main
         [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
         [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
 
-        $tz      = wp_timezone();
+        $tz = wp_timezone();
         $dtStart = new \DateTime($datePart . 'T' . $startTime . ':00', $tz);
-        $dtEnd   = new \DateTime($datePart . 'T' . $endTime . ':00', $tz);
+        $dtEnd = new \DateTime($datePart . 'T' . $endTime . ':00', $tz);
         $dtStart->setTimezone(new \DateTimeZone('UTC'));
         $dtEnd->setTimezone(new \DateTimeZone('UTC'));
         $now = new \DateTime('now', new \DateTimeZone('UTC'));
 
         // ICS erstellen
-        $uid   = wp_generate_uuid4() . '@' . parse_url(home_url(), PHP_URL_HOST);
+        $uid = wp_generate_uuid4() . '@' . parse_url(home_url(), PHP_URL_HOST);
         $lines = [
-            'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//RRZE Appointment//DE',
-            'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//RRZE Appointment//DE',
+            'CALSCALE:GREGORIAN',
+            'METHOD:PUBLISH',
+            'BEGIN:VEVENT',
             'UID:' . $uid,
             'DTSTAMP:' . $now->format('Ymd\THis\Z'),
             'DTSTART:' . $dtStart->format('Ymd\THis\Z'),
-            'DTEND:'   . $dtEnd->format('Ymd\THis\Z'),
+            'DTEND:' . $dtEnd->format('Ymd\THis\Z'),
             'SUMMARY:' . $this->icsEscape($meta['title'] ?? ''),
             'LOCATION:' . $this->icsEscape($meta['location'] ?? ''),
-            'END:VEVENT', 'END:VCALENDAR',
+            'END:VEVENT',
+            'END:VCALENDAR',
         ];
         $ics = implode("\r\n", $lines) . "\r\n";
 
         // Slot als gebucht markieren
-        $booked   = (array) get_option('rrze_appointment_booked_slots', []);
+        $booked = (array) get_option('rrze_appointment_booked_slots', []);
         $booked[] = $slot;
         update_option('rrze_appointment_booked_slots', array_unique($booked), false);
 
@@ -466,60 +493,68 @@ class Main
         Reminder::scheduleForSlot($slot, $meta);
 
         // Cancel-Token erstellen und URL holen
-        $cancelUrl  = TokenManager::getCancelUrlForSlot($slot);
+        $cancelUrl = TokenManager::getCancelUrlForSlot($slot);
         $imprintUrl = TokenManager::imprintUrl();
-        $personId   = (int) ($meta['person_id'] ?? 0);
+        $personId = (int) ($meta['person_id'] ?? 0);
         $bookerEmail = $meta['booker_email'] ?? '';
-        $bookerName  = $meta['booker_name']  ?? '';
-        $tplId       = (int) ($meta['tpl_id'] ?? 0);
+        $bookerName = $meta['booker_name'] ?? '';
+        $tplId = (int) ($meta['tpl_id'] ?? 0);
 
         $pName = '';
         if ($personId > 0) {
-            $pTitle  = (string) get_post_meta($personId, 'person_honorificPrefix', true);
-            $pGiven  = (string) get_post_meta($personId, 'person_givenName', true);
+            $pTitle = (string) get_post_meta($personId, 'person_honorificPrefix', true);
+            $pGiven = (string) get_post_meta($personId, 'person_givenName', true);
             $pFamily = (string) get_post_meta($personId, 'person_familyName', true);
-            $pName   = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
+            $pName = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
         }
 
         $vars = [
-            '[titel]'              => $meta['title'] ?? '',
-            '[datum]'              => date_i18n(get_option('date_format'), strtotime($datePart)),
-            '[uhrzeit]'            => $startTime . ' – ' . $endTime,
-            '[ort]'                => ($meta['location'] ?? '') ?: '–',
-            '[person_name]'        => $pName ?: '–',
-            '[name]'               => $bookerName ?: '–',
-            '[email]'              => $bookerEmail ?: '–',
-            '[nachricht]'          => $meta['booker_message'] ?? '',
+            '[titel]' => $meta['title'] ?? '',
+            '[datum]' => date_i18n(get_option('date_format'), strtotime($datePart)),
+            '[uhrzeit]' => $startTime . ' – ' . $endTime,
+            '[ort]' => ($meta['location'] ?? '') ?: '–',
+            '[person_name]' => $pName ?: '–',
+            '[name]' => $bookerName ?: '–',
+            '[email]' => $bookerEmail ?: '–',
+            '[nachricht]' => $meta['booker_message'] ?? '',
             '[bestaetigungs_link]' => '',
-            '[storno_link]'        => $cancelUrl,
-            '[impressum_link]'     => $imprintUrl,
+            '[storno_link]' => $cancelUrl,
+            '[impressum_link]' => $imprintUrl,
         ];
 
         // Mail B an Buchenden
-        $tplBooker      = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'booking_booker') ?? []) : [];
-        $defBooker      = MailTemplatePost::getDefault('booking_booker');
-        $subjectBooker  = Settings::renderTemplate(!empty($tplBooker['subject']) ? $tplBooker['subject'] : $defBooker['subject'], $vars);
-        $bodyBooker     = !empty($tplBooker['body'])      ? $tplBooker['body']      : $defBooker['body'];
+        $tplBooker = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'booking_booker') ?? []) : [];
+        $defBooker = MailTemplatePost::getDefault('booking_booker');
+        $subjectBooker = Settings::renderTemplate(!empty($tplBooker['subject']) ? $tplBooker['subject'] : $defBooker['subject'], $vars);
+        $bodyBooker = !empty($tplBooker['body']) ? $tplBooker['body'] : $defBooker['body'];
         $bodyHtmlBooker = !empty($tplBooker['body_html']) ? $tplBooker['body_html'] : $defBooker['body_html'];
-        if (strpos($bodyBooker, '[storno_link]') === false)       $bodyBooker     .= "\n\nStornieren: [storno_link]";
-        if (strpos($bodyBooker, '[impressum_link]') === false)    $bodyBooker     .= "\nImpressum: [impressum_link]";
-        if (strpos($bodyHtmlBooker, '[storno_link]') === false)   $bodyHtmlBooker .= '<p><a href="[storno_link]">Termin stornieren</a></p>';
-        if (strpos($bodyHtmlBooker, '[impressum_link]') === false) $bodyHtmlBooker .= '<p><a href="[impressum_link]">Impressum</a></p>';
+        if (strpos($bodyBooker, '[storno_link]') === false)
+            $bodyBooker .= "\n\nStornieren: [storno_link]";
+        if (strpos($bodyBooker, '[impressum_link]') === false)
+            $bodyBooker .= "\nImpressum: [impressum_link]";
+        if (strpos($bodyHtmlBooker, '[storno_link]') === false)
+            $bodyHtmlBooker .= '<p><a href="[storno_link]">Termin stornieren</a></p>';
+        if (strpos($bodyHtmlBooker, '[impressum_link]') === false)
+            $bodyHtmlBooker .= '<p><a href="[impressum_link]">Impressum</a></p>';
         $plainBooker = Settings::renderTemplate($bodyBooker, $vars);
-        $htmlBooker  = Settings::renderTemplate($bodyHtmlBooker, $vars);
+        $htmlBooker = Settings::renderTemplate($bodyHtmlBooker, $vars);
 
         // Mail B an Einladenden
-        $tplHost      = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'booking_host') ?? []) : [];
-        $defHost      = MailTemplatePost::getDefault('booking_host');
-        $subjectHost  = Settings::renderTemplate(!empty($tplHost['subject']) ? $tplHost['subject'] : $defHost['subject'], $vars);
-        $bodyHost     = !empty($tplHost['body'])      ? $tplHost['body']      : $defHost['body'];
+        $tplHost = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'booking_host') ?? []) : [];
+        $defHost = MailTemplatePost::getDefault('booking_host');
+        $subjectHost = Settings::renderTemplate(!empty($tplHost['subject']) ? $tplHost['subject'] : $defHost['subject'], $vars);
+        $bodyHost = !empty($tplHost['body']) ? $tplHost['body'] : $defHost['body'];
         $bodyHtmlHost = !empty($tplHost['body_html']) ? $tplHost['body_html'] : $defHost['body_html'];
-        if (strpos($bodyHost, '[storno_link]') === false)       $bodyHost     .= "\n\nStornieren: [storno_link]";
-        if (strpos($bodyHost, '[impressum_link]') === false)    $bodyHost     .= "\nImpressum: [impressum_link]";
-        if (strpos($bodyHtmlHost, '[storno_link]') === false)   $bodyHtmlHost .= '<p><a href="[storno_link]">Termin stornieren</a></p>';
-        if (strpos($bodyHtmlHost, '[impressum_link]') === false) $bodyHtmlHost .= '<p><a href="[impressum_link]">Impressum</a></p>';
+        if (strpos($bodyHost, '[storno_link]') === false)
+            $bodyHost .= "\n\nStornieren: [storno_link]";
+        if (strpos($bodyHost, '[impressum_link]') === false)
+            $bodyHost .= "\nImpressum: [impressum_link]";
+        if (strpos($bodyHtmlHost, '[storno_link]') === false)
+            $bodyHtmlHost .= '<p><a href="[storno_link]">Termin stornieren</a></p>';
+        if (strpos($bodyHtmlHost, '[impressum_link]') === false)
+            $bodyHtmlHost .= '<p><a href="[impressum_link]">Impressum</a></p>';
         $plainHost = Settings::renderTemplate($bodyHost, $vars);
-        $htmlHost  = Settings::renderTemplate($bodyHtmlHost, $vars);
+        $htmlHost = Settings::renderTemplate($bodyHtmlHost, $vars);
 
         $tmpFile = tempnam(get_temp_dir(), 'rrze_appt_') . '.ics';
         file_put_contents($tmpFile, $ics);
@@ -527,9 +562,11 @@ class Main
         Settings::sendMail($bookerEmail, $subjectBooker, $plainBooker, $htmlBooker, [$tmpFile]);
 
         $adminEmail = get_option('admin_email');
-        $toAdmin    = '';
-        if ($personId > 0) $toAdmin = (string) get_post_meta($personId, 'person_email', true);
-        if (!$toAdmin) $toAdmin = $adminEmail;
+        $toAdmin = '';
+        if ($personId > 0)
+            $toAdmin = (string) get_post_meta($personId, 'person_email', true);
+        if (!$toAdmin)
+            $toAdmin = $adminEmail;
         Settings::sendMail($toAdmin, $subjectHost, $plainHost, $htmlHost, [$tmpFile]);
 
         @unlink($tmpFile);
@@ -548,7 +585,8 @@ class Main
     public function handleCancel(): void
     {
         $token = sanitize_text_field($_GET['rrze_appt_cancel'] ?? '');
-        if (!$token) return;
+        if (!$token)
+            return;
 
         $entry = TokenManager::validateCancelToken($token);
         if (!$entry) {

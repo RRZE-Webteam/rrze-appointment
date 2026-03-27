@@ -2,7 +2,7 @@ import { Fragment } from '@wordpress/element';
 import { generateTimeSlots, renderGroupedSlotsAccordion } from './utils';
 
 export default function Save({ attributes }) {
-    const { title, location, description, personId, tplId } = attributes;
+    const { title, location, description, personId, tplId, locationUrl } = attributes;
     const slots = generateTimeSlots(attributes);
 
     return (
@@ -17,7 +17,12 @@ export default function Save({ attributes }) {
                 <div className="rrze-appointment__description">{description}</div>
             )}
             {location && (
-                <p className="rrze-appointment__location">{location}</p>
+                <p className="rrze-appointment__location">
+                    Ort: {location}
+                    {locationUrl && (
+                        <> (<a href={locationUrl} target="_blank" rel="noopener noreferrer">Auf der Karte ansehen</a>)</>
+                    )}
+                </p>
             )}
 
             {slots.length > 0 ? (

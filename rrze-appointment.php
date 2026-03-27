@@ -3,7 +3,7 @@
 /*
 Plugin Name:        RRZE Appointment
 Plugin URI:         https://github.com/RRZE-Webteam/rrze-appointment
-Version:            0.2.0
+Version:            0.2.40
 Description:        Explain your content with FAQ, glossary and placeholders.
 Author:             RRZE Webteam
 Author URI:         https://www.wp.rrze.fau.de/
@@ -108,7 +108,7 @@ function load_textdomain(): void
 function register_blocks(): void
 {
     register_block_type( __DIR__ . '/build' );
-    $script_handle = generate_block_asset_handle( 'create-block/rrze-appointment', 'editorScript' );
+    $script_handle = generate_block_asset_handle( 'rrze/appointment', 'editorScript' );
     wp_set_script_translations( $script_handle, 'rrze-appointment', plugin_dir_path( __FILE__ ) . 'languages' );
 }
 
