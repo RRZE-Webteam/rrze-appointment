@@ -247,12 +247,49 @@ export default function Edit({ attributes, setAttributes }) {
     const faudirError = faudirResponse?.error ?? false;
     const faudirMessage = faudirResponse?.message || '';
     const selectedPerson = faudirPersons.find((p) => p.id === personId) || null;
+    console.log('office hours persons:', faudirPersons.filter(p => p.hoursType === 'office').map(p => p.label));
+    console.log('consultation hours persons:', faudirPersons.filter(p => p.hoursType === 'consultation').map(p => p.label));
 
 
+
+    const [hoursOverlay, setHoursOverlay] = useState(null); // { person, type: 'consultation'|'office' }
+
+    const applyConsultationHours = (person) => {
+        const hours = person.consultationHours || [];
+        if (!hours.length) return;
+
+        // weekday: 0=So,1=Mo,...,6=Sa — wir wollen die nächsten 8 Wochen ab heute
+        const today = new Date();
+        const todayStr = formatDate(today);
+        const dates = [];
+        for (let i = 1; i <= 56; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() + i);
+            const jsDay = d.getDay(); // 0=So,1=Mo,...
+            if (hours.some((h) => h.weekday === jsDay)) {
+                dates.push(formatDate(d));
+            }
+        }
+        if (!dates.length) return;
+
+        // startTime/endTime aus erstem Eintrag
+        const firstHour = hours[0];
+        const newStart = firstHour.from || '09:00';
+        const newEnd   = firstHour.to   || '17:00';
+
+        setAttributes({
+            selectedDates: dates,
+            startDate:     dates[0],
+            endDate:       dates[dates.length - 1],
+            useEndDate:    true,
+            startTime:     newStart,
+            endTime:       newEnd,
+            useConsultationHours: true,
+        });
+        setActiveDate(dates[0]);
+    };
 
     const hasConsultationHours = selectedPerson?.consultationHours?.length > 0;
-
-    // title automatisch aus Person ableiten
     const derivedTitle = selectedPerson
         ? `Sprechstunde von ${[selectedPerson.honorificPrefix, selectedPerson.givenName, selectedPerson.familyName].filter(Boolean).join(' ')}`
         : title;
@@ -431,6 +468,9 @@ export default function Edit({ attributes, setAttributes }) {
                                     ? `Sprechstunde von ${[person.honorificPrefix, person.givenName, person.familyName].filter(Boolean).join(' ')}`
                                     : '';
                                 setAttributes({ personId: pid, title: newTitle, personName: person ? [person.honorificPrefix, person.givenName, person.familyName].filter(Boolean).join(' ') : '', personEmail: person?.email || '', location: person?.location || '', locationUrl: person?.locationUrl || '', useConsultationHours: false });
+                                if (person && person.consultationHours?.length > 0) {
+                                    setHoursOverlay({ person, type: person.hoursType === 'office' ? 'office' : 'consultation' });
+                                }
                             }}
                         />
                         {hasConsultationHours && (
@@ -684,6 +724,27 @@ export default function Edit({ attributes, setAttributes }) {
                     </form>
                 </div>
             </div>
+
+            {hoursOverlay && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
+                    <div style={{ background: '#fff', borderRadius: '4px', padding: '24px', minWidth: '340px', maxWidth: '480px', boxShadow: '0 4px 24px rgba(0,0,0,0.2)' }}>
+                        <p style={{ margin: '0 0 20px', fontSize: '14px', lineHeight: '1.5' }}>
+                            {hoursOverlay.type === 'consultation'
+                                ? __('Sprechstunden von FAUdir gefunden. Sollen die Termine entsprechend erstellt werden?', 'rrze-appointment')
+                                : __('Sprechstunden in FAUdir nicht gefunden, aber Bürozeiten. Sollen die Termine daraus entsprechend erstellt werden?', 'rrze-appointment')
+                            }
+                        </p>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                            <Button variant="primary" onClick={() => { applyConsultationHours(hoursOverlay.person); setHoursOverlay(null); }}>
+                                {__('Ja', 'rrze-appointment')}
+                            </Button>
+                            <Button variant="secondary" onClick={() => setHoursOverlay(null)}>
+                                {__('Nein', 'rrze-appointment')}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </Fragment>
     );
 }
