@@ -241,48 +241,13 @@ export default function Edit({ attributes, setAttributes }) {
     }, []);
 
 
-    // FAUdir response handling
-    const faudirResponse = window.rrze_appointment?.persons || {
-        error: true,
-        message: 'No data provided.',
-        data: []
-    };
+    const [faudirResponse] = useState(() => window.rrze_appointment?.persons || { error: true, message: 'Keine Personen-Daten verfügbar.', data: [] });
 
-    const faudirPersons = !faudirResponse.error && Array.isArray(faudirResponse.data)
-        ? faudirResponse.data
-        : [];
-
-    const faudirError = faudirResponse.error;
-    const faudirMessage = faudirResponse.message || '';
-
+    const faudirPersons = !faudirResponse?.error && Array.isArray(faudirResponse?.data) ? faudirResponse.data : [];
+    const faudirError = faudirResponse?.error ?? false;
+    const faudirMessage = faudirResponse?.message || '';
     const selectedPerson = faudirPersons.find((p) => p.id === personId) || null;
 
-
-    // Test BK EDIT START
-    useEffect(() => {
-        if (faudirError || !selectedPerson) return;
-
-        const hours = selectedPerson.consultationHours || [];
-        const type = selectedPerson.hoursType || 'unknown';
-
-        if (!hours.length) return;
-
-        const weekdayMap = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-
-        const formatted = hours.map((h) => {
-            const day = weekdayMap[h.weekday] ?? h.weekday;
-            const from = h.from || '';
-            const to = h.to || '';
-            const comment = h.comment ? ` (${h.comment})` : '';
-            return `${day} ${from}-${to}${comment}`;
-        }).join('\n');
-
-        const label = type === 'office' ? 'Office hours' : 'Consultation hours';
-
-        alert(`${label}:\n${formatted}`);
-    }, [selectedPerson, faudirError]);
-
-    // Test BK EDIT END
 
 
     const hasConsultationHours = selectedPerson?.consultationHours?.length > 0;

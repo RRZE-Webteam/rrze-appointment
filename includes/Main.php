@@ -12,9 +12,6 @@ use RRZE\Appointment\MailTemplatePost;
 use RRZE\Appointment\TokenManager;
 use RRZE\Appointment\Common\Settings\Settings as CommonSettings;
 
-use RRZE\FAUdir\Config as FAUdirConfig;
-use RRZE\FAUdir\CPT as FAUdirCPT;
-
 
 defined('ABSPATH') || exit;
 
@@ -48,7 +45,7 @@ class Main
 
         add_action('wp_enqueue_scripts', [$this, 'enqueueAssets']);
         add_action('enqueue_block_assets', [$this, 'enqueueAssets']);
-        add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets']);
+        add_action('enqueue_block_editor_assets', [$this, 'enqueueAdminAssets']);
         add_action('wp_ajax_rrze_appointment_book', [$this, 'handleBooking']);
         add_action('wp_ajax_nopriv_rrze_appointment_book', [$this, 'handleBooking']);
         add_action('template_redirect', [$this, 'handleConfirm']);
@@ -238,143 +235,85 @@ class Main
 
     private function getFAUdirPersons(): array
     {
-        if (!function_exists('is_plugin_active')) {
-            include_once ABSPATH . 'wp-admin/includes/plugin.php';
-        }
-        if (
-            !is_plugin_active('rrze-faudir/rrze-faudir.php') ||
-            !class_exists(FAUdirConfig::class) ||
-            !class_exists(FAUdirCPT::class)
-        ) {
-            return wp_send_json([
-                'error' => true,
-                'message' => 'FAUdir plugin or required classes not available.',
-                'data' => []
-            ]);
-        }
-
         if (!post_type_exists('custom_person')) {
-            return wp_send_json([
-                'error' => true,
-                'message' => 'Post type custom_person does not exist.',
-                'data' => []
-            ]);
+            return ['error' => true, 'message' => 'Post type custom_person does not exist.', 'data' => []];
         }
-
-        $config = new FAUdirConfig();
-        $faudir = new FAUdirCPT($config);
 
         $posts = get_posts([
-            'post_type' => 'custom_person',
-            'post_status' => 'publish',
+            'post_type'      => 'custom_person',
+            'post_status'    => 'publish',
             'posts_per_page' => -1,
-            'orderby' => 'title',
-            'order' => 'ASC',
-            'no_found_rows' => true,
-            'fields' => 'ids',
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+            'no_found_rows'  => true,
+            'fields'         => 'ids',
         ]);
 
+        if (!class_exists('\RRZE\FAUdir\API') || !class_exists('\RRZE\FAUdir\Config')) {
+            return ['error' => true, 'message' => 'FAUdir classes not available.', 'data' => []];
+        }
+
+        $config = new \RRZE\FAUdir\Config();
+        $api    = new \RRZE\FAUdir\API($config);
+
         $result = [];
-
         foreach ($posts as $post_id) {
+            $faudir_id = (string) get_post_meta($post_id, 'person_id', true);
+            if ($faudir_id === '') continue;
 
-            $post_title = get_the_title($post_id);
-            $personFAUdirID = (string) get_post_meta($post_id, 'person_id', true);
+            $person = $api->getPerson($faudir_id);
+            if (!is_array($person) || empty($person)) continue;
 
-            if ($personFAUdirID === '') {
-                $result[] = [
-                    'id' => $post_id,
-                    'error' => true,
-                    'message' => 'Missing FAUdir ID.',
-                ];
-                continue;
-            }
-
-            $meta_data = $faudir->fetch_person_attributes($personFAUdirID);
-
-            if (empty($meta_data) || !is_array($meta_data)) {
-                $result[] = [
-                    'id' => $post_id,
-                    'error' => true,
-                    'message' => 'No data found for given FAUdir ID.',
-                ];
-                continue;
-            }
-
-            $given = $meta_data['givenName'] ?? (string) get_post_meta($post_id, 'person_givenName', true);
-            $family = $meta_data['familyName'] ?? (string) get_post_meta($post_id, 'person_familyName', true);
-            $prefix = $meta_data['honorificPrefix'] ?? (string) get_post_meta($post_id, 'person_honorificPrefix', true);
-            $email = $meta_data['email'] ?? (string) get_post_meta($post_id, 'person_email', true);
-
-            $label = trim("$given $family") ?: $post_title;
+            $given  = $person['givenName'] ?? '';
+            $family = $person['familyName'] ?? '';
+            $prefix = $person['honorificPrefix'] ?? '';
+            $email  = $person['email'] ?? '';
+            $label  = trim("$given $family") ?: get_the_title($post_id);
 
             $consultationHours = [];
-            $hoursType = null;
-            $location = '';
-            $locationUrl = '';
+            $hoursType         = null;
+            $location          = '';
+            $locationUrl       = '';
 
-            $workplaces = $meta_data['workplaces'] ?? [];
-            $selected = null;
+            foreach ($person['contacts'] ?? [] as $contact) {
+                $contact_id     = $contact['identifier'] ?? '';
+                if (!$contact_id) continue;
+                $contact_detail = $api->getContact($contact_id);
+                if (!is_array($contact_detail)) continue;
 
-            foreach ($workplaces as $wp) {
-                if (!empty($wp['consultationHours'])) {
-                    $selected = $wp;
-                    $hoursType = 'consultation';
-                    break;
-                }
-            }
-
-            if (!$selected) {
-                foreach ($workplaces as $wp) {
-                    if (!empty($wp['officeHours'])) {
-                        $selected = $wp;
-                        $hoursType = 'office';
-                        break;
+                foreach ($contact_detail['workplaces'] ?? [] as $wp) {
+                    if (!empty($wp['consultationHours'])) {
+                        $consultationHours = $wp['consultationHours'];
+                        $hoursType         = 'consultation';
+                    } elseif (!empty($wp['officeHours'])) {
+                        $consultationHours = $wp['officeHours'];
+                        $hoursType         = 'office';
+                    }
+                    if (!empty($consultationHours)) {
+                        $location    = implode(', ', array_filter([$wp['room'] ?? '', $wp['street'] ?? '', $wp['city'] ?? '']));
+                        $locationUrl = $wp['faumap'] ?? '';
+                        break 2;
                     }
                 }
             }
 
-            if (!$selected && !empty($workplaces)) {
-                $selected = $workplaces[0];
-            }
-
-            if ($selected) {
-                if ($hoursType === 'consultation') {
-                    $consultationHours = $selected['consultationHours'] ?? [];
-                } elseif ($hoursType === 'office') {
-                    $consultationHours = $selected['officeHours'] ?? [];
-                }
-
-                $location = implode(', ', array_filter([
-                    $selected['room'] ?? '',
-                    $selected['street'] ?? '',
-                    $selected['city'] ?? '',
-                ]));
-
-                $locationUrl = $selected['faumap'] ?? '';
-            }
-
             $result[] = [
-                'id' => $post_id,
-                'error' => false,
-                'message' => '',
-                'label' => $label,
-                'honorificPrefix' => $prefix,
-                'givenName' => $given,
-                'familyName' => $family,
-                'email' => $email,
-                'location' => $location,
-                'locationUrl' => $locationUrl,
+                'id'                => $post_id,
+                'error'             => false,
+                'message'           => '',
+                'label'             => $label,
+                'honorificPrefix'   => $prefix,
+                'givenName'         => $given,
+                'familyName'        => $family,
+                'email'             => $email,
+                'location'          => $location,
+                'locationUrl'       => $locationUrl,
                 'consultationHours' => $consultationHours,
-                'hoursType' => $hoursType,
+                'hoursType'         => $hoursType,
             ];
         }
 
-        return wp_send_json([
-            'error' => false,
-            'message' => '',
-            'data' => $result
-        ]);
+        return ['error' => false, 'message' => '', 'data' => $result];
     }
     /**
      * Enqueue der globale Skripte.
@@ -386,22 +325,23 @@ class Main
             $booked = (array) get_option('rrze_appointment_booked_slots', []);
             $pending = TokenManager::getPendingSlots();
             wp_localize_script($viewHandle, 'rrze_appointment', [
-                'ajaxUrl' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('rrze_appointment_book'),
+                'ajaxUrl'     => admin_url('admin-ajax.php'),
+                'nonce'       => wp_create_nonce('rrze_appointment_book'),
                 'bookedSlots' => array_values(array_unique(array_merge($booked, $pending))),
-                'persons' => $this->getFAUdirPersons(),
             ]);
         }
     }
 
     public function enqueueAdminAssets()
     {
-        $editorHandle = 'rrze-appointment-editor-script';
-        if (wp_script_is($editorHandle, 'registered')) {
-            wp_localize_script($editorHandle, 'rrze_appointment', [
-                'persons' => $this->getFAUdirPersons(),
-            ]);
-        }
+        $persons = $this->getFAUdirPersons();
+        echo '<script>window.rrze_appointment = ' . wp_json_encode(['persons' => $persons]) . ';</script>' . "\n";
+    }
+
+    public function handleGetPersons(): void
+    {
+        check_ajax_referer('rrze_appointment_persons', 'nonce');
+        wp_send_json($this->getFAUdirPersons());
     }
 
     private function icsEscape(string $value): string
