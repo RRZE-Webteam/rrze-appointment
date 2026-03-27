@@ -264,6 +264,10 @@
                     .then((r) => r.json())
                     .then((res) => {
                         button.disabled = false;
+                        if (res.success && res.data?.needsLogin) {
+                            window.location.href = res.data.loginUrl;
+                            return;
+                        }
                         const booker = res.success ? (res.data || {}) : {};
                         openOverlay(slot.value, booker);
                         renderDaySlots(activeDate);

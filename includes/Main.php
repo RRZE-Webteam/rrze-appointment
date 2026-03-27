@@ -359,7 +359,16 @@ class Main
     public function handleGetBooker(): void
     {
         try {
-            wp_send_json_success(Rights::get());
+            $booker = Rights::get();
+            // Wenn keine Daten vorhanden, Login erforderlich
+            if (empty($booker['idm'])) {
+                wp_send_json_success([
+                    'needsLogin' => true,
+                    'loginUrl'   => wp_login_url(wp_get_referer() ?: home_url('/')),
+                ]);
+                return;
+            }
+            wp_send_json_success(array_merge($booker, ['needsLogin' => false]));
         } catch (CustomException $e) {
             wp_send_json_error($e->getMessage());
         }
