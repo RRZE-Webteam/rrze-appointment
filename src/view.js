@@ -104,7 +104,7 @@
             });
         }
 
-        function openOverlay(value) {
+        function openOverlay(value, booker = {}) {
             const parsed = parseSlotValue(value);
             if (!parsed.date || !parsed.time) return;
 
@@ -130,7 +130,7 @@
             emailInput.type = 'email';
             emailInput.className = 'rrze-appointment__overlay-email';
             emailInput.placeholder = 'name@example.de';
-            emailInput.value = window.rrze_appointment?.booker?.bookerEmail || '';
+            emailInput.value = booker.bookerEmail || '';
             emailLabel.appendChild(emailInput);
 
             const nameLabel = document.createElement('label');
@@ -140,7 +140,7 @@
             nameInput.type = 'text';
             nameInput.className = 'rrze-appointment__overlay-name';
             nameInput.placeholder = 'Vorname Nachname';
-            nameInput.value = window.rrze_appointment?.booker?.bookerName || '';
+            nameInput.value = booker.bookerName || '';
             nameLabel.appendChild(nameInput);
 
             const messageLabel = document.createElement('label');
@@ -254,9 +254,27 @@
             }
 
             button.addEventListener('click', () => {
-                openOverlay(slot.value);
-                renderDaySlots(activeDate);
-                renderGroupedSlots();
+                button.disabled = true;
+                const data = new FormData();
+                data.append('action', 'rrze_appointment_get_booker');
+                fetch(window.rrze_appointment?.ajaxUrl || '/wp-admin/admin-ajax.php', {
+                    method: 'POST',
+                    body: data
+                })
+                    .then((r) => r.json())
+                    .then((res) => {
+                        button.disabled = false;
+                        const booker = res.success ? (res.data || {}) : {};
+                        openOverlay(slot.value, booker);
+                        renderDaySlots(activeDate);
+                        renderGroupedSlots();
+                    })
+                    .catch(() => {
+                        button.disabled = false;
+                        openOverlay(slot.value, {});
+                        renderDaySlots(activeDate);
+                        renderGroupedSlots();
+                    });
             });
 
             return button;

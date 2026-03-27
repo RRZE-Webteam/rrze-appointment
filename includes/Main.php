@@ -50,6 +50,8 @@ class Main
         add_action('enqueue_block_editor_assets', [$this, 'enqueueAdminAssets']);
         add_action('wp_ajax_rrze_appointment_book', [$this, 'handleBooking']);
         add_action('wp_ajax_nopriv_rrze_appointment_book', [$this, 'handleBooking']);
+        add_action('wp_ajax_rrze_appointment_get_booker', [$this, 'handleGetBooker']);
+        add_action('wp_ajax_nopriv_rrze_appointment_get_booker', [$this, 'handleGetBooker']);
         add_action('template_redirect', [$this, 'handleConfirm']);
         add_action('template_redirect', [$this, 'handleCancel']);
         add_action('rrze_appointment_expire_pending', ['RRZE\Appointment\TokenManager', 'expirePending']);
@@ -331,7 +333,6 @@ class Main
                     'ajaxUrl'     => admin_url('admin-ajax.php'),
                     'nonce'       => wp_create_nonce('rrze_appointment_book'),
                     'bookedSlots' => array_values(array_unique(array_merge($booked, $pending))),
-                    'booker'      => Rights::get(),
                 ]);
             }
         } catch (CustomException $e) {
@@ -353,6 +354,15 @@ class Main
     {
         check_ajax_referer('rrze_appointment_persons', 'nonce');
         wp_send_json($this->getFAUdirPersons());
+    }
+
+    public function handleGetBooker(): void
+    {
+        try {
+            wp_send_json_success(Rights::get());
+        } catch (CustomException $e) {
+            wp_send_json_error($e->getMessage());
+        }
     }
 
     private function icsEscape(string $value): string
