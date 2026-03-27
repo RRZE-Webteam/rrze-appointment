@@ -130,6 +130,7 @@
             emailInput.type = 'email';
             emailInput.className = 'rrze-appointment__overlay-email';
             emailInput.placeholder = 'name@example.de';
+            emailInput.value = window.rrze_appointment?.booker?.bookerEmail || '';
             emailLabel.appendChild(emailInput);
 
             const nameLabel = document.createElement('label');
@@ -139,6 +140,7 @@
             nameInput.type = 'text';
             nameInput.className = 'rrze-appointment__overlay-name';
             nameInput.placeholder = 'Vorname Nachname';
+            nameInput.value = window.rrze_appointment?.booker?.bookerName || '';
             nameLabel.appendChild(nameInput);
 
             const messageLabel = document.createElement('label');

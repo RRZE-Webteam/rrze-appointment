@@ -2,8 +2,9 @@
 
 namespace RRZE\Appointment;
 
-use function RRZE\Appointment\plugin;
+// use function RRZE\Appointment\plugin;
 
+use RRZE\Appointment\Rights;
 use RRZE\Appointment\Defaults;
 use RRZE\Appointment\Settings;
 use RRZE\Appointment\Reminder;
@@ -330,6 +331,7 @@ class Main
                     'ajaxUrl'     => admin_url('admin-ajax.php'),
                     'nonce'       => wp_create_nonce('rrze_appointment_book'),
                     'bookedSlots' => array_values(array_unique(array_merge($booked, $pending))),
+                    'booker'      => Rights::get(),
                 ]);
             }
         } catch (CustomException $e) {

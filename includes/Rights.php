@@ -1,101 +1,53 @@
 <?php
 
-namespace RRZE\ShortURL;
+namespace RRZE\Appointment;
 
-use \RRZE\AccessControl\Permissions;
-use RRZE\ShortURL\CustomException;
+use RRZE\Appointment\Common\CustomException;
+
+defined('ABSPATH') || exit;
 
 class Rights
 {
-    private $idm = null;
-
-    public function __construct()
+    /**
+     * Returns idm, bookerName and bookerEmail from:
+     * 1. RRZE\AccessControl\Permissions (SSO) if available
+     * 2. Logged-in WordPress user
+     * 3. Empty strings as fallback
+     */
+    public static function get(): array
     {
-        $this->idm = 'system';
-        if (is_user_logged_in()) {
-            $current_user = wp_get_current_user();
-            $this->idm = $current_user->user_nicename;
-        } elseif (class_exists('\RRZE\AccessControl\Permissions')) {
-            $permissionsInstance = new Permissions();
-            $checkSSOLoggedIn = $permissionsInstance->checkSSOLoggedIn();
-            $personAttributes = $permissionsInstance->personAttributes;
-            $this->idm = (!empty($personAttributes['uid'][0]) ? $personAttributes['uid'][0] : null);
-        } else {
-            error_log('\RRZE\AccessControl\Permissions is not available');
-        }
-
-        add_action('init', [$this, 'getRights']);
-    }
-
-    public function getRights(): array
-    {
-        $this->idm = sanitize_text_field($this->idm);
-
-
-        if (is_user_logged_in()) {
-            $aRet = [
-                'idm' => $this->idm,
-                'allow_uri' => true,
-                'allow_get' => true,
-                'allow_utm' => true
-            ];
-            return $aRet;
-        }else{
-            // Default return array with no rights
-            $aRet = [
-                'idm' => $this->idm,
-                'allow_uri' => false,
-                'allow_get' => false,
-                'allow_utm' => false
-            ];    
-        }
-
         try {
-            $args = [
-                'post_type' => 'shorturl_idm',
-                'posts_per_page' => 1,
-                'fields' => 'ids',
-                'name' => $this->idm
-            ];
-            
-            $query = new \WP_Query($args);
+            if (class_exists('\RRZE\AccessControl\Permissions')) {
+                $permissions = new \RRZE\AccessControl\Permissions();
+                $permissions->checkSSOLoggedIn();
+                $attrs = $permissions->personAttributes ?? [];
 
-            // Check if a matching IDM post was found
-            if (!empty($query->posts)) {
-                $post_id = $query->posts[0];
-                $post_meta = get_post_meta($post_id);
+                $idm   = sanitize_text_field($attrs['uid'][0]          ?? '');
+                $first = sanitize_text_field($attrs['givenName'][0]     ?? $attrs['vorname'][0]    ?? '');
+                $last  = sanitize_text_field($attrs['sn'][0]            ?? $attrs['nachname'][0]   ?? '');
+                $email = sanitize_email($attrs['mail'][0]               ?? $attrs['email'][0]      ?? '');
 
-                // Fetch the rights from the post meta
-                $aRet['allow_uri'] = isset($post_meta['allow_uri'][0]) ? (bool) $post_meta['allow_uri'][0] : false;
-                $aRet['allow_get'] = isset($post_meta['allow_get'][0]) ? (bool) $post_meta['allow_get'][0] : false;
-                $aRet['allow_utm'] = isset($post_meta['allow_utm'][0]) ? (bool) $post_meta['allow_utm'][0] : false;
-
-                // Restore original Post Data
-                wp_reset_postdata();
-            } else {
-                if (!empty($this->idm)) {
-                    $post_data = [
-                        'post_title' => $this->idm,
-                        'post_type' => 'shorturl_idm',
-                        'post_status' => 'publish'
+                if ($idm) {
+                    return [
+                        'idm'         => $idm,
+                        'bookerName'  => trim("$first $last"),
+                        'bookerEmail' => $email,
                     ];
-
-                    $inserted_post_id = wp_insert_post($post_data);
-
-                    if ($inserted_post_id) {
-                        update_post_meta($inserted_post_id, 'allow_uri', 0);
-                        update_post_meta($inserted_post_id, 'allow_get', 0);
-                        update_post_meta($inserted_post_id, 'allow_utm', 0);
-                    }
                 }
             }
 
-            return $aRet;
-        } catch (CustomException $e) {
-            // Log the error and return the default rights array
-            error_log('Error fetching rights: ' . $e->getMessage());
-            return $aRet;
+            if (is_user_logged_in()) {
+                $user = wp_get_current_user();
+                return [
+                    'idm'         => sanitize_text_field($user->user_login),
+                    'bookerName'  => sanitize_text_field(trim($user->first_name . ' ' . $user->last_name) ?: $user->display_name),
+                    'bookerEmail' => sanitize_email($user->user_email),
+                ];
+            }
+
+            return ['idm' => '', 'bookerName' => '', 'bookerEmail' => ''];
+        } catch (\Exception $e) {
+            throw new CustomException($e->getMessage(), $e->getCode(), null);
         }
     }
-
 }
