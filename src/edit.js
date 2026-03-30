@@ -265,15 +265,15 @@ export default function Edit({ attributes, setAttributes }) {
         // startTime/endTime aus erstem Eintrag
         const firstHour = hours[0];
         const newStart = firstHour.from || '09:00';
-        const newEnd   = firstHour.to   || '17:00';
+        const newEnd = firstHour.to || '17:00';
 
         setAttributes({
             selectedDates: dates,
-            startDate:     dates[0],
-            endDate:       dates[dates.length - 1],
-            useEndDate:    true,
-            startTime:     newStart,
-            endTime:       newEnd,
+            startDate: dates[0],
+            endDate: dates[dates.length - 1],
+            useEndDate: true,
+            startTime: newStart,
+            endTime: newEnd,
             useConsultationHours: true,
         });
         setActiveDate(dates[0]);
@@ -474,6 +474,11 @@ export default function Edit({ attributes, setAttributes }) {
                             onChange={(value) => setAttributes({ personEmail: value })}
                         />
                         <TextControl
+                            label="Ort"
+                            value={location}
+                            onChange={(value) => setAttributes({ location: value })}
+                        />
+                        <TextControl
                             label={__('Karte (URL)', 'rrze-appointment')}
                             value={locationUrl}
                             onChange={(value) => setAttributes({ locationUrl: value })}
@@ -485,6 +490,12 @@ export default function Edit({ attributes, setAttributes }) {
                         label="title"
                         value={derivedTitle}
                         onChange={(value) => setAttributes({ title: value, personId: 0 })}
+                    />
+
+                    <TextareaControl
+                        label="Beschreibung"
+                        value={description}
+                        onChange={(value) => setAttributes({ description: value })}
                     />
 
                     <p><strong>Kalender-Ansicht</strong></p>
@@ -591,17 +602,6 @@ export default function Edit({ attributes, setAttributes }) {
                         }}
                     />
 
-                    <TextControl
-                        label="Ort"
-                        value={location}
-                        onChange={(value) => setAttributes({ location: value })}
-                    />
-
-                    <TextareaControl
-                        label="Beschreibung"
-                        value={description}
-                        onChange={(value) => setAttributes({ description: value })}
-                    />
 
                 </PanelBody>
 
@@ -648,12 +648,12 @@ export default function Edit({ attributes, setAttributes }) {
                                 {renderGroupedSlotsAccordion(slots, 'rrze_appointment_slot_preview', { onRemoveSlot: handleRemoveSlot, onAddSlot: handleOpenAddSlot })}
                             </Fragment>
                         ) : (
-                            <p>Bitte mindestens einen Tag sowie Startzeit, Endzeit, Dauer und Pause setzen.</p>
+                            <p>Bitte mindestens einen Tag unter Termin-Einstellungen auswählen.</p>
                         )}
                         {addSlotDate && (
-                            <div className="rrze-appointment-block__add-slot-overlay">
-                                <div className="rrze-appointment-block__add-slot-overlay-box">
-                                    <p className="rrze-appointment-block__add-slot-overlay-title">
+                            <div className="rrze-appointment-block__slot-add__overlay">
+                                <div className="rrze-appointment-block__slot-add__overlay-box">
+                                    <p className="rrze-appointment-block__slot-add__overlay-title">
                                         <strong>{__('Neue Uhrzeit für', 'rrze-appointment')} {formatDateDisplay(addSlotDate)}</strong>
                                     </p>
                                     <TextControl
@@ -671,9 +671,9 @@ export default function Edit({ attributes, setAttributes }) {
                                         onChange={(value) => { setAddSlotEndTime(value); setAddSlotError(''); }}
                                     />
                                     {addSlotError && (
-                                        <p className="rrze-appointment-block__add-slot-overlay-error">{addSlotError}</p>
+                                        <p className="rrze-appointment-block__slot-add__overlay-error">{addSlotError}</p>
                                     )}
-                                    <div className="rrze-appointment-block__add-slot-overlay-actions">
+                                    <div className="rrze-appointment-block__slot-add__overlay-actions">
                                         <Button variant="primary" onClick={handleConfirmAddSlot}>
                                             {__('Hinzufügen', 'rrze-appointment')}
                                         </Button>
