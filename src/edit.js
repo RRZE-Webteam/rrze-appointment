@@ -64,7 +64,7 @@ function CalendarMultiSelect({ selectedDates, activeDate, onToggleDate }) {
                 className={[
                     'rrze-appointment__calendar-day',
                     isPast ? 'is-past' : '',
-                    isSelected ? 'is-selected' : '',
+                    isSelected ? 'is-available' : '',
                     isToday ? 'is-today' : '',
                     isActive ? 'is-active' : '',
                     isWeekend ? 'is-weekend' : '',
