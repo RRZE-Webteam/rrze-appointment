@@ -4,7 +4,7 @@
 Plugin Name:        RRZE Appointment
 Plugin URI:         https://github.com/RRZE-Webteam/rrze-appointment
 Version:            0.3.2
-Description:        Explain your content with FAQ, glossary and placeholders.
+Description:        Appointments the easy way.
 Author:             RRZE Webteam
 Author URI:         https://www.wp.rrze.fau.de/
 License:            GNU General Public License Version 3
