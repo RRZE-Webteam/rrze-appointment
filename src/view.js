@@ -267,9 +267,9 @@
                         if (res.data?.debug) console.log('RRZE Appointment get_booker:', res.data.debug);
                         if (res.success && res.data?.needsLogin) {
                             const loginUrl = res.data.loginUrl || '/wp-login.php';
-                            const returnUrl = window.location.href.split('#')[0] +
-                                '#rrze_appt_slot=' + encodeURIComponent(slot.value);
-                            const redirectTo = encodeURIComponent(returnUrl);
+                            sessionStorage.setItem('rrze_appt_slot', slot.value);
+                            sessionStorage.setItem('rrze_appt_page', window.location.href.split('#')[0]);
+                            const redirectTo = encodeURIComponent(window.location.href.split('#')[0]);
                             window.location.href = loginUrl.includes('redirect_to')
                                 ? loginUrl
                                 : loginUrl + (loginUrl.includes('?') ? '&' : '?') + 'redirect_to=' + redirectTo;
@@ -434,16 +434,15 @@
         renderDaySlots(activeDate);
         renderGroupedSlots();
 
-        // Nach SSO-Login: Slot aus URL-Fragment lesen und Overlay automatisch öffnen
-        const hash      = window.location.hash;
-        const hashMatch = hash.match(/rrze_appt_slot=([^&]*)/);
-        const autoSlot  = hashMatch ? decodeURIComponent(hashMatch[1]) : null;
-        console.log('RRZE hash:', hash, 'autoSlot:', autoSlot);
-        if (autoSlot) {
+        // Nach SSO-Login: Slot aus sessionStorage lesen und Overlay automatisch öffnen
+        const autoSlot  = sessionStorage.getItem('rrze_appt_slot');
+        const autoPage  = sessionStorage.getItem('rrze_appt_page');
+        const onCorrectPage = !autoPage || autoPage === window.location.href.split('#')[0];
+        console.log('RRZE autoSlot:', autoSlot, 'onCorrectPage:', onCorrectPage);
+        if (autoSlot && onCorrectPage) {
+            sessionStorage.removeItem('rrze_appt_slot');
+            sessionStorage.removeItem('rrze_appt_page');
             console.log('RRZE autoSlot found:', autoSlot);
-            // Fragment entfernen ohne Reload
-            const cleanUrl = window.location.href.replace(/#rrze_appt_slot=[^&]*/, '').replace(/#$/, '');
-            window.history.replaceState(null, '', cleanUrl || window.location.pathname + window.location.search);
 
             // Booker-Daten holen und Overlay öffnen
             const data = new FormData();
