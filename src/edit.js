@@ -76,15 +76,15 @@ function CalendarMultiSelect({ selectedDates, activeDate, onToggleDate }) {
     }
 
     return (
-        <div className="rrze-appointment-block__calendar-select">
-            <div className="rrze-appointment-block__calendar-select-header">
+        <div className="rrze-appointment-block__calendar">
+            <div className="rrze-appointment-block__calendar-header">
                 <Button variant="secondary" isSmall onClick={() => setViewDate(new Date(year, month - 1, 1))}>{'<'}</Button>
                 <strong>{viewDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</strong>
                 <Button variant="secondary" isSmall onClick={() => setViewDate(new Date(year, month + 1, 1))}>{'>'}</Button>
             </div>
-            <div className="rrze-appointment-block__calendar-select-grid">
+            <div className="rrze-appointment-block__calendar-grid">
                 {weekdayNames.map((name) => (
-                    <div key={name} className="rrze-appointment-block__calendar-select-weekday">{name}</div>
+                    <div key={name} className="rrze-appointment-block__calendar-weekday">{name}</div>
                 ))}
                 {dayButtons}
             </div>
