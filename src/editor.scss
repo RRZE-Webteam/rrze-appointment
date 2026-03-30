@@ -1,3 +1,48 @@
+.rrze-appointment-block .rrze-appointment__calendar-day {
+    height: 30px;
+    border: 1px solid #c8c9c7;
+    border-radius: 4px;
+    cursor: pointer;
+    background: #fff;
+    color: #1e1e1e;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.is-past {
+        background: #d9d9d6;
+        color: #97999b;
+        border-color: #d9d9d6;
+        cursor: not-allowed;
+    }
+
+    &.is-available {
+        background: #D0E2CC;
+        border-color: #007a5e;
+        color: #fff;
+    }
+
+    &.is-active {
+        background: #8eb4d5;
+        border-color: #8eb4d5;
+        color: #fff;
+    }
+
+    &.is-booked {
+        background: #e8e8e8;
+        border-color: #c8c9c7;
+        color: #97999b;
+        cursor: not-allowed;
+        text-decoration: line-through;
+    }
+
+    &.is-today {
+        outline: 2px solid #ffc72c;
+        outline-offset: -2px;
+    }
+}
+
 .rrze-appointment-block {
     // Kalender-Auswahl im Editor (CalendarMultiSelect)
     &__calendar-select {
@@ -135,3 +180,8 @@
     }
 }
 
+.rrze-appointment-block__calendar-select-grid {
+    display: grid !important;
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: 4px;
+}
