@@ -651,9 +651,9 @@ export default function Edit({ attributes, setAttributes }) {
                             <p>Bitte mindestens einen Tag unter Termin-Einstellungen auswählen.</p>
                         )}
                         {addSlotDate && (
-                            <div className="rrze-appointment-block__slot-add__overlay">
-                                <div className="rrze-appointment-block__slot-add__overlay-box">
-                                    <p className="rrze-appointment-block__slot-add__overlay-title">
+                            <div className="rrze-appointment-block__overlay">
+                                <div className="rrze-appointment-block__overlay-box">
+                                    <p className="rrze-appointment-block__overlay-title">
                                         <strong>{__('Neue Uhrzeit für', 'rrze-appointment')} {formatDateDisplay(addSlotDate)}</strong>
                                     </p>
                                     <TextControl
@@ -671,9 +671,9 @@ export default function Edit({ attributes, setAttributes }) {
                                         onChange={(value) => { setAddSlotEndTime(value); setAddSlotError(''); }}
                                     />
                                     {addSlotError && (
-                                        <p className="rrze-appointment-block__slot-add__overlay-error">{addSlotError}</p>
+                                        <p className="rrze-appointment-block__overlay-error">{addSlotError}</p>
                                     )}
-                                    <div className="rrze-appointment-block__slot-add__overlay-actions">
+                                    <div className="rrze-appointment-block__overlay-actions">
                                         <Button variant="primary" onClick={handleConfirmAddSlot}>
                                             {__('Hinzufügen', 'rrze-appointment')}
                                         </Button>

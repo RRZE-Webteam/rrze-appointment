@@ -33,7 +33,7 @@
         &-grid {
             display: grid;
             grid-template-columns: repeat(7, minmax(2rem, 1fr));
-            gap: 0.35rem;
+            gap: 0.15rem;
         }
 
         &-empty,
@@ -328,6 +328,10 @@
         align-items: center;
         justify-content: center;
         z-index: 99999;
+
+        &-error{
+            color: red;
+        }
 
         &-box {
             background: #fff;
