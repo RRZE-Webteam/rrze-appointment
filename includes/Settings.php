@@ -13,11 +13,11 @@ class Settings
         '[titel]'              => 'Titel des Termins',
         '[datum]'              => 'Datum des Termins',
         '[uhrzeit]'            => 'Uhrzeit (von – bis)',
-        '[ort]'                => 'Ort / Location',
-        '[person_name]'        => 'Name der zuständigen Person',
-        '[name]'               => 'Name des Buchenden',
-        '[email]'              => 'E-Mail des Buchenden',
-        '[nachricht]'          => 'Nachricht des Buchenden',
+        '[ort]'                => 'Ort',
+        '[person_name]'        => 'Einladenden Person',
+        '[name]'               => 'Buchende Person (Name)',
+        '[email]'              => 'Buchende Person (Email)',
+        '[nachricht]'          => 'Buchende Person (Nachricht)',
         '[bestaetigungs_link]' => 'Link zur Buchungsbestätigung',
         '[storno_link]'        => 'Link zum Stornieren',
         '[impressum_link]'     => 'Link zum Impressum',
@@ -305,12 +305,12 @@ class Settings
         }
 
         $sectionLabels = [
-            'booking_pending' => __('Mail A: Anfrage an Buchenden — [bestaetigungs_link], [impressum_link]', 'rrze-appointment'),
-            'booking_booker'  => __('Mail B: Bestätigung an Buchenden — [storno_link], [impressum_link]', 'rrze-appointment'),
-            'booking_host'    => __('Mail B: Bestätigung an Einladenden — [storno_link], [impressum_link]', 'rrze-appointment'),
-            'reminder_admin'  => __('Erinnerung an einladende Person — [storno_link], [impressum_link]', 'rrze-appointment'),
-            'reminder_booker' => __('Erinnerung an Buchenden — [storno_link], [impressum_link]', 'rrze-appointment'),
-            'cancellation'    => __('Stornierung — [impressum_link]', 'rrze-appointment'),
+            'booking_pending' => __('Termin-Anfrage', 'rrze-appointment'),
+            'booking_booker'  => __('Bestätigung an buchende Person', 'rrze-appointment'),
+            'booking_host'    => __('Bestätigung an einladende Person', 'rrze-appointment'),
+            'reminder_admin'  => __('Erinnerung an einladende Person', 'rrze-appointment'),
+            'reminder_booker' => __('Erinnerung an buchende Person', 'rrze-appointment'),
+            'cancellation'    => __('Stornierung', 'rrze-appointment'),
         ];
         ?>
         <a href="<?php echo esc_url($backUrl); ?>" class="button" style="margin-bottom:1rem;">
@@ -405,9 +405,8 @@ class Settings
         echo '<ul class="rrze-appt-insert-dropdown" style="display:none;position:absolute;z-index:100;background:#fff;border:1px solid #dcdcde;box-shadow:0 2px 6px rgba(0,0,0,.15);margin:0;padding:0;list-style:none;min-width:220px;">';
         foreach (self::PLACEHOLDERS as $tag => $desc) {
             printf(
-                '<li><button type="button" class="rrze-appt-insert-tag" data-tag="%s" style="display:block;width:100%%;text-align:left;padding:6px 12px;background:none;border:none;cursor:pointer;font-size:13px;"><code>%s</code> <span style="color:#50575e;">%s</span></button></li>',
+                '<li><button type="button" class="rrze-appt-insert-tag" data-tag="%s" style="display:block;width:100%%;text-align:left;padding:6px 12px;background:none;border:none;cursor:pointer;font-size:13px;"><code style="white-space: nowrap;">%s</code></button></li>',
                 esc_attr($tag),
-                esc_html($tag),
                 esc_html($desc)
             );
         }
