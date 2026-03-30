@@ -76,15 +76,15 @@ function CalendarMultiSelect({ selectedDates, activeDate, onToggleDate }) {
     }
 
     return (
-        <div className="rrze-appointment-block__calendar-select">
-            <div className="rrze-appointment-block__calendar-select-header">
+        <div className="rrze-appointment rrze-appointment-block__calendar-select">
+            <div className="rrze-appointment rrze-appointment-block__calendar-select-header">
                 <Button variant="secondary" isSmall onClick={() => setViewDate(new Date(year, month - 1, 1))}>{'<'}</Button>
                 <strong>{viewDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</strong>
                 <Button variant="secondary" isSmall onClick={() => setViewDate(new Date(year, month + 1, 1))}>{'>'}</Button>
             </div>
-            <div className="rrze-appointment-block__calendar-select-grid">
+            <div className="rrze-appointment rrze-appointment-block__calendar-select-grid">
                 {weekdayNames.map((name) => (
-                    <div key={name} className="rrze-appointment-block__calendar-select-weekday">{name}</div>
+                    <div key={name} className="rrze-appointment rrze-appointment-block__calendar-select-weekday">{name}</div>
                 ))}
                 {dayButtons}
             </div>
@@ -432,7 +432,7 @@ export default function Edit({ attributes, setAttributes }) {
                 </PanelBody>
                 {faudirError && (
                     <PanelBody title={__('Personen-Einstellungen', 'rrze-appointment')} initialOpen={true}>
-                        <p className="rrze-appointment-block__person-error">{faudirMessage}</p>
+                        <p className="rrze-appointment rrze-appointment-block__person-error">{faudirMessage}</p>
                     </PanelBody>
                 )}
 
@@ -606,7 +606,7 @@ export default function Edit({ attributes, setAttributes }) {
                 </PanelBody>
 
                 <PanelBody title={__('Wiederholen', 'rrze-appointment')} initialOpen={false}>
-                    <p className="rrze-appointment-block__recurrence-hint">
+                    <p className="rrze-appointment rrze-appointment-block__recurrence-hint">
                         {activeDate
                             ? `${__('Gilt für', 'rrze-appointment')}: ${formatDateDisplay(activeDate)}`
                             : __('Bitte zuerst einen Tag auswählen.', 'rrze-appointment')
@@ -636,7 +636,7 @@ export default function Edit({ attributes, setAttributes }) {
             </InspectorControls>
 
             <div {...blockProps}>
-                <div className="rrze-appointment-block">
+                <div className="rrze-appointment rrze-appointment-block">
                     <h3>{derivedTitle || 'Termin-title'}</h3>
                     {description && <p>{description}</p>}
                     {location && <p><strong>Ort:</strong> {location}{locationUrl && <> (<a href={locationUrl} target="_blank" rel="noopener noreferrer">Auf der Karte ansehen</a>)</>}</p>}
@@ -651,9 +651,9 @@ export default function Edit({ attributes, setAttributes }) {
                             <p>Bitte mindestens einen Tag sowie Startzeit, Endzeit, Dauer und Pause setzen.</p>
                         )}
                         {addSlotDate && (
-                            <div className="rrze-appointment-block__add-slot-overlay">
-                                <div className="rrze-appointment-block__add-slot-overlay-box">
-                                    <p className="rrze-appointment-block__add-slot-overlay-title">
+                            <div className="rrze-appointment rrze-appointment-block__add-slot-overlay">
+                                <div className="rrze-appointment rrze-appointment-block__add-slot-overlay-box">
+                                    <p className="rrze-appointment rrze-appointment-block__add-slot-overlay-title">
                                         <strong>{__('Neue Uhrzeit für', 'rrze-appointment')} {formatDateDisplay(addSlotDate)}</strong>
                                     </p>
                                     <TextControl
@@ -671,9 +671,9 @@ export default function Edit({ attributes, setAttributes }) {
                                         onChange={(value) => { setAddSlotEndTime(value); setAddSlotError(''); }}
                                     />
                                     {addSlotError && (
-                                        <p className="rrze-appointment-block__add-slot-overlay-error">{addSlotError}</p>
+                                        <p className="rrze-appointment rrze-appointment-block__add-slot-overlay-error">{addSlotError}</p>
                                     )}
-                                    <div className="rrze-appointment-block__add-slot-overlay-actions">
+                                    <div className="rrze-appointment rrze-appointment-block__add-slot-overlay-actions">
                                         <Button variant="primary" onClick={handleConfirmAddSlot}>
                                             {__('Hinzufügen', 'rrze-appointment')}
                                         </Button>
@@ -689,15 +689,15 @@ export default function Edit({ attributes, setAttributes }) {
             </div>
 
             {hoursOverlay && (
-                <div className="rrze-appointment-block__hours-overlay">
-                    <div className="rrze-appointment-block__hours-overlay-box">
-                        <p className="rrze-appointment-block__hours-overlay-text">
+                <div className="rrze-appointment rrze-appointment-block__hours-overlay">
+                    <div className="rrze-appointment rrze-appointment-block__hours-overlay-box">
+                        <p className="rrze-appointment rrze-appointment-block__hours-overlay-text">
                             {hoursOverlay.type === 'consultation'
                                 ? __('Sprechstunden von FAUdir gefunden. Sollen die Termine entsprechend erstellt werden?', 'rrze-appointment')
                                 : __('Sprechstunden in FAUdir nicht gefunden, aber Bürozeiten. Sollen die Termine daraus entsprechend erstellt werden?', 'rrze-appointment')
                             }
                         </p>
-                        <div className="rrze-appointment-block__hours-overlay-actions">
+                        <div className="rrze-appointment rrze-appointment-block__hours-overlay-actions">
                             <Button variant="primary" onClick={() => { applyConsultationHours(hoursOverlay.person); setHoursOverlay(null); }}>
                                 {__('Ja', 'rrze-appointment')}
                             </Button>

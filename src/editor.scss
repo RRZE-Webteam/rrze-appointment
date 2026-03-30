@@ -134,3 +134,14 @@
         color: #d63638;
     }
 }
+
+.editor-styles-wrapper .rrze-appointment {
+    .rrze-appointment__accordion > summary,
+    .rrze-appointment__date-group > summary {
+        list-style: none;
+    }
+
+    summary::-webkit-details-marker {
+        display: none;
+    }
+}

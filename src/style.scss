@@ -139,6 +139,10 @@
             color: var(--rrze-appointment-accordion-text-default);
             box-shadow: inset 10px 0 0 0 var(--rrze-appointment-accordion-accent) !important;
 
+            &::-webkit-details-marker {
+                display: none;
+            }
+
             &::marker {
                 content: "";
             }
