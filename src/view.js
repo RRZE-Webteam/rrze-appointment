@@ -440,6 +440,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         const autoSlot  = urlParams.get('rrze_appt_slot');
         if (autoSlot) {
+            console.log('RRZE autoSlot found:', autoSlot);
             // URL-Parameter entfernen ohne Reload
             const cleanUrl = window.location.href.replace(/[?&]rrze_appt_slot=[^&]*/g, '').replace(/[?&]$/, '');
             window.history.replaceState(null, '', cleanUrl);
@@ -450,6 +451,7 @@
             fetch(window.rrze_appointment?.ajaxUrl || '/wp-admin/admin-ajax.php', { method: 'POST', body: data })
                 .then((r) => r.json())
                 .then((res) => {
+                    console.log('RRZE auto get_booker response:', res);
                     const booker = res.success ? (res.data || {}) : {};
                     openOverlay(autoSlot, booker);
                 })
