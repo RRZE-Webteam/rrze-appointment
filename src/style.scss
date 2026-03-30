@@ -1,4 +1,13 @@
-.rrze-appointment {
+.wp-block-rrze-appointment .rrze-appointment {
+
+    .rrze-appointment__accordion>summary {
+        list-style: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+    }
+
     // Caret SVG (FontAwesome chevron-down)
     $caret-svg: "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20320%20512%22%3E%3Cpath%20d%3D%22M137.4%20374.6c12.5%2012.5%2032.8%2012.5%2045.3%200l128-128c9.2-9.2%2011.9-22.9%206.9-34.9s-16.6-19.8-29.6-19.8L32%20192c-12.9%200-24.6%207.8-29.6%2019.8s-2.2%2025.7%206.9%2034.9l128%20128z%22%2F%3E%3C%2Fsvg%3E";
 
@@ -42,13 +51,13 @@
             justify-content: center;
         }
 
-        $cal-border-default:    #c8c9c7; // Cool Gray 3 C
-        $cal-bg-past:           #d9d9d6; // Cool Gray 1 C
-        $cal-text-past:         #97999b; // Cool Gray 7 C
-        $cal-bg-available:      #D0E2CC;
-        $cal-border-available:  #007a5e;
-        $cal-bg-active:         #8eb4d5;
-        $cal-today-outline:     #ffc72c;
+        $cal-border-default: #c8c9c7; // Cool Gray 3 C
+        $cal-bg-past: #d9d9d6; // Cool Gray 1 C
+        $cal-text-past: #97999b; // Cool Gray 7 C
+        $cal-bg-available: #D0E2CC;
+        $cal-border-available: #007a5e;
+        $cal-bg-active: #8eb4d5;
+        $cal-today-outline: #ffc72c;
 
         &-day {
             border: 1px solid $cal-border-default;
@@ -111,9 +120,7 @@
 
     &__day-slots {
         margin: 1rem 0;
-    }
 
-    &__day-slots {
         &.is-hidden {
             display: none;
         }
@@ -124,7 +131,7 @@
         border: 1px solid var(--rrze-appointment-accordion-border);
         margin-bottom: 5px;
 
-        > summary {
+        >summary {
             display: block;
             position: relative;
             list-style: none;
@@ -169,7 +176,7 @@
             }
         }
 
-        &[open] > summary {
+        &[open]>summary {
             background: var(--rrze-appointment-accordion-bg-active-hover);
             color: var(--rrze-appointment-accordion-text-active-hover);
             box-shadow: inset 10px 0 0 0 var(--rrze-appointment-accordion-accent-dark) !important;
@@ -228,7 +235,7 @@
         opacity: 0;
         pointer-events: none;
 
-        &:checked + .rrze-appointment__slot-button {
+        &:checked+.rrze-appointment__slot-button {
             background: #0b5ed7;
             border-color: #0b5ed7;
             color: #fff;
@@ -296,7 +303,9 @@
         transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
         padding: 0;
 
-        svg { fill: none; }
+        svg {
+            fill: none;
+        }
 
         @media (hover: hover) {
             opacity: 0;
