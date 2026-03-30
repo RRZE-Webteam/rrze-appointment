@@ -267,11 +267,11 @@
                         if (res.data?.debug) console.log('RRZE Appointment get_booker:', res.data.debug);
                         if (res.success && res.data?.needsLogin) {
                             const loginUrl = res.data.loginUrl || '/wp-login.php';
-                            const redirectTo = encodeURIComponent(
-                                window.location.href +
+                            const returnUrl = window.location.href +
                                 (window.location.href.includes('?') ? '&' : '?') +
-                                'rrze_appt_slot=' + encodeURIComponent(slot.value)
-                            );
+                                'rrze_appt_slot=' + encodeURIComponent(slot.value);
+                            const redirectTo = encodeURIComponent(returnUrl);
+                            console.log('RRZE redirect returnUrl:', returnUrl);
                             window.location.href = loginUrl.includes('redirect_to')
                                 ? loginUrl
                                 : loginUrl + (loginUrl.includes('?') ? '&' : '?') + 'redirect_to=' + redirectTo;
@@ -439,6 +439,7 @@
         // Nach SSO-Login: Slot aus URL-Parameter lesen und Overlay automatisch öffnen
         const urlParams = new URLSearchParams(window.location.search);
         const autoSlot  = urlParams.get('rrze_appt_slot');
+        console.log('RRZE URL search:', window.location.search, 'autoSlot:', autoSlot);
         if (autoSlot) {
             console.log('RRZE autoSlot found:', autoSlot);
             // URL-Parameter entfernen ohne Reload
