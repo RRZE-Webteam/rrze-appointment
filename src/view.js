@@ -125,7 +125,7 @@
 
             const emailLabel = document.createElement('label');
             emailLabel.className = 'rrze-appointment__overlay-label';
-            emailLabel.textContent = 'Ihre E-Mail-Adresse (für Erinnerungsmail):';
+            emailLabel.textContent = 'Ihre E-Mail-Adresse:';
             const emailInput = document.createElement('input');
             emailInput.type = 'email';
             emailInput.className = 'rrze-appointment__overlay-email';
@@ -135,7 +135,7 @@
 
             const nameLabel = document.createElement('label');
             nameLabel.className = 'rrze-appointment__overlay-label';
-            nameLabel.textContent = 'Ihr Name (optional):';
+            nameLabel.textContent = 'Ihr Name:';
             const nameInput = document.createElement('input');
             nameInput.type = 'text';
             nameInput.className = 'rrze-appointment__overlay-name';
@@ -264,7 +264,6 @@
                     .then((r) => r.json())
                     .then((res) => {
                         button.disabled = false;
-                        if (res.data?.debug) console.log('RRZE Appointment get_booker:', res.data.debug);
                         if (res.success && res.data?.needsLogin) {
                             const loginUrl = res.data.loginUrl || '/wp-login.php';
                             sessionStorage.setItem('rrze_appt_slot', slot.value);
@@ -438,11 +437,9 @@
         const autoSlot  = sessionStorage.getItem('rrze_appt_slot');
         const autoPage  = sessionStorage.getItem('rrze_appt_page');
         const onCorrectPage = !autoPage || autoPage === window.location.href.split('#')[0];
-        console.log('RRZE autoSlot:', autoSlot, 'onCorrectPage:', onCorrectPage);
         if (autoSlot && onCorrectPage) {
             sessionStorage.removeItem('rrze_appt_slot');
             sessionStorage.removeItem('rrze_appt_page');
-            console.log('RRZE autoSlot found:', autoSlot);
 
             // Booker-Daten holen und Overlay öffnen
             const data = new FormData();
@@ -450,7 +447,6 @@
             fetch(window.rrze_appointment?.ajaxUrl || '/wp-admin/admin-ajax.php', { method: 'POST', body: data })
                 .then((r) => r.json())
                 .then((res) => {
-                    console.log('RRZE auto get_booker response:', res);
                     const booker = res.success ? (res.data || {}) : {};
                     openOverlay(autoSlot, booker);
                 })
