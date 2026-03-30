@@ -264,6 +264,7 @@
                     .then((r) => r.json())
                     .then((res) => {
                         button.disabled = false;
+                        if (res.data?.debug) console.log('RRZE Appointment get_booker:', res.data.debug);
                         if (res.success && res.data?.needsLogin) {
                             const loginUrl = res.data.loginUrl || '/wp-login.php';
                             const redirectTo = encodeURIComponent(window.location.href);

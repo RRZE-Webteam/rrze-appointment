@@ -61,7 +61,6 @@ class Rights
             }
 
             // 3. Not authenticated
-            error_log('RRZE Rights::get: not authenticated, is_user_logged_in=' . (is_user_logged_in() ? 'yes' : 'no') . ' AccessControl exists=' . (class_exists('\RRZE\AccessControl\Permissions') ? 'yes' : 'no'));
             return ['idm' => '', 'bookerName' => '', 'bookerEmail' => ''];
         } catch (\Exception $e) {
             throw new CustomException($e->getMessage(), $e->getCode(), null);

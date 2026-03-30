@@ -360,16 +360,23 @@ class Main
     {
         try {
             $booker = Rights::get();
-            error_log('RRZE Appointment handleGetBooker: ' . json_encode($booker) . ' is_user_logged_in=' . (is_user_logged_in() ? 'yes' : 'no'));
+            $debug = [
+                'idm'              => $booker['idm'],
+                'is_user_logged_in'=> is_user_logged_in(),
+                'AccessControl'    => class_exists('\RRZE\AccessControl\Permissions'),
+                'bookerName'       => $booker['bookerName'],
+                'bookerEmail'      => $booker['bookerEmail'],
+            ];
             if (empty($booker['idm'])) {
                 $currentUrl = sanitize_url($_SERVER['HTTP_REFERER'] ?? home_url('/'));
                 wp_send_json_success([
                     'needsLogin' => true,
                     'loginUrl'   => wp_login_url($currentUrl),
+                    'debug'      => $debug,
                 ]);
                 return;
             }
-            wp_send_json_success(array_merge($booker, ['needsLogin' => false]));
+            wp_send_json_success(array_merge($booker, ['needsLogin' => false, 'debug' => $debug]));
         } catch (CustomException $e) {
             wp_send_json_error($e->getMessage());
         }
