@@ -2,8 +2,9 @@
 
 namespace RRZE\Appointment;
 
-use function RRZE\Appointment\plugin;
+// use function RRZE\Appointment\plugin;
 
+use RRZE\Appointment\Rights;
 use RRZE\Appointment\Defaults;
 use RRZE\Appointment\Settings;
 use RRZE\Appointment\Reminder;
@@ -11,6 +12,7 @@ use RRZE\Appointment\Bookings;
 use RRZE\Appointment\MailTemplatePost;
 use RRZE\Appointment\TokenManager;
 use RRZE\Appointment\Common\Settings\Settings as CommonSettings;
+use RRZE\Appointment\Common\CustomException;
 
 
 defined('ABSPATH') || exit;
@@ -48,6 +50,8 @@ class Main
         add_action('enqueue_block_editor_assets', [$this, 'enqueueAdminAssets']);
         add_action('wp_ajax_rrze_appointment_book', [$this, 'handleBooking']);
         add_action('wp_ajax_nopriv_rrze_appointment_book', [$this, 'handleBooking']);
+        add_action('wp_ajax_rrze_appointment_get_booker', [$this, 'handleGetBooker']);
+        add_action('wp_ajax_nopriv_rrze_appointment_get_booker', [$this, 'handleGetBooker']);
         add_action('template_redirect', [$this, 'handleConfirm']);
         add_action('template_redirect', [$this, 'handleCancel']);
         add_action('rrze_appointment_expire_pending', ['RRZE\Appointment\TokenManager', 'expirePending']);
@@ -320,28 +324,54 @@ class Main
      */
     public function enqueueAssets()
     {
-        $viewHandle = 'rrze-appointment-view-script';
-        if (wp_script_is($viewHandle, 'registered')) {
-            $booked = (array) get_option('rrze_appointment_booked_slots', []);
-            $pending = TokenManager::getPendingSlots();
-            wp_localize_script($viewHandle, 'rrze_appointment', [
-                'ajaxUrl'     => admin_url('admin-ajax.php'),
-                'nonce'       => wp_create_nonce('rrze_appointment_book'),
-                'bookedSlots' => array_values(array_unique(array_merge($booked, $pending))),
-            ]);
+        try {
+            $viewHandle = 'rrze-appointment-view-script';
+            if (wp_script_is($viewHandle, 'registered')) {
+                $booked  = (array) get_option('rrze_appointment_booked_slots', []);
+                $pending = TokenManager::getPendingSlots();
+                wp_localize_script($viewHandle, 'rrze_appointment', [
+                    'ajaxUrl'     => admin_url('admin-ajax.php'),
+                    'nonce'       => wp_create_nonce('rrze_appointment_book'),
+                    'bookedSlots' => array_values(array_unique(array_merge($booked, $pending))),
+                ]);
+            }
+        } catch (CustomException $e) {
+            return;
         }
     }
 
     public function enqueueAdminAssets()
     {
-        $persons = $this->getFAUdirPersons();
-        echo '<script>window.rrze_appointment = ' . wp_json_encode(['persons' => $persons]) . ';</script>' . "\n";
+        try {
+            $persons = $this->getFAUdirPersons();
+            echo '<script>window.rrze_appointment = ' . wp_json_encode(['persons' => $persons]) . ';</script>' . "\n";
+        } catch (CustomException $e) {
+            echo '<script>window.rrze_appointment = ' . wp_json_encode(['persons' => ['error' => true, 'message' => $e->getMessage(), 'data' => []]]) . ';</script>' . "\n";
+        }
     }
 
     public function handleGetPersons(): void
     {
         check_ajax_referer('rrze_appointment_persons', 'nonce');
         wp_send_json($this->getFAUdirPersons());
+    }
+
+    public function handleGetBooker(): void
+    {
+        try {
+            $booker = Rights::get();
+            if (empty($booker['idm'])) {
+                $currentUrl = sanitize_url($_SERVER['HTTP_REFERER'] ?? home_url('/'));
+                wp_send_json_success([
+                    'needsLogin' => true,
+                    'loginUrl'   => wp_login_url($currentUrl),
+                ]);
+                return;
+            }
+            wp_send_json_success(array_merge($booker, ['needsLogin' => false]));
+        } catch (\Throwable $e) {
+            wp_send_json_error($e->getMessage());
+        }
     }
 
     private function icsEscape(string $value): string
@@ -351,7 +381,8 @@ class Main
 
     public function handleBooking(): void
     {
-        check_ajax_referer('rrze_appointment_book', 'nonce');
+        try {
+            check_ajax_referer('rrze_appointment_book', 'nonce');
 
         $slot = sanitize_text_field($_POST['slot'] ?? '');
         $title = sanitize_text_field($_POST['title'] ?? 'Termin');
@@ -435,6 +466,9 @@ class Main
         Settings::sendMail($bookerEmail, $subject, $plain, $html);
 
         wp_send_json_success(['message' => __('Bitte bestätigen Sie Ihren Termin per E-Mail.', 'rrze-appointment')]);
+        } catch (CustomException $e) {
+            wp_send_json_error($e->getMessage());
+        }
     }
 
     /**
@@ -442,9 +476,9 @@ class Main
      */
     public function handleConfirm(): void
     {
-        $token = sanitize_text_field($_GET['rrze_appt_confirm'] ?? '');
-        if (!$token)
-            return;
+        try {
+            $token = sanitize_text_field($_GET['rrze_appt_confirm'] ?? '');
+            if (!$token) return;
 
         $entry = TokenManager::confirmPending($token);
         if (!$entry) {
@@ -577,16 +611,16 @@ class Main
             esc_html__('Termin bestätigt', 'rrze-appointment'),
             ['response' => 200]
         );
+        } catch (CustomException $e) {
+            wp_die(esc_html($e->getMessage()), '', ['response' => 500]);
+        }
     }
 
-    /**
-     * Storniert eine Buchung via Token-Link (Buchender oder Gastgeber).
-     */
     public function handleCancel(): void
     {
-        $token = sanitize_text_field($_GET['rrze_appt_cancel'] ?? '');
-        if (!$token)
-            return;
+        try {
+            $token = sanitize_text_field($_GET['rrze_appt_cancel'] ?? '');
+            if (!$token) return;
 
         $entry = TokenManager::validateCancelToken($token);
         if (!$entry) {
@@ -614,6 +648,9 @@ class Main
             esc_html__('Termin storniert', 'rrze-appointment'),
             ['response' => 200]
         );
+        } catch (CustomException $e) {
+            wp_die(esc_html($e->getMessage()), '', ['response' => 500]);
+        }
     }
 
 }

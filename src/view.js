@@ -104,7 +104,7 @@
             });
         }
 
-        function openOverlay(value) {
+        function openOverlay(value, booker = {}) {
             const parsed = parseSlotValue(value);
             if (!parsed.date || !parsed.time) return;
 
@@ -125,20 +125,22 @@
 
             const emailLabel = document.createElement('label');
             emailLabel.className = 'rrze-appointment__overlay-label';
-            emailLabel.textContent = 'Ihre E-Mail-Adresse (für Erinnerungsmail):';
+            emailLabel.textContent = 'Ihre E-Mail-Adresse:';
             const emailInput = document.createElement('input');
             emailInput.type = 'email';
             emailInput.className = 'rrze-appointment__overlay-email';
             emailInput.placeholder = 'name@example.de';
+            emailInput.value = booker.bookerEmail || '';
             emailLabel.appendChild(emailInput);
 
             const nameLabel = document.createElement('label');
             nameLabel.className = 'rrze-appointment__overlay-label';
-            nameLabel.textContent = 'Ihr Name (optional):';
+            nameLabel.textContent = 'Ihr Name:';
             const nameInput = document.createElement('input');
             nameInput.type = 'text';
             nameInput.className = 'rrze-appointment__overlay-name';
             nameInput.placeholder = 'Vorname Nachname';
+            nameInput.value = booker.bookerName || '';
             nameLabel.appendChild(nameInput);
 
             const messageLabel = document.createElement('label');
@@ -252,9 +254,37 @@
             }
 
             button.addEventListener('click', () => {
-                openOverlay(slot.value);
-                renderDaySlots(activeDate);
-                renderGroupedSlots();
+                button.disabled = true;
+                const data = new FormData();
+                data.append('action', 'rrze_appointment_get_booker');
+                fetch(window.rrze_appointment?.ajaxUrl || '/wp-admin/admin-ajax.php', {
+                    method: 'POST',
+                    body: data
+                })
+                    .then((r) => r.json())
+                    .then((res) => {
+                        button.disabled = false;
+                        if (res.success && res.data?.needsLogin) {
+                            const loginUrl = res.data.loginUrl || '/wp-login.php';
+                            sessionStorage.setItem('rrze_appt_slot', slot.value);
+                            sessionStorage.setItem('rrze_appt_page', window.location.href.split('#')[0]);
+                            const redirectTo = encodeURIComponent(window.location.href.split('#')[0]);
+                            window.location.href = loginUrl.includes('redirect_to')
+                                ? loginUrl
+                                : loginUrl + (loginUrl.includes('?') ? '&' : '?') + 'redirect_to=' + redirectTo;
+                            return;
+                        }
+                        const booker = res.success ? (res.data || {}) : {};
+                        openOverlay(slot.value, booker);
+                        renderDaySlots(activeDate);
+                        renderGroupedSlots();
+                    })
+                    .catch(() => {
+                        button.disabled = false;
+                        openOverlay(slot.value, {});
+                        renderDaySlots(activeDate);
+                        renderGroupedSlots();
+                    });
             });
 
             return button;
@@ -402,6 +432,26 @@
         renderCalendar();
         renderDaySlots(activeDate);
         renderGroupedSlots();
+
+        // Nach SSO-Login: Slot aus sessionStorage lesen und Overlay automatisch öffnen
+        const autoSlot  = sessionStorage.getItem('rrze_appt_slot');
+        const autoPage  = sessionStorage.getItem('rrze_appt_page');
+        const onCorrectPage = !autoPage || autoPage === window.location.href.split('#')[0];
+        if (autoSlot && onCorrectPage) {
+            sessionStorage.removeItem('rrze_appt_slot');
+            sessionStorage.removeItem('rrze_appt_page');
+
+            // Booker-Daten holen und Overlay öffnen
+            const data = new FormData();
+            data.append('action', 'rrze_appointment_get_booker');
+            fetch(window.rrze_appointment?.ajaxUrl || '/wp-admin/admin-ajax.php', { method: 'POST', body: data })
+                .then((r) => r.json())
+                .then((res) => {
+                    const booker = res.success ? (res.data || {}) : {};
+                    openOverlay(autoSlot, booker);
+                })
+                .catch(() => openOverlay(autoSlot, {}));
+        }
     }
 
     document.querySelectorAll('form.rrze-appointment').forEach((form) => {

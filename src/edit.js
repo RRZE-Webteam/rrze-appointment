@@ -54,13 +54,6 @@ function CalendarMultiSelect({ selectedDates, activeDate, onToggleDate }) {
         const dayOfWeek = dayDate.getDay();
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-        const baseBackground = isPast ? '#f0f0f1' : (isWeekend ? '#f3f4f6' : '#fff');
-        const selectedBackground = isSelected ? 'var(--wp-admin-theme-color, #007cba)' : baseBackground;
-        const textColor = isPast ? '#8c8f94' : (isSelected ? '#fff' : '#1e1e1e');
-        let borderColor = '#dcdcde';
-        if (isToday) borderColor = '#2f7d32';
-        if (isActive) borderColor = '#d63638';
-
         dayButtons.push(
             <button
                 key={dateString}
@@ -68,15 +61,14 @@ function CalendarMultiSelect({ selectedDates, activeDate, onToggleDate }) {
                 onClick={() => { if (!isPast) onToggleDate(dateString); }}
                 aria-label={dateString}
                 disabled={isPast}
-                style={{
-                    height: '30px',
-                    border: `2px solid ${borderColor}`,
-                    borderRadius: '4px',
-                    cursor: isPast ? 'not-allowed' : 'pointer',
-                    background: selectedBackground,
-                    color: textColor,
-                    fontWeight: isSelected ? 600 : 400
-                }}
+                className={[
+                    'rrze-appointment__calendar-day',
+                    isPast ? 'is-past' : '',
+                    isSelected ? 'is-available' : '',
+                    isToday ? 'is-today' : '',
+                    isActive ? 'is-active' : '',
+                    isWeekend ? 'is-weekend' : '',
+                ].filter(Boolean).join(' ')}
             >
                 {day}
             </button>
@@ -84,15 +76,15 @@ function CalendarMultiSelect({ selectedDates, activeDate, onToggleDate }) {
     }
 
     return (
-        <div style={{ marginBottom: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <div className="rrze-appointment-block__calendar">
+            <div className="rrze-appointment-block__calendar-header">
                 <Button variant="secondary" isSmall onClick={() => setViewDate(new Date(year, month - 1, 1))}>{'<'}</Button>
                 <strong>{viewDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</strong>
                 <Button variant="secondary" isSmall onClick={() => setViewDate(new Date(year, month + 1, 1))}>{'>'}</Button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '4px' }}>
+            <div className="rrze-appointment-block__calendar-grid">
                 {weekdayNames.map((name) => (
-                    <div key={name} style={{ fontSize: '12px', textAlign: 'center', color: '#50575e' }}>{name}</div>
+                    <div key={name} className="rrze-appointment-block__calendar-weekday">{name}</div>
                 ))}
                 {dayButtons}
             </div>
@@ -133,10 +125,10 @@ function PreviewCalendar({ slots, onRemoveSlot, onAddSlot, activeDate, setActive
         <Fragment>
             <div className="rrze-appointment__calendar">
                 <div className="rrze-appointment__calendar-month">
-                    <div className="rrze-appointment__calendar-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <button type="button" onClick={() => setViewDate(new Date(year, monthIndex - 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}>{'‹'}</button>
+                    <div className="rrze-appointment__calendar-title">
+                        <button type="button" onClick={() => setViewDate(new Date(year, monthIndex - 1, 1))} className="rrze-appointment__calendar-nav">{'‹'}</button>
                         <span>{viewDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</span>
-                        <button type="button" onClick={() => setViewDate(new Date(year, monthIndex + 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}>{'›'}</button>
+                        <button type="button" onClick={() => setViewDate(new Date(year, monthIndex + 1, 1))} className="rrze-appointment__calendar-nav">{'›'}</button>
                     </div>
                     <div className="rrze-appointment__calendar-grid">
                         {weekdays.map((w) => (
@@ -273,15 +265,15 @@ export default function Edit({ attributes, setAttributes }) {
         // startTime/endTime aus erstem Eintrag
         const firstHour = hours[0];
         const newStart = firstHour.from || '09:00';
-        const newEnd   = firstHour.to   || '17:00';
+        const newEnd = firstHour.to || '17:00';
 
         setAttributes({
             selectedDates: dates,
-            startDate:     dates[0],
-            endDate:       dates[dates.length - 1],
-            useEndDate:    true,
-            startTime:     newStart,
-            endTime:       newEnd,
+            startDate: dates[0],
+            endDate: dates[dates.length - 1],
+            useEndDate: true,
+            startTime: newStart,
+            endTime: newEnd,
             useConsultationHours: true,
         });
         setActiveDate(dates[0]);
@@ -440,7 +432,7 @@ export default function Edit({ attributes, setAttributes }) {
                 </PanelBody>
                 {faudirError && (
                     <PanelBody title={__('Personen-Einstellungen', 'rrze-appointment')} initialOpen={true}>
-                        <p style={{ color: '#d63638' }}>{faudirMessage}</p>
+                        <p className="rrze-appointment-block__person-error">{faudirMessage}</p>
                     </PanelBody>
                 )}
 
@@ -482,6 +474,11 @@ export default function Edit({ attributes, setAttributes }) {
                             onChange={(value) => setAttributes({ personEmail: value })}
                         />
                         <TextControl
+                            label="Ort"
+                            value={location}
+                            onChange={(value) => setAttributes({ location: value })}
+                        />
+                        <TextControl
                             label={__('Karte (URL)', 'rrze-appointment')}
                             value={locationUrl}
                             onChange={(value) => setAttributes({ locationUrl: value })}
@@ -493,6 +490,12 @@ export default function Edit({ attributes, setAttributes }) {
                         label="title"
                         value={derivedTitle}
                         onChange={(value) => setAttributes({ title: value, personId: 0 })}
+                    />
+
+                    <TextareaControl
+                        label="Beschreibung"
+                        value={description}
+                        onChange={(value) => setAttributes({ description: value })}
                     />
 
                     <p><strong>Kalender-Ansicht</strong></p>
@@ -599,22 +602,11 @@ export default function Edit({ attributes, setAttributes }) {
                         }}
                     />
 
-                    <TextControl
-                        label="Ort"
-                        value={location}
-                        onChange={(value) => setAttributes({ location: value })}
-                    />
-
-                    <TextareaControl
-                        label="Beschreibung"
-                        value={description}
-                        onChange={(value) => setAttributes({ description: value })}
-                    />
 
                 </PanelBody>
 
                 <PanelBody title={__('Wiederholen', 'rrze-appointment')} initialOpen={false}>
-                    <p style={{ margin: '0 0 8px', color: '#50575e', fontSize: '12px' }}>
+                    <p className="rrze-appointment-block__recurrence-hint">
                         {activeDate
                             ? `${__('Gilt für', 'rrze-appointment')}: ${formatDateDisplay(activeDate)}`
                             : __('Bitte zuerst einen Tag auswählen.', 'rrze-appointment')
@@ -656,23 +648,12 @@ export default function Edit({ attributes, setAttributes }) {
                                 {renderGroupedSlotsAccordion(slots, 'rrze_appointment_slot_preview', { onRemoveSlot: handleRemoveSlot, onAddSlot: handleOpenAddSlot })}
                             </Fragment>
                         ) : (
-                            <p>Bitte mindestens einen Tag sowie Startzeit, Endzeit, Dauer und Pause setzen.</p>
+                            <p>Bitte mindestens einen Tag unter Termin-Einstellungen auswählen.</p>
                         )}
                         {addSlotDate && (
-                            <div style={{
-                                position: 'fixed', inset: 0,
-                                background: 'rgba(0,0,0,0.5)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                zIndex: 999999
-                            }}>
-                                <div style={{
-                                    background: '#fff',
-                                    borderRadius: '4px',
-                                    padding: '24px',
-                                    minWidth: '300px',
-                                    boxShadow: '0 4px 24px rgba(0,0,0,0.2)'
-                                }}>
-                                    <p style={{ margin: '0 0 16px' }}>
+                            <div className="rrze-appointment-block__overlay">
+                                <div className="rrze-appointment-block__overlay-box">
+                                    <p className="rrze-appointment-block__overlay-title">
                                         <strong>{__('Neue Uhrzeit für', 'rrze-appointment')} {formatDateDisplay(addSlotDate)}</strong>
                                     </p>
                                     <TextControl
@@ -690,9 +671,9 @@ export default function Edit({ attributes, setAttributes }) {
                                         onChange={(value) => { setAddSlotEndTime(value); setAddSlotError(''); }}
                                     />
                                     {addSlotError && (
-                                        <p style={{ color: '#d63638', margin: '-8px 0 8px' }}>{addSlotError}</p>
+                                        <p className="rrze-appointment-block__overlay-error">{addSlotError}</p>
                                     )}
-                                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                    <div className="rrze-appointment-block__overlay-actions">
                                         <Button variant="primary" onClick={handleConfirmAddSlot}>
                                             {__('Hinzufügen', 'rrze-appointment')}
                                         </Button>
@@ -708,15 +689,15 @@ export default function Edit({ attributes, setAttributes }) {
             </div>
 
             {hoursOverlay && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999999 }}>
-                    <div style={{ background: '#fff', borderRadius: '4px', padding: '24px', minWidth: '340px', maxWidth: '480px', boxShadow: '0 4px 24px rgba(0,0,0,0.2)' }}>
-                        <p style={{ margin: '0 0 20px', fontSize: '14px', lineHeight: '1.5' }}>
+                <div className="rrze-appointment-block__overlay">
+                    <div className="rrze-appointment-block__overlay-box">
+                        <p className="rrze-appointment-block__overlay-text">
                             {hoursOverlay.type === 'consultation'
                                 ? __('Sprechstunden von FAUdir gefunden. Sollen die Termine entsprechend erstellt werden?', 'rrze-appointment')
                                 : __('Sprechstunden in FAUdir nicht gefunden, aber Bürozeiten. Sollen die Termine daraus entsprechend erstellt werden?', 'rrze-appointment')
                             }
                         </p>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                        <div className="rrze-appointment-block__overlay-actions">
                             <Button variant="primary" onClick={() => { applyConsultationHours(hoursOverlay.person); setHoursOverlay(null); }}>
                                 {__('Ja', 'rrze-appointment')}
                             </Button>
