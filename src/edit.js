@@ -689,15 +689,15 @@ export default function Edit({ attributes, setAttributes }) {
             </div>
 
             {hoursOverlay && (
-                <div className="rrze-appointment-block__hours-overlay">
-                    <div className="rrze-appointment-block__hours-overlay-box">
-                        <p className="rrze-appointment-block__hours-overlay-text">
+                <div className="rrze-appointment-block__overlay">
+                    <div className="rrze-appointment-block__overlay-box">
+                        <p className="rrze-appointment-block__overlay-text">
                             {hoursOverlay.type === 'consultation'
                                 ? __('Sprechstunden von FAUdir gefunden. Sollen die Termine entsprechend erstellt werden?', 'rrze-appointment')
                                 : __('Sprechstunden in FAUdir nicht gefunden, aber Bürozeiten. Sollen die Termine daraus entsprechend erstellt werden?', 'rrze-appointment')
                             }
                         </p>
-                        <div className="rrze-appointment-block__hours-overlay-actions">
+                        <div className="rrze-appointment-block__overlay-actions">
                             <Button variant="primary" onClick={() => { applyConsultationHours(hoursOverlay.person); setHoursOverlay(null); }}>
                                 {__('Ja', 'rrze-appointment')}
                             </Button>
