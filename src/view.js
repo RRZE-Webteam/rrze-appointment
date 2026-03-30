@@ -243,8 +243,6 @@
             button.textContent = slot.label;
             button.dataset.slotValue = slot.value;
 
-            // alert('createSlotButton');
-
             if (isBooked) {
                 button.classList.add('is-booked');
                 button.disabled = true;
@@ -256,9 +254,6 @@
             }
 
             button.addEventListener('click', () => {
-
-                alert('servas');
-
                 button.disabled = true;
                 const data = new FormData();
                 data.append('action', 'rrze_appointment_get_booker');

@@ -360,6 +360,7 @@ class Main
     {
         try {
             $booker = Rights::get();
+            error_log('RRZE Appointment handleGetBooker: ' . json_encode($booker) . ' is_user_logged_in=' . (is_user_logged_in() ? 'yes' : 'no'));
             if (empty($booker['idm'])) {
                 $currentUrl = sanitize_url($_SERVER['HTTP_REFERER'] ?? home_url('/'));
                 wp_send_json_success([
