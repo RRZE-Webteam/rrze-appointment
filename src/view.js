@@ -267,11 +267,9 @@
                         if (res.data?.debug) console.log('RRZE Appointment get_booker:', res.data.debug);
                         if (res.success && res.data?.needsLogin) {
                             const loginUrl = res.data.loginUrl || '/wp-login.php';
-                            const returnUrl = window.location.href +
-                                (window.location.href.includes('?') ? '&' : '?') +
-                                'rrze_appt_slot=' + encodeURIComponent(slot.value);
+                            const returnUrl = window.location.href.split('#')[0] +
+                                '#rrze_appt_slot=' + encodeURIComponent(slot.value);
                             const redirectTo = encodeURIComponent(returnUrl);
-                            console.log('RRZE redirect returnUrl:', returnUrl);
                             window.location.href = loginUrl.includes('redirect_to')
                                 ? loginUrl
                                 : loginUrl + (loginUrl.includes('?') ? '&' : '?') + 'redirect_to=' + redirectTo;
@@ -436,15 +434,16 @@
         renderDaySlots(activeDate);
         renderGroupedSlots();
 
-        // Nach SSO-Login: Slot aus URL-Parameter lesen und Overlay automatisch öffnen
-        const urlParams = new URLSearchParams(window.location.search);
-        const autoSlot  = urlParams.get('rrze_appt_slot');
-        console.log('RRZE URL search:', window.location.search, 'autoSlot:', autoSlot);
+        // Nach SSO-Login: Slot aus URL-Fragment lesen und Overlay automatisch öffnen
+        const hash      = window.location.hash;
+        const hashMatch = hash.match(/rrze_appt_slot=([^&]*)/);
+        const autoSlot  = hashMatch ? decodeURIComponent(hashMatch[1]) : null;
+        console.log('RRZE hash:', hash, 'autoSlot:', autoSlot);
         if (autoSlot) {
             console.log('RRZE autoSlot found:', autoSlot);
-            // URL-Parameter entfernen ohne Reload
-            const cleanUrl = window.location.href.replace(/[?&]rrze_appt_slot=[^&]*/g, '').replace(/[?&]$/, '');
-            window.history.replaceState(null, '', cleanUrl);
+            // Fragment entfernen ohne Reload
+            const cleanUrl = window.location.href.replace(/#rrze_appt_slot=[^&]*/, '').replace(/#$/, '');
+            window.history.replaceState(null, '', cleanUrl || window.location.pathname + window.location.search);
 
             // Booker-Daten holen und Overlay öffnen
             const data = new FormData();
