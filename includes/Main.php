@@ -359,14 +359,17 @@ class Main
     public function handleGetBooker(): void
     {
         try {
-            $booker = Rights::get();
             $debug = [
-                'idm'              => $booker['idm'],
-                'is_user_logged_in'=> is_user_logged_in(),
-                'AccessControl'    => class_exists('\RRZE\AccessControl\Permissions'),
-                'bookerName'       => $booker['bookerName'],
-                'bookerEmail'      => $booker['bookerEmail'],
+                'is_user_logged_in' => is_user_logged_in(),
+                'AccessControl'     => class_exists('RRZE\\AccessControl\\Permissions'),
+                'Rights_exists'     => class_exists('RRZE\\Appointment\\Rights'),
             ];
+
+            $booker = Rights::get();
+            $debug['idm']         = $booker['idm'];
+            $debug['bookerName']  = $booker['bookerName'];
+            $debug['bookerEmail'] = $booker['bookerEmail'];
+
             if (empty($booker['idm'])) {
                 $currentUrl = sanitize_url($_SERVER['HTTP_REFERER'] ?? home_url('/'));
                 wp_send_json_success([
@@ -377,8 +380,8 @@ class Main
                 return;
             }
             wp_send_json_success(array_merge($booker, ['needsLogin' => false, 'debug' => $debug]));
-        } catch (CustomException $e) {
-            wp_send_json_error($e->getMessage());
+        } catch (\Throwable $e) {
+            wp_send_json_error(['error' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]);
         }
     }
 
