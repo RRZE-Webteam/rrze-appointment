@@ -267,7 +267,11 @@
                         if (res.data?.debug) console.log('RRZE Appointment get_booker:', res.data.debug);
                         if (res.success && res.data?.needsLogin) {
                             const loginUrl = res.data.loginUrl || '/wp-login.php';
-                            const redirectTo = encodeURIComponent(window.location.href);
+                            const redirectTo = encodeURIComponent(
+                                window.location.href +
+                                (window.location.href.includes('?') ? '&' : '?') +
+                                'rrze_appt_slot=' + encodeURIComponent(slot.value)
+                            );
                             window.location.href = loginUrl.includes('redirect_to')
                                 ? loginUrl
                                 : loginUrl + (loginUrl.includes('?') ? '&' : '?') + 'redirect_to=' + redirectTo;
@@ -431,6 +435,26 @@
         renderCalendar();
         renderDaySlots(activeDate);
         renderGroupedSlots();
+
+        // Nach SSO-Login: Slot aus URL-Parameter lesen und Overlay automatisch öffnen
+        const urlParams = new URLSearchParams(window.location.search);
+        const autoSlot  = urlParams.get('rrze_appt_slot');
+        if (autoSlot) {
+            // URL-Parameter entfernen ohne Reload
+            const cleanUrl = window.location.href.replace(/[?&]rrze_appt_slot=[^&]*/g, '').replace(/[?&]$/, '');
+            window.history.replaceState(null, '', cleanUrl);
+
+            // Booker-Daten holen und Overlay öffnen
+            const data = new FormData();
+            data.append('action', 'rrze_appointment_get_booker');
+            fetch(window.rrze_appointment?.ajaxUrl || '/wp-admin/admin-ajax.php', { method: 'POST', body: data })
+                .then((r) => r.json())
+                .then((res) => {
+                    const booker = res.success ? (res.data || {}) : {};
+                    openOverlay(autoSlot, booker);
+                })
+                .catch(() => openOverlay(autoSlot, {}));
+        }
     }
 
     document.querySelectorAll('form.rrze-appointment').forEach((form) => {
