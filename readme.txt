@@ -53,6 +53,17 @@ Users booking appointments log in via SSO using their IdM credentials.
 Person data can be imported automatically from FAUdir. 
 For example, office hours or consultation appointments are generated if defined in FAUdir.
 
+== Screenshots ==
+
+1. Gutenberg block for appointments
+2. Booking interface in the block editor
+3. Example frontend output
+
+== Changelog ==
+
+= 0.3.13 =
+* Initial release
+
 == License ==
 
 GPL-2.0-or-later
