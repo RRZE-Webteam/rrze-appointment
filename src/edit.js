@@ -96,12 +96,14 @@ function CalendarMultiSelect({ selectedDates, activeDate, onToggleDate }) {
 function PreviewCalendar({ slots, onRemoveSlot, onAddSlot, activeDate, setActiveDate }) {
     const groupedSlots = groupSlotsByDate(slots);
     const dates = Object.keys(groupedSlots).sort();
-    if (dates.length === 0) return null;
-
     const firstDate = parseDateString(dates[0]);
-    if (!firstDate) return null;
 
-    const [viewDate, setViewDate] = useState(() => new Date(firstDate.getFullYear(), firstDate.getMonth(), 1));
+    const [viewDate, setViewDate] = useState(() => {
+        if (!firstDate) return new Date();
+        return new Date(firstDate.getFullYear(), firstDate.getMonth(), 1);
+    });
+
+    if (dates.length === 0 || !firstDate) return null;
 
     useEffect(() => {
         if (!activeDate) return;
@@ -220,8 +222,14 @@ export default function Edit({ attributes, setAttributes }) {
         personName,
         personEmail,
         tplId,
-        locationUrl
+        locationUrl,
+        color,
+        style
     } = attributes;
+
+    const blockProps = useBlockProps({
+        className: style === 'dark' ? 'is-style-dark' : 'is-style-light',
+    });
 
     const [mailTemplates, setMailTemplates] = useState([]);
     useEffect(() => {
@@ -237,8 +245,46 @@ export default function Edit({ attributes, setAttributes }) {
     const faudirError = faudirResponse?.error ?? false;
     const faudirMessage = faudirResponse?.message || '';
     const selectedPerson = faudirPersons.find((p) => p.id === personId) || null;
-    console.log('office hours persons:', faudirPersons.filter(p => p.hoursType === 'office').map(p => p.label));
-    console.log('consultation hours persons:', faudirPersons.filter(p => p.hoursType === 'consultation').map(p => p.label));
+    // console.log('office hours persons:', faudirPersons.filter(p => p.hoursType === 'office').map(p => p.label));
+    // console.log('consultation hours persons:', faudirPersons.filter(p => p.hoursType === 'consultation').map(p => p.label));
+
+    const coloroptions = [
+        {
+            label: 'fau',
+            value: 'fau',
+        },
+        {
+            label: 'med',
+            value: 'med',
+        },
+        {
+            label: 'nat',
+            value: 'nat',
+        },
+        {
+            label: 'phil',
+            value: 'phil',
+        },
+        {
+            label: 'rw',
+            value: 'rw',
+        },
+        {
+            label: 'tf',
+            value: 'tf',
+        },
+    ];
+
+    const styleoptions = [
+        {
+            label: 'light',
+            value: 'light',
+        },
+        {
+            label: 'dark',
+            value: 'dark',
+        },
+    ];
 
 
 
@@ -292,7 +338,6 @@ export default function Edit({ attributes, setAttributes }) {
 
     const calendarDates = getCalendarDates(attributes);
     const slots = generateTimeSlots(attributes);
-    const blockProps = useBlockProps();
     const [activeDate, setActiveDate] = useState(calendarDates[0] || '');
     const [addSlotDate, setAddSlotDate] = useState(null);
     const [addSlotTime, setAddSlotTime] = useState('');
@@ -633,6 +678,34 @@ export default function Edit({ attributes, setAttributes }) {
                         />
                     )}
                 </PanelBody>
+
+                <PanelBody
+                    title={__('Appearance', 'rrze-appointment')}
+                    name={__('Appearance', 'rrze-appointment')}
+                    icon="admin-appearance"
+                    initialOpen={false}
+                >
+                    <SelectControl
+                        label={__(
+                            'Accordion-Style',
+                            'rrze-appointment'
+                        )}
+                        value={style || 'light'}
+                        options={styleoptions}
+                        onChange={(value) =>
+                            setAttributes({ style: value })
+                        }
+                    />
+                    <SelectControl
+                        label={__('Color', 'rrze-appointment')}
+                        value={color || ''}
+                        options={coloroptions}
+                        onChange={(value) =>
+                            setAttributes({ color: value })
+                        }
+                    />
+                </PanelBody>
+
             </InspectorControls>
 
             <div {...blockProps}>
