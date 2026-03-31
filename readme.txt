@@ -1,36 +1,17 @@
-=== RRZE Appointment ===
-Contributors: rrze-webteam
-Tags: appointment, consultation hours, consulting hours, office hours
-Requires at least: 6.1
-Tested up to: 6.8
-Requires PHP: 8.2
-Stable tag: 0.3.3
-License: GPLv2 or later
-License URI: http://www.gnu.org/licenses/gpl-2.0.html
-
-Plugin for creating and maintaining appointments. Usable as a block.
+=== Plugin Name: rrze-appointment ===
+Version: 0.3.13
+Plugin URI: https://github.com/rrze-webteam/rrze-appointment
+GitHub Issue URL: https://github.com/rrze-webteam/rrze-appointment/issues
+Author: RRZE Webteam
+Author URI: https://www.rrze.fau.de
+Licence: GPL-2.0-or-later
+Licence URI: https://www.gnu.org/licenses/gpl-2.0.html
+Requires at least: 6.0
+Tested up to: 6.5
+Requires PHP: 7.4
+Text Domain: rrze-appointment
+Tags: appointments, calendar, booking
 
 == Description ==
 
-2DO
-
-Features:
-* 2DO
-
-== Installation ==
-
-1. Download the plugin.
-2. Unzip the ZIP file.
-3. Upload the `rrze-appointment` folder to the `/wp-content/plugins/` directory of your WordPress installation.
-4. Activate the plugin via the `Plugins` menu in WordPress.
-
-== Usage ==
-
-2DO
-
-== Frequently Asked Questions ==
-
-2DO
-== License ==
-
-This plugin is free software under GPLv2 or later.
+Plugin for creating and maintaining appointments. Usable as a block.

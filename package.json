@@ -1,10 +1,30 @@
 {
   "name": "rrze-appointment",
-  "version": "0.3.3",
+  "version": "0.3.14",
   "description": "Plugin for creating and maintaining appointments. Usable as a block.",
-  "author": "RRZE Webteam",
+  "author": {
+    "name": "RRZE Webteam",
+    "url": "https://www.rrze.fau.de"
+  },
   "license": "GPL-2.0-or-later",
+  "licenseurl": "https://www.gnu.org/licenses/gpl-2.0.html",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rrze-webteam/rrze-appointment",
+    "issues": "https://github.com/rrze-webteam/rrze-appointment/issues"
+  },
+  "textDomain": "rrze-appointment",
   "main": "build/index.js",
+  "compatibility": {
+    "wprequires": "6.0",
+    "wptestedup": "6.5",
+    "phprequires": "7.4"
+  },
+  "tags": [
+    "appointments",
+    "calendar",
+    "booking"
+  ],
   "scripts": {
     "build": "wp-scripts build --webpack-copy-php && npm run increment-version",
     "increment-version": "node increment-version.js patch",
@@ -13,7 +33,8 @@
     "lint:js": "wp-scripts lint-js",
     "packages-update": "wp-scripts packages-update",
     "plugin-zip": "wp-scripts plugin-zip",
-    "start": "wp-scripts start --webpack-copy-php"
+    "start": "wp-scripts start --webpack-copy-php",
+    "build:readme": "node build-readme.js"
   },
   "devDependencies": {
     "@wordpress/scripts": "^30.11.0"

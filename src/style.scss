@@ -86,8 +86,8 @@
             }
 
             &.is-today {
-                outline: 2px solid $cal-today-outline;
-                outline-offset: -2px;
+                outline: 4px solid $cal-today-outline;
+                outline-offset: -4px;
             }
         }
 
