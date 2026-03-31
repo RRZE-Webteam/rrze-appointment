@@ -11,7 +11,7 @@
 
 **RRZE Appointment** 
 
-WordPress plugin for handling appointments within the RRZE ecosystem.
+WordPress plugin for handling appointments.
 
 ---
 
