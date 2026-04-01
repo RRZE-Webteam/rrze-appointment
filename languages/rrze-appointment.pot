@@ -327,3 +327,30 @@ msgstr ""
 
 msgid "Yes, I would like to be notified if an earlier appointment becomes available."
 msgstr ""
+
+msgid "Earlier appointment available: %s on %s"
+msgstr ""
+
+msgid "Hello %s,"
+msgstr ""
+
+msgid "An earlier appointment has become available:"
+msgstr ""
+
+msgid "Appointment"
+msgstr ""
+
+msgid "Host"
+msgstr ""
+
+msgid "Your current appointment is on %s at %s."
+msgstr ""
+
+msgid "Please book the earlier slot directly on the website."
+msgstr ""
+
+msgid "there"
+msgstr ""
+
+msgid "Hello %s,\n\nAn earlier appointment has become available:\n\nAppointment: %s\nDate: %s\nTime: %s\nLocation: %s\nHost: %s\n\nYour current appointment is on %s at %s.\n\nPlease book the earlier slot directly on the website."
+msgstr ""

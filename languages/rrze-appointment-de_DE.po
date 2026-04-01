@@ -327,3 +327,30 @@ msgstr "Keine Einschränkung"
 
 msgid "Yes, I would like to be notified if an earlier appointment becomes available."
 msgstr "Ja, ich möchte informiert werden, wenn ein früherer Termin frei wird."
+
+msgid "Earlier appointment available: %s on %s"
+msgstr "Früherer Termin verfügbar: %s am %s"
+
+msgid "Hello %s,"
+msgstr "Hallo %s,"
+
+msgid "An earlier appointment has become available:"
+msgstr "Ein früherer Termin ist frei geworden:"
+
+msgid "Appointment"
+msgstr "Termin"
+
+msgid "Host"
+msgstr "Einladende Person"
+
+msgid "Your current appointment is on %s at %s."
+msgstr "Ihr aktueller Termin ist am %s um %s."
+
+msgid "Please book the earlier slot directly on the website."
+msgstr "Bitte buchen Sie den früheren Termin direkt auf der Website."
+
+msgid "there"
+msgstr "dort"
+
+msgid "Hello %s,\n\nAn earlier appointment has become available:\n\nAppointment: %s\nDate: %s\nTime: %s\nLocation: %s\nHost: %s\n\nYour current appointment is on %s at %s.\n\nPlease book the earlier slot directly on the website."
+msgstr "Hallo %s,\n\nEin früherer Termin ist frei geworden:\n\nTermin: %s\nDatum: %s\nZeit: %s\nOrt: %s\nEinladende Person: %s\n\nIhr aktueller Termin ist am %s um %s.\n\nBitte buchen Sie den früheren Termin direkt auf der Website."
