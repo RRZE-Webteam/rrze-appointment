@@ -40,6 +40,6 @@ class Template
 
         include $path;
 
-        echo apply_filters('rrze-answers_settings_template_include', ob_get_clean(), $fileName, $vars);
+        echo apply_filters('rrze-appointment_settings_template_include', ob_get_clean(), $fileName, $vars);
     }
 }

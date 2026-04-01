@@ -549,10 +549,10 @@ class Settings
     public function save()
     {
         if (
-            !isset($_POST['rrze-answers_settings_save'])
+            !isset($_POST['rrze-appointment_settings_save'])
             || !wp_verify_nonce(
-                $_POST['rrze-answers_settings_save'],
-                'rrze-answers_settings_save_' . $this->optionName
+                $_POST['rrze-appointment_settings_save'],
+                'rrze-appointment_settings_save_' . $this->optionName
             )
         ) {
             return;
@@ -563,7 +563,7 @@ class Settings
         }
 
         $currentOptions = $this->getOptions();
-        $submittedOptions = apply_filters('rrze-answers_settings_new_options', $_POST[$this->optionName] ?? [], $currentOptions);
+        $submittedOptions = apply_filters('rrze-appointment_settings_new_options', $_POST[$this->optionName] ?? [], $currentOptions);
         $newOptions = $currentOptions;
 
         foreach ($this->getActiveTab()->getActiveSections() as $section) {
@@ -576,7 +576,7 @@ class Settings
                     continue;
                 }
 
-                $value = apply_filters('rrze-answers_settings_new_option_' . $option->implementation->getName(), $option->sanitize($value), $option->implementation);
+                $value = apply_filters('rrze-appointment_settings_new_option_' . $option->implementation->getName(), $option->sanitize($value), $option->implementation);
 
                 $newOptions[$option->implementation->getName()] = $value;
             }
@@ -654,6 +654,6 @@ class Settings
     public function updateOptions($options)
     {
         update_option($this->optionName, $options);
-        do_action('rrze-answers_settings_after_update_option', $this->optionName, $options);
+        do_action('rrze-appointment_settings_after_update_option', $this->optionName, $options);
     }
 }

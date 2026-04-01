@@ -67,7 +67,7 @@ class Option
         $this->type = $type;
         $this->args = $args;
 
-        $typeMap = apply_filters('rrze-answers_settings_option_type_map', [
+        $typeMap = apply_filters('rrze-appointment_settings_option_type_map', [
             'checkbox' => Checkbox::class,
             'checkbox-multiple' => CheckboxMultiple::class,
             'password' => Password::class,

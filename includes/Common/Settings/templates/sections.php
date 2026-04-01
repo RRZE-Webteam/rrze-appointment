@@ -11,7 +11,7 @@ defined('ABSPATH') || exit;
         <?php Template::include('section', compact('section')); ?>
     <?php } ?>
 
-    <?php wp_nonce_field('rrze-answers_settings_save_' . $settings->optionName, 'rrze-answers_settings_save'); ?>
+    <?php wp_nonce_field('rrze-appointment_settings_save_' . $settings->optionName, 'rrze-appointment_settings_save'); ?>
 
     <?php submit_button(); ?>
 </form>

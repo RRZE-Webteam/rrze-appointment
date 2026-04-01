@@ -22,7 +22,7 @@
     $default-tf: #8C9FB1;
     $default-tf-dark: #2f586e;
 
-    // Accordion CSS-Variablen (übernommen von rrze-answers)
+    // Accordion CSS-Variablen (übernommen von rrze-appointment)
     --rrze-appointment-accordion-bg-default: #d2ddeb;
     --rrze-appointment-accordion-text-default: #444;
     --rrze-appointment-accordion-bg-active: #04316a;
@@ -524,13 +524,19 @@ $_tf-dark:   #2f586e;
     --rrze-appointment-accordion-accent:            var(--FAU-Col-FAU-Blau-100, #04316a);
     --rrze-appointment-accordion-accent-dark:       var(--FAU-Col-FAU-Blau-100, #04316a);
 
+
     .rrze-appointment__accordion,
     .rrze-appointment__date-group {
+        border-top: 1px solid var(--FAU-Col-FAU-Weiss-100, #fff) !important;
         color: var(--FAU-Col-FAU-Weiss-100, #fff);
         background-color: var(--FAU-Col-FAU-Blau-100, #04316a);
 
+        > summary::before {
+            background: var(--FAU-Col-FAU-Weiss-100, #fff) !important;
+        }
+
         > summary::after {
-            background: var(--FAU-Col-FAU-Weiss-100, #fff);
+            background: var(--FAU-Col-FAU-Blau-100, #04316a) !important;
         }
     }
 }
@@ -609,28 +615,6 @@ $_elemental-caret: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'
 
         .rrze-appointment__accordion-content {
             background: transparent;
-        }
-    }
-}
-
-// Dark Mode im FAU Elemental
-.wp-theme-FAU-Elemental .is-style-dark .rrze-appointment,
-.fau-elemental .is-style-dark .rrze-appointment {
-    border: none;
-    overflow: visible;
-
-    .rrze-appointment__accordion,
-    .rrze-appointment__date-group {
-        border-top: 1px solid var(--rrze-appointment-accordion-text-default);
-        color: var(--rrze-appointment-accordion-text-default);
-        background-color: var(--rrze-appointment-accordion-accent);
-
-        > summary::before {
-            background: var(--rrze-appointment-accordion-text-default);
-        }
-
-        > summary::after {
-            background: var(--rrze-appointment-accordion-accent);
         }
     }
 }
