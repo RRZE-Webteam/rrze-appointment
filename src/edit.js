@@ -227,8 +227,9 @@ export default function Edit({ attributes, setAttributes }) {
         style
     } = attributes;
 
+    const colorClass = color ? `is-${color}` : '';
     const blockProps = useBlockProps({
-        className: style === 'dark' ? 'is-style-dark' : 'is-style-light',
+        className: ['rrze-appointment', style === 'dark' ? 'is-style-dark' : 'is-style-light', colorClass].filter(Boolean).join(' '),
     });
 
     const [mailTemplates, setMailTemplates] = useState([]);
@@ -709,7 +710,7 @@ export default function Edit({ attributes, setAttributes }) {
             </InspectorControls>
 
             <div {...blockProps}>
-                <div className="rrze-appointment-block">
+                <div className={['rrze-appointment-block', colorClass].filter(Boolean).join(' ')}>
                     <h3>{derivedTitle || 'Termin-title'}</h3>
                     {description && <p>{description}</p>}
                     {location && <p><strong>Ort:</strong> {location}{locationUrl && <> (<a href={locationUrl} target="_blank" rel="noopener noreferrer">Auf der Karte ansehen</a>)</>}</p>}

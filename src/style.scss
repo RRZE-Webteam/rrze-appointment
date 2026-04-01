@@ -3,6 +3,25 @@
     // Caret SVG (FontAwesome chevron-down)
     $caret-svg: "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20320%20512%22%3E%3Cpath%20d%3D%22M137.4%20374.6c12.5%2012.5%2032.8%2012.5%2045.3%200l128-128c9.2-9.2%2011.9-22.9%206.9-34.9s-16.6-19.8-29.6-19.8L32%20192c-12.9%200-24.6%207.8-29.6%2019.8s-2.2%2025.7%206.9%2034.9l128%20128z%22%2F%3E%3C%2Fsvg%3E";
 
+    // Faculty colors (base + dark + contrast)
+    $default-fau: #04316A;
+    $default-fau-dark: #041e42;
+
+    $default-med: #18b4f1;
+    $default-med-dark: #005287;
+
+    $default-nat: #7bb725;
+    $default-nat-dark: #266141;
+
+    $default-phil: #fdb735;
+    $default-phil-dark: #e87722;
+
+    $default-rw: #c50f3c;
+    $default-rw-dark: #971b2f;
+
+    $default-tf: #8C9FB1;
+    $default-tf-dark: #2f586e;
+
     // Accordion CSS-Variablen (übernommen von rrze-answers)
     --rrze-appointment-accordion-bg-default: #d2ddeb;
     --rrze-appointment-accordion-text-default: #444;
@@ -13,6 +32,14 @@
     --rrze-appointment-accordion-accent: #04316a;
     --rrze-appointment-accordion-accent-dark: #041e42;
     --rrze-appointment-accordion-border: #dfe6ec;
+
+    // Default (FAU) palette via CSS variables
+    --rrze-appointment-accordion-bg-active: var(--color-primary-ci-hell, #{$default-fau});
+    --rrze-appointment-accordion-text-active: var(--color-primary-ci-hell-kontrast, #fff);
+    --rrze-appointment-accordion-bg-active-hover: var(--color-primary-dunkler, #{$default-fau-dark});
+    --rrze-appointment-accordion-text-active-hover: var(--color-primary-dunkler-kontrast, #fff);
+    --rrze-appointment-accordion-accent: var(--rrze-appointment-accordion-bg-active);
+    --rrze-appointment-accordion-accent-dark: var(--rrze-appointment-accordion-bg-active-hover);
 
     &__calendar,
     &__calendar-select {
@@ -404,6 +431,206 @@
                 opacity: 0.6;
                 cursor: not-allowed;
             }
+        }
+    }
+}
+
+// Faculty color mappings — separate selectors so they work on both
+// .rrze-appointment (frontend form) and .rrze-appointment-block (editor wrapper)
+$_fau:       #04316A;
+$_fau-dark:  #041e42;
+$_med:       #18b4f1;
+$_med-dark:  #005287;
+$_nat:       #7bb725;
+$_nat-dark:  #266141;
+$_phil:      #fdb735;
+$_phil-dark: #e87722;
+$_rw:        #c50f3c;
+$_rw-dark:   #971b2f;
+$_tf:        #8C9FB1;
+$_tf-dark:   #2f586e;
+
+.rrze-appointment.is-fau,
+.rrze-appointment-block.is-fau {
+    --rrze-appointment-accordion-bg-active: var(--color-zentral-ci-hell, #{$_fau});
+    --rrze-appointment-accordion-text-active: var(--color-zentral-ci-hell-kontrast, #fff);
+    --rrze-appointment-accordion-bg-active-hover: var(--color-zentral-dunkler, #{$_fau-dark});
+    --rrze-appointment-accordion-text-active-hover: var(--color-zentral-ci-dunkler-kontrast, #fff);
+    --rrze-appointment-accordion-accent: var(--rrze-appointment-accordion-bg-active);
+    --rrze-appointment-accordion-accent-dark: var(--rrze-appointment-accordion-bg-active-hover);
+}
+
+.rrze-appointment.is-phil,
+.rrze-appointment-block.is-phil {
+    --rrze-appointment-accordion-bg-active: var(--color-phil-ci-hell, #{$_phil});
+    --rrze-appointment-accordion-text-active: var(--color-phil-ci-hell-kontrast, #000);
+    --rrze-appointment-accordion-bg-active-hover: var(--color-phil-dunkler, #{$_phil-dark});
+    --rrze-appointment-accordion-text-active-hover: var(--color-phil-ci-hell-kontrast, #000);
+    --rrze-appointment-accordion-accent: var(--rrze-appointment-accordion-bg-active);
+    --rrze-appointment-accordion-accent-dark: var(--rrze-appointment-accordion-bg-active-hover);
+}
+
+.rrze-appointment.is-rw,
+.rrze-appointment-block.is-rw {
+    --rrze-appointment-accordion-bg-active: var(--color-rw-ci-hell, #{$_rw});
+    --rrze-appointment-accordion-text-active: var(--color-rw-ci-hell-kontrast, #fff);
+    --rrze-appointment-accordion-bg-active-hover: var(--color-rw-dunkler, #{$_rw-dark});
+    --rrze-appointment-accordion-text-active-hover: var(--color-rw-ci-hell-kontrast, #fff);
+    --rrze-appointment-accordion-accent: var(--rrze-appointment-accordion-bg-active);
+    --rrze-appointment-accordion-accent-dark: var(--rrze-appointment-accordion-bg-active-hover);
+}
+
+.rrze-appointment.is-med,
+.rrze-appointment-block.is-med {
+    --rrze-appointment-accordion-bg-active: var(--color-med-ci-hell, #{$_med});
+    --rrze-appointment-accordion-text-active: var(--color-med-ci-hell-kontrast, #000);
+    --rrze-appointment-accordion-bg-active-hover: var(--color-med-dunkler, #{$_med-dark});
+    --rrze-appointment-accordion-text-active-hover: var(--color-med-ci-dunkel-kontrast, #fff);
+    --rrze-appointment-accordion-accent: var(--rrze-appointment-accordion-bg-active);
+    --rrze-appointment-accordion-accent-dark: var(--rrze-appointment-accordion-bg-active-hover);
+}
+
+.rrze-appointment.is-nat,
+.rrze-appointment-block.is-nat {
+    --rrze-appointment-accordion-bg-active: var(--color-nat-ci-hell, #{$_nat});
+    --rrze-appointment-accordion-text-active: var(--color-nat-ci-hell-kontrast, #000);
+    --rrze-appointment-accordion-bg-active-hover: var(--color-nat-dunkler, #{$_nat-dark});
+    --rrze-appointment-accordion-text-active-hover: var(--color-nat-dunkler-kontrast, #fff);
+    --rrze-appointment-accordion-accent: var(--rrze-appointment-accordion-bg-active);
+    --rrze-appointment-accordion-accent-dark: var(--rrze-appointment-accordion-bg-active-hover);
+}
+
+.rrze-appointment.is-tf,
+.rrze-appointment-block.is-tf {
+    --rrze-appointment-accordion-bg-active: var(--color-tf-ci-hell, #{$_tf});
+    --rrze-appointment-accordion-text-active: var(--color-tf-ci-dunkel-kontrast, #000);
+    --rrze-appointment-accordion-bg-active-hover: var(--color-tf-dunkler, #{$_tf-dark});
+    --rrze-appointment-accordion-text-active-hover: var(--color-tf-ci-dunkel-kontrast, #fff);
+    --rrze-appointment-accordion-accent: var(--rrze-appointment-accordion-bg-active);
+    --rrze-appointment-accordion-accent-dark: var(--rrze-appointment-accordion-bg-active-hover);
+}
+
+// ── Dark Mode ────────────────────────────────────────────────────────────────
+.is-style-dark .rrze-appointment,
+.is-style-dark .rrze-appointment-block,
+.is-style-dark.rrze-appointment,
+.is-style-dark.rrze-appointment-block {
+    --rrze-appointment-accordion-bg-default:        var(--FAU-Col-FAU-Blau-100, #04316a);
+    --rrze-appointment-accordion-text-default:      var(--FAU-Col-FAU-Weiss-100, #fff);
+    --rrze-appointment-accordion-bg-active:         var(--FAU-Col-FAU-Blau-100, #04316a);
+    --rrze-appointment-accordion-text-active:       var(--FAU-Col-FAU-Weiss-100, #fff);
+    --rrze-appointment-accordion-bg-active-hover:   var(--FAU-Col-FAU-Blau-100, #04316a);
+    --rrze-appointment-accordion-text-active-hover: var(--FAU-Col-FAU-Weiss-100, #fff);
+    --rrze-appointment-accordion-accent:            var(--FAU-Col-FAU-Blau-100, #04316a);
+    --rrze-appointment-accordion-accent-dark:       var(--FAU-Col-FAU-Blau-100, #04316a);
+
+    .rrze-appointment__accordion,
+    .rrze-appointment__date-group {
+        color: var(--FAU-Col-FAU-Weiss-100, #fff);
+        background-color: var(--FAU-Col-FAU-Blau-100, #04316a);
+
+        > summary::after {
+            background: var(--FAU-Col-FAU-Weiss-100, #fff);
+        }
+    }
+}
+
+// ── FAU Elemental ─────────────────────────────────────────────────────────────
+$_elemental-caret: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M480-344 240-584l56-56 184 184 184-184 56 56-240 240Z'/%3E%3C/svg%3E";
+
+.wp-theme-FAU-Elemental .rrze-appointment,
+.fau-elemental .rrze-appointment {
+    border-top: 1px solid var(--FAU-Col-FAU-Blau-100, #e9edf2);
+
+    .rrze-appointment__accordion,
+    .rrze-appointment__date-group {
+        border: none;
+        margin-bottom: 0;
+        padding-right: 60px;
+        overflow: visible;
+        border-bottom: 1px solid var(--FAU-Col-FAU-Blau-100, #e9edf2);
+
+        > summary {
+            margin: 0;
+            padding: 1rem 3rem 1rem 0;
+            font-size: var(--H-Heading-4, 1.25rem);
+            font-weight: 700;
+            background: transparent;
+            color: inherit;
+            box-shadow: none !important;
+            border: 0 !important;
+            overflow: visible;
+
+            &::before {
+                content: '';
+                position: absolute;
+                top: 50%;
+                right: -60px;
+                width: 2rem;
+                height: 2rem;
+                transform: translateY(-50%);
+                background: var(--rrze-appointment-accordion-accent);
+                mask: none;
+                -webkit-mask: none;
+            }
+
+            &::after {
+                right: -60px;
+                background: var(--rrze-appointment-accordion-text-active);
+                -webkit-mask: url(#{$_elemental-caret}) center / 60% 60% no-repeat;
+                mask: url(#{$_elemental-caret}) center / 60% 60% no-repeat;
+            }
+
+            &:hover,
+            &:focus {
+                color: inherit;
+            }
+        }
+
+        &[open] > summary {
+            box-shadow: none !important;
+            background: transparent;
+            color: inherit;
+
+            &::before {
+                mask: none;
+                -webkit-mask: none;
+            }
+
+            &::after {
+                transform: translateY(-50%) rotate(180deg);
+            }
+
+            &:hover,
+            &:focus {
+                color: inherit;
+            }
+        }
+
+        .rrze-appointment__accordion-content {
+            background: transparent;
+        }
+    }
+}
+
+// Dark Mode im FAU Elemental
+.wp-theme-FAU-Elemental .is-style-dark .rrze-appointment,
+.fau-elemental .is-style-dark .rrze-appointment {
+    border: none;
+    overflow: visible;
+
+    .rrze-appointment__accordion,
+    .rrze-appointment__date-group {
+        border-top: 1px solid var(--rrze-appointment-accordion-text-default);
+        color: var(--rrze-appointment-accordion-text-default);
+        background-color: var(--rrze-appointment-accordion-accent);
+
+        > summary::before {
+            background: var(--rrze-appointment-accordion-text-default);
+        }
+
+        > summary::after {
+            background: var(--rrze-appointment-accordion-accent);
         }
     }
 }
