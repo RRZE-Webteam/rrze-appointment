@@ -125,13 +125,41 @@
             overlay.className = 'rrze-appointment__overlay';
             overlay.setAttribute('role', 'dialog');
             overlay.setAttribute('aria-modal', 'true');
+            overlay.setAttribute('aria-labelledby', 'rrze-appt-overlay-title');
 
             const box = document.createElement('div');
             box.className = 'rrze-appointment__overlay-box';
 
             const text = document.createElement('p');
             text.className = 'rrze-appointment__overlay-text';
+            text.id = 'rrze-appt-overlay-title';
             text.textContent = `Ihr Termin am ${formatDateDisplay(parsed.date)} um ${parsed.time}`;
+
+            // Focus-Trap: alle fokussierbaren Elemente im Dialog
+            function getFocusable() {
+                return Array.from(box.querySelectorAll(
+                    'input, textarea, button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                ));
+            }
+
+            function trapFocus(e) {
+                if (e.key !== 'Tab') return;
+                const focusable = getFocusable();
+                if (!focusable.length) return;
+                const first = focusable[0];
+                const last  = focusable[focusable.length - 1];
+                if (e.shiftKey) {
+                    if (document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    }
+                } else {
+                    if (document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                }
+            }
 
             const emailLabel = document.createElement('label');
             emailLabel.className = 'rrze-appointment__overlay-label';
@@ -188,7 +216,9 @@
             cancelBtn.textContent = 'Abbrechen';
 
             function closeOverlay() {
+                document.removeEventListener('keydown', trapFocus);
                 overlay.remove();
+                button.focus();
             }
 
             cancelBtn.addEventListener('click', closeOverlay);
@@ -196,6 +226,7 @@
             document.addEventListener('keydown', function onKey(e) {
                 if (e.key === 'Escape') { closeOverlay(); document.removeEventListener('keydown', onKey); }
             });
+            document.addEventListener('keydown', trapFocus);
 
             confirmBtn.addEventListener('click', () => {
                 confirmBtn.disabled = true;

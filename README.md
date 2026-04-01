@@ -17,9 +17,7 @@ WordPress plugin for handling appointments.
 
 ## Description
 
-The plugin provides functionality to work with appointments inside WordPress and integrates into the block editor.
-
-It is designed to operate in combination with other RRZE plugins but does function as a standalone component, too.
+RRZE Appointment lets you manage appointments and office hours directly in WordPress. Features include one-click booking, email reminders, early-slot notifications, login via SS=, and automatic user data import from FAUdir. Customizable templates and Gutenberg block integration make setup quick and flexible.
 
 ---
 
@@ -34,21 +32,22 @@ It is designed to operate in combination with other RRZE plugins but does functi
 - Quick and easy creation of consultation/office hours
 - One-click booking for users
 - Reminder email sent 1 day before the appointment
+- Notifications when an earlier slot becomes available
 - Integration of person data from FAUdir
+- User-friendly booking management
 - Flexible customization options
 - Consistent with the FAU corporate design
 - Templates for customizing email notifications
-- Ready-to-use default templates included
+- Includes ready-to-use templates
 - Adapted to the layouts of the "FAU Einrichtungen" and "FAU Elemental" themes
-- Supports the color schemes of FAU faculties and central administration
-- User-friendly booking management
+- Supports FAU faculty color schemes
 - Can be inserted as a Gutenberg block in posts and pages for flexible placement
 
 ---
 
 ## Dependencies
 
-The plugin requires the following plugins to be installed and active:
+Required for full functionality; plugin also works standalone with reduced features.
 
 - [RRZE Access-Control](https://gitlab.rrze.fau.de/rrze-webteam/rrze-ac)
 - [RRZE SSO](https://github.com/RRZE-Webteam/rrze-sso)
