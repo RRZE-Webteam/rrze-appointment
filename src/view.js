@@ -97,6 +97,16 @@
         let currentMonth = firstDate.getMonth();
 
         const bookedSlots = new Set(window.rrze_appointment?.bookedSlots || []);
+        const bookingCutoff = parseInt(form.dataset.bookingCutoff || '0', 10);
+
+        function isSlotCutoff(slotValue) {
+            if (!bookingCutoff) return false;
+            const [date, timeRange = ''] = slotValue.split(' ');
+            const [startTime = ''] = timeRange.split('-');
+            if (!date || !startTime) return false;
+            const slotStart = new Date(`${date}T${startTime}:00`);
+            return (slotStart - Date.now()) < bookingCutoff * 60 * 1000;
+        }
 
         function markHiddenInput(value) {
             groupedInputs.forEach((input) => {
@@ -131,6 +141,7 @@
             emailInput.className = 'rrze-appointment__overlay-email';
             emailInput.placeholder = 'name@example.de';
             emailInput.value = booker.bookerEmail || '';
+            emailInput.readOnly = !!booker.bookerEmail;
             emailLabel.appendChild(emailInput);
 
             const nameLabel = document.createElement('label');
@@ -141,6 +152,7 @@
             nameInput.className = 'rrze-appointment__overlay-name';
             nameInput.placeholder = 'Vorname Nachname';
             nameInput.value = booker.bookerName || '';
+            nameInput.readOnly = !!booker.bookerName;
             nameLabel.appendChild(nameInput);
 
             const messageLabel = document.createElement('label');
@@ -190,7 +202,6 @@
                 data.append('location', form.dataset.location || '');
                 data.append('person_id', form.dataset.personId || '0');
                 data.append('tpl_id', form.dataset.tplId || '0');
-                data.append('booker_email', emailInput.value.trim());
                 data.append('booker_name', nameInput.value.trim());
                 data.append('booker_message', messageInput.value.trim());
 
@@ -236,7 +247,7 @@
         }
 
         function createSlotButton(slot) {
-            const isBooked = bookedSlots.has(slot.value);
+            const isBooked = bookedSlots.has(slot.value) || isSlotCutoff(slot.value);
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'rrze-appointment__slot-button';
@@ -403,7 +414,7 @@
 
                 if (dateSet.has(dateString)) {
                     const dateSlots = dateMap.get(dateString) || [];
-                    const allBooked = dateSlots.length > 0 && dateSlots.every((s) => bookedSlots.has(s.value));
+                    const allBooked = dateSlots.length > 0 && dateSlots.every((s) => bookedSlots.has(s.value) || isSlotCutoff(s.value));
 
                     if (!allBooked) button.classList.add('is-available');
                     if (allBooked) button.classList.add('is-booked');

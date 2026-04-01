@@ -1,0 +1,310 @@
+# Copyright (C) 2025 RRZE Webteam
+# This file is distributed under the GNU General Public License v2.0.
+msgid ""
+msgstr ""
+"Project-Id-Version: RRZE Appointment\n"
+"Report-Msgid-Bugs-To: https://github.com/RRZE-Webteam/rrze-appointment\n"
+"POT-Creation-Date: 2025-01-01 00:00+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2025-01-01 00:00+0000\n"
+"Last-Translator: RRZE Webteam\n"
+"Language-Team: RRZE Webteam\n"
+"Language: \n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Domain: rrze-appointment\n"
+
+msgid "RRZE Appointment"
+msgstr ""
+
+msgid "Appointments"
+msgstr ""
+
+msgid "General"
+msgstr ""
+
+msgid "Mail Templates"
+msgstr ""
+
+msgid "Reminder Email"
+msgstr ""
+
+msgid "days before the appointment."
+msgstr ""
+
+msgid "Template saved."
+msgstr ""
+
+msgid "Template deleted."
+msgstr ""
+
+msgid "The template cannot be deleted because it is still in use."
+msgstr ""
+
+msgid "New Template"
+msgstr ""
+
+msgid "Default"
+msgstr ""
+
+msgid "(not editable)"
+msgstr ""
+
+msgid "Edit"
+msgstr ""
+
+msgid "Send Test Email"
+msgstr ""
+
+msgid "Delete"
+msgstr ""
+
+msgid "Really delete this template?"
+msgstr ""
+
+msgid "Back to list"
+msgstr ""
+
+msgid "Template title"
+msgstr ""
+
+msgid "Save template"
+msgstr ""
+
+msgid "Subject"
+msgstr ""
+
+msgid "Mail body"
+msgstr ""
+
+msgid "Plain text"
+msgstr ""
+
+msgid "HTML"
+msgstr ""
+
+msgid "Insert placeholder"
+msgstr ""
+
+msgid "Appointment request"
+msgstr ""
+
+msgid "Confirmation to booking person"
+msgstr ""
+
+msgid "Confirmation to host"
+msgstr ""
+
+msgid "Reminder to host"
+msgstr ""
+
+msgid "Reminder to booking person"
+msgstr ""
+
+msgid "Cancellation"
+msgstr ""
+
+msgid "Disabled"
+msgstr ""
+
+msgid "No appointments found."
+msgstr ""
+
+msgid "Booking cancelled and cancellation emails sent."
+msgstr ""
+
+msgid "From"
+msgstr ""
+
+msgid "To"
+msgstr ""
+
+msgid "Person"
+msgstr ""
+
+msgid "All"
+msgstr ""
+
+msgid "Filter"
+msgstr ""
+
+msgid "Reset"
+msgstr ""
+
+msgid "Date"
+msgstr ""
+
+msgid "Time"
+msgstr ""
+
+msgid "Title"
+msgstr ""
+
+msgid "Booker"
+msgstr ""
+
+msgid "Email"
+msgstr ""
+
+msgid "Actions"
+msgstr ""
+
+msgid "Cancel booking"
+msgstr ""
+
+msgid "Really cancel this booking?"
+msgstr ""
+
+msgid "Template"
+msgstr ""
+
+msgid "— Default —"
+msgstr ""
+
+msgid "Mail template"
+msgstr ""
+
+msgid "Person settings"
+msgstr ""
+
+msgid "— none —"
+msgstr ""
+
+msgid "Name"
+msgstr ""
+
+msgid "Map (URL)"
+msgstr ""
+
+msgid "Location"
+msgstr ""
+
+msgid "Description"
+msgstr ""
+
+msgid "Appointment settings"
+msgstr ""
+
+msgid "Start time"
+msgstr ""
+
+msgid "End time"
+msgstr ""
+
+msgid "Duration"
+msgstr ""
+
+msgid "Break"
+msgstr ""
+
+msgid "Repeat"
+msgstr ""
+
+msgid "Applies to"
+msgstr ""
+
+msgid "Please select a day first."
+msgstr ""
+
+msgid "Recurrence"
+msgstr ""
+
+msgid "Do not repeat"
+msgstr ""
+
+msgid "Daily"
+msgstr ""
+
+msgid "Weekly"
+msgstr ""
+
+msgid "Monthly"
+msgstr ""
+
+msgid "Ends on"
+msgstr ""
+
+msgid "Appearance"
+msgstr ""
+
+msgid "Accordion style"
+msgstr ""
+
+msgid "Color"
+msgstr ""
+
+msgid "Yes"
+msgstr ""
+
+msgid "No"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Cancel"
+msgstr ""
+
+msgid "New time for"
+msgstr ""
+
+msgid "Invalid time."
+msgstr ""
+
+msgid "End time must be after start time."
+msgstr ""
+
+msgid "Time exceeds end of day."
+msgstr ""
+
+msgid "This time slot is already taken."
+msgstr ""
+
+msgid "Consultation hours found in FAUdir. Should the appointments be created accordingly?"
+msgstr ""
+
+msgid "No consultation hours found in FAUdir, but office hours. Should the appointments be created from those?"
+msgstr ""
+
+msgid "Please provide name and email for all appointment blocks before publishing the page."
+msgstr ""
+
+msgid "No authenticated email address found."
+msgstr ""
+
+msgid "Please confirm your appointment by email."
+msgstr ""
+
+msgid "Your appointment has been confirmed. A confirmation has been sent by email."
+msgstr ""
+
+msgid "Your appointment has been cancelled."
+msgstr ""
+
+msgid "Appointment confirmed"
+msgstr ""
+
+msgid "Appointment cancelled"
+msgstr ""
+
+msgid "This confirmation link has expired or is invalid."
+msgstr ""
+
+msgid "This cancellation link is invalid or has already been used."
+msgstr ""
+
+msgid "Back to homepage"
+msgstr ""
+
+msgid "Privacy Policy"
+msgstr ""
+
+msgid "Legal Notice"
+msgstr ""
+
+msgid "(no title)"
+msgstr ""
+
+msgid "%d test email(s) sent to %s."
+msgstr ""

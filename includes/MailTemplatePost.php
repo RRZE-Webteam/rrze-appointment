@@ -158,7 +158,7 @@ class MailTemplatePost
 
             return array_map(fn(\WP_Post $p) => [
                 'id'    => $p->ID,
-                'title' => $p->post_title ?: __('(kein Titel)', 'rrze-appointment'),
+                'title' => $p->post_title ?: __('(no title)', 'rrze-appointment'),
                 'edit'  => get_edit_post_link($p->ID),
             ], $query->posts);
         } catch (\Exception $e) {

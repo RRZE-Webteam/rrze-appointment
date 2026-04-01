@@ -18,7 +18,6 @@ use RRZE\Appointment\Common\Settings\Options\{
     Textarea,
     HR,
     Logfile,
-    DomainsTable,
     Msg
 };
 
@@ -78,7 +77,6 @@ class Option
             'textarea' => Textarea::class,
             'hr' => HR::class,
             'logfile' => Logfile::class,
-            'domains-table' => DomainsTable::class,
             'msg' => Msg::class            
         ]);
 

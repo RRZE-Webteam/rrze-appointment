@@ -536,7 +536,25 @@ $_tf-dark:   #2f586e;
         }
 
         > summary::after {
-            background: var(--FAU-Col-FAU-Blau-100, #04316a) !important;
+            background: var(--FAU-Col-FAU-Weiss-100, #fff) !important;
+        }
+    }
+}
+
+.wp-theme-FAU-Elemental,
+.fau-elemental {
+
+    .is-style-dark .rrze-appointment,
+    .is-style-dark .rrze-appointment-block,
+    .is-style-dark.rrze-appointment,
+    .is-style-dark.rrze-appointment-block {
+
+        .rrze-appointment__accordion,
+        .rrze-appointment__date-group {
+
+            > summary::after {
+                background: var(--FAU-Col-FAU-Blau-100, #04316a) !important;
+            }
         }
     }
 }
