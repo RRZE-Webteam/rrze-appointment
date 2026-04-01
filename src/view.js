@@ -114,7 +114,7 @@
             });
         }
 
-        function openOverlay(value, booker = {}) {
+        function openOverlay(value, booker = {}, triggerButton = null) {
             const parsed = parseSlotValue(value);
             if (!parsed.date || !parsed.time) return;
 
@@ -216,17 +216,16 @@
             cancelBtn.textContent = 'Abbrechen';
 
             function closeOverlay() {
-                document.removeEventListener('keydown', trapFocus);
                 overlay.remove();
-                button.focus();
+                if (triggerButton) triggerButton.focus();
             }
 
             cancelBtn.addEventListener('click', closeOverlay);
             overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });
+            overlay.addEventListener('keydown', trapFocus);
             document.addEventListener('keydown', function onKey(e) {
                 if (e.key === 'Escape') { closeOverlay(); document.removeEventListener('keydown', onKey); }
             });
-            document.addEventListener('keydown', trapFocus);
 
             confirmBtn.addEventListener('click', () => {
                 confirmBtn.disabled = true;
@@ -327,13 +326,13 @@
                             return;
                         }
                         const booker = res.success ? (res.data || {}) : {};
-                        openOverlay(slot.value, booker);
+                        openOverlay(slot.value, booker, button);
                         renderDaySlots(activeDate);
                         renderGroupedSlots();
                     })
                     .catch(() => {
                         button.disabled = false;
-                        openOverlay(slot.value, {});
+                        openOverlay(slot.value, {}, button);
                         renderDaySlots(activeDate);
                         renderGroupedSlots();
                     });
