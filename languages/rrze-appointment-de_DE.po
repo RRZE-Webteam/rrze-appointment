@@ -324,3 +324,6 @@ msgstr "Mindestanzahl Minuten vor Terminbeginn, bis zu der noch gebucht werden k
 
 msgid "No restriction"
 msgstr "Keine Einschränkung"
+
+msgid "Yes, I would like to be notified if an earlier appointment becomes available."
+msgstr "Ja, ich möchte informiert werden, wenn ein früherer Termin frei wird."

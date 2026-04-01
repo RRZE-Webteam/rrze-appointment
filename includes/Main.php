@@ -333,6 +333,9 @@ class Main
                     'ajaxUrl'     => admin_url('admin-ajax.php'),
                     'nonce'       => wp_create_nonce('rrze_appointment_book'),
                     'bookedSlots' => array_values(array_unique(array_merge($booked, $pending))),
+                    'i18n'        => [
+                        'waitlist' => __('Yes, I would like to be notified if an earlier appointment becomes available.', 'rrze-appointment'),
+                    ],
                 ]);
             }
         } catch (CustomException $e) {
@@ -390,6 +393,7 @@ class Main
         $personId = (int) ($_POST['person_id'] ?? 0);
         $bookerName  = sanitize_text_field($_POST['booker_name'] ?? '');
         $bookerMsg   = sanitize_textarea_field($_POST['booker_message'] ?? '');
+        $bookerWaitlist = !empty($_POST['booker_waitlist']) && $_POST['booker_waitlist'] === '1';
 
         // E-Mail immer aus der Server-Session lesen, nie vom Client
         $serverBooker = Rights::get();
@@ -433,6 +437,7 @@ class Main
             'booker_email' => $bookerEmail,
             'booker_name' => $bookerName,
             'booker_message' => $bookerMsg,
+            'booker_waitlist' => $bookerWaitlist,
             'tpl_id' => $tplId,
         ];
 

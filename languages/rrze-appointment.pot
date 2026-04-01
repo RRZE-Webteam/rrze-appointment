@@ -324,3 +324,6 @@ msgstr ""
 
 msgid "No restriction"
 msgstr ""
+
+msgid "Yes, I would like to be notified if an earlier appointment becomes available."
+msgstr ""
