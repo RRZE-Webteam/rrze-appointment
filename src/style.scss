@@ -1,5 +1,5 @@
 .rrze-appointment,
-.rrze-appointment-block{
+.rrze-appointment-block {
     // Caret SVG (FontAwesome chevron-down)
     $caret-svg: "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20320%20512%22%3E%3Cpath%20d%3D%22M137.4%20374.6c12.5%2012.5%2032.8%2012.5%2045.3%200l128-128c9.2-9.2%2011.9-22.9%206.9-34.9s-16.6-19.8-29.6-19.8L32%20192c-12.9%200-24.6%207.8-29.6%2019.8s-2.2%2025.7%206.9%2034.9l128%20128z%22%2F%3E%3C%2Fsvg%3E";
 
@@ -71,13 +71,13 @@
             justify-content: center;
         }
 
-        $cal-border-default:    #c8c9c7; // Cool Gray 3 C
-        $cal-bg-past:           #d9d9d6; // Cool Gray 1 C
-        $cal-text-past:         #97999b; // Cool Gray 7 C
-        $cal-bg-available:      #D0E2CC;
-        $cal-border-available:  #007a5e;
-        $cal-bg-active:         #8eb4d5;
-        $cal-today-outline:     #ffc72c;
+        $cal-border-default: #c8c9c7; // Cool Gray 3 C
+        $cal-bg-past: #d9d9d6; // Cool Gray 1 C
+        $cal-text-past: #97999b; // Cool Gray 7 C
+        $cal-bg-available: #D0E2CC;
+        $cal-border-available: #007a5e;
+        $cal-bg-active: #8eb4d5;
+        $cal-today-outline: #ffc72c;
 
         &-day {
             border: 1px solid $cal-border-default;
@@ -124,9 +124,15 @@
             border-radius: 4px;
             color: #1e1e1e;
             cursor: pointer;
-            font-size: 16px;
-            line-height: 1;
-            padding: 2px 8px;
+            font-size: 22px;
+            width: 42px;
+            height: 42px;
+            min-width: 42px;
+            min-height: 42px;
+            line-height: 42px;
+            text-align: center;
+            // padding: 2px 8px;
+            padding: 0;
         }
     }
 
@@ -153,8 +159,8 @@
         border: 1px solid var(--rrze-appointment-accordion-border);
         margin-bottom: 5px;
 
-        > .rrze-appointment__accordion-toggle,
-        > .rrze-appointment__date-group-toggle {
+        >.rrze-appointment__accordion-toggle,
+        >.rrze-appointment__date-group-toggle {
             display: block;
             width: 100%;
             position: relative;
@@ -192,14 +198,15 @@
             }
         }
 
-        > .rrze-appointment__slot-grid,
-        > .rrze-appointment__accordion-content {
+        >.rrze-appointment__slot-grid,
+        >.rrze-appointment__accordion-content {
             display: none;
         }
 
         &[data-accordion="open"] {
-            > .rrze-appointment__accordion-toggle,
-            > .rrze-appointment__date-group-toggle {
+
+            >.rrze-appointment__accordion-toggle,
+            >.rrze-appointment__date-group-toggle {
                 background: var(--rrze-appointment-accordion-bg-active-hover);
                 color: var(--rrze-appointment-accordion-text-active-hover);
                 box-shadow: inset 10px 0 0 0 var(--rrze-appointment-accordion-accent-dark) !important;
@@ -215,8 +222,8 @@
                 }
             }
 
-            > .rrze-appointment__slot-grid,
-            > .rrze-appointment__accordion-content {
+            >.rrze-appointment__slot-grid,
+            >.rrze-appointment__accordion-content {
                 display: block !important;
             }
         }
@@ -264,7 +271,7 @@
         opacity: 0;
         pointer-events: none;
 
-        &:checked + .rrze-appointment__slot-button {
+        &:checked+.rrze-appointment__slot-button {
             background: #0b5ed7;
             border-color: #0b5ed7;
             color: #fff;
@@ -332,7 +339,9 @@
         transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
         padding: 0;
 
-        svg { fill: none; }
+        svg {
+            fill: none;
+        }
 
         @media (hover: hover) {
             opacity: 0;
@@ -367,7 +376,7 @@
         justify-content: center;
         z-index: 99999;
 
-        &-error{
+        &-error {
             color: red;
         }
 
@@ -462,18 +471,18 @@
 
 // Faculty color mappings — separate selectors so they work on both
 // .rrze-appointment (frontend form) and .rrze-appointment-block (editor wrapper)
-$_fau:       #04316A;
-$_fau-dark:  #041e42;
-$_med:       #18b4f1;
-$_med-dark:  #005287;
-$_nat:       #7bb725;
-$_nat-dark:  #266141;
-$_phil:      #fdb735;
+$_fau: #04316A;
+$_fau-dark: #041e42;
+$_med: #18b4f1;
+$_med-dark: #005287;
+$_nat: #7bb725;
+$_nat-dark: #266141;
+$_phil: #fdb735;
 $_phil-dark: #e87722;
-$_rw:        #c50f3c;
-$_rw-dark:   #971b2f;
-$_tf:        #8C9FB1;
-$_tf-dark:   #2f586e;
+$_rw: #c50f3c;
+$_rw-dark: #971b2f;
+$_tf: #8C9FB1;
+$_tf-dark: #2f586e;
 
 .rrze-appointment.is-fau,
 .rrze-appointment-block.is-fau {
@@ -540,14 +549,14 @@ $_tf-dark:   #2f586e;
 .is-style-dark .rrze-appointment-block,
 .is-style-dark.rrze-appointment,
 .is-style-dark.rrze-appointment-block {
-    --rrze-appointment-accordion-bg-default:        var(--FAU-Col-FAU-Blau-100, #04316a);
-    --rrze-appointment-accordion-text-default:      var(--FAU-Col-FAU-Weiss-100, #fff);
-    --rrze-appointment-accordion-bg-active:         var(--FAU-Col-FAU-Blau-100, #04316a);
-    --rrze-appointment-accordion-text-active:       var(--FAU-Col-FAU-Weiss-100, #fff);
-    --rrze-appointment-accordion-bg-active-hover:   var(--FAU-Col-FAU-Blau-100, #04316a);
+    --rrze-appointment-accordion-bg-default: var(--FAU-Col-FAU-Blau-100, #04316a);
+    --rrze-appointment-accordion-text-default: var(--FAU-Col-FAU-Weiss-100, #fff);
+    --rrze-appointment-accordion-bg-active: var(--FAU-Col-FAU-Blau-100, #04316a);
+    --rrze-appointment-accordion-text-active: var(--FAU-Col-FAU-Weiss-100, #fff);
+    --rrze-appointment-accordion-bg-active-hover: var(--FAU-Col-FAU-Blau-100, #04316a);
     --rrze-appointment-accordion-text-active-hover: var(--FAU-Col-FAU-Weiss-100, #fff);
-    --rrze-appointment-accordion-accent:            var(--FAU-Col-FAU-Blau-100, #04316a);
-    --rrze-appointment-accordion-accent-dark:       var(--FAU-Col-FAU-Blau-100, #04316a);
+    --rrze-appointment-accordion-accent: var(--FAU-Col-FAU-Blau-100, #04316a);
+    --rrze-appointment-accordion-accent-dark: var(--FAU-Col-FAU-Blau-100, #04316a);
 
 
     .rrze-appointment__accordion,
@@ -556,15 +565,15 @@ $_tf-dark:   #2f586e;
         color: var(--FAU-Col-FAU-Weiss-100, #fff);
         background-color: var(--FAU-Col-FAU-Blau-100, #04316a);
 
-        > summary::before,
-        > .rrze-appointment__accordion-toggle::before,
-        > .rrze-appointment__date-group-toggle::before {
+        >summary::before,
+        >.rrze-appointment__accordion-toggle::before,
+        >.rrze-appointment__date-group-toggle::before {
             background: var(--FAU-Col-FAU-Weiss-100, #fff) !important;
         }
 
-        > summary::after,
-        > .rrze-appointment__accordion-toggle::after,
-        > .rrze-appointment__date-group-toggle::after {
+        >summary::after,
+        >.rrze-appointment__accordion-toggle::after,
+        >.rrze-appointment__date-group-toggle::after {
             background: var(--FAU-Col-FAU-Weiss-100, #fff) !important;
         }
     }
@@ -581,9 +590,9 @@ $_tf-dark:   #2f586e;
         .rrze-appointment__accordion,
         .rrze-appointment__date-group {
 
-            > summary::after,
-            > .rrze-appointment__accordion-toggle::after,
-            > .rrze-appointment__date-group-toggle::after {
+            >summary::after,
+            >.rrze-appointment__accordion-toggle::after,
+            >.rrze-appointment__date-group-toggle::after {
                 background: var(--FAU-Col-FAU-Blau-100, #04316a) !important;
             }
         }
@@ -605,9 +614,9 @@ $_elemental-caret: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'
         overflow: visible;
         border-bottom: 1px solid var(--FAU-Col-FAU-Blau-100, #e9edf2);
 
-        > summary,
-        > .rrze-appointment__accordion-toggle,
-        > .rrze-appointment__date-group-toggle {
+        >summary,
+        >.rrze-appointment__accordion-toggle,
+        >.rrze-appointment__date-group-toggle {
             margin: 0;
             padding: 1rem 3rem 1rem 0;
             font-size: var(--H-Heading-4, 1.25rem);
@@ -644,9 +653,9 @@ $_elemental-caret: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'
             }
         }
 
-        &[open] > summary,
-        &[data-accordion="open"] > .rrze-appointment__accordion-toggle,
-        &[data-accordion="open"] > .rrze-appointment__date-group-toggle {
+        &[open]>summary,
+        &[data-accordion="open"]>.rrze-appointment__accordion-toggle,
+        &[data-accordion="open"]>.rrze-appointment__date-group-toggle {
             box-shadow: none !important;
             background: transparent;
             color: inherit;
