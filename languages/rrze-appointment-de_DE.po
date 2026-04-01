@@ -315,3 +315,12 @@ msgid ""
 "Your appointment has been confirmed. A confirmation has been sent by email."
 msgstr ""
 "Ihr Termin wurde bestätigt. Eine Bestätigung wurde per E-Mail versendet."
+
+msgid "Booking cutoff"
+msgstr "Buchungsschluss"
+
+msgid "Minimum minutes before start time that booking is still allowed."
+msgstr "Mindestanzahl Minuten vor Terminbeginn, bis zu der noch gebucht werden kann."
+
+msgid "No restriction"
+msgstr "Keine Einschränkung"

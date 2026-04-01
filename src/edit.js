@@ -224,7 +224,8 @@ export default function Edit({ attributes, setAttributes }) {
         tplId,
         locationUrl,
         color,
-        style
+        style,
+        bookingCutoff
     } = attributes;
 
     const colorClass = color ? `is-${color}` : '';
@@ -677,6 +678,25 @@ export default function Edit({ attributes, setAttributes }) {
                         onChange={(value) =>
                             setAttributes({ color: value })
                         }
+                    />
+                    <SelectControl
+                        label={__('Booking cutoff', 'rrze-appointment')}
+                        help={__('Minimum minutes before start time that booking is still allowed.', 'rrze-appointment')}
+                        value={String(bookingCutoff || 0)}
+                        options={[
+                            { label: __('No restriction', 'rrze-appointment'), value: '0' },
+                            { label: '15 min', value: '15' },
+                            { label: '30 min', value: '30' },
+                            { label: '60 min', value: '60' },
+                            { label: '90 min', value: '90' },
+                            { label: '120 min', value: '120' },
+                            { label: '180 min', value: '180' },
+                            { label: '240 min', value: '240' },
+                            { label: '360 min', value: '360' },
+                            { label: '720 min', value: '720' },
+                            { label: '1440 min', value: '1440' },
+                        ]}
+                        onChange={(value) => setAttributes({ bookingCutoff: Number(value) })}
                     />
                 </PanelBody>
 

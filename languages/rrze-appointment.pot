@@ -315,3 +315,12 @@ msgstr ""
 msgid ""
 "Your appointment has been confirmed. A confirmation has been sent by email."
 msgstr ""
+
+msgid "Booking cutoff"
+msgstr ""
+
+msgid "Minimum minutes before start time that booking is still allowed."
+msgstr ""
+
+msgid "No restriction"
+msgstr ""
