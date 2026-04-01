@@ -14,10 +14,7 @@ Text Domain: rrze-appointment
 
 == Description ==
 
-RRZE Appointment is a WordPress plugin for handling appointments. 
-It provides a Gutenberg block for integrating appointments into posts and pages.
-
-The plugin works with other RRZE plugins but can also be used standalone.
+RRZE Appointment lets you manage appointments and office hours directly in WordPress. Features include one-click booking, email reminders, early-slot notifications, login via SS=, and automatic user data import from FAUdir. Customizable templates and Gutenberg block integration make setup quick and flexible.
 
 == Installation ==
 
@@ -30,19 +27,20 @@ The plugin works with other RRZE plugins but can also be used standalone.
 * Quick and easy creation of consultation/office hours
 * One-click booking for users
 * Reminder email sent 1 day before the appointment
+* Notifications when an earlier slot becomes available
 * Integration of person data from FAUdir
+* User-friendly booking management
 * Flexible customization options
 * Consistent with the FAU corporate design
 * Templates for customizing email notifications
-* Ready-to-use default templates included
+* Includes ready-to-use templates
 * Adapted to the layouts of the "FAU Einrichtungen" and "FAU Elemental" themes
-* Supports the color schemes of FAU faculties and central administration
-* User-friendly booking management
+* Supports FAU faculty color schemes
 * Can be inserted as a Gutenberg block in posts and pages for flexible placement
 
 == Dependencies ==
 
-Requires the following plugins to function:
+Required for full functionality; plugin also works standalone with reduced features.
 
 * RRZE Access Control: https://gitlab.rrze.fau.de/rrze-webteam/rrze-ac
 * RRZE SSO: https://github.com/RRZE-Webteam/rrze-sso
@@ -52,12 +50,6 @@ With these plugins, integration with SSO and FAUdir is enabled.
 Users booking appointments log in via SSO using their IdM credentials. 
 Person data can be imported automatically from FAUdir. 
 For example, office hours or consultation appointments are generated if defined in FAUdir.
-
-== Screenshots ==
-
-1. Gutenberg block for appointments
-2. Booking interface in the block editor
-3. Example frontend output
 
 == Changelog ==
 
