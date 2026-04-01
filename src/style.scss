@@ -87,27 +87,23 @@
 
             &.is-past {
                 background-color: $cal-bg-past !important;
-                color: $cal-text-past !important;
                 border-color: $cal-bg-past;
             }
 
             &.is-available {
                 background-color: $cal-bg-available !important;
                 border-color: $cal-border-available;
-                color: #fff !important;
                 cursor: pointer;
             }
 
             &.is-active {
                 background-color: $cal-bg-active !important;
                 border-color: $cal-bg-active;
-                color: #fff !important;
             }
 
             &.is-booked {
                 background-color: #e8e8e8 !important;
                 border-color: #c8c9c7;
-                color: #97999b !important;
                 cursor: not-allowed;
                 text-decoration: line-through;
             }
