@@ -67,6 +67,7 @@ class Settings
         add_action('admin_init', [$this, 'registerSettings']);
         add_action('admin_init', [$this, 'handleTemplatePost']);
         add_action('admin_init', [$this, 'handleCancelPost']);
+        add_action('admin_init', [$this, 'handleTestMail']);
         add_action('admin_print_footer_scripts', [$this, 'renderAdminJs']);
     }
 
@@ -137,6 +138,53 @@ class Settings
             wp_redirect(add_query_arg(['page' => self::PAGE_SLUG, 'tab' => 'templates', 'saved' => '1', 'edit' => $id], admin_url('options-general.php')));
             exit;
         }
+    }
+
+    public function handleTestMail(): void
+    {
+        if (($_POST['rrze_appt_action'] ?? '') !== 'test_mail') return;
+        if (!current_user_can('manage_options')) return;
+        check_admin_referer('rrze_appt_test_mail', 'rrze_appt_test_nonce');
+
+        $tplId = (int) ($_POST['tpl_id'] ?? 0);
+        $user  = wp_get_current_user();
+        $to    = $user->user_email;
+
+        $vars = [
+            '[titel]'          => 'Testvortrag über Musterthemen',
+            '[datum]'          => date_i18n(get_option('date_format'), strtotime('+3 days')),
+            '[uhrzeit]'        => '10:00 – 10:30',
+            '[ort]'            => 'Raum 1.234, Mustergebäude',
+            '[person_name]'    => 'Prof. Dr. Max Mustermann',
+            '[name]'           => 'Monika Musterfrau',
+            '[email]'          => $to,
+            '[nachricht]'      => 'Ich habe eine kurze Frage zum Thema.',
+            '[bestaetigungs_link]' => home_url('/'),
+            '[storno_link]'    => home_url('/'),
+            '[impressum_link]' => TokenManager::imprintUrl(),
+        ];
+
+        $types = ['booking_pending', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation'];
+        $sent  = 0;
+
+        foreach ($types as $type) {
+            $tpl = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, $type) ?? []) : [];
+            $def = MailTemplatePost::getDefault($type);
+
+            $subject = Settings::renderTemplate(!empty($tpl['subject']) ? $tpl['subject'] : $def['subject'], $vars);
+            $plain   = Settings::renderTemplate(!empty($tpl['body'])    ? $tpl['body']    : $def['body'],    $vars);
+            $html    = Settings::renderTemplate(!empty($tpl['body_html']) ? $tpl['body_html'] : $def['body_html'], $vars);
+
+            if (Settings::sendMail($to, '[TEST] ' . $subject, $plain, $html)) $sent++;
+        }
+
+        $redirect = add_query_arg([
+            'page'      => self::PAGE_SLUG,
+            'tab'       => 'templates',
+            'test_sent' => $sent,
+        ], admin_url('options-general.php'));
+        wp_redirect($redirect);
+        exit;
     }
 
     public function handleCancelPost(): void
@@ -229,9 +277,13 @@ class Settings
         $editId = (int) ($_GET['edit'] ?? 0);
 
         // Notices
-        if (!empty($_GET['saved']))   echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Vorlage gespeichert.', 'rrze-appointment') . '</p></div>';
-        if (!empty($_GET['deleted'])) echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Vorlage gelöscht.', 'rrze-appointment') . '</p></div>';
-        if (!empty($_GET['inuse']))   echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__('Die Vorlage kann nicht gelöscht werden, da sie noch verwendet wird.', 'rrze-appointment') . '</p></div>';
+        if (!empty($_GET['saved']))     echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Vorlage gespeichert.', 'rrze-appointment') . '</p></div>';
+        if (!empty($_GET['deleted']))   echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Vorlage gelöscht.', 'rrze-appointment') . '</p></div>';
+        if (!empty($_GET['inuse']))     echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__('Die Vorlage kann nicht gelöscht werden, da sie noch verwendet wird.', 'rrze-appointment') . '</p></div>';
+        if (isset($_GET['test_sent'])) {
+            $sent = (int) $_GET['test_sent'];
+            echo '<div class="notice notice-success is-dismissible"><p>' . sprintf(esc_html__('%d Testmail(s) an %s versendet.', 'rrze-appointment'), $sent, esc_html(wp_get_current_user()->user_email)) . '</p></div>';
+        }
 
         if ($editId > 0 || !empty($_GET['new'])) {
             $this->renderTemplateForm($editId);
@@ -259,7 +311,14 @@ class Settings
             <tbody>
                 <tr>
                     <td><strong><?php esc_html_e('Standard', 'rrze-appointment'); ?></strong> <em style="color:#50575e;"><?php esc_html_e('(nicht editierbar)', 'rrze-appointment'); ?></em></td>
-                    <td>&mdash;</td>
+                    <td>
+                        <form method="post" action="" style="display:inline;">
+                            <?php wp_nonce_field('rrze_appt_test_mail', 'rrze_appt_test_nonce'); ?>
+                            <input type="hidden" name="rrze_appt_action" value="test_mail">
+                            <input type="hidden" name="tpl_id" value="0">
+                            <button type="submit" class="button button-small"><?php esc_html_e('Testmail senden', 'rrze-appointment'); ?></button>
+                        </form>
+                    </td>
                 </tr>
                 <?php foreach ($templates as $tpl) :
                     $editUrl = add_query_arg(['page' => self::PAGE_SLUG, 'tab' => 'templates', 'edit' => $tpl['id']], admin_url('options-general.php'));
@@ -268,6 +327,12 @@ class Settings
                         <td><strong><?php echo esc_html($tpl['title'] ?: __('(kein Titel)', 'rrze-appointment')); ?></strong></td>
                         <td>
                             <a href="<?php echo esc_url($editUrl); ?>" class="button button-small"><?php esc_html_e('Bearbeiten', 'rrze-appointment'); ?></a>
+                            <form method="post" action="" style="display:inline;">
+                                <?php wp_nonce_field('rrze_appt_test_mail', 'rrze_appt_test_nonce'); ?>
+                                <input type="hidden" name="rrze_appt_action" value="test_mail">
+                                <input type="hidden" name="tpl_id" value="<?php echo esc_attr($tpl['id']); ?>">
+                                <button type="submit" class="button button-small"><?php esc_html_e('Testmail senden', 'rrze-appointment'); ?></button>
+                            </form>
                             <form method="post" action="" style="display:inline;">
                                 <?php wp_nonce_field('rrze_appt_tpl_save', 'rrze_appt_tpl_nonce'); ?>
                                 <input type="hidden" name="rrze_appt_tpl_action" value="delete">
