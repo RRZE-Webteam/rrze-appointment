@@ -82,30 +82,30 @@
         &-day {
             border: 1px solid $cal-border-default;
             border-radius: 0.35rem;
-            background: #fff;
+            background-color: #fff !important;
             color: #1e1e1e !important;
 
             &.is-past {
-                background: $cal-bg-past !important;
+                background-color: $cal-bg-past !important;
                 color: $cal-text-past !important;
                 border-color: $cal-bg-past;
             }
 
             &.is-available {
-                background: $cal-bg-available !important;
+                background-color: $cal-bg-available !important;
                 border-color: $cal-border-available;
                 color: #fff !important;
                 cursor: pointer;
             }
 
             &.is-active {
-                background: $cal-bg-active !important;
+                background-color: $cal-bg-active !important;
                 border-color: $cal-bg-active;
                 color: #fff !important;
             }
 
             &.is-booked {
-                background: #e8e8e8 !important;
+                background-color: #e8e8e8 !important;
                 border-color: #c8c9c7;
                 color: #97999b !important;
                 cursor: not-allowed;
