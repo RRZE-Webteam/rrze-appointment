@@ -3,6 +3,7 @@
 namespace RRZE\Appointment;
 
 use RRZE\Appointment\MailTemplatePost;
+use RRZE\Appointment\MailTemplate;
 use RRZE\Appointment\TokenManager;
 use RRZE\Appointment\Common\CustomException;
 
@@ -76,10 +77,114 @@ class Bookings
             unset($allMeta[$slot]);
             update_option(self::META_OPTION, $allMeta, false);
 
+            // Notify waitlisted bookers who have a later appointment for the same person
+            self::notifyWaitlist($slot, $meta, $allMeta);
+
             return true;
         } catch (\Exception $e) {
             throw new CustomException($e->getMessage(), $e->getCode(), null);
         }
+    }
+
+    /**
+     * Sends a notification to all bookers who:
+     * - have booker_waitlist = true
+     * - have a future booking for the same person_id
+     * - have a slot that is LATER than the just-cancelled slot
+     */
+    private static function notifyWaitlist(string $cancelledSlot, array $cancelledMeta, array $allMeta): void
+    {
+        try {
+            $cancelledDate    = explode(' ', $cancelledSlot)[0] ?? '';
+            $cancelledPersonId = (int) ($cancelledMeta['person_id'] ?? 0);
+            $today            = date('Y-m-d');
+
+            if (!$cancelledDate || $cancelledDate < $today) return;
+
+            foreach ($allMeta as $bookedSlot => $bookedMeta) {
+                if (empty($bookedMeta['booker_waitlist'])) continue;
+
+                $bookedPersonId = (int) ($bookedMeta['person_id'] ?? 0);
+                if ($bookedPersonId !== $cancelledPersonId) continue;
+
+                $bookedDate = explode(' ', $bookedSlot)[0] ?? '';
+                if (!$bookedDate || $bookedDate <= $cancelledDate) continue;
+                if ($bookedDate < $today) continue;
+
+                $bookerEmail = $bookedMeta['booker_email'] ?? '';
+                if (!$bookerEmail) continue;
+
+                self::sendWaitlistNotification($cancelledSlot, $cancelledMeta, $bookedSlot, $bookedMeta);
+            }
+        } catch (\Exception $e) {
+            // Non-critical — don't break the cancellation flow
+        }
+    }
+
+    private static function sendWaitlistNotification(string $cancelledSlot, array $cancelledMeta, string $bookedSlot, array $bookedMeta): void
+    {
+        self::sendWaitlistNotificationStatic($cancelledSlot, $cancelledMeta, $bookedSlot, $bookedMeta);
+    }
+
+    public static function sendWaitlistNotificationStatic(string $newSlot, array $newSlotMeta, string $bookedSlot, array $bookedMeta): void
+    {
+        [$cancelledDate, $cancelledTime] = array_pad(explode(' ', $cancelledSlot, 2), 2, '');
+        [$cancelledStart, $cancelledEnd] = array_pad(explode('-', $cancelledTime, 2), 2, '');
+        [$bookedDate, $bookedTime]       = array_pad(explode(' ', $bookedSlot, 2), 2, '');
+        [$bookedStart, $bookedEnd]       = array_pad(explode('-', $bookedTime, 2), 2, '');
+
+        $bookerEmail = $bookedMeta['booker_email'] ?? '';
+        $bookerName  = $bookedMeta['booker_name']  ?? '';
+        $title       = $cancelledMeta['title']     ?? $bookedMeta['title'] ?? '';
+        $location    = $cancelledMeta['location']  ?? '';
+
+        $personId = (int) ($cancelledMeta['person_id'] ?? 0);
+        $pName    = '';
+        if ($personId > 0) {
+            $pTitle  = (string) get_post_meta($personId, 'person_honorificPrefix', true);
+            $pGiven  = (string) get_post_meta($personId, 'person_givenName', true);
+            $pFamily = (string) get_post_meta($personId, 'person_familyName', true);
+            $pName   = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
+        }
+
+        $subject = sprintf(
+            __('Earlier appointment available: %s on %s', 'rrze-appointment'),
+            $title,
+            date_i18n(get_option('date_format'), strtotime($cancelledDate))
+        );
+
+        $plain = sprintf(
+            __(
+                "Hello %s,\n\nAn earlier appointment has become available:\n\nAppointment: %s\nDate: %s\nTime: %s\nLocation: %s\nHost: %s\n\nYour current appointment is on %s at %s.\n\nPlease book the earlier slot directly on the website.",
+                'rrze-appointment'
+            ),
+            $bookerName ?: __('there', 'rrze-appointment'),
+            $title,
+            date_i18n(get_option('date_format'), strtotime($cancelledDate)),
+            $cancelledStart . ' – ' . $cancelledEnd,
+            $location ?: '–',
+            $pName ?: '–',
+            date_i18n(get_option('date_format'), strtotime($bookedDate)),
+            $bookedStart . ' – ' . $bookedEnd
+        );
+
+        $html = '<p>' . sprintf(__('Hello %s,', 'rrze-appointment'), esc_html($bookerName ?: __('there', 'rrze-appointment'))) . '</p>'
+            . '<p>' . __('An earlier appointment has become available:', 'rrze-appointment') . '</p>'
+            . '<table>'
+            . '<tr><th>' . __('Appointment', 'rrze-appointment') . '</th><td>' . esc_html($title) . '</td></tr>'
+            . '<tr><th>' . __('Date', 'rrze-appointment') . '</th><td>' . esc_html(date_i18n(get_option('date_format'), strtotime($cancelledDate))) . '</td></tr>'
+            . '<tr><th>' . __('Time', 'rrze-appointment') . '</th><td>' . esc_html($cancelledStart . ' – ' . $cancelledEnd) . '</td></tr>'
+            . '<tr><th>' . __('Location', 'rrze-appointment') . '</th><td>' . esc_html($location ?: '–') . '</td></tr>'
+            . '<tr><th>' . __('Host', 'rrze-appointment') . '</th><td>' . esc_html($pName ?: '–') . '</td></tr>'
+            . '</table>'
+            . '<p>' . sprintf(
+                __('Your current appointment is on %s at %s.', 'rrze-appointment'),
+                esc_html(date_i18n(get_option('date_format'), strtotime($bookedDate))),
+                esc_html($bookedStart . ' – ' . $bookedEnd)
+            ) . '</p>'
+            . '<p>' . __('Please book the earlier slot directly on the website.', 'rrze-appointment') . '</p>';
+
+        Settings::sendMail($bookerEmail, $subject, $plain, MailTemplate::wrap($html, $subject));
     }
 
     private static function sendCancellationMail(string $slot, array $meta): void

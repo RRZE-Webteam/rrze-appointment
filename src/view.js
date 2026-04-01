@@ -163,6 +163,14 @@
             messageInput.rows = 4;
             messageLabel.appendChild(messageInput);
 
+            const waitlistLabel = document.createElement('label');
+            waitlistLabel.className = 'rrze-appointment__overlay-waitlist';
+            const waitlistCheckbox = document.createElement('input');
+            waitlistCheckbox.type = 'checkbox';
+            waitlistCheckbox.className = 'rrze-appointment__overlay-waitlist-checkbox';
+            waitlistLabel.appendChild(waitlistCheckbox);
+            waitlistLabel.appendChild(document.createTextNode(' ' + (window.rrze_appointment?.i18n?.waitlist || 'Yes, I would like to be notified if an earlier appointment becomes available.')));
+
             const status = document.createElement('p');
             status.className = 'rrze-appointment__overlay-status';
 
@@ -204,6 +212,7 @@
                 data.append('tpl_id', form.dataset.tplId || '0');
                 data.append('booker_name', nameInput.value.trim());
                 data.append('booker_message', messageInput.value.trim());
+                data.append('booker_waitlist', waitlistCheckbox.checked ? '1' : '0');
 
                 fetch(window.rrze_appointment?.ajaxUrl || '/wp-admin/admin-ajax.php', {
                     method: 'POST',
@@ -239,6 +248,7 @@
             box.appendChild(emailLabel);
             box.appendChild(nameLabel);
             box.appendChild(messageLabel);
+            box.appendChild(waitlistLabel);
             box.appendChild(status);
             box.appendChild(actions);
             overlay.appendChild(box);

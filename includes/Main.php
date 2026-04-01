@@ -9,6 +9,7 @@ use RRZE\Appointment\Defaults;
 use RRZE\Appointment\Settings;
 use RRZE\Appointment\Reminder;
 use RRZE\Appointment\Bookings;
+use RRZE\Appointment\SlotGenerator;
 use RRZE\Appointment\MailTemplatePost;
 use RRZE\Appointment\TokenManager;
 use RRZE\Appointment\Common\Settings\Settings as CommonSettings;
@@ -55,6 +56,7 @@ class Main
         add_action('template_redirect', [$this, 'handleConfirm']);
         add_action('template_redirect', [$this, 'handleCancel']);
         add_action('rrze_appointment_expire_pending', ['RRZE\Appointment\TokenManager', 'expirePending']);
+        add_action('save_post', [$this, 'handleSavePost'], 10, 2);
     }
 
 
@@ -333,6 +335,9 @@ class Main
                     'ajaxUrl'     => admin_url('admin-ajax.php'),
                     'nonce'       => wp_create_nonce('rrze_appointment_book'),
                     'bookedSlots' => array_values(array_unique(array_merge($booked, $pending))),
+                    'i18n'        => [
+                        'waitlist' => __('Yes, I would like to be notified if an earlier appointment becomes available.', 'rrze-appointment'),
+                    ],
                 ]);
             }
         } catch (CustomException $e) {
@@ -390,6 +395,7 @@ class Main
         $personId = (int) ($_POST['person_id'] ?? 0);
         $bookerName  = sanitize_text_field($_POST['booker_name'] ?? '');
         $bookerMsg   = sanitize_textarea_field($_POST['booker_message'] ?? '');
+        $bookerWaitlist = !empty($_POST['booker_waitlist']) && $_POST['booker_waitlist'] === '1';
 
         // E-Mail immer aus der Server-Session lesen, nie vom Client
         $serverBooker = Rights::get();
@@ -433,6 +439,7 @@ class Main
             'booker_email' => $bookerEmail,
             'booker_name' => $bookerName,
             'booker_message' => $bookerMsg,
+            'booker_waitlist' => $bookerWaitlist,
             'tpl_id' => $tplId,
         ];
 
@@ -657,6 +664,60 @@ class Main
         );
         } catch (CustomException $e) {
             wp_die(esc_html($e->getMessage()), '', ['response' => 500]);
+        }
+    }
+    public function handleSavePost(int $postId, \WP_Post $post): void
+    {
+        if (wp_is_post_revision($postId) || wp_is_post_autosave($postId)) return;
+        if (!has_blocks($post->post_content)) return;
+
+        $today   = date('Y-m-d');
+        $allMeta = (array) get_option(Bookings::META_OPTION, []);
+
+        // Collect all waitlisted bookings grouped by person_id
+        $waitlisted = []; // person_id => [ [slot, meta], ... ]
+        foreach ($allMeta as $bookedSlot => $bookedMeta) {
+            if (empty($bookedMeta['booker_waitlist'])) continue;
+            $bookedDate = explode(' ', $bookedSlot)[0] ?? '';
+            if ($bookedDate < $today) continue;
+            $pid = (int) ($bookedMeta['person_id'] ?? 0);
+            $waitlisted[$pid][] = ['slot' => $bookedSlot, 'meta' => $bookedMeta];
+        }
+
+        if (empty($waitlisted)) return;
+
+        $blocks = parse_blocks($post->post_content);
+        foreach ($blocks as $block) {
+            if (($block['blockName'] ?? '') !== 'rrze/appointment') continue;
+
+            $attrs    = $block['attrs'] ?? [];
+            $personId = (int) ($attrs['personId'] ?? 0);
+            if (!isset($waitlisted[$personId])) continue;
+
+            $newSlots = SlotGenerator::fromAttributes($attrs);
+            if (empty($newSlots)) continue;
+
+            // Only future slots that are not already booked
+            $bookedSlots = (array) get_option(Bookings::SLOTS_OPTION, []);
+            $bookedSet   = array_flip($bookedSlots);
+            $newSlots    = array_filter($newSlots, fn($s) => !isset($bookedSet[$s]) && explode(' ', $s)[0] >= $today);
+
+            foreach ($waitlisted[$personId] as $entry) {
+                $bookedSlot = $entry['slot'];
+                $bookedMeta = $entry['meta'];
+                $bookedDate = explode(' ', $bookedSlot)[0];
+
+                // Find new slots that are earlier than the booked slot
+                $earlier = array_filter($newSlots, fn($s) => $s < $bookedSlot);
+                if (empty($earlier)) continue;
+
+                Bookings::sendWaitlistNotificationStatic(
+                    (string) min($earlier), // earliest new slot
+                    $attrs,
+                    $bookedSlot,
+                    $bookedMeta
+                );
+            }
         }
     }
 
