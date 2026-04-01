@@ -395,7 +395,7 @@ class Main
         $serverBooker = Rights::get();
         $bookerEmail  = sanitize_email($serverBooker['bookerEmail'] ?? '');
         if (!$bookerEmail) {
-            wp_send_json_error(__('Keine authentifizierte E-Mail-Adresse gefunden.', 'rrze-appointment'));
+            wp_send_json_error(__('No authenticated email address found.', 'rrze-appointment'));
             return;
         }
         $tplId = (int) ($_POST['tpl_id'] ?? 0);
@@ -472,7 +472,7 @@ class Main
 
         Settings::sendMail($bookerEmail, $subject, $plain, $html);
 
-        wp_send_json_success(['message' => __('Bitte bestätigen Sie Ihren Termin per E-Mail.', 'rrze-appointment')]);
+        wp_send_json_success(['message' => __('Please confirm your appointment by email.', 'rrze-appointment')]);
         } catch (CustomException $e) {
             wp_send_json_error($e->getMessage());
         }
@@ -489,7 +489,7 @@ class Main
 
         $entry = TokenManager::confirmPending($token);
         if (!$entry) {
-            wp_die(__('Dieser Bestätigungslink ist abgelaufen oder ungültig.', 'rrze-appointment'), '', ['response' => 410]);
+            wp_die(__('This confirmation link has expired or is invalid.', 'rrze-appointment'), '', ['response' => 410]);
         }
 
         $slot = $entry['slot'];
@@ -613,9 +613,9 @@ class Main
         @unlink($tmpFile);
 
         wp_die(
-            '<p>' . esc_html__('Ihr Termin wurde bestätigt. Eine Bestätigung wurde per E-Mail versendet.', 'rrze-appointment') . '</p>' .
-            '<p><a href="' . esc_url(home_url('/')) . '">' . esc_html__('Zurück zur Startseite', 'rrze-appointment') . '</a></p>',
-            esc_html__('Termin bestätigt', 'rrze-appointment'),
+            '<p>' . esc_html__('Your appointment has been confirmed. A confirmation has been sent by email.', 'rrze-appointment') . '</p>' .
+            '<p><a href="' . esc_url(home_url('/')) . '">' . esc_html__('Back to homepage', 'rrze-appointment') . '</a></p>',
+            esc_html__('Appointment confirmed', 'rrze-appointment'),
             ['response' => 200]
         );
         } catch (CustomException $e) {
@@ -631,7 +631,7 @@ class Main
 
         $entry = TokenManager::validateCancelToken($token);
         if (!$entry) {
-            wp_die(__('Dieser Storno-Link ist ungültig oder wurde bereits verwendet.', 'rrze-appointment'), '', ['response' => 410]);
+            wp_die(__('This cancellation link is invalid or has already been used.', 'rrze-appointment'), '', ['response' => 410]);
         }
 
         TokenManager::deleteCancelToken($token);
@@ -650,9 +650,9 @@ class Main
         }
 
         wp_die(
-            '<p>' . esc_html__('Ihr Termin wurde storniert.', 'rrze-appointment') . '</p>' .
-            '<p><a href="' . esc_url(home_url('/')) . '">' . esc_html__('Zurück zur Startseite', 'rrze-appointment') . '</a></p>',
-            esc_html__('Termin storniert', 'rrze-appointment'),
+            '<p>' . esc_html__('Your appointment has been cancelled.', 'rrze-appointment') . '</p>' .
+            '<p><a href="' . esc_url(home_url('/')) . '">' . esc_html__('Back to homepage', 'rrze-appointment') . '</a></p>',
+            esc_html__('Appointment cancelled', 'rrze-appointment'),
             ['response' => 200]
         );
         } catch (CustomException $e) {

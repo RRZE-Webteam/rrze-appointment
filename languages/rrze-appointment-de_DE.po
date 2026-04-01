@@ -1,0 +1,310 @@
+# Copyright (C) 2025 RRZE Webteam
+# This file is distributed under the GNU General Public License v2.0.
+msgid ""
+msgstr ""
+"Project-Id-Version: RRZE Appointment\n"
+"Report-Msgid-Bugs-To: https://github.com/RRZE-Webteam/rrze-appointment\n"
+"POT-Creation-Date: 2025-01-01 00:00+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2025-01-01 00:00+0000\n"
+"Last-Translator: RRZE Webteam\n"
+"Language-Team: RRZE Webteam\n"
+"Language: de_DE\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Domain: rrze-appointment\n"
+
+msgid "RRZE Appointment"
+msgstr "RRZE Appointment"
+
+msgid "Appointments"
+msgstr "Termine"
+
+msgid "General"
+msgstr "Allgemein"
+
+msgid "Mail Templates"
+msgstr "Mail-Vorlagen"
+
+msgid "Reminder Email"
+msgstr "Erinnerungsmail"
+
+msgid "days before the appointment."
+msgstr "Tage vor dem Termin versenden."
+
+msgid "Template saved."
+msgstr "Vorlage gespeichert."
+
+msgid "Template deleted."
+msgstr "Vorlage gelöscht."
+
+msgid "The template cannot be deleted because it is still in use."
+msgstr "Die Vorlage kann nicht gelöscht werden, da sie noch verwendet wird."
+
+msgid "New Template"
+msgstr "Neue Vorlage"
+
+msgid "Default"
+msgstr "Standard"
+
+msgid "(not editable)"
+msgstr "(nicht editierbar)"
+
+msgid "Edit"
+msgstr "Bearbeiten"
+
+msgid "Send Test Email"
+msgstr "Testmail senden"
+
+msgid "Delete"
+msgstr "Löschen"
+
+msgid "Really delete this template?"
+msgstr "Vorlage wirklich löschen?"
+
+msgid "Back to list"
+msgstr "Zurück zur Liste"
+
+msgid "Template title"
+msgstr "Titel der Vorlage"
+
+msgid "Save template"
+msgstr "Vorlage speichern"
+
+msgid "Subject"
+msgstr "Betreff"
+
+msgid "Mail body"
+msgstr "Mailtext"
+
+msgid "Plain text"
+msgstr "Plaintext"
+
+msgid "HTML"
+msgstr "HTML"
+
+msgid "Insert placeholder"
+msgstr "Platzhalter einfügen"
+
+msgid "Appointment request"
+msgstr "Termin-Anfrage"
+
+msgid "Confirmation to booking person"
+msgstr "Bestätigung an buchende Person"
+
+msgid "Confirmation to host"
+msgstr "Bestätigung an einladende Person"
+
+msgid "Reminder to host"
+msgstr "Erinnerung an einladende Person"
+
+msgid "Reminder to booking person"
+msgstr "Erinnerung an buchende Person"
+
+msgid "Cancellation"
+msgstr "Stornierung"
+
+msgid "Disabled"
+msgstr "Deaktiviert"
+
+msgid "No appointments found."
+msgstr "Keine Termine gefunden."
+
+msgid "Booking cancelled and cancellation emails sent."
+msgstr "Buchung storniert und Storno-Mails versendet."
+
+msgid "From"
+msgstr "Von"
+
+msgid "To"
+msgstr "Bis"
+
+msgid "Person"
+msgstr "Person"
+
+msgid "All"
+msgstr "Alle"
+
+msgid "Filter"
+msgstr "Filtern"
+
+msgid "Reset"
+msgstr "Zurücksetzen"
+
+msgid "Date"
+msgstr "Datum"
+
+msgid "Time"
+msgstr "Zeit"
+
+msgid "Title"
+msgstr "Titel"
+
+msgid "Booker"
+msgstr "Buchender"
+
+msgid "Email"
+msgstr "E-Mail"
+
+msgid "Actions"
+msgstr "Aktionen"
+
+msgid "Cancel booking"
+msgstr "Stornieren"
+
+msgid "Really cancel this booking?"
+msgstr "Buchung wirklich stornieren?"
+
+msgid "Template"
+msgstr "Vorlage"
+
+msgid "— Default —"
+msgstr "— Standard —"
+
+msgid "Mail template"
+msgstr "Mail-Vorlage"
+
+msgid "Person settings"
+msgstr "Personen-Einstellungen"
+
+msgid "— none —"
+msgstr "— keine —"
+
+msgid "Name"
+msgstr "Name"
+
+msgid "Map (URL)"
+msgstr "Karte (URL)"
+
+msgid "Location"
+msgstr "Ort"
+
+msgid "Description"
+msgstr "Beschreibung"
+
+msgid "Appointment settings"
+msgstr "Termin-Einstellungen"
+
+msgid "Start time"
+msgstr "Startzeit"
+
+msgid "End time"
+msgstr "Endzeit"
+
+msgid "Duration"
+msgstr "Dauer"
+
+msgid "Break"
+msgstr "Pause"
+
+msgid "Repeat"
+msgstr "Wiederholen"
+
+msgid "Applies to"
+msgstr "Gilt für"
+
+msgid "Please select a day first."
+msgstr "Bitte zuerst einen Tag auswählen."
+
+msgid "Recurrence"
+msgstr "Wiederholung"
+
+msgid "Do not repeat"
+msgstr "Nicht wiederholen"
+
+msgid "Daily"
+msgstr "Täglich"
+
+msgid "Weekly"
+msgstr "Wöchentlich"
+
+msgid "Monthly"
+msgstr "Monatlich"
+
+msgid "Ends on"
+msgstr "Endet am"
+
+msgid "Appearance"
+msgstr "Erscheinungsbild"
+
+msgid "Accordion style"
+msgstr "Akkordeon-Stil"
+
+msgid "Color"
+msgstr "Farbe"
+
+msgid "Yes"
+msgstr "Ja"
+
+msgid "No"
+msgstr "Nein"
+
+msgid "Add"
+msgstr "Hinzufügen"
+
+msgid "Cancel"
+msgstr "Abbrechen"
+
+msgid "New time for"
+msgstr "Neue Uhrzeit für"
+
+msgid "Invalid time."
+msgstr "Ungültige Uhrzeit."
+
+msgid "End time must be after start time."
+msgstr "Endzeit muss nach der Startzeit liegen."
+
+msgid "Time exceeds end of day."
+msgstr "Uhrzeit überschreitet Tagesende."
+
+msgid "This time slot is already taken."
+msgstr "Diese Zeitspanne ist bereits belegt."
+
+msgid "Consultation hours found in FAUdir. Should the appointments be created accordingly?"
+msgstr "Sprechstunden von FAUdir gefunden. Sollen die Termine entsprechend erstellt werden?"
+
+msgid "No consultation hours found in FAUdir, but office hours. Should the appointments be created from those?"
+msgstr "Sprechstunden in FAUdir nicht gefunden, aber Bürozeiten. Sollen die Termine daraus entsprechend erstellt werden?"
+
+msgid "Please provide name and email for all appointment blocks before publishing the page."
+msgstr "Bitte Name und E-Mail für alle Termin-Blöcke angeben, bevor die Seite veröffentlicht wird."
+
+msgid "No authenticated email address found."
+msgstr "Keine authentifizierte E-Mail-Adresse gefunden."
+
+msgid "Please confirm your appointment by email."
+msgstr "Bitte bestätigen Sie Ihren Termin per E-Mail."
+
+msgid "Your appointment has been confirmed. A confirmation has been sent by email."
+msgstr "Ihr Termin wurde bestätigt. Eine Bestätigung wurde per E-Mail versendet."
+
+msgid "Your appointment has been cancelled."
+msgstr "Ihr Termin wurde storniert."
+
+msgid "Appointment confirmed"
+msgstr "Termin bestätigt"
+
+msgid "Appointment cancelled"
+msgstr "Termin storniert"
+
+msgid "This confirmation link has expired or is invalid."
+msgstr "Dieser Bestätigungslink ist abgelaufen oder ungültig."
+
+msgid "This cancellation link is invalid or has already been used."
+msgstr "Dieser Storno-Link ist ungültig oder wurde bereits verwendet."
+
+msgid "Back to homepage"
+msgstr "Zurück zur Startseite"
+
+msgid "Privacy Policy"
+msgstr "Datenschutz"
+
+msgid "Legal Notice"
+msgstr "Impressum"
+
+msgid "(no title)"
+msgstr "(kein Titel)"
+
+msgid "%d test email(s) sent to %s."
+msgstr "%d Testmail(s) an %s versendet."

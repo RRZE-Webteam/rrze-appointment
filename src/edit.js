@@ -250,41 +250,17 @@ export default function Edit({ attributes, setAttributes }) {
     // console.log('consultation hours persons:', faudirPersons.filter(p => p.hoursType === 'consultation').map(p => p.label));
 
     const coloroptions = [
-        {
-            label: 'fau',
-            value: 'fau',
-        },
-        {
-            label: 'med',
-            value: 'med',
-        },
-        {
-            label: 'nat',
-            value: 'nat',
-        },
-        {
-            label: 'phil',
-            value: 'phil',
-        },
-        {
-            label: 'rw',
-            value: 'rw',
-        },
-        {
-            label: 'tf',
-            value: 'tf',
-        },
+        { label: 'fau', value: 'fau' },
+        { label: 'med', value: 'med' },
+        { label: 'nat', value: 'nat' },
+        { label: 'phil', value: 'phil' },
+        { label: 'rw', value: 'rw' },
+        { label: 'tf', value: 'tf' },
     ];
 
     const styleoptions = [
-        {
-            label: 'light',
-            value: 'light',
-        },
-        {
-            label: 'dark',
-            value: 'dark',
-        },
+        { label: __('light', 'rrze-appointment'), value: 'light' },
+        { label: __('dark', 'rrze-appointment'), value: 'dark' },
     ];
 
 
@@ -429,15 +405,15 @@ export default function Edit({ attributes, setAttributes }) {
         const newStartMinutes = parseTimeToMinutes(addSlotTime);
         const newEndMinutes = parseTimeToMinutes(addSlotEndTime);
         if (newStartMinutes === null || newEndMinutes === null) {
-            setAddSlotError(__('Ungültige Uhrzeit.', 'rrze-appointment'));
+            setAddSlotError(__('Invalid time.', 'rrze-appointment'));
             return;
         }
         if (newEndMinutes <= newStartMinutes) {
-            setAddSlotError(__('Endzeit muss nach der Startzeit liegen.', 'rrze-appointment'));
+            setAddSlotError(__('End time must be after start time.', 'rrze-appointment'));
             return;
         }
         if (newEndMinutes > 24 * 60) {
-            setAddSlotError(__('Uhrzeit überschreitet Tagesende.', 'rrze-appointment'));
+            setAddSlotError(__('Time exceeds end of day.', 'rrze-appointment'));
             return;
         }
         const dateSlots = slots.filter((s) => s.date === addSlotDate);
@@ -445,7 +421,7 @@ export default function Edit({ attributes, setAttributes }) {
             (s) => newStartMinutes < s.endMinutes && newEndMinutes > s.startMinutes
         );
         if (overlaps) {
-            setAddSlotError(__('Diese Zeitspanne ist bereits belegt.', 'rrze-appointment'));
+            setAddSlotError(__('This time slot is already taken.', 'rrze-appointment'));
             return;
         }
         const overridesNext = { ...activeOverrides };
@@ -465,30 +441,30 @@ export default function Edit({ attributes, setAttributes }) {
     return (
         <Fragment>
             <InspectorControls>
-                <PanelBody title={__('Mail-Vorlage', 'rrze-appointment')} initialOpen={false}>
+                <PanelBody title={__('Mail template', 'rrze-appointment')} initialOpen={false}>
                     <SelectControl
                         label={__('Vorlage', 'rrze-appointment')}
                         value={String(tplId || 0)}
                         options={[
-                            { label: __('— Standard —', 'rrze-appointment'), value: '0' },
+                            { label: __('— Default —', 'rrze-appointment'), value: '0' },
                             ...mailTemplates.map((t) => ({ label: t.label, value: String(t.value) }))
                         ]}
                         onChange={(v) => setAttributes({ tplId: Number(v) })}
                     />
                 </PanelBody>
                 {faudirError && (
-                    <PanelBody title={__('Personen-Einstellungen', 'rrze-appointment')} initialOpen={true}>
+                    <PanelBody title={__('Person settings', 'rrze-appointment')} initialOpen={true}>
                         <p className="rrze-appointment-block__person-error">{faudirMessage}</p>
                     </PanelBody>
                 )}
 
                 {!faudirError && faudirPersons.length > 0 && (
-                    <PanelBody title={__('Personen-Einstellungen', 'rrze-appointment')} initialOpen={true}>
+                    <PanelBody title={__('Person settings', 'rrze-appointment')} initialOpen={true}>
                         <SelectControl
                             label={__('Person', 'rrze-appointment')}
                             value={String(personId || 0)}
                             options={[
-                                { label: __('— keine —', 'rrze-appointment'), value: '0' },
+                                { label: __('— none —', 'rrze-appointment'), value: '0' },
                                 ...[...faudirPersons]
                                     .filter((p) => p.familyName || p.givenName || p.label)
                                     .map((p) => ({
@@ -520,12 +496,12 @@ export default function Edit({ attributes, setAttributes }) {
                             onChange={(value) => setAttributes({ personEmail: value })}
                         />
                         <TextControl
-                            label="Ort"
+                            label={__('Location', 'rrze-appointment')}
                             value={location}
                             onChange={(value) => setAttributes({ location: value })}
                         />
                         <TextControl
-                            label={__('Karte (URL)', 'rrze-appointment')}
+                            label={__('Map (URL)', 'rrze-appointment')}
                             value={locationUrl}
                             onChange={(value) => setAttributes({ locationUrl: value })}
                         />
@@ -533,13 +509,13 @@ export default function Edit({ attributes, setAttributes }) {
                 )}
                 <PanelBody title="Termin-Einstellungen" initialOpen={true}>
                     <TextControl
-                        label="title"
+                        label={__('Title', 'rrze-appointment')}
                         value={derivedTitle}
                         onChange={(value) => setAttributes({ title: value, personId: 0 })}
                     />
 
                     <TextareaControl
-                        label="Beschreibung"
+                        label={__('Description', 'rrze-appointment')}
                         value={description}
                         onChange={(value) => setAttributes({ description: value })}
                     />
@@ -575,7 +551,7 @@ export default function Edit({ attributes, setAttributes }) {
                         }}
                     />
                     <TextControl
-                        label="Startzeit"
+                        label={__('Start time', 'rrze-appointment')}
                         type="time"
                         step={300}
                         value={effectiveStartTime}
@@ -588,7 +564,7 @@ export default function Edit({ attributes, setAttributes }) {
                         }}
                     />
                     <TextControl
-                        label="Endzeit"
+                        label={__('End time', 'rrze-appointment')}
                         type="time"
                         step={300}
                         value={effectiveEndTime}
@@ -602,7 +578,7 @@ export default function Edit({ attributes, setAttributes }) {
                     />
 
                     <SelectControl
-                        label="Dauer"
+                        label={__('Duration', 'rrze-appointment')}
                         value={String(effectiveDuration)}
                         options={[
                             { label: '15 Minuten', value: '15' },
@@ -623,7 +599,7 @@ export default function Edit({ attributes, setAttributes }) {
                     />
 
                     <SelectControl
-                        label="Pause"
+                        label={__('Break', 'rrze-appointment')}
                         value={String(effectiveBreakDuration)}
                         options={[
                             { label: '0 Minuten', value: '0' },
@@ -651,28 +627,28 @@ export default function Edit({ attributes, setAttributes }) {
 
                 </PanelBody>
 
-                <PanelBody title={__('Wiederholen', 'rrze-appointment')} initialOpen={false}>
+                <PanelBody title={__('Repeat', 'rrze-appointment')} initialOpen={false}>
                     <p className="rrze-appointment-block__recurrence-hint">
                         {activeDate
-                            ? `${__('Gilt für', 'rrze-appointment')}: ${formatDateDisplay(activeDate)}`
-                            : __('Bitte zuerst einen Tag auswählen.', 'rrze-appointment')
+                            ? `${__('Applies to', 'rrze-appointment')}: ${formatDateDisplay(activeDate)}`
+                            : __('Please select a day first.', 'rrze-appointment')
                         }
                     </p>
                     <SelectControl
-                        label={__('Wiederholung', 'rrze-appointment')}
+                        label={__('Recurrence', 'rrze-appointment')}
                         value={recFreq}
                         options={[
-                            { label: __('Nicht wiederholen', 'rrze-appointment'), value: '' },
-                            { label: __('Täglich', 'rrze-appointment'), value: 'daily' },
-                            { label: __('Wöchentlich', 'rrze-appointment'), value: 'weekly' },
-                            { label: __('Monatlich', 'rrze-appointment'), value: 'monthly' }
+                            { label: __('Do not repeat', 'rrze-appointment'), value: '' },
+                            { label: __('Daily', 'rrze-appointment'), value: 'daily' },
+                            { label: __('Weekly', 'rrze-appointment'), value: 'weekly' },
+                            { label: __('Monthly', 'rrze-appointment'), value: 'monthly' }
                         ]}
                         onChange={(value) => applyRecurrence({ ...rec, freq: value })}
                     />
 
                     {recFreq && (
                         <TextControl
-                            label={__('Endet am', 'rrze-appointment')}
+                            label={__('Ends on', 'rrze-appointment')}
                             type="date"
                             value={recUntil}
                             onChange={(value) => applyRecurrence({ ...rec, until: value })}
@@ -687,10 +663,7 @@ export default function Edit({ attributes, setAttributes }) {
                     initialOpen={false}
                 >
                     <SelectControl
-                        label={__(
-                            'Accordion-Style',
-                            'rrze-appointment'
-                        )}
+                        label={__('Accordion style', 'rrze-appointment')}
                         value={style || 'light'}
                         options={styleoptions}
                         onChange={(value) =>
@@ -728,17 +701,17 @@ export default function Edit({ attributes, setAttributes }) {
                             <div className="rrze-appointment-block__overlay">
                                 <div className="rrze-appointment-block__overlay-box">
                                     <p className="rrze-appointment-block__overlay-title">
-                                        <strong>{__('Neue Uhrzeit für', 'rrze-appointment')} {formatDateDisplay(addSlotDate)}</strong>
+                                        <strong>{__('New time for', 'rrze-appointment')} {formatDateDisplay(addSlotDate)}</strong>
                                     </p>
                                     <TextControl
-                                        label={__('Startzeit', 'rrze-appointment')}
+                                        label={__('Start time', 'rrze-appointment')}
                                         type="time"
                                         step={300}
                                         value={addSlotTime}
                                         onChange={(value) => { setAddSlotTime(value); setAddSlotError(''); }}
                                     />
                                     <TextControl
-                                        label={__('Endzeit', 'rrze-appointment')}
+                                        label={__('End time', 'rrze-appointment')}
                                         type="time"
                                         step={300}
                                         value={addSlotEndTime}
@@ -749,10 +722,10 @@ export default function Edit({ attributes, setAttributes }) {
                                     )}
                                     <div className="rrze-appointment-block__overlay-actions">
                                         <Button variant="primary" onClick={handleConfirmAddSlot}>
-                                            {__('Hinzufügen', 'rrze-appointment')}
+                                            {__('Add', 'rrze-appointment')}
                                         </Button>
                                         <Button variant="secondary" onClick={() => { setAddSlotDate(null); setAddSlotError(''); }}>
-                                            {__('Abbrechen', 'rrze-appointment')}
+                                            {__('Cancel', 'rrze-appointment')}
                                         </Button>
                                     </div>
                                 </div>
@@ -767,16 +740,16 @@ export default function Edit({ attributes, setAttributes }) {
                     <div className="rrze-appointment-block__overlay-box">
                         <p className="rrze-appointment-block__overlay-text">
                             {hoursOverlay.type === 'consultation'
-                                ? __('Sprechstunden von FAUdir gefunden. Sollen die Termine entsprechend erstellt werden?', 'rrze-appointment')
-                                : __('Sprechstunden in FAUdir nicht gefunden, aber Bürozeiten. Sollen die Termine daraus entsprechend erstellt werden?', 'rrze-appointment')
+                                ? __('Consultation hours found in FAUdir. Should the appointments be created accordingly?', 'rrze-appointment')
+                                : __('No consultation hours found in FAUdir, but office hours. Should the appointments be created from those?', 'rrze-appointment')
                             }
                         </p>
                         <div className="rrze-appointment-block__overlay-actions">
                             <Button variant="primary" onClick={() => { applyConsultationHours(hoursOverlay.person); setHoursOverlay(null); }}>
-                                {__('Ja', 'rrze-appointment')}
+                                {__('Yes', 'rrze-appointment')}
                             </Button>
                             <Button variant="secondary" onClick={() => setHoursOverlay(null)}>
-                                {__('Nein', 'rrze-appointment')}
+                                {__('No', 'rrze-appointment')}
                             </Button>
                         </div>
                     </div>

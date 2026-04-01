@@ -82,8 +82,8 @@ class Settings
         );
 
         add_menu_page(
-            __('Termine', 'rrze-appointment'),
-            __('Termine', 'rrze-appointment'),
+            __('Appointments', 'rrze-appointment'),
+            __('Appointments', 'rrze-appointment'),
             'manage_options',
             'rrze-appointment-bookings',
             [$this, 'renderBookingsPage'],
@@ -100,7 +100,7 @@ class Settings
             ['sanitize_callback' => [$this, 'sanitize'], 'default' => self::getDefaults()]
         );
         add_settings_section('rrze_appointment_general', '', '__return_false', self::PAGE_SLUG);
-        add_settings_field('reminder_days', __('Erinnerungsmail', 'rrze-appointment'), [$this, 'renderReminderDaysField'], self::PAGE_SLUG, 'rrze_appointment_general');
+        add_settings_field('reminder_days', __('Reminder Email', 'rrze-appointment'), [$this, 'renderReminderDaysField'], self::PAGE_SLUG, 'rrze_appointment_general');
     }
 
     public function sanitize(array $input): array
@@ -205,7 +205,7 @@ class Settings
         if (!current_user_can('manage_options')) return;
         ?>
         <div class="wrap">
-            <h1><?php esc_html_e('Termine', 'rrze-appointment'); ?></h1>
+            <h1><?php esc_html_e('Appointments', 'rrze-appointment'); ?></h1>
             <?php $this->renderTabBookings(); ?>
         </div>
         <?php
@@ -214,7 +214,7 @@ class Settings
     public function renderReminderDaysField(): void
     {
         $value   = (int) self::get('reminder_days');
-        $options = [0 => __('Deaktiviert', 'rrze-appointment')];
+        $options = [0 => __('Disabled', 'rrze-appointment')];
         for ($i = 1; $i <= 7; $i++) {
             $options[$i] = $i;
         }
@@ -222,7 +222,7 @@ class Settings
         foreach ($options as $val => $label) {
             printf('<option value="%d"%s>%s</option>', $val, selected($value, $val, false), esc_html($label));
         }
-        echo '</select> ' . esc_html__('Tage vor dem Termin versenden.', 'rrze-appointment');
+        echo '</select> ' . esc_html__('days before the appointment.', 'rrze-appointment');
     }
 
 
@@ -232,8 +232,8 @@ class Settings
 
         $tab = sanitize_key($_GET['tab'] ?? 'general');
         $tabs = [
-            'general'   => __('Allgemein', 'rrze-appointment'),
-            'templates' => __('Mail-Vorlagen', 'rrze-appointment'),
+            'general'   => __('General', 'rrze-appointment'),
+            'templates' => __('Mail Templates', 'rrze-appointment'),
         ];
         ?>
         <div class="wrap">
@@ -277,12 +277,12 @@ class Settings
         $editId = (int) ($_GET['edit'] ?? 0);
 
         // Notices
-        if (!empty($_GET['saved']))     echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Vorlage gespeichert.', 'rrze-appointment') . '</p></div>';
-        if (!empty($_GET['deleted']))   echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Vorlage gelöscht.', 'rrze-appointment') . '</p></div>';
-        if (!empty($_GET['inuse']))     echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__('Die Vorlage kann nicht gelöscht werden, da sie noch verwendet wird.', 'rrze-appointment') . '</p></div>';
+        if (!empty($_GET['saved']))     echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Template saved.', 'rrze-appointment') . '</p></div>';
+        if (!empty($_GET['deleted']))   echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Template deleted.', 'rrze-appointment') . '</p></div>';
+        if (!empty($_GET['inuse']))     echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__('The template cannot be deleted because it is still in use.', 'rrze-appointment') . '</p></div>';
         if (isset($_GET['test_sent'])) {
             $sent = (int) $_GET['test_sent'];
-            echo '<div class="notice notice-success is-dismissible"><p>' . sprintf(esc_html__('%d Testmail(s) an %s versendet.', 'rrze-appointment'), $sent, esc_html(wp_get_current_user()->user_email)) . '</p></div>';
+            echo '<div class="notice notice-success is-dismissible"><p>' . sprintf(esc_html__('%d test email(s) sent to %s.', 'rrze-appointment'), $sent, esc_html(wp_get_current_user()->user_email)) . '</p></div>';
         }
 
         if ($editId > 0 || !empty($_GET['new'])) {
@@ -298,25 +298,25 @@ class Settings
         $newUrl    = add_query_arg(['page' => self::PAGE_SLUG, 'tab' => 'templates', 'new' => '1'], admin_url('options-general.php'));
         ?>
         <a href="<?php echo esc_url($newUrl); ?>" class="button button-primary" style="margin-bottom:1rem;">
-            <?php esc_html_e('Neue Vorlage', 'rrze-appointment'); ?>
+            <?php esc_html_e('New Template', 'rrze-appointment'); ?>
         </a>
 
         <table class="widefat striped" style="margin-top:0.5rem;">
             <thead>
                 <tr>
-                    <th><?php esc_html_e('Titel', 'rrze-appointment'); ?></th>
-                    <th><?php esc_html_e('Aktionen', 'rrze-appointment'); ?></th>
+                    <th><?php esc_html_e('Title', 'rrze-appointment'); ?></th>
+                    <th><?php esc_html_e('Actions', 'rrze-appointment'); ?></th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td><strong><?php esc_html_e('Standard', 'rrze-appointment'); ?></strong> <em style="color:#50575e;"><?php esc_html_e('(nicht editierbar)', 'rrze-appointment'); ?></em></td>
+                    <td><strong><?php esc_html_e('Default', 'rrze-appointment'); ?></strong> <em style="color:#50575e;"><?php esc_html_e('(not editable)', 'rrze-appointment'); ?></em></td>
                     <td>
                         <form method="post" action="" style="display:inline;">
                             <?php wp_nonce_field('rrze_appt_test_mail', 'rrze_appt_test_nonce'); ?>
                             <input type="hidden" name="rrze_appt_action" value="test_mail">
                             <input type="hidden" name="tpl_id" value="0">
-                            <button type="submit" class="button button-small"><?php esc_html_e('Testmail senden', 'rrze-appointment'); ?></button>
+                            <button type="submit" class="button button-small"><?php esc_html_e('Send Test Email', 'rrze-appointment'); ?></button>
                         </form>
                     </td>
                 </tr>
@@ -324,21 +324,21 @@ class Settings
                     $editUrl = add_query_arg(['page' => self::PAGE_SLUG, 'tab' => 'templates', 'edit' => $tpl['id']], admin_url('options-general.php'));
                 ?>
                     <tr>
-                        <td><strong><?php echo esc_html($tpl['title'] ?: __('(kein Titel)', 'rrze-appointment')); ?></strong></td>
+                        <td><strong><?php echo esc_html($tpl['title'] ?: __('(no title)', 'rrze-appointment')); ?></strong></td>
                         <td>
-                            <a href="<?php echo esc_url($editUrl); ?>" class="button button-small"><?php esc_html_e('Bearbeiten', 'rrze-appointment'); ?></a>
+                            <a href="<?php echo esc_url($editUrl); ?>" class="button button-small"><?php esc_html_e('Edit', 'rrze-appointment'); ?></a>
                             <form method="post" action="" style="display:inline;">
                                 <?php wp_nonce_field('rrze_appt_test_mail', 'rrze_appt_test_nonce'); ?>
                                 <input type="hidden" name="rrze_appt_action" value="test_mail">
                                 <input type="hidden" name="tpl_id" value="<?php echo esc_attr($tpl['id']); ?>">
-                                <button type="submit" class="button button-small"><?php esc_html_e('Testmail senden', 'rrze-appointment'); ?></button>
+                                <button type="submit" class="button button-small"><?php esc_html_e('Send Test Email', 'rrze-appointment'); ?></button>
                             </form>
                             <form method="post" action="" style="display:inline;">
                                 <?php wp_nonce_field('rrze_appt_tpl_save', 'rrze_appt_tpl_nonce'); ?>
                                 <input type="hidden" name="rrze_appt_tpl_action" value="delete">
                                 <input type="hidden" name="tpl_id" value="<?php echo esc_attr($tpl['id']); ?>">
-                                <button type="submit" class="button button-small" onclick="return confirm('<?php esc_attr_e('Vorlage wirklich löschen?', 'rrze-appointment'); ?>')">
-                                    <?php esc_html_e('Löschen', 'rrze-appointment'); ?>
+                                <button type="submit" class="button button-small" onclick="return confirm('<?php esc_attr_e('Really delete this template?', 'rrze-appointment'); ?>')">
+                                    <?php esc_html_e('Delete', 'rrze-appointment'); ?>
                                 </button>
                             </form>
                         </td>
@@ -370,16 +370,16 @@ class Settings
         }
 
         $sectionLabels = [
-            'booking_pending' => __('Termin-Anfrage', 'rrze-appointment'),
-            'booking_booker'  => __('Bestätigung an buchende Person', 'rrze-appointment'),
-            'booking_host'    => __('Bestätigung an einladende Person', 'rrze-appointment'),
-            'reminder_admin'  => __('Erinnerung an einladende Person', 'rrze-appointment'),
-            'reminder_booker' => __('Erinnerung an buchende Person', 'rrze-appointment'),
-            'cancellation'    => __('Stornierung', 'rrze-appointment'),
+            'booking_pending' => __('Appointment request', 'rrze-appointment'),
+            'booking_booker'  => __('Confirmation to booking person', 'rrze-appointment'),
+            'booking_host'    => __('Confirmation to host', 'rrze-appointment'),
+            'reminder_admin'  => __('Reminder to host', 'rrze-appointment'),
+            'reminder_booker' => __('Reminder to booking person', 'rrze-appointment'),
+            'cancellation'    => __('Cancellation', 'rrze-appointment'),
         ];
         ?>
         <a href="<?php echo esc_url($backUrl); ?>" class="button" style="margin-bottom:1rem;">
-            &larr; <?php esc_html_e('Zurück zur Liste', 'rrze-appointment'); ?>
+            &larr; <?php esc_html_e('Back to list', 'rrze-appointment'); ?>
         </a>
 
         <form method="post" action="">
@@ -389,7 +389,7 @@ class Settings
 
             <table class="form-table">
                 <tr>
-                    <th><label for="tpl_title"><?php esc_html_e('Titel der Vorlage', 'rrze-appointment'); ?></label></th>
+                    <th><label for="tpl_title"><?php esc_html_e('Template title', 'rrze-appointment'); ?></label></th>
                     <td><input type="text" id="tpl_title" name="title" value="<?php echo esc_attr($title); ?>" class="large-text" required></td>
                 </tr>
             </table>
@@ -402,7 +402,7 @@ class Settings
                 <h2 style="border-top:1px solid #dcdcde;padding-top:1rem;margin-top:2rem;"><?php echo esc_html($label); ?></h2>
                 <table class="form-table" style="margin-top:0;">
                     <tr>
-                        <th><label for="tpl_<?php echo esc_attr($key); ?>_subject"><?php esc_html_e('Betreff', 'rrze-appointment'); ?></label></th>
+                        <th><label for="tpl_<?php echo esc_attr($key); ?>_subject"><?php esc_html_e('Subject', 'rrze-appointment'); ?></label></th>
                         <td>
                             <input type="text" id="tpl_<?php echo esc_attr($key); ?>_subject"
                                    name="<?php echo esc_attr($key); ?>_subject"
@@ -411,13 +411,13 @@ class Settings
                         </td>
                     </tr>
                     <tr>
-                        <th><?php esc_html_e('Mailtext', 'rrze-appointment'); ?></th>
+                        <th><?php esc_html_e('Mail body', 'rrze-appointment'); ?></th>
                         <td><?php $this->renderMailTabs($plainId, $htmlId, $key, $s['body'] ?? '', $s['body_html'] ?? ''); ?></td>
                     </tr>
                 </table>
             <?php endforeach; ?>
 
-            <?php submit_button(__('Vorlage speichern', 'rrze-appointment')); ?>
+            <?php submit_button(__('Save template', 'rrze-appointment')); ?>
         </form>
         <?php
     }
@@ -428,7 +428,7 @@ class Settings
         <div class="rrze-appt-tabs">
             <div class="rrze-appt-tab-nav" style="display:flex;gap:0;margin-bottom:-1px;">
                 <button type="button" class="rrze-appt-tab-btn button" data-tab="plain" style="border-bottom-color:#fff;z-index:1;">
-                    <?php esc_html_e('Plaintext', 'rrze-appointment'); ?>
+                    <?php esc_html_e('Plain text', 'rrze-appointment'); ?>
                 </button>
                 <button type="button" class="rrze-appt-tab-btn button" data-tab="html" style="background:#f6f7f7;border-bottom-color:#dcdcde;">
                     <?php esc_html_e('HTML', 'rrze-appointment'); ?>
@@ -465,7 +465,7 @@ class Settings
             '<button type="button" class="button rrze-appt-insert-btn" data-target="%s" data-tinymce="%s">%s &#9660;</button>',
             esc_attr($targetId),
             $isTinymce ? '1' : '0',
-            esc_html__('Platzhalter einfügen', 'rrze-appointment')
+            esc_html__('Insert placeholder', 'rrze-appointment')
         );
         echo '<ul class="rrze-appt-insert-dropdown" style="display:none;position:absolute;z-index:100;background:#fff;border:1px solid #dcdcde;box-shadow:0 2px 6px rgba(0,0,0,.15);margin:0;padding:0;list-style:none;min-width:220px;">';
         foreach (self::PLACEHOLDERS as $tag => $desc) {
@@ -481,7 +481,7 @@ class Settings
     private function renderTabBookings(): void
     {
         if (!empty($_GET['cancelled'])) {
-            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Buchung storniert und Storno-Mails versendet.', 'rrze-appointment') . '</p></div>';
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Booking cancelled and cancellation emails sent.', 'rrze-appointment') . '</p></div>';
         }
 
         // Filter
@@ -496,40 +496,40 @@ class Settings
         <form method="get" action="" style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
             <input type="hidden" name="page" value="rrze-appointment-bookings">
             <label>
-                <?php esc_html_e('Von', 'rrze-appointment'); ?>
+                <?php esc_html_e('From', 'rrze-appointment'); ?>
                 <input type="date" name="filter_date" value="<?php echo esc_attr($filterDate); ?>">
             </label>
             <label>
-                <?php esc_html_e('Bis', 'rrze-appointment'); ?>
+                <?php esc_html_e('To', 'rrze-appointment'); ?>
                 <input type="date" name="filter_date_to" value="<?php echo esc_attr($filterDateTo); ?>">
             </label>
             <?php if (!empty($persons)) : ?>
             <label>
                 <?php esc_html_e('Person', 'rrze-appointment'); ?>
                 <select name="filter_person">
-                    <option value="0"><?php esc_html_e('Alle', 'rrze-appointment'); ?></option>
+                    <option value="0"><?php esc_html_e('All', 'rrze-appointment'); ?></option>
                     <?php foreach ($persons as $pid => $pname) : ?>
                         <option value="<?php echo esc_attr($pid); ?>"<?php selected($filterPerson, $pid); ?>><?php echo esc_html($pname); ?></option>
                     <?php endforeach; ?>
                 </select>
             </label>
             <?php endif; ?>
-            <button type="submit" class="button"><?php esc_html_e('Filtern', 'rrze-appointment'); ?></button>
-            <a href="<?php echo esc_url($baseUrl); ?>" class="button"><?php esc_html_e('Zurücksetzen', 'rrze-appointment'); ?></a>
+            <button type="submit" class="button"><?php esc_html_e('Filter', 'rrze-appointment'); ?></button>
+            <a href="<?php echo esc_url($baseUrl); ?>" class="button"><?php esc_html_e('Reset', 'rrze-appointment'); ?></a>
         </form>
 
         <?php if (empty($bookings)) : ?>
-            <p><?php esc_html_e('Keine Termine gefunden.', 'rrze-appointment'); ?></p>
+            <p><?php esc_html_e('No appointments found.', 'rrze-appointment'); ?></p>
         <?php else : ?>
             <table class="widefat striped">
                 <thead>
                     <tr>
-                        <th><?php esc_html_e('Datum', 'rrze-appointment'); ?></th>
-                        <th><?php esc_html_e('Zeit', 'rrze-appointment'); ?></th>
-                        <th><?php esc_html_e('Titel', 'rrze-appointment'); ?></th>
+                        <th><?php esc_html_e('Date', 'rrze-appointment'); ?></th>
+                        <th><?php esc_html_e('Time', 'rrze-appointment'); ?></th>
+                        <th><?php esc_html_e('Title', 'rrze-appointment'); ?></th>
                         <th><?php esc_html_e('Person', 'rrze-appointment'); ?></th>
-                        <th><?php esc_html_e('Buchender', 'rrze-appointment'); ?></th>
-                        <th><?php esc_html_e('E-Mail', 'rrze-appointment'); ?></th>
+                        <th><?php esc_html_e('Booker', 'rrze-appointment'); ?></th>
+                        <th><?php esc_html_e('Email', 'rrze-appointment'); ?></th>
                         <th></th>
                     </tr>
                 </thead>
@@ -550,8 +550,8 @@ class Settings
                                 <input type="hidden" name="rrze_appt_action" value="cancel">
                                 <input type="hidden" name="cancel_slot" value="<?php echo esc_attr($b['slot']); ?>">
                                 <button type="submit" class="button button-small"
-                                    onclick="return confirm('<?php esc_attr_e('Buchung wirklich stornieren?', 'rrze-appointment'); ?>')">
-                                    <?php esc_html_e('Stornieren', 'rrze-appointment'); ?>
+                                    onclick="return confirm('<?php esc_attr_e('Really cancel this booking?', 'rrze-appointment'); ?>')">
+                                    <?php esc_html_e('Cancel booking', 'rrze-appointment'); ?>
                                 </button>
                             </form>
                         </td>

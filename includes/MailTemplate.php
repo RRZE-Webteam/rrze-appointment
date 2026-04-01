@@ -29,12 +29,12 @@ class MailTemplate
 
         $privacyUrl = get_privacy_policy_url();
         if ($privacyUrl) {
-            $footerLinks[] = '<a href="' . esc_url($privacyUrl) . '" style="color:#c8d8e8;text-decoration:none;">' . esc_html__('Datenschutz', 'rrze-appointment') . '</a>';
+            $footerLinks[] = '<a href="' . esc_url($privacyUrl) . '" style="color:#c8d8e8;text-decoration:none;">' . esc_html__('Privacy Policy', 'rrze-appointment') . '</a>';
         }
 
         $imprintUrl = TokenManager::imprintUrl();
         if ($imprintUrl) {
-            $footerLinks[] = '<a href="' . esc_url($imprintUrl) . '" style="color:#c8d8e8;text-decoration:none;">' . esc_html__('Impressum', 'rrze-appointment') . '</a>';
+            $footerLinks[] = '<a href="' . esc_url($imprintUrl) . '" style="color:#c8d8e8;text-decoration:none;">' . esc_html__('Legal Notice', 'rrze-appointment') . '</a>';
         }
 
         $footerLinksHtml = implode(' &nbsp;&middot;&nbsp; ', $footerLinks);
