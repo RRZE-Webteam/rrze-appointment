@@ -198,12 +198,16 @@ export function renderGroupedSlotsAccordion(slots, name, { onRemoveSlot, onAddSl
     const groups = groupSlotsByDate(slots);
 
     return (
-        <details className="rrze-appointment__accordion rrze-appointment__slots-grouped" open>
-            <summary>Alle Termine</summary>
+        <div className="rrze-appointment__accordion rrze-appointment__slots-grouped" data-accordion="open">
+            <button type="button" className="rrze-appointment__accordion-toggle" aria-expanded="true">
+                Alle Termine
+            </button>
             <div className="rrze-appointment__accordion-content">
                 {Object.entries(groups).map(([date, dateSlots], index) => (
-                    <details className="rrze-appointment__date-group" key={date} open={index === 0}>
-                        <summary className="rrze-appointment__date-title">{formatDateDisplay(date)}</summary>
+                    <div className="rrze-appointment__date-group" key={date} data-accordion={index === 0 ? 'open' : 'closed'}>
+                        <button type="button" className="rrze-appointment__date-group-toggle" aria-expanded={index === 0 ? 'true' : 'false'}>
+                            {formatDateDisplay(date)}
+                        </button>
                         <div className="rrze-appointment__slot-grid" data-date={date}>
                             {dateSlots.map((slot) => (
                                 <div className="rrze-appointment__slot-item" key={slot.value}>
@@ -245,9 +249,9 @@ export function renderGroupedSlotsAccordion(slots, name, { onRemoveSlot, onAddSl
                                 </button>
                             )}
                         </div>
-                    </details>
+                    </div>
                 ))}
             </div>
-        </details>
+        </div>
     );
 }
