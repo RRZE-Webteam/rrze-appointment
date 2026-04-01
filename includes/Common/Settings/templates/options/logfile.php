@@ -13,7 +13,7 @@ defined('ABSPATH') || exit;
         if (file_exists($option->getArg('default'))) {
             $lines = file($option->getArg('default'));
             if ($lines !== false) {
-                echo '<style> .settings_page_rrze-answers #faqlog .form-table th {width:0;}</style><table class="wp-list-table widefat striped"><tbody>';
+                echo '<style> .settings_page_rrze-appointment #faqlog .form-table th {width:0;}</style><table class="wp-list-table widefat striped"><tbody>';
                 foreach ($lines as $line) {
                     echo wp_kses_post('<tr><td>' . $line . '</td></tr>');
                 }

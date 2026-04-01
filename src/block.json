@@ -84,6 +84,13 @@
     "tplId": {
       "type": "number",
       "default": 0
+    },
+    "color": {
+      "type": "string"
+    },
+    "style": {
+      "type": "string",
+      "default": "light"
     }
   },
   "editorScript": "file:./index.js",

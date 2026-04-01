@@ -253,31 +253,31 @@ $section->addOption('text', [
 ### Hooks
 
 ```php
-apply_filters('rrze-answers_settings_new_options', array $newOptions, array $currentOptions)
+apply_filters('rrze-appointment_settings_new_options', array $newOptions, array $currentOptions)
 ```
 
 ```php
-apply_filters('rrze-answers_settings_new_option_{$optionName}', mixed $value, object \RRZE\Appointment\Common\Settings\Options\Type)
+apply_filters('rrze-appointment_settings_new_option_{$optionName}', mixed $value, object \RRZE\Appointment\Common\Settings\Options\Type)
 ```
 
 ```php
-apply_filters('rrze-answers_settings_option_type_map', array $optionTypeMap)
+apply_filters('rrze-appointment_settings_option_type_map', array $optionTypeMap)
 ```
 
 ```php
-apply_filters('rrze-answers_settings_template_include', string $fileName, array $vars)
+apply_filters('rrze-appointment_settings_template_include', string $fileName, array $vars)
 ```
 
 ```php
-do_action('rrze-answers_settings_after_update_option', string $optionName, array $options)
+do_action('rrze-appointment_settings_after_update_option', string $optionName, array $options)
 ```
 
 ### Adding a custom option type
 
-To add a custom option type, the `rrze-answers_settings_option_type_map` filter can be used.
+To add a custom option type, the `rrze-appointment_settings_option_type_map` filter can be used.
 
 ```php
-add_filter('rrze-answers_settings_option_type_map', function($options){
+add_filter('rrze-appointment_settings_option_type_map', function($options){
     $options['custom'] = MyCustomOption::class;
     return $options;
 });

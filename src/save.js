@@ -2,11 +2,14 @@ import { Fragment } from '@wordpress/element';
 import { generateTimeSlots, renderGroupedSlotsAccordion } from './utils';
 
 export default function Save({ attributes }) {
-    const { title, location, description, personId, tplId, locationUrl } = attributes;
+    const { title, location, description, personId, tplId, locationUrl, color, style } = attributes;
     const slots = generateTimeSlots(attributes);
+    const colorClass = color ? `is-${color}` : '';
+    const styleClass = style === 'dark' ? 'is-style-dark' : 'is-style-light';
+    const className = ['rrze-appointment', styleClass, colorClass].filter(Boolean).join(' ');
 
     return (
-        <form className="rrze-appointment" method="post" action=""
+        <form className={className} method="post" action=""
             data-title={title}
             data-location={location}
             data-person-id={personId || 0}
