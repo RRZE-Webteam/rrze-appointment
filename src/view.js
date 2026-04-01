@@ -131,6 +131,7 @@
             emailInput.className = 'rrze-appointment__overlay-email';
             emailInput.placeholder = 'name@example.de';
             emailInput.value = booker.bookerEmail || '';
+            emailInput.readOnly = !!booker.bookerEmail;
             emailLabel.appendChild(emailInput);
 
             const nameLabel = document.createElement('label');
@@ -141,6 +142,7 @@
             nameInput.className = 'rrze-appointment__overlay-name';
             nameInput.placeholder = 'Vorname Nachname';
             nameInput.value = booker.bookerName || '';
+            nameInput.readOnly = !!booker.bookerName;
             nameLabel.appendChild(nameInput);
 
             const messageLabel = document.createElement('label');
@@ -190,7 +192,6 @@
                 data.append('location', form.dataset.location || '');
                 data.append('person_id', form.dataset.personId || '0');
                 data.append('tpl_id', form.dataset.tplId || '0');
-                data.append('booker_email', emailInput.value.trim());
                 data.append('booker_name', nameInput.value.trim());
                 data.append('booker_message', messageInput.value.trim());
 

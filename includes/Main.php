@@ -388,9 +388,16 @@ class Main
         $title = sanitize_text_field($_POST['title'] ?? 'Termin');
         $location = sanitize_text_field($_POST['location'] ?? '');
         $personId = (int) ($_POST['person_id'] ?? 0);
-        $bookerEmail = sanitize_email($_POST['booker_email'] ?? '');
-        $bookerName = sanitize_text_field($_POST['booker_name'] ?? '');
-        $bookerMsg = sanitize_textarea_field($_POST['booker_message'] ?? '');
+        $bookerName  = sanitize_text_field($_POST['booker_name'] ?? '');
+        $bookerMsg   = sanitize_textarea_field($_POST['booker_message'] ?? '');
+
+        // E-Mail immer aus der Server-Session lesen, nie vom Client
+        $serverBooker = Rights::get();
+        $bookerEmail  = sanitize_email($serverBooker['bookerEmail'] ?? '');
+        if (!$bookerEmail) {
+            wp_send_json_error(__('Keine authentifizierte E-Mail-Adresse gefunden.', 'rrze-appointment'));
+            return;
+        }
         $tplId = (int) ($_POST['tpl_id'] ?? 0);
 
         if (!$slot)
