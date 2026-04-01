@@ -153,8 +153,10 @@
         border: 1px solid var(--rrze-appointment-accordion-border);
         margin-bottom: 5px;
 
-        > summary {
+        > .rrze-appointment__accordion-toggle,
+        > .rrze-appointment__date-group-toggle {
             display: block;
+            width: 100%;
             position: relative;
             list-style: none;
             margin: 0;
@@ -167,10 +169,6 @@
             background: var(--rrze-appointment-accordion-bg-default);
             color: var(--rrze-appointment-accordion-text-default);
             box-shadow: inset 10px 0 0 0 var(--rrze-appointment-accordion-accent) !important;
-
-            &::marker {
-                content: "";
-            }
 
             &::after {
                 content: '';
@@ -194,19 +192,32 @@
             }
         }
 
-        &[open] > summary {
-            background: var(--rrze-appointment-accordion-bg-active-hover);
-            color: var(--rrze-appointment-accordion-text-active-hover);
-            box-shadow: inset 10px 0 0 0 var(--rrze-appointment-accordion-accent-dark) !important;
+        > .rrze-appointment__slot-grid,
+        > .rrze-appointment__accordion-content {
+            display: none;
+        }
 
-            &::after {
-                transform: translateY(-50%) rotate(180deg);
-            }
-
-            &:hover,
-            &:focus {
+        &[data-accordion="open"] {
+            > .rrze-appointment__accordion-toggle,
+            > .rrze-appointment__date-group-toggle {
                 background: var(--rrze-appointment-accordion-bg-active-hover);
                 color: var(--rrze-appointment-accordion-text-active-hover);
+                box-shadow: inset 10px 0 0 0 var(--rrze-appointment-accordion-accent-dark) !important;
+
+                &::after {
+                    transform: translateY(-50%) rotate(180deg);
+                }
+
+                &:hover,
+                &:focus {
+                    background: var(--rrze-appointment-accordion-bg-active-hover);
+                    color: var(--rrze-appointment-accordion-text-active-hover);
+                }
+            }
+
+            > .rrze-appointment__slot-grid,
+            > .rrze-appointment__accordion-content {
+                display: block !important;
             }
         }
     }
@@ -545,11 +556,15 @@ $_tf-dark:   #2f586e;
         color: var(--FAU-Col-FAU-Weiss-100, #fff);
         background-color: var(--FAU-Col-FAU-Blau-100, #04316a);
 
-        > summary::before {
+        > summary::before,
+        > .rrze-appointment__accordion-toggle::before,
+        > .rrze-appointment__date-group-toggle::before {
             background: var(--FAU-Col-FAU-Weiss-100, #fff) !important;
         }
 
-        > summary::after {
+        > summary::after,
+        > .rrze-appointment__accordion-toggle::after,
+        > .rrze-appointment__date-group-toggle::after {
             background: var(--FAU-Col-FAU-Weiss-100, #fff) !important;
         }
     }
@@ -566,7 +581,9 @@ $_tf-dark:   #2f586e;
         .rrze-appointment__accordion,
         .rrze-appointment__date-group {
 
-            > summary::after {
+            > summary::after,
+            > .rrze-appointment__accordion-toggle::after,
+            > .rrze-appointment__date-group-toggle::after {
                 background: var(--FAU-Col-FAU-Blau-100, #04316a) !important;
             }
         }
@@ -588,7 +605,9 @@ $_elemental-caret: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'
         overflow: visible;
         border-bottom: 1px solid var(--FAU-Col-FAU-Blau-100, #e9edf2);
 
-        > summary {
+        > summary,
+        > .rrze-appointment__accordion-toggle,
+        > .rrze-appointment__date-group-toggle {
             margin: 0;
             padding: 1rem 3rem 1rem 0;
             font-size: var(--H-Heading-4, 1.25rem);
@@ -625,7 +644,9 @@ $_elemental-caret: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'
             }
         }
 
-        &[open] > summary {
+        &[open] > summary,
+        &[data-accordion="open"] > .rrze-appointment__accordion-toggle,
+        &[data-accordion="open"] > .rrze-appointment__date-group-toggle {
             box-shadow: none !important;
             background: transparent;
             color: inherit;
