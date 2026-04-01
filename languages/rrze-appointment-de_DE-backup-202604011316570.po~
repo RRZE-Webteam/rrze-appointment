@@ -8,7 +8,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2026-04-01 13:17+0000\n"
+"PO-Revision-Date: 2026-04-01 13:15+0000\n"
 "Last-Translator: RRZE Webteam\n"
 "Language-Team: Deutsch\n"
 "Language: de_DE\n"
@@ -105,6 +105,10 @@ msgstr "Standard"
 msgid "Delete"
 msgstr "Löschen"
 
+#: includes/Common/Settings/templates/options/domains-table.php:27
+msgid "Delete selected domains"
+msgstr ""
+
 #: includes/Settings.php:217
 msgid "Disabled"
 msgstr "Deaktiviert"
@@ -152,7 +156,7 @@ msgstr "Impressum"
 #: includes/Common/Settings/templates/options/logfile.php:22
 #: includes/Common/Settings/templates/options/logfile.php:25
 msgid "Logfile is empty."
-msgstr "Logdatei ist leer."
+msgstr ""
 
 #: includes/Settings.php:414
 msgid "Mail body"
@@ -185,6 +189,12 @@ msgstr "Plaintext"
 #: includes/Main.php:475
 msgid "Please confirm your appointment by email."
 msgstr "Bitte bestätigen Sie Ihren Termin per E-Mail."
+
+#: includes/Common/Settings/templates/options/domains-table.php:26
+msgid ""
+"Please note: \"Delete selected domains\" will DELETE every FAQ and glossary "
+"entry on this website that has been fetched from the selected domains."
+msgstr ""
 
 #: rrze-appointment.php:156
 #, php-format
@@ -242,7 +252,7 @@ msgstr ""
 
 #: includes/Common/Settings/Settings.php:587
 msgid "Settings saved."
-msgstr "Einstellungen gespeichert."
+msgstr ""
 
 #: includes/Settings.php:405
 msgid "Subject"
@@ -300,11 +310,11 @@ msgstr "Bis"
 
 #: includes/Common/Settings/Settings.php:406
 msgid "Unnamed tab"
-msgstr "Unbenannter Tab"
+msgstr ""
 
 #: includes/Common/Settings/Settings.php:562
 msgid "You do not have enough permissions to do that."
-msgstr "Sie haben nicht die Erlaubnis, dies zu tun."
+msgstr ""
 
 #: includes/Main.php:653
 msgid "Your appointment has been cancelled."

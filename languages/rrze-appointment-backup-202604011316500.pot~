@@ -1,57 +1,59 @@
 # Copyright (C) 2025 RRZE Webteam
 # This file is distributed under the GNU General Public License v2.0.
+#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: RRZE Appointment\n"
 "Report-Msgid-Bugs-To: https://github.com/RRZE-Webteam/rrze-appointment\n"
-"POT-Creation-Date: 2025-01-01 00:00+0000\n"
+"POT-Creation-Date: 2026-04-01 13:13+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2026-04-01 13:17+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: RRZE Webteam\n"
-"Language-Team: Deutsch\n"
-"Language: de_DE\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Language-Team: RRZE Webteam\n"
+"Language: \n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 "X-Domain: rrze-appointment\n"
+"\n"
 "X-Generator: Loco https://localise.biz/"
 
 #: includes/Settings.php:285
 #, php-format
 msgid "%d test email(s) sent to %s."
-msgstr "%d Testmail(s) an %s versendet."
+msgstr ""
 
 #: includes/Settings.php:327 includes/MailTemplatePost.php:161
 msgid "(no title)"
-msgstr "(kein Titel)"
+msgstr ""
 
 #: includes/Settings.php:313
 msgid "(not editable)"
-msgstr "(nicht editierbar)"
+msgstr ""
 
 #: includes/Settings.php:308
 msgid "Actions"
-msgstr "Aktionen"
+msgstr ""
 
 #: includes/Settings.php:510
 msgid "All"
-msgstr "Alle"
+msgstr ""
 
 #: includes/Main.php:655
 msgid "Appointment cancelled"
-msgstr "Termin storniert"
+msgstr ""
 
 #: includes/Main.php:618
 msgid "Appointment confirmed"
-msgstr "Termin bestätigt"
+msgstr ""
 
 #: includes/Settings.php:373
 msgid "Appointment request"
-msgstr "Termin-Anfrage"
+msgstr ""
 
 #: includes/Settings.php:85 includes/Settings.php:86 includes/Settings.php:208
 msgid "Appointments"
-msgstr "Termine"
+msgstr ""
 
 #. Description of the plugin
 msgid "Appointments the easy way."
@@ -59,79 +61,83 @@ msgstr ""
 
 #: includes/Main.php:617 includes/Main.php:654
 msgid "Back to homepage"
-msgstr "Zurück zur Startseite"
+msgstr ""
 
 #: includes/Settings.php:382
 msgid "Back to list"
-msgstr "Zurück zur Liste"
+msgstr ""
 
 #: includes/Settings.php:531
 msgid "Booker"
-msgstr "Buchender"
+msgstr ""
 
 #: includes/Settings.php:484
 msgid "Booking cancelled and cancellation emails sent."
-msgstr "Buchung storniert und Storno-Mails versendet."
+msgstr ""
 
 #: includes/Settings.php:554
 msgid "Cancel booking"
-msgstr "Stornieren"
+msgstr ""
 
 #: includes/Settings.php:378
 msgid "Cancellation"
-msgstr "Stornierung"
+msgstr ""
 
 #: includes/Settings.php:374
 msgid "Confirmation to booking person"
-msgstr "Bestätigung an buchende Person"
+msgstr ""
 
 #: includes/Settings.php:375
 msgid "Confirmation to host"
-msgstr "Bestätigung an einladende Person"
+msgstr ""
 
 #: includes/Settings.php:527
 msgid "Date"
-msgstr "Datum"
+msgstr ""
 
 #: includes/Settings.php:225
 msgid "days before the appointment."
-msgstr "Tage vor dem Termin versenden."
+msgstr ""
 
 #: includes/Settings.php:313
 msgid "Default"
-msgstr "Standard"
+msgstr ""
 
 #: includes/Settings.php:341
 msgid "Delete"
-msgstr "Löschen"
+msgstr ""
+
+#: includes/Common/Settings/templates/options/domains-table.php:27
+msgid "Delete selected domains"
+msgstr ""
 
 #: includes/Settings.php:217
 msgid "Disabled"
-msgstr "Deaktiviert"
+msgstr ""
 
 #: includes/Settings.php:329
 msgid "Edit"
-msgstr "Bearbeiten"
+msgstr ""
 
 #: includes/Settings.php:532
 msgid "Email"
-msgstr "E-Mail"
+msgstr ""
 
 #: includes/Settings.php:517
 msgid "Filter"
-msgstr "Filtern"
+msgstr ""
 
 #: includes/Settings.php:499
 msgid "From"
-msgstr "Von"
+msgstr ""
 
 #: includes/Settings.php:235
 msgid "General"
-msgstr "Allgemein"
+msgstr ""
 
 #: includes/Settings.php:434
 msgid "HTML"
-msgstr "HTML"
+msgstr ""
 
 #. URI of the plugin
 msgid "https://github.com/RRZE-Webteam/rrze-appointment"
@@ -143,48 +149,54 @@ msgstr ""
 
 #: includes/Settings.php:468
 msgid "Insert placeholder"
-msgstr "Platzhalter einfügen"
+msgstr ""
 
 #: includes/MailTemplate.php:37
 msgid "Legal Notice"
-msgstr "Impressum"
+msgstr ""
 
 #: includes/Common/Settings/templates/options/logfile.php:22
 #: includes/Common/Settings/templates/options/logfile.php:25
 msgid "Logfile is empty."
-msgstr "Logdatei ist leer."
+msgstr ""
 
 #: includes/Settings.php:414
 msgid "Mail body"
-msgstr "Mailtext"
+msgstr ""
 
 #: includes/Settings.php:236
 msgid "Mail Templates"
-msgstr "Mail-Vorlagen"
+msgstr ""
 
 #: includes/Settings.php:301
 msgid "New Template"
-msgstr "Neue Vorlage"
+msgstr ""
 
 #: includes/Settings.php:522
 msgid "No appointments found."
-msgstr "Keine Termine gefunden."
+msgstr ""
 
 #: includes/Main.php:398
 msgid "No authenticated email address found."
-msgstr "Keine authentifizierte E-Mail-Adresse gefunden."
+msgstr ""
 
 #: includes/Settings.php:508 includes/Settings.php:530
 msgid "Person"
-msgstr "Person"
+msgstr ""
 
 #: includes/Settings.php:431
 msgid "Plain text"
-msgstr "Plaintext"
+msgstr ""
 
 #: includes/Main.php:475
 msgid "Please confirm your appointment by email."
-msgstr "Bitte bestätigen Sie Ihren Termin per E-Mail."
+msgstr ""
+
+#: includes/Common/Settings/templates/options/domains-table.php:26
+msgid ""
+"Please note: \"Delete selected domains\" will DELETE every FAQ and glossary "
+"entry on this website that has been fetched from the selected domains."
+msgstr ""
 
 #: rrze-appointment.php:156
 #, php-format
@@ -193,36 +205,36 @@ msgstr ""
 
 #: includes/MailTemplate.php:32
 msgid "Privacy Policy"
-msgstr "Datenschutz"
+msgstr ""
 
 #: includes/Settings.php:553
 msgid "Really cancel this booking?"
-msgstr "Buchung wirklich stornieren?"
+msgstr ""
 
 #: includes/Settings.php:340
 msgid "Really delete this template?"
-msgstr "Vorlage wirklich löschen?"
+msgstr ""
 
 #: includes/Settings.php:103
 msgid "Reminder Email"
-msgstr "Erinnerungsmail"
+msgstr ""
 
 #: includes/Settings.php:377
 msgid "Reminder to booking person"
-msgstr "Erinnerung an buchende Person"
+msgstr ""
 
 #: includes/Settings.php:376
 msgid "Reminder to host"
-msgstr "Erinnerung an einladende Person"
+msgstr ""
 
 #: includes/Settings.php:518
 msgid "Reset"
-msgstr "Zurücksetzen"
+msgstr ""
 
 #. Name of the plugin
 #: includes/Settings.php:77 includes/Settings.php:78
 msgid "RRZE Appointment"
-msgstr "RRZE Appointment"
+msgstr ""
 
 #. Author of the plugin
 msgid "RRZE Webteam"
@@ -230,11 +242,11 @@ msgstr ""
 
 #: includes/Settings.php:420
 msgid "Save template"
-msgstr "Vorlage speichern"
+msgstr ""
 
 #: includes/Settings.php:319 includes/Settings.php:334
 msgid "Send Test Email"
-msgstr "Testmail senden"
+msgstr ""
 
 #: includes/Common/Settings/templates/settings-page.php:21
 msgid "Settings issues detected."
@@ -242,23 +254,23 @@ msgstr ""
 
 #: includes/Common/Settings/Settings.php:587
 msgid "Settings saved."
-msgstr "Einstellungen gespeichert."
+msgstr ""
 
 #: includes/Settings.php:405
 msgid "Subject"
-msgstr "Betreff"
+msgstr ""
 
 #: includes/Settings.php:281
 msgid "Template deleted."
-msgstr "Vorlage gelöscht."
+msgstr ""
 
 #: includes/Settings.php:280
 msgid "Template saved."
-msgstr "Vorlage gespeichert."
+msgstr ""
 
 #: includes/Settings.php:392
 msgid "Template title"
-msgstr "Titel der Vorlage"
+msgstr ""
 
 #: rrze-appointment.php:147
 #, php-format
@@ -276,42 +288,41 @@ msgstr ""
 
 #: includes/Settings.php:282
 msgid "The template cannot be deleted because it is still in use."
-msgstr "Die Vorlage kann nicht gelöscht werden, da sie noch verwendet wird."
+msgstr ""
 
 #: includes/Main.php:634
 msgid "This cancellation link is invalid or has already been used."
-msgstr "Dieser Storno-Link ist ungültig oder wurde bereits verwendet."
+msgstr ""
 
 #: includes/Main.php:492
 msgid "This confirmation link has expired or is invalid."
-msgstr "Dieser Bestätigungslink ist abgelaufen oder ungültig."
+msgstr ""
 
 #: includes/Settings.php:528
 msgid "Time"
-msgstr "Zeit"
+msgstr ""
 
 #: includes/Settings.php:307 includes/Settings.php:529
 msgid "Title"
-msgstr "Titel"
+msgstr ""
 
 #: includes/Settings.php:503
 msgid "To"
-msgstr "Bis"
+msgstr ""
 
 #: includes/Common/Settings/Settings.php:406
 msgid "Unnamed tab"
-msgstr "Unbenannter Tab"
+msgstr ""
 
 #: includes/Common/Settings/Settings.php:562
 msgid "You do not have enough permissions to do that."
-msgstr "Sie haben nicht die Erlaubnis, dies zu tun."
+msgstr ""
 
 #: includes/Main.php:653
 msgid "Your appointment has been cancelled."
-msgstr "Ihr Termin wurde storniert."
+msgstr ""
 
 #: includes/Main.php:616
 msgid ""
 "Your appointment has been confirmed. A confirmation has been sent by email."
 msgstr ""
-"Ihr Termin wurde bestätigt. Eine Bestätigung wurde per E-Mail versendet."

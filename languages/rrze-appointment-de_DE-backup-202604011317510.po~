@@ -8,7 +8,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2026-04-01 13:17+0000\n"
+"PO-Revision-Date: 2026-04-01 13:16+0000\n"
 "Last-Translator: RRZE Webteam\n"
 "Language-Team: Deutsch\n"
 "Language: de_DE\n"
@@ -152,7 +152,7 @@ msgstr "Impressum"
 #: includes/Common/Settings/templates/options/logfile.php:22
 #: includes/Common/Settings/templates/options/logfile.php:25
 msgid "Logfile is empty."
-msgstr "Logdatei ist leer."
+msgstr ""
 
 #: includes/Settings.php:414
 msgid "Mail body"
@@ -242,7 +242,7 @@ msgstr ""
 
 #: includes/Common/Settings/Settings.php:587
 msgid "Settings saved."
-msgstr "Einstellungen gespeichert."
+msgstr ""
 
 #: includes/Settings.php:405
 msgid "Subject"
@@ -300,11 +300,11 @@ msgstr "Bis"
 
 #: includes/Common/Settings/Settings.php:406
 msgid "Unnamed tab"
-msgstr "Unbenannter Tab"
+msgstr ""
 
 #: includes/Common/Settings/Settings.php:562
 msgid "You do not have enough permissions to do that."
-msgstr "Sie haben nicht die Erlaubnis, dies zu tun."
+msgstr ""
 
 #: includes/Main.php:653
 msgid "Your appointment has been cancelled."
