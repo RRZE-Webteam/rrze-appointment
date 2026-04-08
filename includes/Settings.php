@@ -9,19 +9,22 @@ class Settings
     const OPTION_NAME = 'rrze_appointment_settings';
     const PAGE_SLUG   = 'rrze-appointment-settings';
 
-    const PLACEHOLDERS = [
-        '[titel]'              => 'Titel des Termins',
-        '[datum]'              => 'Datum des Termins',
-        '[uhrzeit]'            => 'Uhrzeit (von – bis)',
-        '[ort]'                => 'Ort',
-        '[person_name]'        => 'Einladenden Person',
-        '[name]'               => 'Buchende Person (Name)',
-        '[email]'              => 'Buchende Person (Email)',
-        '[nachricht]'          => 'Buchende Person (Nachricht)',
-        '[bestaetigungs_link]' => 'Link zur Buchungsbestätigung',
-        '[storno_link]'        => 'Link zum Stornieren',
-        '[impressum_link]'     => 'Link zum Impressum',
-    ];
+    public static function getPlaceholders(): array
+    {
+        return [
+            '[title]'             => __('Title of the appointment', 'rrze-appointment'),
+            '[date]'              => __('Date of the appointment', 'rrze-appointment'),
+            '[time]'              => __('Time (from – to)', 'rrze-appointment'),
+            '[location]'          => __('Location', 'rrze-appointment'),
+            '[person_name]'       => __('Inviting person', 'rrze-appointment'),
+            '[name]'              => __('Booking person (name)', 'rrze-appointment'),
+            '[email]'             => __('Booking person (email)', 'rrze-appointment'),
+            '[message]'           => __('Booking person (message)', 'rrze-appointment'),
+            '[confirmation_link]' => __('Link to booking confirmation', 'rrze-appointment'),
+            '[cancel_link]'       => __('Link to cancel', 'rrze-appointment'),
+            '[imprint_link]'      => __('Link to imprint', 'rrze-appointment'),
+        ];
+    }
 
     public static function getDefaults(): array
     {
@@ -133,7 +136,7 @@ class Settings
         }
 
         if (in_array($action, ['save', 'new'], true)) {
-            // Prüfen ob alle Pflichtfelder ausgefüllt sind
+            // Check if all required fields are filled
             $isDraft = false;
             $title   = sanitize_text_field($_POST['title'] ?? '');
             if (empty($title)) {
@@ -168,17 +171,17 @@ class Settings
         $to    = $user->user_email;
 
         $vars = [
-            '[titel]'          => 'Testvortrag über Musterthemen',
-            '[datum]'          => date_i18n(get_option('date_format'), strtotime('+3 days')),
-            '[uhrzeit]'        => '10:00 – 10:30',
-            '[ort]'            => 'Raum 1.234, Mustergebäude',
-            '[person_name]'    => 'Prof. Dr. Max Mustermann',
-            '[name]'           => 'Monika Musterfrau',
-            '[email]'          => $to,
-            '[nachricht]'      => 'Ich habe eine kurze Frage zum Thema.',
-            '[bestaetigungs_link]' => home_url('/'),
-            '[storno_link]'    => home_url('/'),
-            '[impressum_link]' => TokenManager::imprintUrl(),
+            '[title]'             => 'Test lecture on sample topics',
+            '[date]'              => date_i18n(get_option('date_format'), strtotime('+3 days')),
+            '[time]'              => '10:00 – 10:30',
+            '[location]'          => 'Room 1.234, Sample Building',
+            '[person_name]'       => 'Prof. Dr. Max Sample',
+            '[name]'              => 'Jane Sample',
+            '[email]'             => $to,
+            '[message]'           => 'I have a brief question about the topic.',
+            '[confirmation_link]' => home_url('/'),
+            '[cancel_link]'       => home_url('/'),
+            '[imprint_link]'      => TokenManager::imprintUrl(),
         ];
 
         $types = ['booking_pending', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation'];
@@ -294,10 +297,10 @@ class Settings
         $editId = (int) ($_GET['edit'] ?? 0);
 
         // Notices
-        if (!empty($_GET['saved']))   echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Vorlage gespeichert und veröffentlicht.', 'rrze-appointment') . '</p></div>';
-        if (!empty($_GET['draft']))    echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__('Vorlage als Entwurf gespeichert. Bitte alle Felder ausfüllen (Titel, Betreff und Mailtext für alle Abschnitte), um die Vorlage zu veröffentlichen.', 'rrze-appointment') . '</p></div>';
-        if (!empty($_GET['deleted']))  echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Vorlage gelöscht.', 'rrze-appointment') . '</p></div>';
-        if (!empty($_GET['inuse']))    echo '<div class="notice notice-error is-dismissible"><p>' . sprintf(esc_html__('Die Vorlage kann nicht gelöscht werden, da sie noch verwendet wird in: %s', 'rrze-appointment'), esc_html(urldecode($_GET['inuse']))) . '</p></div>';
+        if (!empty($_GET['saved']))   echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Template saved.', 'rrze-appointment') . '</p></div>';
+        if (!empty($_GET['draft']))    echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__('Template saved as draft. Please fill in all fields (title, subject and body for all sections) to publish the template.', 'rrze-appointment') . '</p></div>';
+        if (!empty($_GET['deleted']))  echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Template deleted.', 'rrze-appointment') . '</p></div>';
+        if (!empty($_GET['inuse']))    echo '<div class="notice notice-error is-dismissible"><p>' . sprintf(esc_html__('The template cannot be deleted because it is still in use: %s', 'rrze-appointment'), esc_html(urldecode($_GET['inuse']))) . '</p></div>';
         if (isset($_GET['test_sent'])) {
             $sent = (int) $_GET['test_sent'];
             echo '<div class="notice notice-success is-dismissible"><p>' . sprintf(esc_html__('%d test email(s) sent to %s.', 'rrze-appointment'), $sent, esc_html(wp_get_current_user()->user_email)) . '</p></div>';
@@ -343,9 +346,9 @@ class Settings
                 ?>
                     <tr>
                         <td>
-                            <strong><?php echo esc_html($tpl['title'] ?: __('(kein Titel)', 'rrze-appointment')); ?></strong>
+                            <strong><?php echo esc_html($tpl['title'] ?: __('(no title)', 'rrze-appointment')); ?></strong>
                             <?php if (($tpl['status'] ?? '') === 'draft') : ?>
-                                <em style="color:#50575e;"> &mdash; <?php esc_html_e('Entwurf', 'rrze-appointment'); ?></em>
+                                <em style="color:#50575e;"> &mdash; <?php esc_html_e('Draft', 'rrze-appointment'); ?></em>
                             <?php endif; ?>
                         </td>
                         <td>
@@ -491,7 +494,7 @@ class Settings
             esc_html__('Insert placeholder', 'rrze-appointment')
         );
         echo '<ul class="rrze-appt-insert-dropdown" style="display:none;position:absolute;z-index:100;background:#fff;border:1px solid #dcdcde;box-shadow:0 2px 6px rgba(0,0,0,.15);margin:0;padding:0;list-style:none;min-width:220px;">';
-        foreach (self::PLACEHOLDERS as $tag => $desc) {
+        foreach (self::getPlaceholders() as $tag => $desc) {
             printf(
                 '<li><button type="button" class="rrze-appt-insert-tag" data-tag="%s" style="display:block;width:100%%;text-align:left;padding:6px 12px;background:none;border:none;cursor:pointer;font-size:13px;"><code style="white-space: nowrap;">%s</code></button></li>',
                 esc_attr($tag),

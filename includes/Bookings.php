@@ -193,7 +193,7 @@ class Bookings
             [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
             [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
 
-            $title       = $meta['title']    ?? 'Termin';
+            $title       = $meta['title']    ?? __('Appointment', 'rrze-appointment');
             $location    = $meta['location'] ?? '';
             $personId    = (int) ($meta['person_id'] ?? 0);
             $bookerEmail = $meta['booker_email'] ?? '';
@@ -209,15 +209,15 @@ class Bookings
             }
 
             $vars = [
-                '[titel]'          => $title,
-                '[datum]'          => date_i18n(get_option('date_format'), strtotime($datePart)),
-                '[uhrzeit]'        => $startTime . ' – ' . $endTime,
-                '[ort]'            => $location ?: '–',
-                '[person_name]'    => $pName ?: '–',
-                '[name]'           => $bookerName ?: '–',
-                '[email]'          => $bookerEmail ?: '–',
-                '[storno_link]'    => '',
-                '[impressum_link]' => TokenManager::imprintUrl(),
+                '[title]'             => $title,
+                '[date]'              => date_i18n(get_option('date_format'), strtotime($datePart)),
+                '[time]'              => $startTime . ' – ' . $endTime,
+                '[location]'          => $location ?: '–',
+                '[person_name]'       => $pName ?: '–',
+                '[name]'              => $bookerName ?: '–',
+                '[email]'             => $bookerEmail ?: '–',
+                '[cancel_link]'       => '',
+                '[imprint_link]'      => TokenManager::imprintUrl(),
             ];
 
             $tpl = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'cancellation') ?? []) : [];
@@ -226,8 +226,8 @@ class Bookings
             $bodyTpl     = !empty($tpl['body'])      ? $tpl['body']      : $def['body'];
             $bodyHtmlTpl = !empty($tpl['body_html']) ? $tpl['body_html'] : $def['body_html'];
 
-            if (strpos($bodyTpl, '[impressum_link]') === false)    $bodyTpl     .= "\nImpressum: [impressum_link]";
-            if (strpos($bodyHtmlTpl, '[impressum_link]') === false) $bodyHtmlTpl .= '<p><a href="[impressum_link]">Impressum</a></p>';
+            if (strpos($bodyTpl, '[imprint_link]') === false)    $bodyTpl     .= "\n" . __('Imprint', 'rrze-appointment') . ": [imprint_link]";
+            if (strpos($bodyHtmlTpl, '[imprint_link]') === false) $bodyHtmlTpl .= '<p><a href="[imprint_link]">' . __('Imprint', 'rrze-appointment') . '</a></p>';
 
             $subject = Settings::renderTemplate(!empty($tpl['subject']) ? $tpl['subject'] : $def['subject'], $vars);
             $plain   = Settings::renderTemplate($bodyTpl, $vars);

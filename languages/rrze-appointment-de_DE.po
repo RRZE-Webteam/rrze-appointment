@@ -463,20 +463,20 @@ msgstr "Bitte mindestens einen Tag unter Termin-Einstellungen auswählen."
 msgid "No time slots available."
 msgstr "Keine Timeslots verfügbar."
 
-msgid "Confirm appointment request: [titel] on [datum]"
-msgstr "Terminanfrage bestätigen: [titel] am [datum]"
+msgid "Confirm appointment request: [title] on [date]"
+msgstr "Terminanfrage bestätigen: [title] am [date]"
 
-msgid "Booking confirmation: [titel] on [datum]"
-msgstr "Buchungsbestätigung: [titel] am [datum]"
+msgid "Booking confirmation: [title] on [date]"
+msgstr "Buchungsbestätigung: [title] am [date]"
 
-msgid "New booking: [titel] on [datum]"
-msgstr "Neue Buchung: [titel] am [datum]"
+msgid "New booking: [title] on [date]"
+msgstr "Neue Buchung: [title] am [date]"
 
-msgid "Reminder: [titel] on [datum]"
-msgstr "Erinnerung: [titel] am [datum]"
+msgid "Reminder: [title] on [date]"
+msgstr "Erinnerung: [title] am [date]"
 
-msgid "Cancellation: [titel] on [datum]"
-msgstr "Stornierung: [titel] am [datum]"
+msgid "Cancellation: [title] on [date]"
+msgstr "Stornierung: [title] am [date]"
 
 msgid "Confirm appointment now"
 msgstr "Termin jetzt bestätigen"
@@ -520,20 +520,20 @@ msgstr "Termin bestätigen"
 msgid "Cancel request"
 msgstr "Anfrage stornieren"
 
-msgid "%s\n\n%s: [titel]\n%s: [datum]\n%s: [uhrzeit]\n%s: [ort]\n\n%s: [bestaetigungs_link]\n%s: [storno_link]\n\n%s: [impressum_link]"
-msgstr "%s\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\n\nBestätigung: [bestaetigungs_link]\nStornieren: [storno_link]\n\nImpressum: [impressum_link]"
+msgid "%s\n\n%s: [title]\n%s: [date]\n%s: [time]\n%s: [location]\n\n%s: [confirmation_link]\n%s: [cancel_link]\n\n%s: [imprint_link]"
+msgstr "%s\n\nTermin: [title]\nDatum: [date]\nZeit: [time]\nOrt: [location]\n\nBestätigung: [confirmation_link]\nStornieren: [cancel_link]\n\nImpressum: [imprint_link]"
 
-msgid "%s\n\n%s: [titel]\n%s: [datum]\n%s: [uhrzeit]\n%s: [ort]\n\n%s: [storno_link]\n\n%s: [impressum_link]"
-msgstr "%s\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\n\nStornieren: [storno_link]\n\nImpressum: [impressum_link]"
+msgid "%s\n\n%s: [title]\n%s: [date]\n%s: [time]\n%s: [location]\n\n%s: [cancel_link]\n\n%s: [imprint_link]"
+msgstr "%s\n\nTermin: [title]\nDatum: [date]\nZeit: [time]\nOrt: [location]\n\nStornieren: [cancel_link]\n\nImpressum: [imprint_link]"
 
-msgid "%s\n\n%s: [titel]\n%s: [datum]\n%s: [uhrzeit]\n%s: [ort]\n%s: [name] ([email])\n%s: [nachricht]\n\n%s: [storno_link]\n\n%s: [impressum_link]"
-msgstr "%s\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\nGebucht von: [name] ([email])\nNachricht: [nachricht]\n\nStornieren: [storno_link]\n\nImpressum: [impressum_link]"
+msgid "%s\n\n%s: [title]\n%s: [date]\n%s: [time]\n%s: [location]\n%s: [name] ([email])\n%s: [message]\n\n%s: [cancel_link]\n\n%s: [imprint_link]"
+msgstr "%s\n\nTermin: [title]\nDatum: [date]\nZeit: [time]\nOrt: [location]\nGebucht von: [name] ([email])\nNachricht: [message]\n\nStornieren: [cancel_link]\n\nImpressum: [imprint_link]"
 
-msgid "%s\n\n%s: [titel]\n%s: [datum]\n%s: [uhrzeit]\n%s: [ort]\n%s: [name] ([email])\n\n%s: [storno_link]\n\n%s: [impressum_link]"
-msgstr "%s\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\nGebucht von: [name] ([email])\n\nStornieren: [storno_link]\n\nImpressum: [impressum_link]"
+msgid "%s\n\n%s: [title]\n%s: [date]\n%s: [time]\n%s: [location]\n%s: [name] ([email])\n\n%s: [cancel_link]\n\n%s: [imprint_link]"
+msgstr "%s\n\nTermin: [title]\nDatum: [date]\nZeit: [time]\nOrt: [location]\nGebucht von: [name] ([email])\n\nStornieren: [cancel_link]\n\nImpressum: [imprint_link]"
 
-msgid "%s\n\n%s: [titel]\n%s: [datum]\n%s: [uhrzeit]\n%s: [ort]\n\n%s: [impressum_link]"
-msgstr "%s\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\n\nImpressum: [impressum_link]"
+msgid "%s\n\n%s: [title]\n%s: [date]\n%s: [time]\n%s: [location]\n\n%s: [imprint_link]"
+msgstr "%s\n\nTermin: [title]\nDatum: [date]\nZeit: [time]\nOrt: [location]\n\nImpressum: [imprint_link]"
 
 msgid "New time for"
 msgstr "Neue Uhrzeit für"
@@ -657,3 +657,61 @@ msgstr "Abbrechen"
 
 msgid "No"
 msgstr "Nein"
+
+msgid "Template saved as draft. Please fill in all fields (title, subject and body for all sections) to publish the template."
+msgstr "Vorlage als Entwurf gespeichert. Bitte alle Felder ausfüllen (Titel, Betreff und Mailtext für alle Abschnitte), um die Vorlage zu veröffentlichen."
+
+
+msgid "The template cannot be deleted because it is still in use: %s"
+msgstr "Die Vorlage kann nicht gelöscht werden, da sie noch verwendet wird in: %s"
+
+msgid "Draft"
+msgstr "Entwurf"
+
+msgid "Title of the appointment"
+msgstr "Titel des Termins"
+
+msgid "Date of the appointment"
+msgstr "Datum des Termins"
+
+msgid "Time (from – to)"
+msgstr "Uhrzeit (von – bis)"
+
+msgid "Inviting person"
+msgstr "Einladende Person"
+
+msgid "Booking person (name)"
+msgstr "Buchende Person (Name)"
+
+msgid "Booking person (email)"
+msgstr "Buchende Person (E-Mail)"
+
+msgid "Booking person (message)"
+msgstr "Buchende Person (Nachricht)"
+
+msgid "Link to booking confirmation"
+msgstr "Link zur Buchungsbestätigung"
+
+msgid "Link to cancel"
+msgstr "Link zum Stornieren"
+
+msgid "Link to imprint"
+msgstr "Link zum Impressum"
+
+msgid "Imprint"
+msgstr "Impressum"
+
+msgid "No appointment specified."
+msgstr "Kein Termin angegeben."
+
+msgid "Please provide an email address."
+msgstr "Bitte eine E-Mail-Adresse angeben."
+
+msgid "Invalid appointment format."
+msgstr "Ungültiges Termin-Format."
+
+msgid "This appointment is no longer available."
+msgstr "Dieser Termin ist nicht mehr verfügbar."
+
+msgid "Confirmation"
+msgstr "Bestätigung"
