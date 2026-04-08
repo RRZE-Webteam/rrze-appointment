@@ -133,9 +133,26 @@ class Settings
         }
 
         if (in_array($action, ['save', 'new'], true)) {
-            $result = MailTemplatePost::save($_POST);
-            $id = is_wp_error($result) ? 0 : $result;
-            wp_redirect(add_query_arg(['page' => self::PAGE_SLUG, 'tab' => 'templates', 'saved' => '1', 'edit' => $id], admin_url('options-general.php')));
+            // Prüfen ob alle Pflichtfelder ausgefüllt sind
+            $isDraft = false;
+            $title   = sanitize_text_field($_POST['title'] ?? '');
+            if (empty($title)) {
+                $isDraft = true;
+            } else {
+                foreach (['booking_pending', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation'] as $key) {
+                    $subject = sanitize_text_field($_POST["{$key}_subject"] ?? '');
+                    $body    = sanitize_textarea_field($_POST["{$key}_body"] ?? '');
+                    if (empty($subject) || empty($body)) {
+                        $isDraft = true;
+                        break;
+                    }
+                }
+            }
+            $result = MailTemplatePost::save($_POST, $isDraft);
+            $id     = is_wp_error($result) ? 0 : $result;
+            $params = ['page' => self::PAGE_SLUG, 'tab' => 'templates', 'edit' => $id];
+            $params[$isDraft ? 'draft' : 'saved'] = '1';
+            wp_redirect(add_query_arg($params, admin_url('options-general.php')));
             exit;
         }
     }
@@ -277,9 +294,10 @@ class Settings
         $editId = (int) ($_GET['edit'] ?? 0);
 
         // Notices
-        if (!empty($_GET['saved']))     echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Template saved.', 'rrze-appointment') . '</p></div>';
-        if (!empty($_GET['deleted']))   echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Template deleted.', 'rrze-appointment') . '</p></div>';
-        if (!empty($_GET['inuse']))     echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__('The template cannot be deleted because it is still in use.', 'rrze-appointment') . '</p></div>';
+        if (!empty($_GET['saved']))   echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Vorlage gespeichert und veröffentlicht.', 'rrze-appointment') . '</p></div>';
+        if (!empty($_GET['draft']))    echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__('Vorlage als Entwurf gespeichert. Bitte alle Felder ausfüllen (Titel, Betreff und Mailtext für alle Abschnitte), um die Vorlage zu veröffentlichen.', 'rrze-appointment') . '</p></div>';
+        if (!empty($_GET['deleted']))  echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Vorlage gelöscht.', 'rrze-appointment') . '</p></div>';
+        if (!empty($_GET['inuse']))    echo '<div class="notice notice-error is-dismissible"><p>' . sprintf(esc_html__('Die Vorlage kann nicht gelöscht werden, da sie noch verwendet wird in: %s', 'rrze-appointment'), esc_html(urldecode($_GET['inuse']))) . '</p></div>';
         if (isset($_GET['test_sent'])) {
             $sent = (int) $_GET['test_sent'];
             echo '<div class="notice notice-success is-dismissible"><p>' . sprintf(esc_html__('%d test email(s) sent to %s.', 'rrze-appointment'), $sent, esc_html(wp_get_current_user()->user_email)) . '</p></div>';
@@ -324,7 +342,12 @@ class Settings
                     $editUrl = add_query_arg(['page' => self::PAGE_SLUG, 'tab' => 'templates', 'edit' => $tpl['id']], admin_url('options-general.php'));
                 ?>
                     <tr>
-                        <td><strong><?php echo esc_html($tpl['title'] ?: __('(no title)', 'rrze-appointment')); ?></strong></td>
+                        <td>
+                            <strong><?php echo esc_html($tpl['title'] ?: __('(kein Titel)', 'rrze-appointment')); ?></strong>
+                            <?php if (($tpl['status'] ?? '') === 'draft') : ?>
+                                <em style="color:#50575e;"> &mdash; <?php esc_html_e('Entwurf', 'rrze-appointment'); ?></em>
+                            <?php endif; ?>
+                        </td>
                         <td>
                             <a href="<?php echo esc_url($editUrl); ?>" class="button button-small"><?php esc_html_e('Edit', 'rrze-appointment'); ?></a>
                             <form method="post" action="" style="display:inline;">
