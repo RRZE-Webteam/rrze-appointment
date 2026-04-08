@@ -4,7 +4,7 @@ Tags: appointments, calendar, booking
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Plugin URI: https://github.com/RRZE-Webteam/rrze-appointment
@@ -50,11 +50,6 @@ With these plugins, integration with SSO and FAUdir is enabled.
 Users booking appointments log in via SSO using their IdM credentials. 
 Person data can be imported automatically from FAUdir. 
 For example, office hours or consultation appointments are generated if defined in FAUdir.
-
-== Changelog ==
-
-= 0.3.13 =
-* Initial release
 
 == License ==
 

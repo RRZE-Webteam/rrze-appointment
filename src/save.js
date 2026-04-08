@@ -22,9 +22,9 @@ export default function Save({ attributes }) {
             )}
             {location && (
                 <p className="rrze-appointment__location">
-                    Ort: {location}
+                    {__('Location:', 'rrze-appointment')} {location}
                     {locationUrl && (
-                        <> (<a href={locationUrl} target="_blank" rel="noopener noreferrer">Auf der Karte ansehen</a>)</>
+                        <> (<a href={locationUrl} target="_blank" rel="noopener noreferrer">{__('View on map', 'rrze-appointment')}</a>)</>
                     )}
                 </p>
             )}
@@ -34,7 +34,7 @@ export default function Save({ attributes }) {
                     <div className="rrze-appointment__calendar" />
 
                     <fieldset className="rrze-appointment__day-slots is-hidden">
-                        <legend>Uhrzeiten am ausgewählten Tag</legend>
+                        <legend>{__('Times on selected day', 'rrze-appointment')}</legend>
                         <div className="rrze-appointment__day-slots-list" />
                     </fieldset>
 
@@ -43,7 +43,7 @@ export default function Save({ attributes }) {
                     <div className="rrze-appointment__selected-info is-hidden" aria-live="polite" />
                 </Fragment>
             ) : (
-                <p className="rrze-appointment__missing-slot">Keine Timeslots verfügbar.</p>
+                <p className="rrze-appointment__missing-slot">{__('No time slots available.', 'rrze-appointment')}</p>
             )}
         </form>
     );

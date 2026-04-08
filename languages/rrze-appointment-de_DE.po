@@ -8,7 +8,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2026-04-01 13:17+0000\n"
+"PO-Revision-Date: 2026-04-08 10:38+0000\n"
 "Last-Translator: RRZE Webteam\n"
 "Language-Team: Deutsch\n"
 "Language: de_DE\n"
@@ -37,11 +37,19 @@ msgstr "Aktionen"
 msgid "All"
 msgstr "Alle"
 
-#: includes/Main.php:655
+#: includes/Bookings.php:172
+msgid "An earlier appointment has become available:"
+msgstr "Ein früherer Termin ist frei geworden:"
+
+#: includes/Bookings.php:174
+msgid "Appointment"
+msgstr "Termin"
+
+#: includes/Main.php:662
 msgid "Appointment cancelled"
 msgstr "Termin storniert"
 
-#: includes/Main.php:618
+#: includes/Main.php:625
 msgid "Appointment confirmed"
 msgstr "Termin bestätigt"
 
@@ -57,7 +65,7 @@ msgstr "Termine"
 msgid "Appointments the easy way."
 msgstr ""
 
-#: includes/Main.php:617 includes/Main.php:654
+#: includes/Main.php:624 includes/Main.php:661
 msgid "Back to homepage"
 msgstr "Zurück zur Startseite"
 
@@ -89,7 +97,7 @@ msgstr "Bestätigung an buchende Person"
 msgid "Confirmation to host"
 msgstr "Bestätigung an einladende Person"
 
-#: includes/Settings.php:527
+#: includes/Settings.php:527 includes/Bookings.php:175
 msgid "Date"
 msgstr "Datum"
 
@@ -108,6 +116,11 @@ msgstr "Löschen"
 #: includes/Settings.php:217
 msgid "Disabled"
 msgstr "Deaktiviert"
+
+#: includes/Bookings.php:151
+#, php-format
+msgid "Earlier appointment available: %s on %s"
+msgstr "Früherer Termin verfügbar: %s am %s"
 
 #: includes/Settings.php:329
 msgid "Edit"
@@ -129,6 +142,46 @@ msgstr "Von"
 msgid "General"
 msgstr "Allgemein"
 
+#: includes/Bookings.php:171
+#, php-format
+msgid "Hello %s,"
+msgstr "Hallo %s,"
+
+#: includes/Bookings.php:157
+#, php-format
+msgid ""
+"Hello %s,\n"
+"\n"
+"An earlier appointment has become available:\n"
+"\n"
+"Appointment: %s\n"
+"Date: %s\n"
+"Time: %s\n"
+"Location: %s\n"
+"Host: %s\n"
+"\n"
+"Your current appointment is on %s at %s.\n"
+"\n"
+"Please book the earlier slot directly on the website."
+msgstr ""
+"Hallo %s,\n"
+"\n"
+"Ein früherer Termin ist frei geworden:\n"
+"\n"
+"Termin: %s\n"
+"Datum: %s\n"
+"Zeit: %s\n"
+"Ort: %s\n"
+"Einladende Person: %s\n"
+"\n"
+"Ihr aktueller Termin ist am %s um %s.\n"
+"\n"
+"Bitte buchen Sie den früheren Termin direkt auf der Website."
+
+#: includes/Bookings.php:178
+msgid "Host"
+msgstr "Einladende Person"
+
 #: includes/Settings.php:434
 msgid "HTML"
 msgstr "HTML"
@@ -148,6 +201,10 @@ msgstr "Platzhalter einfügen"
 #: includes/MailTemplate.php:37
 msgid "Legal Notice"
 msgstr "Impressum"
+
+#: includes/Bookings.php:177
+msgid "Location"
+msgstr "Ort"
 
 #: includes/Common/Settings/templates/options/logfile.php:22
 #: includes/Common/Settings/templates/options/logfile.php:25
@@ -170,7 +227,7 @@ msgstr "Neue Vorlage"
 msgid "No appointments found."
 msgstr "Keine Termine gefunden."
 
-#: includes/Main.php:398
+#: includes/Main.php:404
 msgid "No authenticated email address found."
 msgstr "Keine authentifizierte E-Mail-Adresse gefunden."
 
@@ -182,7 +239,11 @@ msgstr "Person"
 msgid "Plain text"
 msgstr "Plaintext"
 
-#: includes/Main.php:475
+#: includes/Bookings.php:185
+msgid "Please book the earlier slot directly on the website."
+msgstr "Bitte buchen Sie den früheren Termin direkt auf der Website."
+
+#: includes/Main.php:482
 msgid "Please confirm your appointment by email."
 msgstr "Bitte bestätigen Sie Ihren Termin per E-Mail."
 
@@ -238,7 +299,7 @@ msgstr "Testmail senden"
 
 #: includes/Common/Settings/templates/settings-page.php:21
 msgid "Settings issues detected."
-msgstr ""
+msgstr "Probleme bei den Einstellungen festgestellt."
 
 #: includes/Common/Settings/Settings.php:587
 msgid "Settings saved."
@@ -278,15 +339,19 @@ msgstr ""
 msgid "The template cannot be deleted because it is still in use."
 msgstr "Die Vorlage kann nicht gelöscht werden, da sie noch verwendet wird."
 
-#: includes/Main.php:634
+#: includes/Bookings.php:161 includes/Bookings.php:171
+msgid "there"
+msgstr "dort"
+
+#: includes/Main.php:641
 msgid "This cancellation link is invalid or has already been used."
 msgstr "Dieser Storno-Link ist ungültig oder wurde bereits verwendet."
 
-#: includes/Main.php:492
+#: includes/Main.php:499
 msgid "This confirmation link has expired or is invalid."
 msgstr "Dieser Bestätigungslink ist abgelaufen oder ungültig."
 
-#: includes/Settings.php:528
+#: includes/Settings.php:528 includes/Bookings.php:176
 msgid "Time"
 msgstr "Zeit"
 
@@ -302,55 +367,293 @@ msgstr "Bis"
 msgid "Unnamed tab"
 msgstr "Unbenannter Tab"
 
+#: includes/Main.php:339
+msgid ""
+"Yes, I would like to be notified if an earlier appointment becomes available."
+msgstr "Ja, ich möchte informiert werden, wenn ein früherer Termin frei wird."
+
 #: includes/Common/Settings/Settings.php:562
 msgid "You do not have enough permissions to do that."
 msgstr "Sie haben nicht die Erlaubnis, dies zu tun."
 
-#: includes/Main.php:653
+#: includes/Main.php:660
 msgid "Your appointment has been cancelled."
 msgstr "Ihr Termin wurde storniert."
 
-#: includes/Main.php:616
+#: includes/Main.php:623
 msgid ""
 "Your appointment has been confirmed. A confirmation has been sent by email."
 msgstr ""
 "Ihr Termin wurde bestätigt. Eine Bestätigung wurde per E-Mail versendet."
 
-msgid "Booking cutoff"
-msgstr "Buchungsschluss"
+#: includes/Bookings.php:181
+#, php-format
+msgid "Your current appointment is on %s at %s."
+msgstr "Ihr aktueller Termin ist am %s um %s."
 
-msgid "Minimum minutes before start time that booking is still allowed."
-msgstr "Mindestanzahl Minuten vor Terminbeginn, bis zu der noch gebucht werden kann."
+msgid "Your appointment on %s at %s"
+msgstr "Ihr Termin am %s um %s"
 
-msgid "No restriction"
-msgstr "Keine Einschränkung"
+msgid "Your email address:"
+msgstr "Ihre E-Mail-Adresse:"
 
-msgid "Yes, I would like to be notified if an earlier appointment becomes available."
-msgstr "Ja, ich möchte informiert werden, wenn ein früherer Termin frei wird."
+msgid "Your name:"
+msgstr "Ihr Name:"
 
-msgid "Earlier appointment available: %s on %s"
-msgstr "Früherer Termin verfügbar: %s am %s"
+msgid "Message (optional):"
+msgstr "Nachricht (optional):"
 
-msgid "Hello %s,"
-msgstr "Hallo %s,"
+msgid "Book"
+msgstr "Buchen"
 
-msgid "An earlier appointment has become available:"
-msgstr "Ein früherer Termin ist frei geworden:"
+msgid "Booking…"
+msgstr "Wird gebucht…"
+
+msgid "Appointment booked! A confirmation has been sent."
+msgstr "Termin gebucht! Eine Bestätigung wurde versendet."
+
+msgid "Close"
+msgstr "Schließen"
+
+msgid "Error booking appointment."
+msgstr "Fehler beim Buchen."
+
+msgid "Network error. Please try again."
+msgstr "Netzwerkfehler. Bitte erneut versuchen."
+
+msgid "Available appointments on %s"
+msgstr "Verfügbare Termine am %s"
+
+msgid "All appointments"
+msgstr "Alle Termine"
+
+msgid "Times on selected day"
+msgstr "Uhrzeiten am ausgewählten Tag"
+
+msgid "Times on %s"
+msgstr "Uhrzeiten am %s"
+
+msgid "No person data available."
+msgstr "Keine Personen-Daten verfügbar."
+
+msgid "Consultation hours of"
+msgstr "Sprechstunde von"
+
+msgid "Appointment settings"
+msgstr "Termin-Einstellungen"
+
+msgid "Calendar view"
+msgstr "Kalender-Ansicht"
+
+msgid "Click a date to add or remove it."
+msgstr "Ein Klick auf ein Datum fügt es hinzu oder entfernt es wieder."
+
+msgid "Appointment title"
+msgstr "Termin-Titel"
+
+msgid "Location:"
+msgstr "Ort:"
+
+msgid "View on map"
+msgstr "Auf der Karte ansehen"
+
+msgid "Please select at least one day in the appointment settings."
+msgstr "Bitte mindestens einen Tag unter Termin-Einstellungen auswählen."
+
+msgid "No time slots available."
+msgstr "Keine Timeslots verfügbar."
+
+msgid "Confirm appointment request: [titel] on [datum]"
+msgstr "Terminanfrage bestätigen: [titel] am [datum]"
+
+msgid "Booking confirmation: [titel] on [datum]"
+msgstr "Buchungsbestätigung: [titel] am [datum]"
+
+msgid "New booking: [titel] on [datum]"
+msgstr "Neue Buchung: [titel] am [datum]"
+
+msgid "Reminder: [titel] on [datum]"
+msgstr "Erinnerung: [titel] am [datum]"
+
+msgid "Cancellation: [titel] on [datum]"
+msgstr "Stornierung: [titel] am [datum]"
+
+msgid "Confirm appointment now"
+msgstr "Termin jetzt bestätigen"
+
+msgid "Cancel appointment"
+msgstr "Termin stornieren"
 
 msgid "Appointment"
 msgstr "Termin"
 
-msgid "Host"
-msgstr "Einladende Person"
+msgid "Please confirm your appointment request:"
+msgstr "Bitte bestätigen Sie Ihren Terminwunsch:"
 
-msgid "Your current appointment is on %s at %s."
-msgstr "Ihr aktueller Termin ist am %s um %s."
+msgid "Your appointment has been confirmed:"
+msgstr "Ihr Termin wurde bestätigt:"
 
-msgid "Please book the earlier slot directly on the website."
-msgstr "Bitte buchen Sie den früheren Termin direkt auf der Website."
+msgid "New booking received:"
+msgstr "Neue Buchung eingegangen:"
 
-msgid "there"
-msgstr "dort"
+msgid "Reminder for the following appointment:"
+msgstr "Erinnerung an folgenden Termin:"
 
-msgid "Hello %s,\n\nAn earlier appointment has become available:\n\nAppointment: %s\nDate: %s\nTime: %s\nLocation: %s\nHost: %s\n\nYour current appointment is on %s at %s.\n\nPlease book the earlier slot directly on the website."
-msgstr "Hallo %s,\n\nEin früherer Termin ist frei geworden:\n\nTermin: %s\nDatum: %s\nZeit: %s\nOrt: %s\nEinladende Person: %s\n\nIhr aktueller Termin ist am %s um %s.\n\nBitte buchen Sie den früheren Termin direkt auf der Website."
+msgid "Reminder for your appointment:"
+msgstr "Erinnerung an Ihren Termin:"
+
+msgid "Your appointment has been cancelled:"
+msgstr "Ihr Termin wurde storniert:"
+
+msgid "Booked by"
+msgstr "Gebucht von"
+
+msgid "Legal notice"
+msgstr "Impressum"
+
+msgid "Confirm"
+msgstr "Bestätigen"
+
+msgid "Confirm appointment"
+msgstr "Termin bestätigen"
+
+msgid "Cancel request"
+msgstr "Anfrage stornieren"
+
+msgid "%s\n\n%s: [titel]\n%s: [datum]\n%s: [uhrzeit]\n%s: [ort]\n\n%s: [bestaetigungs_link]\n%s: [storno_link]\n\n%s: [impressum_link]"
+msgstr "%s\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\n\nBestätigung: [bestaetigungs_link]\nStornieren: [storno_link]\n\nImpressum: [impressum_link]"
+
+msgid "%s\n\n%s: [titel]\n%s: [datum]\n%s: [uhrzeit]\n%s: [ort]\n\n%s: [storno_link]\n\n%s: [impressum_link]"
+msgstr "%s\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\n\nStornieren: [storno_link]\n\nImpressum: [impressum_link]"
+
+msgid "%s\n\n%s: [titel]\n%s: [datum]\n%s: [uhrzeit]\n%s: [ort]\n%s: [name] ([email])\n%s: [nachricht]\n\n%s: [storno_link]\n\n%s: [impressum_link]"
+msgstr "%s\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\nGebucht von: [name] ([email])\nNachricht: [nachricht]\n\nStornieren: [storno_link]\n\nImpressum: [impressum_link]"
+
+msgid "%s\n\n%s: [titel]\n%s: [datum]\n%s: [uhrzeit]\n%s: [ort]\n%s: [name] ([email])\n\n%s: [storno_link]\n\n%s: [impressum_link]"
+msgstr "%s\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\nGebucht von: [name] ([email])\n\nStornieren: [storno_link]\n\nImpressum: [impressum_link]"
+
+msgid "%s\n\n%s: [titel]\n%s: [datum]\n%s: [uhrzeit]\n%s: [ort]\n\n%s: [impressum_link]"
+msgstr "%s\n\nTermin: [titel]\nDatum: [datum]\nZeit: [uhrzeit]\nOrt: [ort]\n\nImpressum: [impressum_link]"
+
+msgid "New time for"
+msgstr "Neue Uhrzeit für"
+
+msgid "light"
+msgstr "Hell"
+
+msgid "dark"
+msgstr "Dunkel"
+
+msgid "Appearance"
+msgstr "Erscheinungsbild"
+
+msgid "Do not repeat"
+msgstr "Nicht wiederholen"
+
+msgid "E-Mail"
+msgstr "E-Mail"
+
+msgid "Break"
+msgstr "Pause"
+
+msgid "Map (URL)"
+msgstr "Karte (URL)"
+
+msgid "Mail template"
+msgstr "Mail-Vorlage"
+
+msgid "End time must be after start time."
+msgstr "Endzeit muss nach der Startzeit liegen."
+
+msgid "Person settings"
+msgstr "Personen-Einstellungen"
+
+msgid "Daily"
+msgstr "Täglich"
+
+msgid "Add"
+msgstr "Hinzufügen"
+
+msgid "This time slot is already taken."
+msgstr "Diese Zeitspanne ist bereits belegt."
+
+msgid "Duration"
+msgstr "Dauer"
+
+msgid "Recurrence"
+msgstr "Wiederholung"
+
+msgid "Description"
+msgstr "Beschreibung"
+
+msgid "Invalid time."
+msgstr "Ungültige Uhrzeit."
+
+msgid "Ends on"
+msgstr "Endet am"
+
+msgid "Yes"
+msgstr "Ja"
+
+msgid "Please select a day first."
+msgstr "Bitte zuerst einen Tag auswählen."
+
+msgid "Booking cutoff"
+msgstr "Buchungsschluss"
+
+msgid "Start time"
+msgstr "Startzeit"
+
+msgid "Weekly"
+msgstr "Wöchentlich"
+
+msgid "— Default —"
+msgstr "— Standard —"
+
+msgid "No restriction"
+msgstr "Keine Einschränkung"
+
+msgid "Color"
+msgstr "Farbe"
+
+msgid "No consultation hours found in FAUdir, but office hours. Should the appointments be created from those?"
+msgstr "Sprechstunden in FAUdir nicht gefunden, aber Bürozeiten. Sollen die Termine daraus entsprechend erstellt werden?"
+
+msgid "— none —"
+msgstr "— keine —"
+
+msgid "Accordion style"
+msgstr "Akkordeon-Stil"
+
+msgid "Time exceeds end of day."
+msgstr "Uhrzeit überschreitet Tagesende."
+
+msgid "Applies to"
+msgstr "Gilt für"
+
+msgid "Repeat"
+msgstr "Wiederholen"
+
+msgid "Consultation hours found in FAUdir. Should the appointments be created accordingly?"
+msgstr "Sprechstunden von FAUdir gefunden. Sollen die Termine entsprechend erstellt werden?"
+
+msgid "Monthly"
+msgstr "Monatlich"
+
+msgid "End time"
+msgstr "Endzeit"
+
+msgid "Minimum minutes before start time that booking is still allowed."
+msgstr "Mindestanzahl Minuten vor Terminbeginn, bis zu der noch gebucht werden kann."
+
+msgid "Vorlage"
+msgstr "Vorlage"
+
+msgid "Name"
+msgstr "Name"
+
+msgid "Cancel"
+msgstr "Abbrechen"
+
+msgid "No"
+msgstr "Nein"
