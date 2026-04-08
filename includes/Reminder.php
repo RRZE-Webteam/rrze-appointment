@@ -65,7 +65,7 @@ class Reminder
             [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
             [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
 
-            $title       = $meta['title']    ?? 'Termin';
+            $title       = $meta['title']    ?? __('Appointment', 'rrze-appointment');
             $location    = $meta['location'] ?? '';
             $personId    = (int) ($meta['person_id'] ?? 0);
             $bookerEmail = $meta['booker_email'] ?? '';
@@ -78,15 +78,15 @@ class Reminder
             $defBooker = MailTemplatePost::getDefault('reminder_booker');
 
             $vars = [
-                '[titel]'          => $title,
-                '[datum]'          => date_i18n(get_option('date_format'), strtotime($datePart)),
-                '[uhrzeit]'        => $startTime . ' – ' . $endTime,
-                '[ort]'            => $location ?: '–',
-                '[person_name]'    => '',
-                '[name]'           => $bookerName ?: '–',
-                '[email]'          => $bookerEmail ?: '–',
-                '[storno_link]'    => TokenManager::getCancelUrlForSlot($slot),
-                '[impressum_link]' => TokenManager::imprintUrl(),
+                '[title]'        => $title,
+                '[date]'         => date_i18n(get_option('date_format'), strtotime($datePart)),
+                '[time]'         => $startTime . ' – ' . $endTime,
+                '[location]'     => $location ?: '–',
+                '[person_name]'  => '',
+                '[name]'         => $bookerName ?: '–',
+                '[email]'        => $bookerEmail ?: '–',
+                '[cancel_link]'  => TokenManager::getCancelUrlForSlot($slot),
+                '[imprint_link]' => TokenManager::imprintUrl(),
             ];
 
             if ($personId > 0) {

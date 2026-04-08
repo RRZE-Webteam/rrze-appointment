@@ -58,34 +58,34 @@ class MailTemplatePost
         $legal       = __('Legal notice', 'rrze-appointment');
 
         $baseTable = '<table>'
-            . "<tr><th>{$appointment}</th><td>[titel]</td></tr>"
-            . "<tr><th>{$date}</th><td>[datum]</td></tr>"
-            . "<tr><th>{$time}</th><td>[uhrzeit]</td></tr>"
-            . "<tr><th>{$location}</th><td>[ort]</td></tr>"
+            . "<tr><th>{$appointment}</th><td>[title]</td></tr>"
+            . "<tr><th>{$date}</th><td>[date]</td></tr>"
+            . "<tr><th>{$time}</th><td>[time]</td></tr>"
+            . "<tr><th>{$location}</th><td>[location]</td></tr>"
             . '</table>';
 
         $hostTable = '<table>'
-            . "<tr><th>{$appointment}</th><td>[titel]</td></tr>"
-            . "<tr><th>{$date}</th><td>[datum]</td></tr>"
-            . "<tr><th>{$time}</th><td>[uhrzeit]</td></tr>"
-            . "<tr><th>{$location}</th><td>[ort]</td></tr>"
+            . "<tr><th>{$appointment}</th><td>[title]</td></tr>"
+            . "<tr><th>{$date}</th><td>[date]</td></tr>"
+            . "<tr><th>{$time}</th><td>[time]</td></tr>"
+            . "<tr><th>{$location}</th><td>[location]</td></tr>"
             . "<tr><th>{$bookedBy}</th><td>[name] ([email])</td></tr>"
-            . "<tr><th>{$message}</th><td>[nachricht]</td></tr>"
+            . "<tr><th>{$message}</th><td>[message]</td></tr>"
             . '</table>';
 
         $reminderHostTable = '<table>'
-            . "<tr><th>{$appointment}</th><td>[titel]</td></tr>"
-            . "<tr><th>{$date}</th><td>[datum]</td></tr>"
-            . "<tr><th>{$time}</th><td>[uhrzeit]</td></tr>"
-            . "<tr><th>{$location}</th><td>[ort]</td></tr>"
+            . "<tr><th>{$appointment}</th><td>[title]</td></tr>"
+            . "<tr><th>{$date}</th><td>[date]</td></tr>"
+            . "<tr><th>{$time}</th><td>[time]</td></tr>"
+            . "<tr><th>{$location}</th><td>[location]</td></tr>"
             . "<tr><th>{$bookedBy}</th><td>[name] ([email])</td></tr>"
             . '</table>';
 
         $defaults = [
             'booking_pending' => [
-                'subject'   => __('Confirm appointment request: [titel] on [datum]', 'rrze-appointment'),
+                'subject'   => __('Confirm appointment request: [title] on [date]', 'rrze-appointment'),
                 'body'      => sprintf(
-                    __("%s\n\n%s: [titel]\n%s: [datum]\n%s: [uhrzeit]\n%s: [ort]\n\n%s: [bestaetigungs_link]\n%s: [storno_link]\n\n%s: [impressum_link]", 'rrze-appointment'),
+                    __("%s\n\n%s: [title]\n%s: [date]\n%s: [time]\n%s: [location]\n\n%s: [confirmation_link]\n%s: [cancel_link]\n\n%s: [imprint_link]", 'rrze-appointment'),
                     __('Please confirm your appointment request:', 'rrze-appointment'),
                     $appointment, $date, $time, $location,
                     __('Confirm', 'rrze-appointment'),
@@ -95,73 +95,73 @@ class MailTemplatePost
                 'body_html'  =>
                     '<p>' . __('Please confirm your appointment request:', 'rrze-appointment') . '</p>'
                     . $baseTable
-                    . '<p><a href="[bestaetigungs_link]">' . $confirm . '</a>'
-                    . ' &nbsp;|&nbsp; <a href="[storno_link]">' . $cancelReq . '</a></p>'
-                    . '<p><a href="[impressum_link]">' . $legal . '</a></p>',
+                    . '<p><a href="[confirmation_link]">' . $confirm . '</a>'
+                    . ' &nbsp;|&nbsp; <a href="[cancel_link]">' . $cancelReq . '</a></p>'
+                    . '<p><a href="[imprint_link]">' . $legal . '</a></p>',
             ],
             'booking_booker' => [
-                'subject'   => __('Booking confirmation: [titel] on [datum]', 'rrze-appointment'),
+                'subject'   => __('Booking confirmation: [title] on [date]', 'rrze-appointment'),
                 'body'      => sprintf(
-                    __("%s\n\n%s: [titel]\n%s: [datum]\n%s: [uhrzeit]\n%s: [ort]\n\n%s: [storno_link]\n\n%s: [impressum_link]", 'rrze-appointment'),
+                    __("%s\n\n%s: [title]\n%s: [date]\n%s: [time]\n%s: [location]\n\n%s: [cancel_link]\n\n%s: [imprint_link]", 'rrze-appointment'),
                     __('Your appointment has been confirmed:', 'rrze-appointment'),
                     $appointment, $date, $time, $location, $cancel, $legal
                 ),
                 'body_html'  =>
                     '<p>' . __('Your appointment has been confirmed:', 'rrze-appointment') . '</p>'
                     . $baseTable
-                    . '<p><a href="[storno_link]">' . $cancel . '</a></p>'
-                    . '<p><a href="[impressum_link]">' . $legal . '</a></p>',
+                    . '<p><a href="[cancel_link]">' . $cancel . '</a></p>'
+                    . '<p><a href="[imprint_link]">' . $legal . '</a></p>',
             ],
             'booking_host' => [
-                'subject'   => __('New booking: [titel] on [datum]', 'rrze-appointment'),
+                'subject'   => __('New booking: [title] on [date]', 'rrze-appointment'),
                 'body'      => sprintf(
-                    __("%s\n\n%s: [titel]\n%s: [datum]\n%s: [uhrzeit]\n%s: [ort]\n%s: [name] ([email])\n%s: [nachricht]\n\n%s: [storno_link]\n\n%s: [impressum_link]", 'rrze-appointment'),
+                    __("%s\n\n%s: [title]\n%s: [date]\n%s: [time]\n%s: [location]\n%s: [name] ([email])\n%s: [message]\n\n%s: [cancel_link]\n\n%s: [imprint_link]", 'rrze-appointment'),
                     __('New booking received:', 'rrze-appointment'),
                     $appointment, $date, $time, $location, $bookedBy, $message, $cancel, $legal
                 ),
                 'body_html'  =>
                     '<p>' . __('New booking received:', 'rrze-appointment') . '</p>'
                     . $hostTable
-                    . '<p><a href="[storno_link]">' . $cancel . '</a></p>'
-                    . '<p><a href="[impressum_link]">' . $legal . '</a></p>',
+                    . '<p><a href="[cancel_link]">' . $cancel . '</a></p>'
+                    . '<p><a href="[imprint_link]">' . $legal . '</a></p>',
             ],
             'reminder_admin' => [
-                'subject'   => __('Reminder: [titel] on [datum]', 'rrze-appointment'),
+                'subject'   => __('Reminder: [title] on [date]', 'rrze-appointment'),
                 'body'      => sprintf(
-                    __("%s\n\n%s: [titel]\n%s: [datum]\n%s: [uhrzeit]\n%s: [ort]\n%s: [name] ([email])\n\n%s: [storno_link]\n\n%s: [impressum_link]", 'rrze-appointment'),
+                    __("%s\n\n%s: [title]\n%s: [date]\n%s: [time]\n%s: [location]\n%s: [name] ([email])\n\n%s: [cancel_link]\n\n%s: [imprint_link]", 'rrze-appointment'),
                     __('Reminder for the following appointment:', 'rrze-appointment'),
                     $appointment, $date, $time, $location, $bookedBy, $cancel, $legal
                 ),
                 'body_html'  =>
                     '<p>' . __('Reminder for the following appointment:', 'rrze-appointment') . '</p>'
                     . $reminderHostTable
-                    . '<p><a href="[storno_link]">' . $cancel . '</a></p>'
-                    . '<p><a href="[impressum_link]">' . $legal . '</a></p>',
+                    . '<p><a href="[cancel_link]">' . $cancel . '</a></p>'
+                    . '<p><a href="[imprint_link]">' . $legal . '</a></p>',
             ],
             'reminder_booker' => [
-                'subject'   => __('Reminder: [titel] on [datum]', 'rrze-appointment'),
+                'subject'   => __('Reminder: [title] on [date]', 'rrze-appointment'),
                 'body'      => sprintf(
-                    __("%s\n\n%s: [titel]\n%s: [datum]\n%s: [uhrzeit]\n%s: [ort]\n\n%s: [storno_link]\n\n%s: [impressum_link]", 'rrze-appointment'),
+                    __("%s\n\n%s: [title]\n%s: [date]\n%s: [time]\n%s: [location]\n\n%s: [cancel_link]\n\n%s: [imprint_link]", 'rrze-appointment'),
                     __('Reminder for your appointment:', 'rrze-appointment'),
                     $appointment, $date, $time, $location, $cancel, $legal
                 ),
                 'body_html'  =>
                     '<p>' . __('Reminder for your appointment:', 'rrze-appointment') . '</p>'
                     . $baseTable
-                    . '<p><a href="[storno_link]">' . $cancel . '</a></p>'
-                    . '<p><a href="[impressum_link]">' . $legal . '</a></p>',
+                    . '<p><a href="[cancel_link]">' . $cancel . '</a></p>'
+                    . '<p><a href="[imprint_link]">' . $legal . '</a></p>',
             ],
             'cancellation' => [
-                'subject'   => __('Cancellation: [titel] on [datum]', 'rrze-appointment'),
+                'subject'   => __('Cancellation: [title] on [date]', 'rrze-appointment'),
                 'body'      => sprintf(
-                    __("%s\n\n%s: [titel]\n%s: [datum]\n%s: [uhrzeit]\n%s: [ort]\n\n%s: [impressum_link]", 'rrze-appointment'),
+                    __("%s\n\n%s: [title]\n%s: [date]\n%s: [time]\n%s: [location]\n\n%s: [imprint_link]", 'rrze-appointment'),
                     __('Your appointment has been cancelled:', 'rrze-appointment'),
                     $appointment, $date, $time, $location, $legal
                 ),
                 'body_html'  =>
                     '<p>' . __('Your appointment has been cancelled:', 'rrze-appointment') . '</p>'
                     . $baseTable
-                    . '<p><a href="[impressum_link]">' . $legal . '</a></p>',
+                    . '<p><a href="[imprint_link]">' . $legal . '</a></p>',
             ],
         ];
 

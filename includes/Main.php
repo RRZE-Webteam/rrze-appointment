@@ -422,21 +422,21 @@ class Main
         $tplId = (int) ($_POST['tpl_id'] ?? 0);
 
         if (!$slot)
-            wp_send_json_error('Kein Termin angegeben.');
+            wp_send_json_error(__('No appointment specified.', 'rrze-appointment'));
         if (!$bookerEmail)
-            wp_send_json_error('Bitte eine E-Mail-Adresse angeben.');
+            wp_send_json_error(__('Please provide an email address.', 'rrze-appointment'));
 
         [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
         [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
 
         if (!$datePart || !$startTime || !$endTime)
-            wp_send_json_error('Ungültiges Termin-Format.');
+            wp_send_json_error(__('Invalid appointment format.', 'rrze-appointment'));
 
-        // Slot bereits gebucht oder pending?
+        // Slot already booked or pending?
         $booked = (array) get_option('rrze_appointment_booked_slots', []);
         $pending = TokenManager::getPendingSlots();
         if (in_array($slot, $booked, true) || in_array($slot, $pending, true)) {
-            wp_send_json_error('Dieser Termin ist nicht mehr verfügbar.');
+            wp_send_json_error(__('This appointment is no longer available.', 'rrze-appointment'));
         }
 
         $pName = '';
@@ -463,17 +463,17 @@ class Main
         $imprintUrl = TokenManager::imprintUrl();
 
         $vars = [
-            '[titel]' => $title,
-            '[datum]' => date_i18n(get_option('date_format'), strtotime($datePart)),
-            '[uhrzeit]' => $startTime . ' – ' . $endTime,
-            '[ort]' => $location ?: '–',
-            '[person_name]' => $pName ?: '–',
-            '[name]' => $bookerName ?: '–',
-            '[email]' => $bookerEmail ?: '–',
-            '[nachricht]' => $bookerMsg ?: '',
-            '[bestaetigungs_link]' => $confirmUrl,
-            '[storno_link]' => TokenManager::cancelUrl(TokenManager::createPendingCancelToken($slot, $meta)),
-            '[impressum_link]' => $imprintUrl,
+            '[title]'             => $title,
+            '[date]'              => date_i18n(get_option('date_format'), strtotime($datePart)),
+            '[time]'              => $startTime . ' – ' . $endTime,
+            '[location]'          => $location ?: '–',
+            '[person_name]'       => $pName ?: '–',
+            '[name]'              => $bookerName ?: '–',
+            '[email]'             => $bookerEmail ?: '–',
+            '[message]'           => $bookerMsg ?: '',
+            '[confirmation_link]' => $confirmUrl,
+            '[cancel_link]'       => TokenManager::cancelUrl(TokenManager::createPendingCancelToken($slot, $meta)),
+            '[imprint_link]'      => $imprintUrl,
         ];
 
         $tpl = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'booking_pending') ?? []) : [];
@@ -481,14 +481,14 @@ class Main
         $subject = Settings::renderTemplate(!empty($tpl['subject']) ? $tpl['subject'] : $def['subject'], $vars);
         $bodyTpl = !empty($tpl['body']) ? $tpl['body'] : $def['body'];
         $bodyHtmlTpl = !empty($tpl['body_html']) ? $tpl['body_html'] : $def['body_html'];
-        if (strpos($bodyTpl, '[bestaetigungs_link]') === false)
-            $bodyTpl .= "\n\nBestätigung: [bestaetigungs_link]";
-        if (strpos($bodyTpl, '[impressum_link]') === false)
-            $bodyTpl .= "\nImpressum: [impressum_link]";
-        if (strpos($bodyHtmlTpl, '[bestaetigungs_link]') === false)
-            $bodyHtmlTpl .= '<p><a href="[bestaetigungs_link]">' . __('Confirm appointment now', 'rrze-appointment') . '</a></p>';
-        if (strpos($bodyHtmlTpl, '[impressum_link]') === false)
-            $bodyHtmlTpl .= '<p><a href="[impressum_link]">Impressum</a></p>';
+        if (strpos($bodyTpl, '[confirmation_link]') === false)
+            $bodyTpl .= "\n\n" . __('Confirmation', 'rrze-appointment') . ": [confirmation_link]";
+        if (strpos($bodyTpl, '[imprint_link]') === false)
+            $bodyTpl .= "\n" . __('Imprint', 'rrze-appointment') . ": [imprint_link]";
+        if (strpos($bodyHtmlTpl, '[confirmation_link]') === false)
+            $bodyHtmlTpl .= '<p><a href="[confirmation_link]">' . __('Confirm appointment now', 'rrze-appointment') . '</a></p>';
+        if (strpos($bodyHtmlTpl, '[imprint_link]') === false)
+            $bodyHtmlTpl .= '<p><a href="[imprint_link]">' . __('Imprint', 'rrze-appointment') . '</a></p>';
         $plain = Settings::renderTemplate($bodyTpl, $vars);
         $html = Settings::renderTemplate($bodyHtmlTpl, $vars);
 
@@ -572,17 +572,17 @@ class Main
         }
 
         $vars = [
-            '[titel]' => $meta['title'] ?? '',
-            '[datum]' => date_i18n(get_option('date_format'), strtotime($datePart)),
-            '[uhrzeit]' => $startTime . ' – ' . $endTime,
-            '[ort]' => ($meta['location'] ?? '') ?: '–',
-            '[person_name]' => $pName ?: '–',
-            '[name]' => $bookerName ?: '–',
-            '[email]' => $bookerEmail ?: '–',
-            '[nachricht]' => $meta['booker_message'] ?? '',
-            '[bestaetigungs_link]' => '',
-            '[storno_link]' => $cancelUrl,
-            '[impressum_link]' => $imprintUrl,
+            '[title]'             => $meta['title'] ?? '',
+            '[date]'              => date_i18n(get_option('date_format'), strtotime($datePart)),
+            '[time]'              => $startTime . ' – ' . $endTime,
+            '[location]'          => ($meta['location'] ?? '') ?: '–',
+            '[person_name]'       => $pName ?: '–',
+            '[name]'              => $bookerName ?: '–',
+            '[email]'             => $bookerEmail ?: '–',
+            '[message]'           => $meta['booker_message'] ?? '',
+            '[confirmation_link]' => '',
+            '[cancel_link]'       => $cancelUrl,
+            '[imprint_link]'      => $imprintUrl,
         ];
 
         // Mail B an Buchenden
@@ -591,14 +591,14 @@ class Main
         $subjectBooker = Settings::renderTemplate(!empty($tplBooker['subject']) ? $tplBooker['subject'] : $defBooker['subject'], $vars);
         $bodyBooker = !empty($tplBooker['body']) ? $tplBooker['body'] : $defBooker['body'];
         $bodyHtmlBooker = !empty($tplBooker['body_html']) ? $tplBooker['body_html'] : $defBooker['body_html'];
-        if (strpos($bodyBooker, '[storno_link]') === false)
-            $bodyBooker .= "\n\nStornieren: [storno_link]";
-        if (strpos($bodyBooker, '[impressum_link]') === false)
-            $bodyBooker .= "\nImpressum: [impressum_link]";
-        if (strpos($bodyHtmlBooker, '[storno_link]') === false)
-            $bodyHtmlBooker .= '<p><a href="[storno_link]">' . __('Cancel appointment', 'rrze-appointment') . '</a></p>';
-        if (strpos($bodyHtmlBooker, '[impressum_link]') === false)
-            $bodyHtmlBooker .= '<p><a href="[impressum_link]">Impressum</a></p>';
+        if (strpos($bodyBooker, '[cancel_link]') === false)
+            $bodyBooker .= "\n\n" . __('Cancel', 'rrze-appointment') . ": [cancel_link]";
+        if (strpos($bodyBooker, '[imprint_link]') === false)
+            $bodyBooker .= "\n" . __('Imprint', 'rrze-appointment') . ": [imprint_link]";
+        if (strpos($bodyHtmlBooker, '[cancel_link]') === false)
+            $bodyHtmlBooker .= '<p><a href="[cancel_link]">' . __('Cancel appointment', 'rrze-appointment') . '</a></p>';
+        if (strpos($bodyHtmlBooker, '[imprint_link]') === false)
+            $bodyHtmlBooker .= '<p><a href="[imprint_link]">' . __('Imprint', 'rrze-appointment') . '</a></p>';
         $plainBooker = Settings::renderTemplate($bodyBooker, $vars);
         $htmlBooker = Settings::renderTemplate($bodyHtmlBooker, $vars);
 
@@ -608,14 +608,14 @@ class Main
         $subjectHost = Settings::renderTemplate(!empty($tplHost['subject']) ? $tplHost['subject'] : $defHost['subject'], $vars);
         $bodyHost = !empty($tplHost['body']) ? $tplHost['body'] : $defHost['body'];
         $bodyHtmlHost = !empty($tplHost['body_html']) ? $tplHost['body_html'] : $defHost['body_html'];
-        if (strpos($bodyHost, '[storno_link]') === false)
-            $bodyHost .= "\n\nStornieren: [storno_link]";
-        if (strpos($bodyHost, '[impressum_link]') === false)
-            $bodyHost .= "\nImpressum: [impressum_link]";
-        if (strpos($bodyHtmlHost, '[storno_link]') === false)
-            $bodyHtmlHost .= '<p><a href="[storno_link]">' . __('Cancel appointment', 'rrze-appointment') . '</a></p>';
-        if (strpos($bodyHtmlHost, '[impressum_link]') === false)
-            $bodyHtmlHost .= '<p><a href="[impressum_link]">Impressum</a></p>';
+        if (strpos($bodyHost, '[cancel_link]') === false)
+            $bodyHost .= "\n\n" . __('Cancel', 'rrze-appointment') . ": [cancel_link]";
+        if (strpos($bodyHost, '[imprint_link]') === false)
+            $bodyHost .= "\n" . __('Imprint', 'rrze-appointment') . ": [imprint_link]";
+        if (strpos($bodyHtmlHost, '[cancel_link]') === false)
+            $bodyHtmlHost .= '<p><a href="[cancel_link]">' . __('Cancel appointment', 'rrze-appointment') . '</a></p>';
+        if (strpos($bodyHtmlHost, '[imprint_link]') === false)
+            $bodyHtmlHost .= '<p><a href="[imprint_link]">' . __('Imprint', 'rrze-appointment') . '</a></p>';
         $plainHost = Settings::renderTemplate($bodyHost, $vars);
         $htmlHost = Settings::renderTemplate($bodyHtmlHost, $vars);
 
