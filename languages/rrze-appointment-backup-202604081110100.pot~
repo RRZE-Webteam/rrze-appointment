@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: RRZE Appointment\n"
 "Report-Msgid-Bugs-To: https://github.com/RRZE-Webteam/rrze-appointment\n"
-"POT-Creation-Date: 2026-04-08 11:10+0000\n"
+"POT-Creation-Date: 2026-04-08 10:51+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -22,89 +22,68 @@ msgstr ""
 msgid "%d test email(s) sent to %s."
 msgstr ""
 
-#: includes/MailTemplatePost.php:88
-#, php-format
-msgid ""
-"%s\n"
-"\n"
-"%s: [titel]\n"
-"%s: [datum]\n"
-"%s: [uhrzeit]\n"
-"%s: [ort]\n"
-"\n"
-"%s: [bestaetigungs_link]\n"
-"%s: [storno_link]\n"
-"\n"
-"%s: [impressum_link]"
-msgstr ""
-
-#: includes/MailTemplatePost.php:157
-#, php-format
-msgid ""
-"%s\n"
-"\n"
-"%s: [titel]\n"
-"%s: [datum]\n"
-"%s: [uhrzeit]\n"
-"%s: [ort]\n"
-"\n"
-"%s: [impressum_link]"
-msgstr ""
-
-#: includes/MailTemplatePost.php:105 includes/MailTemplatePost.php:144
-#, php-format
-msgid ""
-"%s\n"
-"\n"
-"%s: [titel]\n"
-"%s: [datum]\n"
-"%s: [uhrzeit]\n"
-"%s: [ort]\n"
-"\n"
-"%s: [storno_link]\n"
-"\n"
-"%s: [impressum_link]"
-msgstr ""
-
-#: includes/MailTemplatePost.php:131
-#, php-format
-msgid ""
-"%s\n"
-"\n"
-"%s: [titel]\n"
-"%s: [datum]\n"
-"%s: [uhrzeit]\n"
-"%s: [ort]\n"
-"%s: [name] ([email])\n"
-"\n"
-"%s: [storno_link]\n"
-"\n"
-"%s: [impressum_link]"
-msgstr ""
-
-#: includes/MailTemplatePost.php:118
-#, php-format
-msgid ""
-"%s\n"
-"\n"
-"%s: [titel]\n"
-"%s: [datum]\n"
-"%s: [uhrzeit]\n"
-"%s: [ort]\n"
-"%s: [name] ([email])\n"
-"%s: [nachricht]\n"
-"\n"
-"%s: [storno_link]\n"
-"\n"
-"%s: [impressum_link]"
-msgstr ""
-
-#: includes/Settings.php:327 includes/MailTemplatePost.php:247
+#: includes/Settings.php:327 includes/MailTemplatePost.php:161
 msgid "(no title)"
 msgstr ""
 
 #: includes/Settings.php:313
 msgid "(not editable)"
+msgstr ""
+
+#: includes/MailTemplatePost.php:63
+msgid ""
+"<p>New booking received:</p><table><tr><th>Appointment</th><td>[titel]</td>"
+"</tr><tr><th>Date</th><td>[datum]</td></tr><tr><th>Time</th><td>[uhrzeit]"
+"</td></tr><tr><th>Location</th><td>[ort]</td></tr><tr><th>Booked by</th><td>"
+"[name] ([email])</td></tr><tr><th>Message</th><td>[nachricht]</td></tr>"
+"</table><p><a href=\"[storno_link]\">Cancel appointment</a></p><p><a "
+"href=\"[impressum_link]\">Legal notice</a></p>"
+msgstr ""
+
+#: includes/MailTemplatePost.php:53
+msgid ""
+"<p>Please confirm your appointment request:</p><table><tr><th>"
+"Appointment</th><td>[titel]</td></tr><tr><th>Date</th><td>[datum]</td></tr>"
+"<tr><th>Time</th><td>[uhrzeit]</td></tr><tr><th>Location</th><td>[ort]</td>"
+"</tr></table><p><a href=\"[bestaetigungs_link]\">Confirm appointment</a> "
+"&nbsp;|&nbsp; <a href=\"[storno_link]\">Cancel request</a></p><p><a "
+"href=\"[impressum_link]\">Legal notice</a></p>"
+msgstr ""
+
+#: includes/MailTemplatePost.php:68
+msgid ""
+"<p>Reminder for the following appointment:</p><table><tr><th>Appointment</th>"
+"<td>[titel]</td></tr><tr><th>Date</th><td>[datum]</td></tr><tr><th>Time</th>"
+"<td>[uhrzeit]</td></tr><tr><th>Location</th><td>[ort]</td></tr><tr><th>"
+"Booked by</th><td>[name] ([email])</td></tr></table><p><a "
+"href=\"[storno_link]\">Cancel appointment</a></p><p><a "
+"href=\"[impressum_link]\">Legal notice</a></p>"
+msgstr ""
+
+#: includes/MailTemplatePost.php:73
+msgid ""
+"<p>Reminder for your appointment:</p><table><tr><th>Appointment</th><td>"
+"[titel]</td></tr><tr><th>Date</th><td>[datum]</td></tr><tr><th>Time</th><td>"
+"[uhrzeit]</td></tr><tr><th>Location</th><td>[ort]</td></tr></table><p><a "
+"href=\"[storno_link]\">Cancel appointment</a></p><p><a "
+"href=\"[impressum_link]\">Legal notice</a></p>"
+msgstr ""
+
+#: includes/MailTemplatePost.php:78
+msgid ""
+"<p>Your appointment has been cancelled:</p><table><tr><th>Appointment</th>"
+"<td>[titel]</td></tr><tr><th>Date</th><td>[datum]</td></tr><tr><th>Time</th>"
+"<td>[uhrzeit]</td></tr><tr><th>Location</th><td>[ort]</td></tr></table><p><a "
+"href=\"[impressum_link]\">Legal notice</a></p>"
+msgstr ""
+
+#: includes/MailTemplatePost.php:58
+msgid ""
+"<p>Your appointment has been confirmed:</p><table><tr><th>Appointment</th>"
+"<td>[titel]</td></tr><tr><th>Date</th><td>[datum]</td></tr><tr><th>Time</th>"
+"<td>[uhrzeit]</td></tr><tr><th>Location</th><td>[ort]</td></tr></table><p><a "
+"href=\"[storno_link]\">Cancel appointment</a></p><p><a "
+"href=\"[impressum_link]\">Legal notice</a></p>"
 msgstr ""
 
 #: includes/Settings.php:308
@@ -123,8 +102,7 @@ msgstr ""
 msgid "An earlier appointment has become available:"
 msgstr ""
 
-#: includes/MailTemplatePost.php:49 includes/Main.php:407
-#: includes/Bookings.php:174
+#: includes/Main.php:407 includes/Bookings.php:174
 msgid "Appointment"
 msgstr ""
 
@@ -169,10 +147,6 @@ msgstr ""
 msgid "Book"
 msgstr ""
 
-#: includes/MailTemplatePost.php:53
-msgid "Booked by"
-msgstr ""
-
 #: includes/Settings.php:531
 msgid "Booker"
 msgstr ""
@@ -181,7 +155,7 @@ msgstr ""
 msgid "Booking cancelled and cancellation emails sent."
 msgstr ""
 
-#: includes/MailTemplatePost.php:103
+#: includes/MailTemplatePost.php:56
 msgid "Booking confirmation: [titel] on [datum]"
 msgstr ""
 
@@ -189,11 +163,11 @@ msgstr ""
 msgid "Booking…"
 msgstr ""
 
-#: includes/MailTemplatePost.php:92 includes/Main.php:345
+#: includes/Main.php:345
 msgid "Cancel"
 msgstr ""
 
-#: includes/MailTemplatePost.php:57 includes/Main.php:598 includes/Main.php:615
+#: includes/Main.php:598 includes/Main.php:615
 msgid "Cancel appointment"
 msgstr ""
 
@@ -201,15 +175,11 @@ msgstr ""
 msgid "Cancel booking"
 msgstr ""
 
-#: includes/MailTemplatePost.php:56
-msgid "Cancel request"
-msgstr ""
-
 #: includes/Settings.php:378
 msgid "Cancellation"
 msgstr ""
 
-#: includes/MailTemplatePost.php:155
+#: includes/MailTemplatePost.php:76
 msgid "Cancellation: [titel] on [datum]"
 msgstr ""
 
@@ -217,19 +187,11 @@ msgstr ""
 msgid "Close"
 msgstr ""
 
-#: includes/MailTemplatePost.php:91
-msgid "Confirm"
-msgstr ""
-
-#: includes/MailTemplatePost.php:55
-msgid "Confirm appointment"
-msgstr ""
-
 #: includes/Main.php:488
 msgid "Confirm appointment now"
 msgstr ""
 
-#: includes/MailTemplatePost.php:86
+#: includes/MailTemplatePost.php:51
 msgid "Confirm appointment request: [titel] on [datum]"
 msgstr ""
 
@@ -241,8 +203,7 @@ msgstr ""
 msgid "Confirmation to host"
 msgstr ""
 
-#: includes/Settings.php:527 includes/MailTemplatePost.php:50
-#: includes/Bookings.php:175
+#: includes/Settings.php:527 includes/Bookings.php:175
 msgid "Date"
 msgstr ""
 
@@ -338,11 +299,7 @@ msgstr ""
 msgid "Legal Notice"
 msgstr ""
 
-#: includes/MailTemplatePost.php:58
-msgid "Legal notice"
-msgstr ""
-
-#: includes/MailTemplatePost.php:52 includes/Bookings.php:177
+#: includes/Bookings.php:177
 msgid "Location"
 msgstr ""
 
@@ -359,10 +316,6 @@ msgstr ""
 msgid "Mail Templates"
 msgstr ""
 
-#: includes/MailTemplatePost.php:54
-msgid "Message"
-msgstr ""
-
 #: includes/Main.php:343
 msgid "Message (optional):"
 msgstr ""
@@ -371,11 +324,14 @@ msgstr ""
 msgid "Network error. Please try again."
 msgstr ""
 
-#: includes/MailTemplatePost.php:119 includes/MailTemplatePost.php:123
-msgid "New booking received:"
+#: includes/MailTemplatePost.php:62
+msgid ""
+"New booking received:\\n\\nAppointment: [titel]\\nDate: [datum]\\nTime: "
+"[uhrzeit]\\nLocation: [ort]\\nBooked by: [name] ([email])\\nMessage: "
+"[nachricht]\\n\\nCancel: [storno_link]\\n\\nLegal notice: [impressum_link]"
 msgstr ""
 
-#: includes/MailTemplatePost.php:116
+#: includes/MailTemplatePost.php:61
 msgid "New booking: [titel] on [datum]"
 msgstr ""
 
@@ -407,8 +363,12 @@ msgstr ""
 msgid "Please confirm your appointment by email."
 msgstr ""
 
-#: includes/MailTemplatePost.php:89 includes/MailTemplatePost.php:96
-msgid "Please confirm your appointment request:"
+#: includes/MailTemplatePost.php:52
+msgid ""
+"Please confirm your appointment request:\\n\\nAppointment: [titel]\\nDate: "
+"[datum]\\nTime: [uhrzeit]\\nLocation: [ort]\\n\\nConfirm: "
+"[bestaetigungs_link]\\nCancel: [storno_link]\\n\\nLegal notice: "
+"[impressum_link]"
 msgstr ""
 
 #: rrze-appointment.php:156
@@ -432,12 +392,18 @@ msgstr ""
 msgid "Reminder Email"
 msgstr ""
 
-#: includes/MailTemplatePost.php:132 includes/MailTemplatePost.php:136
-msgid "Reminder for the following appointment:"
+#: includes/MailTemplatePost.php:67
+msgid ""
+"Reminder for the following appointment:\\n\\nAppointment: [titel]\\nDate: "
+"[datum]\\nTime: [uhrzeit]\\nLocation: [ort]\\nBooked by: [name] ([email])"
+"\\n\\nCancel: [storno_link]\\n\\nLegal notice: [impressum_link]"
 msgstr ""
 
-#: includes/MailTemplatePost.php:145 includes/MailTemplatePost.php:149
-msgid "Reminder for your appointment:"
+#: includes/MailTemplatePost.php:72
+msgid ""
+"Reminder for your appointment:\\n\\nAppointment: [titel]\\nDate: [datum]"
+"\\nTime: [uhrzeit]\\nLocation: [ort]\\n\\nCancel: [storno_link]\\n\\nLegal "
+"notice: [impressum_link]"
 msgstr ""
 
 #: includes/Settings.php:377
@@ -448,7 +414,7 @@ msgstr ""
 msgid "Reminder to host"
 msgstr ""
 
-#: includes/MailTemplatePost.php:129 includes/MailTemplatePost.php:142
+#: includes/MailTemplatePost.php:66 includes/MailTemplatePost.php:71
 msgid "Reminder: [titel] on [datum]"
 msgstr ""
 
@@ -527,8 +493,7 @@ msgstr ""
 msgid "This confirmation link has expired or is invalid."
 msgstr ""
 
-#: includes/Settings.php:528 includes/MailTemplatePost.php:51
-#: includes/Bookings.php:176
+#: includes/Settings.php:528 includes/Bookings.php:176
 msgid "Time"
 msgstr ""
 
@@ -561,8 +526,11 @@ msgstr ""
 msgid "Your appointment has been cancelled."
 msgstr ""
 
-#: includes/MailTemplatePost.php:158 includes/MailTemplatePost.php:162
-msgid "Your appointment has been cancelled:"
+#: includes/MailTemplatePost.php:77
+msgid ""
+"Your appointment has been cancelled:\\n\\nAppointment: [titel]\\nDate: "
+"[datum]\\nTime: [uhrzeit]\\nLocation: [ort]\\n\\nLegal notice: "
+"[impressum_link]"
 msgstr ""
 
 #: includes/Main.php:637
@@ -570,8 +538,11 @@ msgid ""
 "Your appointment has been confirmed. A confirmation has been sent by email."
 msgstr ""
 
-#: includes/MailTemplatePost.php:106 includes/MailTemplatePost.php:110
-msgid "Your appointment has been confirmed:"
+#: includes/MailTemplatePost.php:57
+msgid ""
+"Your appointment has been confirmed:\\n\\nAppointment: [titel]\\nDate: "
+"[datum]\\nTime: [uhrzeit]\\nLocation: [ort]\\n\\nCancel: [storno_link]"
+"\\n\\nLegal notice: [impressum_link]"
 msgstr ""
 
 #: includes/Main.php:340

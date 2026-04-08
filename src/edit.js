@@ -173,7 +173,7 @@ function PreviewCalendar({ slots, onRemoveSlot, onAddSlot, activeDate, setActive
 
             {activeDate && activeDateSlots.length > 0 && (
                 <fieldset className="rrze-appointment__day-slots">
-                    <legend>Uhrzeiten am {formatDateDisplay(activeDate)}</legend>
+                    <legend>{__('Times on %s', 'rrze-appointment').replace('%s', formatDateDisplay(activeDate))}</legend>
                     <div className="rrze-appointment__day-slots-list rrze-appointment__slot-grid">
                         {activeDateSlots.map((slot) => (
                             <div className="rrze-appointment__slot-item" key={slot.value}>
@@ -241,7 +241,7 @@ export default function Edit({ attributes, setAttributes }) {
     }, []);
 
 
-    const [faudirResponse] = useState(() => window.rrze_appointment?.persons || { error: true, message: 'Keine Personen-Daten verfügbar.', data: [] });
+    const [faudirResponse] = useState(() => window.rrze_appointment?.persons || { error: true, message: __('No person data available.', 'rrze-appointment'), data: [] });
 
     const faudirPersons = !faudirResponse?.error && Array.isArray(faudirResponse?.data) ? faudirResponse.data : [];
     const faudirError = faudirResponse?.error ?? false;
@@ -305,7 +305,7 @@ export default function Edit({ attributes, setAttributes }) {
 
     const hasConsultationHours = selectedPerson?.consultationHours?.length > 0;
     const derivedTitle = selectedPerson
-        ? `Sprechstunde von ${[selectedPerson.honorificPrefix, selectedPerson.givenName, selectedPerson.familyName].filter(Boolean).join(' ')}`
+        ? `${__('Consultation hours of', 'rrze-appointment')} ${[selectedPerson.honorificPrefix, selectedPerson.givenName, selectedPerson.familyName].filter(Boolean).join(' ')}`
         : title;
 
     const rec = (recurrence && typeof recurrence === 'object') ? recurrence : {};
@@ -478,7 +478,7 @@ export default function Edit({ attributes, setAttributes }) {
                                 const pid = Number(value);
                                 const person = faudirPersons.find((p) => p.id === pid) || null;
                                 const newTitle = person
-                                    ? `Sprechstunde von ${[person.honorificPrefix, person.givenName, person.familyName].filter(Boolean).join(' ')}`
+                                    ? `${__('Consultation hours of', 'rrze-appointment')} ${[person.honorificPrefix, person.givenName, person.familyName].filter(Boolean).join(' ')}`
                                     : '';
                                 setAttributes({ personId: pid, title: newTitle, personName: person ? [person.honorificPrefix, person.givenName, person.familyName].filter(Boolean).join(' ') : '', personEmail: person?.email || '', location: person?.location || '', locationUrl: person?.locationUrl || '', useConsultationHours: false });
                                 if (person && person.consultationHours?.length > 0) {
@@ -508,7 +508,7 @@ export default function Edit({ attributes, setAttributes }) {
                         />
                     </PanelBody>
                 )}
-                <PanelBody title="Termin-Einstellungen" initialOpen={true}>
+                <PanelBody title={__('Appointment settings', 'rrze-appointment')} initialOpen={true}>
                     <TextControl
                         label={__('Title', 'rrze-appointment')}
                         value={derivedTitle}
@@ -540,8 +540,8 @@ export default function Edit({ attributes, setAttributes }) {
                         onChange={(value) => setAttributes({ bookingCutoff: Number(value) })}
                     />
 
-                    <p><strong>Kalender-Ansicht</strong></p>
-                    <p>Ein Klick auf ein Datum fügt es hinzu oder entfernt es wieder.</p>
+                    <p><strong>{__('Calendar view', 'rrze-appointment')}</strong></p>
+                    <p>{__('Click a date to add or remove it.', 'rrze-appointment')}</p>
                     <CalendarMultiSelect
                         selectedDates={calendarDates}
                         activeDate={activeDate}
@@ -704,9 +704,9 @@ export default function Edit({ attributes, setAttributes }) {
 
             <div {...blockProps}>
                 <div className={['rrze-appointment-block', colorClass].filter(Boolean).join(' ')}>
-                    <h3>{derivedTitle || 'Termin-title'}</h3>
+                    <h3>{derivedTitle || __('Appointment title', 'rrze-appointment')}</h3>
                     {description && <p>{description}</p>}
-                    {location && <p><strong>Ort:</strong> {location}{locationUrl && <> (<a href={locationUrl} target="_blank" rel="noopener noreferrer">Auf der Karte ansehen</a>)</>}</p>}
+                    {location && <p><strong>{__('Location', 'rrze-appointment')}:</strong> {location}{locationUrl && <> (<a href={locationUrl} target="_blank" rel="noopener noreferrer">{__('View on map', 'rrze-appointment')}</a>)</>}</p>}
 
                     <form className="rrze-appointment__form">
                         {slots.length > 0 ? (
@@ -715,7 +715,7 @@ export default function Edit({ attributes, setAttributes }) {
                                 {renderGroupedSlotsAccordion(slots, 'rrze_appointment_slot_preview', { onRemoveSlot: handleRemoveSlot, onAddSlot: handleOpenAddSlot })}
                             </Fragment>
                         ) : (
-                            <p>Bitte mindestens einen Tag unter Termin-Einstellungen auswählen.</p>
+                            <p>{__('Please select at least one day in the appointment settings.', 'rrze-appointment')}</p>
                         )}
                         {addSlotDate && (
                             <div className="rrze-appointment-block__overlay">

@@ -1,4 +1,5 @@
 import { Fragment } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 
 export function parseTimeToMinutes(time) {
     if (!time || typeof time !== 'string') return null;
@@ -200,7 +201,7 @@ export function renderGroupedSlotsAccordion(slots, name, { onRemoveSlot, onAddSl
     return (
         <div className="rrze-appointment__accordion rrze-appointment__slots-grouped" data-accordion="open">
             <button type="button" className="rrze-appointment__accordion-toggle" aria-expanded="true">
-                Alle Termine
+                {__('All appointments', 'rrze-appointment')}
             </button>
             <div className="rrze-appointment__accordion-content">
                 {Object.entries(groups).map(([date, dateSlots], index) => (

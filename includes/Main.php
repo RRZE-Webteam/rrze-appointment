@@ -336,7 +336,21 @@ class Main
                     'nonce'       => wp_create_nonce('rrze_appointment_book'),
                     'bookedSlots' => array_values(array_unique(array_merge($booked, $pending))),
                     'i18n'        => [
-                        'waitlist' => __('Yes, I would like to be notified if an earlier appointment becomes available.', 'rrze-appointment'),
+                        'waitlist'          => __('Yes, I would like to be notified if an earlier appointment becomes available.', 'rrze-appointment'),
+                        'yourAppointment'   => __('Your appointment on %s at %s', 'rrze-appointment'),
+                        'yourEmail'         => __('Your email address:', 'rrze-appointment'),
+                        'yourName'          => __('Your name:', 'rrze-appointment'),
+                        'message'           => __('Message (optional):', 'rrze-appointment'),
+                        'book'              => __('Book', 'rrze-appointment'),
+                        'cancel'            => __('Cancel', 'rrze-appointment'),
+                        'booking'           => __('Booking…', 'rrze-appointment'),
+                        'booked'            => __('Appointment booked! A confirmation has been sent.', 'rrze-appointment'),
+                        'close'             => __('Close', 'rrze-appointment'),
+                        'bookingError'      => __('Error booking appointment.', 'rrze-appointment'),
+                        'networkError'      => __('Network error. Please try again.', 'rrze-appointment'),
+                        'availableOn'       => __('Available appointments on %s', 'rrze-appointment'),
+                        'allAppointments'   => __('All appointments', 'rrze-appointment'),
+                        'slotsOnDay'        => __('Times on selected day', 'rrze-appointment'),
                     ],
                 ]);
             }
@@ -349,10 +363,11 @@ class Main
     {
         try {
             $persons = $this->getFAUdirPersons();
-            echo '<script>window.rrze_appointment = ' . wp_json_encode(['persons' => $persons]) . ';</script>' . "\n";
+            $data = wp_json_encode(['persons' => $persons]);
         } catch (CustomException $e) {
-            echo '<script>window.rrze_appointment = ' . wp_json_encode(['persons' => ['error' => true, 'message' => $e->getMessage(), 'data' => []]]) . ';</script>' . "\n";
+            $data = wp_json_encode(['persons' => ['error' => true, 'message' => $e->getMessage(), 'data' => []]]);
         }
+        wp_add_inline_script( 'rrze-appointment-editor-script', 'window.rrze_appointment = ' . $data . ';', 'before' );
     }
 
     public function handleGetPersons(): void
@@ -390,7 +405,7 @@ class Main
             check_ajax_referer('rrze_appointment_book', 'nonce');
 
         $slot = sanitize_text_field($_POST['slot'] ?? '');
-        $title = sanitize_text_field($_POST['title'] ?? 'Termin');
+        $title = sanitize_text_field($_POST['title'] ?? __('Appointment', 'rrze-appointment'));
         $location = sanitize_text_field($_POST['location'] ?? '');
         $personId = (int) ($_POST['person_id'] ?? 0);
         $bookerName  = sanitize_text_field($_POST['booker_name'] ?? '');
@@ -471,7 +486,7 @@ class Main
         if (strpos($bodyTpl, '[impressum_link]') === false)
             $bodyTpl .= "\nImpressum: [impressum_link]";
         if (strpos($bodyHtmlTpl, '[bestaetigungs_link]') === false)
-            $bodyHtmlTpl .= '<p><a href="[bestaetigungs_link]">Termin jetzt bestätigen</a></p>';
+            $bodyHtmlTpl .= '<p><a href="[bestaetigungs_link]">' . __('Confirm appointment now', 'rrze-appointment') . '</a></p>';
         if (strpos($bodyHtmlTpl, '[impressum_link]') === false)
             $bodyHtmlTpl .= '<p><a href="[impressum_link]">Impressum</a></p>';
         $plain = Settings::renderTemplate($bodyTpl, $vars);
@@ -581,7 +596,7 @@ class Main
         if (strpos($bodyBooker, '[impressum_link]') === false)
             $bodyBooker .= "\nImpressum: [impressum_link]";
         if (strpos($bodyHtmlBooker, '[storno_link]') === false)
-            $bodyHtmlBooker .= '<p><a href="[storno_link]">Termin stornieren</a></p>';
+            $bodyHtmlBooker .= '<p><a href="[storno_link]">' . __('Cancel appointment', 'rrze-appointment') . '</a></p>';
         if (strpos($bodyHtmlBooker, '[impressum_link]') === false)
             $bodyHtmlBooker .= '<p><a href="[impressum_link]">Impressum</a></p>';
         $plainBooker = Settings::renderTemplate($bodyBooker, $vars);
@@ -598,7 +613,7 @@ class Main
         if (strpos($bodyHost, '[impressum_link]') === false)
             $bodyHost .= "\nImpressum: [impressum_link]";
         if (strpos($bodyHtmlHost, '[storno_link]') === false)
-            $bodyHtmlHost .= '<p><a href="[storno_link]">Termin stornieren</a></p>';
+            $bodyHtmlHost .= '<p><a href="[storno_link]">' . __('Cancel appointment', 'rrze-appointment') . '</a></p>';
         if (strpos($bodyHtmlHost, '[impressum_link]') === false)
             $bodyHtmlHost .= '<p><a href="[impressum_link]">Impressum</a></p>';
         $plainHost = Settings::renderTemplate($bodyHost, $vars);

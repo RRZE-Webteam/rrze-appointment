@@ -133,7 +133,9 @@
             const text = document.createElement('p');
             text.className = 'rrze-appointment__overlay-text';
             text.id = 'rrze-appt-overlay-title';
-            text.textContent = `Ihr Termin am ${formatDateDisplay(parsed.date)} um ${parsed.time}`;
+            const i18n = window.rrze_appointment?.i18n || {};
+            text.textContent = (i18n.yourAppointment || 'Your appointment on %s at %s')
+                .replace('%s', formatDateDisplay(parsed.date)).replace('%s', parsed.time);
 
             // Focus-Trap: alle fokussierbaren Elemente im Dialog
             function getFocusable() {
@@ -163,7 +165,7 @@
 
             const emailLabel = document.createElement('label');
             emailLabel.className = 'rrze-appointment__overlay-label';
-            emailLabel.textContent = 'Ihre E-Mail-Adresse:';
+            emailLabel.textContent = i18n.yourEmail || 'Your email address:';
             const emailInput = document.createElement('input');
             emailInput.type = 'email';
             emailInput.className = 'rrze-appointment__overlay-email';
@@ -174,7 +176,7 @@
 
             const nameLabel = document.createElement('label');
             nameLabel.className = 'rrze-appointment__overlay-label';
-            nameLabel.textContent = 'Ihr Name:';
+            nameLabel.textContent = i18n.yourName || 'Your name:';
             const nameInput = document.createElement('input');
             nameInput.type = 'text';
             nameInput.className = 'rrze-appointment__overlay-name';
@@ -185,7 +187,7 @@
 
             const messageLabel = document.createElement('label');
             messageLabel.className = 'rrze-appointment__overlay-label';
-            messageLabel.textContent = 'Nachricht (optional):';
+            messageLabel.textContent = i18n.message || 'Message (optional):';
             const messageInput = document.createElement('textarea');
             messageInput.className = 'rrze-appointment__overlay-message';
             messageInput.rows = 4;
@@ -208,12 +210,12 @@
             const confirmBtn = document.createElement('button');
             confirmBtn.type = 'button';
             confirmBtn.className = 'rrze-appointment__overlay-confirm';
-            confirmBtn.textContent = 'Buchen';
+            confirmBtn.textContent = i18n.book || 'Book';
 
             const cancelBtn = document.createElement('button');
             cancelBtn.type = 'button';
             cancelBtn.className = 'rrze-appointment__overlay-cancel';
-            cancelBtn.textContent = 'Abbrechen';
+            cancelBtn.textContent = i18n.cancel || 'Cancel';
 
             function closeOverlay() {
                 overlay.remove();
@@ -230,7 +232,7 @@
             confirmBtn.addEventListener('click', () => {
                 confirmBtn.disabled = true;
                 cancelBtn.disabled = true;
-                status.textContent = 'Wird gebucht…';
+                status.textContent = i18n.booking || 'Booking…';
 
                 const data = new FormData();
                 data.append('action', 'rrze_appointment_book');
@@ -252,21 +254,21 @@
                     .then((res) => {
                         if (res.success) {
                             bookedSlots.add(value);
-                            status.textContent = 'Termin gebucht! Eine Bestätigung wurde versendet.';
+                            status.textContent = i18n.booked || 'Appointment booked! A confirmation has been sent.';
                             confirmBtn.remove();
-                            cancelBtn.textContent = 'Schließen';
+                            cancelBtn.textContent = i18n.close || 'Close';
                             cancelBtn.disabled = false;
                             renderCalendar();
                             renderDaySlots(activeDate);
                             renderGroupedSlots();
                         } else {
-                            status.textContent = res.data || 'Fehler beim Buchen.';
+                            status.textContent = res.data || i18n.bookingError || 'Error booking appointment.';
                             confirmBtn.disabled = false;
                             cancelBtn.disabled = false;
                         }
                     })
                     .catch(() => {
-                        status.textContent = 'Netzwerkfehler. Bitte erneut versuchen.';
+                        status.textContent = i18n.networkError || 'Network error. Please try again.';
                         confirmBtn.disabled = false;
                         cancelBtn.disabled = false;
                     });
@@ -354,7 +356,7 @@
 
             daySlotsFieldset.classList.remove('is-hidden');
             const legend = daySlotsFieldset.querySelector('legend') || daySlotsFieldset.querySelector('.rrze-appointment__day-slots-title');
-            if (legend) legend.textContent = `Verfügbare Termine am ${formatDateDisplay(date)}`;
+            if (legend) legend.textContent = (i18n.availableOn || 'Available appointments on %s').replace('%s', formatDateDisplay(date));
 
             slots.forEach((slot) => {
                 daySlotsList.appendChild(createSlotButton(slot));
@@ -484,18 +486,19 @@
         renderDaySlots(activeDate);
         renderGroupedSlots();
 
-        // Akkordeon-Verhalten für div-basierte Akkordeons
-        function initAccordions() {
-            form.querySelectorAll('.rrze-appointment__accordion-toggle, .rrze-appointment__date-group-toggle').forEach((toggle) => {
-                toggle.addEventListener('click', () => {
-                    const parent = toggle.parentElement;
-                    const isOpen = parent.dataset.accordion === 'open';
-                    parent.dataset.accordion = isOpen ? 'closed' : 'open';
-                    toggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
-                });
+        // Akkordeon-Verhalten und i18n
+        const i18n = window.rrze_appointment?.i18n || {};
+        form.querySelectorAll('.rrze-appointment__accordion-toggle').forEach((toggle) => {
+            if (!toggle.textContent.trim()) toggle.textContent = i18n.allAppointments || 'All appointments';
+        });
+        form.querySelectorAll('.rrze-appointment__accordion-toggle, .rrze-appointment__date-group-toggle').forEach((toggle) => {
+            toggle.addEventListener('click', () => {
+                const parent = toggle.parentElement;
+                const isOpen = parent.dataset.accordion === 'open';
+                parent.dataset.accordion = isOpen ? 'closed' : 'open';
+                toggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
             });
-        }
-        initAccordions();
+        });
 
         // Nach SSO-Login: Slot aus sessionStorage lesen und Overlay automatisch öffnen
         const autoSlot  = sessionStorage.getItem('rrze_appt_slot');
