@@ -181,6 +181,31 @@ class MailTemplatePost
             ]);
 
             return array_map(fn(\WP_Post $p) => [
+                'id'     => $p->ID,
+                'title'  => $p->post_title,
+                'status' => $p->post_status,
+            ], $posts);
+        } catch (\Exception $e) {
+            throw new CustomException($e->getMessage(), $e->getCode(), null);
+        }
+    }
+
+    /**
+     * Nur veröffentlichte Vorlagen — für den Block-Editor (REST).
+     */
+    public static function getPublished(): array
+    {
+        try {
+            $posts = get_posts([
+                'post_type'      => self::POST_TYPE,
+                'post_status'    => 'publish',
+                'posts_per_page' => -1,
+                'orderby'        => 'title',
+                'order'          => 'ASC',
+                'no_found_rows'  => true,
+            ]);
+
+            return array_map(fn(\WP_Post $p) => [
                 'id'    => $p->ID,
                 'title' => $p->post_title,
             ], $posts);
@@ -205,16 +230,17 @@ class MailTemplatePost
         }
     }
 
-    public static function save(array $data): int|\WP_Error
+    public static function save(array $data, bool $isDraft = false): int|\WP_Error
     {
         try {
             $postId = (int) ($data['id'] ?? 0);
             $title  = sanitize_text_field($data['title'] ?? '');
+            $status = $isDraft ? 'draft' : 'publish';
 
             if ($postId > 0) {
-                $result = wp_update_post(['ID' => $postId, 'post_title' => $title, 'post_status' => 'publish'], true);
+                $result = wp_update_post(['ID' => $postId, 'post_title' => $title, 'post_status' => $status], true);
             } else {
-                $result = wp_insert_post(['post_title' => $title, 'post_type' => self::POST_TYPE, 'post_status' => 'publish'], true);
+                $result = wp_insert_post(['post_title' => $title, 'post_type' => self::POST_TYPE, 'post_status' => $status], true);
             }
 
             if (is_wp_error($result)) return $result;
