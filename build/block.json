@@ -2,7 +2,7 @@
   "apiVersion": 2,
   "name": "rrze/appointment",
   "title": "RRZE-Appointment",
-  "category": "widgets",
+  "category": "rrze",
   "icon": "calendar-alt",
   "description": "block to create an appointment",
   "supports": {
