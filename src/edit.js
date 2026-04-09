@@ -704,11 +704,11 @@ export default function Edit({ attributes, setAttributes }) {
 
             <div {...blockProps}>
                 <div className={['rrze-appointment-block', colorClass].filter(Boolean).join(' ')}>
-                    <h3>{derivedTitle || __('Appointment title', 'rrze-appointment')}</h3>
-                    {description && <p>{description}</p>}
-                    {location && <p><strong>{__('Location', 'rrze-appointment')}:</strong> {location}{locationUrl && <> (<a href={locationUrl} target="_blank" rel="noopener noreferrer">{__('View on map', 'rrze-appointment')}</a>)</>}</p>}
-
-                    <form className="rrze-appointment__form">
+                    <fieldset className="rrze-appointment__fieldset">
+                        <legend className="rrze-appointment__title">{derivedTitle || __('Appointment title', 'rrze-appointment')}</legend>
+                        <form className="rrze-appointment__form">
+                        {description && <p>{description}</p>}
+                        {location && <p><strong>{__('Location', 'rrze-appointment')}:</strong> {location}{locationUrl && <> (<a href={locationUrl} target="_blank" rel="noopener noreferrer">{__('View on map', 'rrze-appointment')}</a>)</>}</p>}
                         {slots.length > 0 ? (
                             <Fragment>
                                 <PreviewCalendar slots={slots} onRemoveSlot={handleRemoveSlot} onAddSlot={handleOpenAddSlot} activeDate={activeDate} setActiveDate={setActiveDate} />
@@ -751,7 +751,8 @@ export default function Edit({ attributes, setAttributes }) {
                                 </div>
                             </div>
                         )}
-                    </form>
+                        </form>
+                    </fieldset>
                 </div>
             </div>
 
