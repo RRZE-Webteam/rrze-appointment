@@ -173,7 +173,7 @@ function PreviewCalendar({ slots, onRemoveSlot, onAddSlot, activeDate, setActive
 
             {activeDate && activeDateSlots.length > 0 && (
                 <fieldset className="rrze-appointment__day-slots">
-                    <legend>{__('Times on %s', 'rrze-appointment').replace('%s', formatDateDisplay(activeDate))}</legend>
+                    <p className="rrze-appointment__day-slots-title">{__('Times on %s', 'rrze-appointment').replace('%s', formatDateDisplay(activeDate))}</p>
                     <div className="rrze-appointment__day-slots-list rrze-appointment__slot-grid">
                         {activeDateSlots.map((slot) => (
                             <div className="rrze-appointment__slot-item" key={slot.value}>
@@ -500,7 +500,11 @@ export default function Edit({ attributes, setAttributes }) {
                         onChange={(value) => setAttributes({ location: value })}
                     />
                     <TextControl
-                        label={__('Map (URL)', 'rrze-appointment')}
+                        label={__('Map (URL)', 'rrze-appointment')} 
+                        help={locationUrl && !/^https?:\/\//.test(locationUrl)
+                            ? <span style={{ color: '#d63638' }}>{__('Please enter a valid URL (starting with https://).', 'rrze-appointment')}</span>
+                            : <a href="https://karte.fau.de">🔗 karte.fau.de</a>
+                        }
                         value={locationUrl}
                         onChange={(value) => setAttributes({ locationUrl: value })}
                     />
@@ -701,11 +705,15 @@ export default function Edit({ attributes, setAttributes }) {
 
             <div {...blockProps}>
                 <div className={['rrze-appointment-block', colorClass].filter(Boolean).join(' ')}>
-                    <h3>{derivedTitle || __('Appointment title', 'rrze-appointment')}</h3>
-                    {description && <p>{description}</p>}
-                    {location && <p><strong>{__('Location', 'rrze-appointment')}:</strong> {location}{locationUrl && <> (<a href={locationUrl} target="_blank" rel="noopener noreferrer">{__('View on map', 'rrze-appointment')}</a>)</>}</p>}
-
                     <form className="rrze-appointment__form">
+                        <fieldset className="rrze-appointment__fieldset">
+                            <legend className="rrze-appointment__title">{derivedTitle || __('Appointment title', 'rrze-appointment')}</legend>
+                            {description && <p>{description}</p>}
+                            {location && <p><strong>{__('Location', 'rrze-appointment')}:</strong> {/^https?:\/\//.test(location) ? (
+                                <a href={location}>{location}</a>
+                            ) : locationUrl ? (
+                                <a href={locationUrl}>{location}</a>
+                            ) : location}</p>}
                         {slots.length > 0 ? (
                             <Fragment>
                                 <PreviewCalendar slots={slots} onRemoveSlot={handleRemoveSlot} onAddSlot={handleOpenAddSlot} activeDate={activeDate} setActiveDate={setActiveDate} />
@@ -748,6 +756,7 @@ export default function Edit({ attributes, setAttributes }) {
                                 </div>
                             </div>
                         )}
+                        </fieldset>
                     </form>
                 </div>
             </div>

@@ -363,9 +363,9 @@ class Main
     {
         try {
             $persons = $this->getFAUdirPersons();
-            $data = wp_json_encode(['persons' => $persons]);
+            $data = wp_json_encode(['persons' => $persons, 'recurrenceLimit' => (int) Settings::get('recurrence_limit')]);
         } catch (CustomException $e) {
-            $data = wp_json_encode(['persons' => ['error' => true, 'message' => $e->getMessage(), 'data' => []]]);
+            $data = wp_json_encode(['persons' => ['error' => true, 'message' => $e->getMessage(), 'data' => []], 'recurrenceLimit' => 52]);
         }
         wp_add_inline_script( 'rrze-appointment-editor-script', 'window.rrze_appointment = ' . $data . ';', 'before' );
     }

@@ -17,35 +17,38 @@ export default function Save({ attributes }) {
             data-tpl-id={tplId || 0}
             data-booking-cutoff={bookingCutoff || 0}
         >
-            {title && <h3 className="rrze-appointment__title">{title}</h3>}
-            {description && (
-                <div className="rrze-appointment__description">{description}</div>
-            )}
-            {location && (
-                <p className="rrze-appointment__location">
-                    {__('Location:', 'rrze-appointment')} {location}
-                    {locationUrl && (
-                        <> (<a href={locationUrl} target="_blank" rel="noopener noreferrer">{__('View on map', 'rrze-appointment')}</a>)</>
-                    )}
-                </p>
-            )}
+            <fieldset className="rrze-appointment__fieldset">
+                {title && <legend className="rrze-appointment__title">{title}</legend>}
+                {description && (
+                    <p className="rrze-appointment__description">{description}</p>
+                )}
+                {location && (
+                    <p className="rrze-appointment__location">
+                        {__('Location:', 'rrze-appointment')} {/^https?:\/\//.test(location) ? (
+                            <a href={location}>{location}</a>
+                        ) : locationUrl ? (
+                            <a href={locationUrl}>{location}</a>
+                        ) : location}
+                    </p>
+                )}
 
-            {slots.length > 0 ? (
-                <Fragment>
-                    <div className="rrze-appointment__calendar" />
+                {slots.length > 0 ? (
+                    <Fragment>
+                        <div className="rrze-appointment__calendar" />
 
-                    <fieldset className="rrze-appointment__day-slots is-hidden">
-                        <legend>{__('Times on selected day', 'rrze-appointment')}</legend>
-                        <div className="rrze-appointment__day-slots-list" />
-                    </fieldset>
+                        <div className="rrze-appointment__day-slots is-hidden">
+                            <p className="rrze-appointment__day-slots-title">{__('Times on selected day', 'rrze-appointment')}</p>
+                            <div className="rrze-appointment__day-slots-list" />
+                        </div>
 
-                    {renderGroupedSlotsAccordion(slots, 'rrze_appointment_slot')}
+                        {renderGroupedSlotsAccordion(slots, 'rrze_appointment_slot')}
 
-                    <div className="rrze-appointment__selected-info is-hidden" aria-live="polite" />
-                </Fragment>
-            ) : (
-                <p className="rrze-appointment__missing-slot">{__('No time slots available.', 'rrze-appointment')}</p>
-            )}
+                        <div className="rrze-appointment__selected-info is-hidden" aria-live="polite" />
+                    </Fragment>
+                ) : (
+                    <p className="rrze-appointment__missing-slot">{__('No time slots available.', 'rrze-appointment')}</p>
+                )}
+            </fieldset>
         </form>
     );
 }

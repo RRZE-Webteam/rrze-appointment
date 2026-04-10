@@ -1,51 +1,61 @@
 import { registerPlugin } from '@wordpress/plugins';
-import { PluginPrePublishPanel } from '@wordpress/edit-post';
 import { useSelect, useDispatch } from '@wordpress/data';
-import { useEffect } from '@wordpress/element';
+import { useEffect, useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
-const LOCK_NAME = 'rrze-appointment-missing-person';
+const NOTICE_ID = 'rrze-appointment-missing-person-notice';
 
-function AppointmentPrePublishCheck() {
+function AppointmentPublishCheck() {
     const blocks = useSelect((select) =>
         select('core/block-editor').getBlocks()
     );
 
-    const { lockPostSaving, unlockPostSaving } = useDispatch('core/editor');
+    const isSavingPost = useSelect((select) =>
+        select('core/editor').isSavingPost()
+    );
+
+    const isAutosaving = useSelect((select) =>
+        select('core/editor').isAutosavingPost()
+    );
+
+    const postStatus = useSelect((select) =>
+        select('core/editor').getCurrentPostAttribute('status')
+    );
+
+    const { editPost } = useDispatch('core/editor');
+    const { createNotice, removeNotice } = useDispatch('core/notices');
 
     const appointmentBlocks = blocks.filter((b) => b.name === 'rrze/appointment');
-    const isInvalid = appointmentBlocks.length > 0 && appointmentBlocks.some(
-        (b) => {
-            const name = b.attributes.personName?.trim();
-            const email = b.attributes.personEmail?.trim();
-            const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || '');
-            return !name || !email || !emailValid;
-        }
-    );
+    const isInvalid = appointmentBlocks.length > 0 && appointmentBlocks.some((b) => {
+        const name  = b.attributes.personName?.trim();
+        const email = b.attributes.personEmail?.trim();
+        const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || '');
+        return !name || !email || !emailValid;
+    });
+
+    const prevSaving = useRef(false);
 
     useEffect(() => {
-        if (isInvalid) {
-            lockPostSaving(LOCK_NAME);
-        } else {
-            unlockPostSaving(LOCK_NAME);
+        const justSaved = prevSaving.current && !isSavingPost && !isAutosaving;
+        prevSaving.current = isSavingPost && !isAutosaving;
+
+        if (justSaved && isInvalid && postStatus === 'publish') {
+            editPost({ status: 'draft' });
+            createNotice(
+                'error',
+                __('Name and email are missing for one or more appointment blocks. The page has been saved as a draft and cannot be published until all fields are filled in.', 'rrze-appointment'),
+                { id: NOTICE_ID, isDismissible: true, type: 'default' }
+            );
         }
-        return () => unlockPostSaving(LOCK_NAME);
-    }, [isInvalid]);
 
-    if (!isInvalid) return null;
+        if (!isInvalid) {
+            removeNotice(NOTICE_ID);
+        }
+    }, [isSavingPost, isAutosaving, isInvalid, postStatus]);
 
-    return (
-        <PluginPrePublishPanel
-            title={__('RRZE Appointment', 'rrze-appointment')}
-            initialOpen={true}
-        >
-            <p style={{ color: '#d63638', margin: 0 }}>
-                {__('Bitte Name und E-Mail für alle Termin-Blöcke angeben, bevor die Seite veröffentlicht wird.', 'rrze-appointment')}
-            </p>
-        </PluginPrePublishPanel>
-    );
+    return null;
 }
 
 registerPlugin('rrze-appointment-pre-publish', {
-    render: AppointmentPrePublishCheck,
+    render: AppointmentPublishCheck,
 });
