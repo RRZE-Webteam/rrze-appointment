@@ -502,7 +502,7 @@ export default function Edit({ attributes, setAttributes }) {
                     <TextControl
                         label={__('Map (URL)', 'rrze-appointment')} 
                         help={locationUrl && !/^https?:\/\//.test(locationUrl)
-                            ? <span style={{ color: '#d63638' }}>{__('Please enter a valid URL (starting with https://).', 'rrze-appointment')}</span>
+                            ? <span className="rrze-appointment-block__url-error">{__('Please enter a valid URL (starting with https://).', 'rrze-appointment')}</span>
                             : <a href="https://karte.fau.de">🔗 karte.fau.de</a>
                         }
                         value={locationUrl}
