@@ -453,14 +453,11 @@ export default function Edit({ attributes, setAttributes }) {
                         onChange={(v) => setAttributes({ tplId: Number(v) })}
                     />
                 </PanelBody>
-                {faudirError && (
-                    <PanelBody title={__('Person settings', 'rrze-appointment')} initialOpen={true}>
+                <PanelBody title={__('Person settings', 'rrze-appointment')} initialOpen={true}>
+                    {faudirError && (
                         <p className="rrze-appointment-block__person-error">{faudirMessage}</p>
-                    </PanelBody>
-                )}
-
-                {!faudirError && faudirPersons.length > 0 && (
-                    <PanelBody title={__('Person settings', 'rrze-appointment')} initialOpen={true}>
+                    )}
+                    {!faudirError && faudirPersons.length > 0 && (
                         <SelectControl
                             label={__('Person', 'rrze-appointment')}
                             value={String(personId || 0)}
@@ -486,28 +483,28 @@ export default function Edit({ attributes, setAttributes }) {
                                 }
                             }}
                         />
-                        <TextControl
-                            label={__('Name', 'rrze-appointment')}
-                            value={personName}
-                            onChange={(value) => setAttributes({ personName: value })}
-                        />
-                        <TextControl
-                            label={__('E-Mail', 'rrze-appointment')}
-                            value={personEmail}
-                            onChange={(value) => setAttributes({ personEmail: value })}
-                        />
-                        <TextControl
-                            label={__('Location', 'rrze-appointment')}
-                            value={location}
-                            onChange={(value) => setAttributes({ location: value })}
-                        />
-                        <TextControl
-                            label={__('Map (URL)', 'rrze-appointment')}
-                            value={locationUrl}
-                            onChange={(value) => setAttributes({ locationUrl: value })}
-                        />
-                    </PanelBody>
-                )}
+                    )}
+                    <TextControl
+                        label={__('Name', 'rrze-appointment')}
+                        value={personName}
+                        onChange={(value) => setAttributes({ personName: value })}
+                    />
+                    <TextControl
+                        label={__('E-Mail', 'rrze-appointment')}
+                        value={personEmail}
+                        onChange={(value) => setAttributes({ personEmail: value })}
+                    />
+                    <TextControl
+                        label={__('Location', 'rrze-appointment')}
+                        value={location}
+                        onChange={(value) => setAttributes({ location: value })}
+                    />
+                    <TextControl
+                        label={__('Map (URL)', 'rrze-appointment')}
+                        value={locationUrl}
+                        onChange={(value) => setAttributes({ locationUrl: value })}
+                    />
+                </PanelBody>
                 <PanelBody title={__('Appointment settings', 'rrze-appointment')} initialOpen={true}>
                     <TextControl
                         label={__('Title', 'rrze-appointment')}

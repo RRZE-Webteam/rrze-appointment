@@ -242,7 +242,7 @@ class Main
     private function getFAUdirPersons(): array
     {
         if (!post_type_exists('custom_person')) {
-            return ['error' => true, 'message' => 'Post type custom_person does not exist.', 'data' => []];
+            return ['error' => true, 'message' => __('Tip: Activate the RRZE FAUdir plugin to conveniently import person data.', 'rrze-appointment'), 'data' => []];
         }
 
         $posts = get_posts([
@@ -256,7 +256,7 @@ class Main
         ]);
 
         if (!class_exists('\RRZE\FAUdir\API') || !class_exists('\RRZE\FAUdir\Config')) {
-            return ['error' => true, 'message' => 'FAUdir classes not available.', 'data' => []];
+            return ['error' => true, 'message' => __('FAUdir classes not available.', 'rrze-appointment'), 'data' => []];
         }
 
         $config = new \RRZE\FAUdir\Config();

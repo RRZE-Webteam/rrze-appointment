@@ -1,4 +1,5 @@
 import { Fragment } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 import { generateTimeSlots, renderGroupedSlotsAccordion } from './utils';
 
 export default function Save({ attributes }) {

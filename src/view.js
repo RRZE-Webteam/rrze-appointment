@@ -1,4 +1,5 @@
 (function () {
+    function run() {
     const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
     function parseDate(value) {
@@ -482,12 +483,13 @@
             calendar.appendChild(monthWrapper);
         }
 
+        const i18n = window.rrze_appointment?.i18n || {};
+
         renderCalendar();
         renderDaySlots(activeDate);
         renderGroupedSlots();
 
         // Akkordeon-Verhalten und i18n
-        const i18n = window.rrze_appointment?.i18n || {};
         form.querySelectorAll('.rrze-appointment__accordion-toggle').forEach((toggle) => {
             if (!toggle.textContent.trim()) toggle.textContent = i18n.allAppointments || 'All appointments';
         });
@@ -524,4 +526,11 @@
     document.querySelectorAll('form.rrze-appointment').forEach((form) => {
         initAppointmentForm(form);
     });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', run);
+    } else {
+        run();
+    }
 }());
