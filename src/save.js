@@ -24,10 +24,11 @@ export default function Save({ attributes }) {
                 )}
                 {location && (
                     <p className="rrze-appointment__location">
-                        {__('Location:', 'rrze-appointment')} {location}
-                        {locationUrl && (
-                            <> (<a href={locationUrl} target="_blank" rel="noopener noreferrer">{__('View on map', 'rrze-appointment')}</a>)</>
-                        )}
+                        {__('Location:', 'rrze-appointment')} {/^https?:\/\//.test(location) ? (
+                            <a href={location} target="_blank" rel="noopener noreferrer">{location}</a>
+                        ) : locationUrl ? (
+                            <a href={locationUrl} target="_blank" rel="noopener noreferrer">{location}</a>
+                        ) : location}
                     </p>
                 )}
 

@@ -501,6 +501,10 @@ export default function Edit({ attributes, setAttributes }) {
                     />
                     <TextControl
                         label={__('Map (URL)', 'rrze-appointment')}
+                        help={locationUrl && !/^https?:\/\//.test(locationUrl)
+                            ? <span style={{ color: '#d63638' }}>{__('Please enter a valid URL (starting with https://).', 'rrze-appointment')}</span>
+                            : <a href="https://karte.fau.de" target="_blank" rel="noopener noreferrer">karte.fau.de</a>
+                        }
                         value={locationUrl}
                         onChange={(value) => setAttributes({ locationUrl: value })}
                     />
@@ -705,7 +709,11 @@ export default function Edit({ attributes, setAttributes }) {
                         <fieldset className="rrze-appointment__fieldset">
                             <legend className="rrze-appointment__title">{derivedTitle || __('Appointment title', 'rrze-appointment')}</legend>
                             {description && <p>{description}</p>}
-                            {location && <p><strong>{__('Location', 'rrze-appointment')}:</strong> {location}{locationUrl && <> (<a href={locationUrl} target="_blank" rel="noopener noreferrer">{__('View on map', 'rrze-appointment')}</a>)</>}</p>}
+                            {location && <p><strong>{__('Location', 'rrze-appointment')}:</strong> {/^https?:\/\//.test(location) ? (
+                                <a href={location} target="_blank" rel="noopener noreferrer">{location}</a>
+                            ) : locationUrl ? (
+                                <a href={locationUrl} target="_blank" rel="noopener noreferrer">{location}</a>
+                            ) : location}</p>}
                         {slots.length > 0 ? (
                             <Fragment>
                                 <PreviewCalendar slots={slots} onRemoveSlot={handleRemoveSlot} onAddSlot={handleOpenAddSlot} activeDate={activeDate} setActiveDate={setActiveDate} />
