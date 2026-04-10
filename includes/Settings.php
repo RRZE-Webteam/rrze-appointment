@@ -28,7 +28,10 @@ class Settings
 
     public static function getDefaults(): array
     {
-        return ['reminder_days' => 0];
+        return [
+            'reminder_days'     => 0,
+            'recurrence_limit'  => 52,
+        ];
     }
 
     public static function get(string $key): mixed
@@ -104,11 +107,15 @@ class Settings
         );
         add_settings_section('rrze_appointment_general', '', '__return_false', self::PAGE_SLUG);
         add_settings_field('reminder_days', __('Reminder Email', 'rrze-appointment'), [$this, 'renderReminderDaysField'], self::PAGE_SLUG, 'rrze_appointment_general');
+        add_settings_field('recurrence_limit', __('Recurrence limit', 'rrze-appointment'), [$this, 'renderRecurrenceLimitField'], self::PAGE_SLUG, 'rrze_appointment_general');
     }
 
     public function sanitize(array $input): array
     {
-        return ['reminder_days' => (int) ($input['reminder_days'] ?? 0)];
+        return [
+            'reminder_days'    => (int) ($input['reminder_days'] ?? 0),
+            'recurrence_limit' => max(1, (int) ($input['recurrence_limit'] ?? 52)),
+        ];
     }
 
     /**
@@ -243,6 +250,17 @@ class Settings
             printf('<option value="%d"%s>%s</option>', $val, selected($value, $val, false), esc_html($label));
         }
         echo '</select> ' . esc_html__('days before the appointment.', 'rrze-appointment');
+    }
+
+    public function renderRecurrenceLimitField(): void
+    {
+        $value = (int) self::get('recurrence_limit');
+        printf(
+            '<input type="number" name="%s[recurrence_limit]" value="%d" min="1" max="730" step="1" class="small-text"> %s',
+            esc_attr(self::OPTION_NAME),
+            $value,
+            esc_html__('Maximum number of recurrences (default: 52).', 'rrze-appointment')
+        );
     }
 
 

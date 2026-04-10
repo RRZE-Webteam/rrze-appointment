@@ -166,6 +166,7 @@ export function expandRecurrence(recurrence, startDate) {
     const results = [];
     const current = new Date(anchor);
 
+    const limit = (typeof window !== 'undefined' && window.rrze_appointment?.recurrenceLimit) || 52;
     while (results.length < 730) {
         if (untilDate && current > untilDate) break;
 
@@ -181,7 +182,7 @@ export function expandRecurrence(recurrence, startDate) {
             break;
         }
 
-        if (!untilDate && results.length >= 52) break;
+        if (!untilDate && results.length >= limit) break;
     }
 
     return results;
