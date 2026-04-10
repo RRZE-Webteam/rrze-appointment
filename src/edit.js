@@ -453,11 +453,14 @@ export default function Edit({ attributes, setAttributes }) {
                         onChange={(v) => setAttributes({ tplId: Number(v) })}
                     />
                 </PanelBody>
-                <PanelBody title={__('Person settings', 'rrze-appointment')} initialOpen={true}>
-                    {faudirError && (
+                {faudirError && (
+                    <PanelBody title={__('Person settings', 'rrze-appointment')} initialOpen={true}>
                         <p className="rrze-appointment-block__person-error">{faudirMessage}</p>
-                    )}
-                    {!faudirError && faudirPersons.length > 0 && (
+                    </PanelBody>
+                )}
+
+                {!faudirError && faudirPersons.length > 0 && (
+                    <PanelBody title={__('Person settings', 'rrze-appointment')} initialOpen={true}>
                         <SelectControl
                             label={__('Person', 'rrze-appointment')}
                             value={String(personId || 0)}
@@ -483,28 +486,28 @@ export default function Edit({ attributes, setAttributes }) {
                                 }
                             }}
                         />
-                    )}
-                    <TextControl
-                        label={__('Name', 'rrze-appointment')}
-                        value={personName}
-                        onChange={(value) => setAttributes({ personName: value })}
-                    />
-                    <TextControl
-                        label={__('E-Mail', 'rrze-appointment')}
-                        value={personEmail}
-                        onChange={(value) => setAttributes({ personEmail: value })}
-                    />
-                    <TextControl
-                        label={__('Location', 'rrze-appointment')}
-                        value={location}
-                        onChange={(value) => setAttributes({ location: value })}
-                    />
-                    <TextControl
-                        label={__('Map (URL)', 'rrze-appointment')}
-                        value={locationUrl}
-                        onChange={(value) => setAttributes({ locationUrl: value })}
-                    />
-                </PanelBody>
+                        <TextControl
+                            label={__('Name', 'rrze-appointment')}
+                            value={personName}
+                            onChange={(value) => setAttributes({ personName: value })}
+                        />
+                        <TextControl
+                            label={__('E-Mail', 'rrze-appointment')}
+                            value={personEmail}
+                            onChange={(value) => setAttributes({ personEmail: value })}
+                        />
+                        <TextControl
+                            label={__('Location', 'rrze-appointment')}
+                            value={location}
+                            onChange={(value) => setAttributes({ location: value })}
+                        />
+                        <TextControl
+                            label={__('Map (URL)', 'rrze-appointment')}
+                            value={locationUrl}
+                            onChange={(value) => setAttributes({ locationUrl: value })}
+                        />
+                    </PanelBody>
+                )}
                 <PanelBody title={__('Appointment settings', 'rrze-appointment')} initialOpen={true}>
                     <TextControl
                         label={__('Title', 'rrze-appointment')}
@@ -701,11 +704,11 @@ export default function Edit({ attributes, setAttributes }) {
 
             <div {...blockProps}>
                 <div className={['rrze-appointment-block', colorClass].filter(Boolean).join(' ')}>
-                    <fieldset className="rrze-appointment__fieldset">
-                        <legend className="rrze-appointment__title">{derivedTitle || __('Appointment title', 'rrze-appointment')}</legend>
-                        <form className="rrze-appointment__form">
-                        {description && <p>{description}</p>}
-                        {location && <p><strong>{__('Location', 'rrze-appointment')}:</strong> {location}{locationUrl && <> (<a href={locationUrl} target="_blank" rel="noopener noreferrer">{__('View on map', 'rrze-appointment')}</a>)</>}</p>}
+                    <h3>{derivedTitle || __('Appointment title', 'rrze-appointment')}</h3>
+                    {description && <p>{description}</p>}
+                    {location && <p><strong>{__('Location', 'rrze-appointment')}:</strong> {location}{locationUrl && <> (<a href={locationUrl} target="_blank" rel="noopener noreferrer">{__('View on map', 'rrze-appointment')}</a>)</>}</p>}
+
+                    <form className="rrze-appointment__form">
                         {slots.length > 0 ? (
                             <Fragment>
                                 <PreviewCalendar slots={slots} onRemoveSlot={handleRemoveSlot} onAddSlot={handleOpenAddSlot} activeDate={activeDate} setActiveDate={setActiveDate} />
@@ -748,8 +751,7 @@ export default function Edit({ attributes, setAttributes }) {
                                 </div>
                             </div>
                         )}
-                        </form>
-                    </fieldset>
+                    </form>
                 </div>
             </div>
 

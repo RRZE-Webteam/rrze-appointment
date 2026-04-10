@@ -1,5 +1,5 @@
 <?php
-return ['project-id-version'=>'RRZE Appointment','report-msgid-bugs-to'=>'https://github.com/RRZE-Webteam/rrze-appointment','pot-creation-date'=>'2025-01-01 00:00+0000','mime-version'=>'1.0','content-type'=>'text/plain; charset=UTF-8','content-transfer-encoding'=>'8bit','po-revision-date'=>'2026-04-08 10:38+0000','last-translator'=>'RRZE Webteam','language-team'=>'Deutsch','language'=>'de_DE','plural-forms'=>'nplurals=2; plural=(n != 1);','x-domain'=>'rrze-appointment','x-generator'=>'Loco https://localise.biz/','messages'=>['%d test email(s) sent to %s.'=>'%d Testmail(s) an %s versendet.','(no title)'=>'(kein Titel)','(not editable)'=>'(nicht editierbar)','Actions'=>'Aktionen','All'=>'Alle','An earlier appointment has become available:'=>'Ein früherer Termin ist frei geworden:','Appointment'=>'Termin','Appointment cancelled'=>'Termin storniert','Appointment confirmed'=>'Termin bestätigt','Appointment request'=>'Termin-Anfrage','Appointments'=>'Termine','Back to homepage'=>'Zurück zur Startseite','Back to list'=>'Zurück zur Liste','Booker'=>'Buchender','Booking cancelled and cancellation emails sent.'=>'Buchung storniert und Storno-Mails versendet.','Booking confirmation: [title] on [date]'=>'Buchungsbestätigung: [title] am [date]','Book'=>'Buchen','Booking…'=>'Wird gebucht…','Appointment booked! A confirmation has been sent.'=>'Termin gebucht! Eine Bestätigung wurde versendet.','Booked by'=>'Gebucht von','Cancel'=>'Abbrechen','Cancel appointment'=>'Termin stornieren','Cancel booking'=>'Stornieren','Cancel request'=>'Anfrage stornieren','Cancellation'=>'Stornierung','Cancellation: [title] on [date]'=>'Stornierung: [title] am [date]','Close'=>'Schließen','Confirm'=>'Bestätigen','Confirm appointment'=>'Termin bestätigen','Confirm appointment now'=>'Termin jetzt bestätigen','Confirm appointment request: [title] on [date]'=>'Terminanfrage bestätigen: [title] am [date]','Confirmation to booking person'=>'Bestätigung an buchende Person','Confirmation to host'=>'Bestätigung an einladende Person','Date'=>'Datum','days before the appointment.'=>'Tage vor dem Termin versenden.','Default'=>'Standard','Delete'=>'Löschen','Disabled'=>'Deaktiviert','Draft'=>'Entwurf','Earlier appointment available: %s on %s'=>'Früherer Termin verfügbar: %s am %s','Edit'=>'Bearbeiten','Email'=>'E-Mail','Error booking appointment.'=>'Fehler beim Buchen.','Filter'=>'Filtern','From'=>'Von','General'=>'Allgemein','Hello %s,'=>'Hallo %s,','Hello %s,
+return ['project-id-version'=>'RRZE Appointment','report-msgid-bugs-to'=>'https://github.com/RRZE-Webteam/rrze-appointment','pot-creation-date'=>'2025-01-01 00:00+0000','mime-version'=>'1.0','content-type'=>'text/plain; charset=UTF-8','content-transfer-encoding'=>'8bit','po-revision-date'=>'2026-04-10 10:44+0000','last-translator'=>'RRZE Webteam','language-team'=>'Deutsch','language'=>'de_DE','plural-forms'=>'nplurals=2; plural=(n != 1);','x-domain'=>'rrze-appointment','x-generator'=>'Loco https://localise.biz/','messages'=>['%d test email(s) sent to %s.'=>'%d Testmail(s) an %s versendet.','(no title)'=>'(kein Titel)','(not editable)'=>'(nicht editierbar)','Actions'=>'Aktionen','All'=>'Alle','All appointments'=>'Alle Termine','An earlier appointment has become available:'=>'Ein früherer Termin ist frei geworden:','Appointment'=>'Termin','Appointment booked! A confirmation has been sent.'=>'Termin gebucht! Eine Bestätigung wurde versendet.','Appointment cancelled'=>'Termin storniert','Appointment confirmed'=>'Termin bestätigt','Appointment request'=>'Termin-Anfrage','Appointments'=>'Termine','Available appointments on %s'=>'Verfügbare Termine am %s','Back to homepage'=>'Zurück zur Startseite','Back to list'=>'Zurück zur Liste','Book'=>'Buchen','Booked by'=>'Gebucht von','Booker'=>'Buchender','Booking cancelled and cancellation emails sent.'=>'Buchung storniert und Storno-Mails versendet.','Booking confirmation: [title] on [date]'=>'Buchungsbestätigung: [title] am [date]','Booking person (email)'=>'Buchende Person (E-Mail)','Booking person (message)'=>'Buchende Person (Nachricht)','Booking person (name)'=>'Buchende Person (Name)','Booking…'=>'Wird gebucht…','Cancel'=>'Abbrechen','Cancel appointment'=>'Termin stornieren','Cancel booking'=>'Stornieren','Cancel request'=>'Anfrage stornieren','Cancellation'=>'Stornierung','Cancellation: [title] on [date]'=>'Stornierung: [title] am [date]','Close'=>'Schließen','Confirm'=>'Bestätigen','Confirm appointment'=>'Termin bestätigen','Confirm appointment now'=>'Termin jetzt bestätigen','Confirm appointment request: [title] on [date]'=>'Terminanfrage bestätigen: [title] am [date]','Confirmation'=>'Bestätigung','Confirmation to booking person'=>'Bestätigung an buchende Person','Confirmation to host'=>'Bestätigung an einladende Person','Date'=>'Datum','Date of the appointment'=>'Datum des Termins','days before the appointment.'=>'Tage vor dem Termin versenden.','Default'=>'Standard','Delete'=>'Löschen','Disabled'=>'Deaktiviert','Draft'=>'Entwurf','Earlier appointment available: %s on %s'=>'Früherer Termin verfügbar: %s am %s','Edit'=>'Bearbeiten','Email'=>'E-Mail','Error booking appointment.'=>'Fehler beim Buchen.','Filter'=>'Filtern','From'=>'Von','General'=>'Allgemein','Hello %s,'=>'Hallo %s,','Hello %s,
 
 An earlier appointment has become available:
 
@@ -23,98 +23,4 @@ Einladende Person: %s
 
 Ihr aktueller Termin ist am %s um %s.
 
-Bitte buchen Sie den früheren Termin direkt auf der Website.','Host'=>'Einladende Person','HTML'=>'HTML','Imprint'=>'Impressum','Insert placeholder'=>'Platzhalter einfügen','Invalid appointment format.'=>'Ungültiges Termin-Format.','Legal notice'=>'Impressum','Legal Notice'=>'Impressum','Location'=>'Ort','Logfile is empty.'=>'Logdatei ist leer.','Mail body'=>'Mailtext','Mail Templates'=>'Mail-Vorlagen','Message'=>'Nachricht','Message (optional):'=>'Nachricht (optional):','Network error. Please try again.'=>'Netzwerkfehler. Bitte erneut versuchen.','New booking: [title] on [date]'=>'Neue Buchung: [title] am [date]','New booking received:'=>'Neue Buchung eingegangen:','New Template'=>'Neue Vorlage','No appointment specified.'=>'Kein Termin angegeben.','No appointments found.'=>'Keine Termine gefunden.','No authenticated email address found.'=>'Keine authentifizierte E-Mail-Adresse gefunden.','Person'=>'Person','Plain text'=>'Plaintext','Please book the earlier slot directly on the website.'=>'Bitte buchen Sie den früheren Termin direkt auf der Website.','Please confirm your appointment by email.'=>'Bitte bestätigen Sie Ihren Termin per E-Mail.','Please confirm your appointment request:'=>'Bitte bestätigen Sie Ihren Terminwunsch:','Please provide an email address.'=>'Bitte eine E-Mail-Adresse angeben.','Privacy Policy'=>'Datenschutz','Really cancel this booking?'=>'Buchung wirklich stornieren?','Really delete this template?'=>'Vorlage wirklich löschen?','Reminder Email'=>'Erinnerungsmail','Reminder for the following appointment:'=>'Erinnerung an folgenden Termin:','Reminder for your appointment:'=>'Erinnerung an Ihren Termin:','Reminder to booking person'=>'Erinnerung an buchende Person','Reminder to host'=>'Erinnerung an einladende Person','Reminder: [title] on [date]'=>'Erinnerung: [title] am [date]','Reset'=>'Zurücksetzen','RRZE Appointment'=>'RRZE Appointment','Save template'=>'Vorlage speichern','Send Test Email'=>'Testmail senden','Settings issues detected.'=>'Probleme bei den Einstellungen festgestellt.','Settings saved.'=>'Einstellungen gespeichert.','Subject'=>'Betreff','Template deleted.'=>'Vorlage gelöscht.','Template saved.'=>'Vorlage gespeichert.','Template saved and published.'=>'Vorlage gespeichert und veröffentlicht.','Template saved as draft. Please fill in all fields (title, subject and body for all sections) to publish the template.'=>'Vorlage als Entwurf gespeichert. Bitte alle Felder ausfüllen (Titel, Betreff und Mailtext für alle Abschnitte), um die Vorlage zu veröffentlichen.','Template title'=>'Titel der Vorlage','The template cannot be deleted because it is still in use.'=>'Die Vorlage kann nicht gelöscht werden, da sie noch verwendet wird.','The template cannot be deleted because it is still in use: %s'=>'Die Vorlage kann nicht gelöscht werden, da sie noch verwendet wird in: %s','there'=>'dort','This appointment is no longer available.'=>'Dieser Termin ist nicht mehr verfügbar.','This cancellation link is invalid or has already been used.'=>'Dieser Storno-Link ist ungültig oder wurde bereits verwendet.','This confirmation link has expired or is invalid.'=>'Dieser Bestätigungslink ist abgelaufen oder ungültig.','Time'=>'Zeit','Time (from – to)'=>'Uhrzeit (von – bis)','Times on selected day'=>'Uhrzeiten am ausgewählten Tag','Title'=>'Titel','Title of the appointment'=>'Titel des Termins','Date of the appointment'=>'Datum des Termins','Inviting person'=>'Einladende Person','Booking person (name)'=>'Buchende Person (Name)','Booking person (email)'=>'Buchende Person (E-Mail)','Booking person (message)'=>'Buchende Person (Nachricht)','Link to booking confirmation'=>'Link zur Buchungsbestätigung','Link to cancel'=>'Link zum Stornieren','Link to imprint'=>'Link zum Impressum','To'=>'Bis','Unnamed tab'=>'Unbenannter Tab','Yes, I would like to be notified if an earlier appointment becomes available.'=>'Ja, ich möchte informiert werden, wenn ein früherer Termin frei wird.','You do not have enough permissions to do that.'=>'Sie haben nicht die Erlaubnis, dies zu tun.','Your appointment has been cancelled.'=>'Ihr Termin wurde storniert.','Your appointment has been confirmed. A confirmation has been sent by email.'=>'Ihr Termin wurde bestätigt. Eine Bestätigung wurde per E-Mail versendet.','Your appointment on %s at %s'=>'Ihr Termin am %s um %s.','Your appointment has been cancelled:'=>'Ihr Termin wurde storniert:','Your appointment has been confirmed:'=>'Ihr Termin wurde bestätigt:','Your current appointment is on %s at %s.'=>'Ihr aktueller Termin ist am %s um %s.','Your email address:'=>'Ihre E-Mail-Adresse:','Your name:'=>'Ihr Name:','%s
-
-%s: [title]
-%s: [date]
-%s: [time]
-%s: [location]
-
-%s: [confirmation_link]
-%s: [cancel_link]
-
-%s: [imprint_link]'=>'%s
-
-Termin: [title]
-Datum: [date]
-Zeit: [time]
-Ort: [location]
-
-Bestätigung: [confirmation_link]
-Stornieren: [cancel_link]
-
-Impressum: [imprint_link]','%s
-
-%s: [title]
-%s: [date]
-%s: [time]
-%s: [location]
-
-%s: [cancel_link]
-
-%s: [imprint_link]'=>'%s
-
-Termin: [title]
-Datum: [date]
-Zeit: [time]
-Ort: [location]
-
-Stornieren: [cancel_link]
-
-Impressum: [imprint_link]','%s
-
-%s: [title]
-%s: [date]
-%s: [time]
-%s: [location]
-%s: [name] ([email])
-%s: [message]
-
-%s: [cancel_link]
-
-%s: [imprint_link]'=>'%s
-
-Termin: [title]
-Datum: [date]
-Zeit: [time]
-Ort: [location]
-Gebucht von: [name] ([email])
-Nachricht: [message]
-
-Stornieren: [cancel_link]
-
-Impressum: [imprint_link]','%s
-
-%s: [title]
-%s: [date]
-%s: [time]
-%s: [location]
-%s: [name] ([email])
-
-%s: [cancel_link]
-
-%s: [imprint_link]'=>'%s
-
-Termin: [title]
-Datum: [date]
-Zeit: [time]
-Ort: [location]
-Gebucht von: [name] ([email])
-
-Stornieren: [cancel_link]
-
-Impressum: [imprint_link]','%s
-
-%s: [title]
-%s: [date]
-%s: [time]
-%s: [location]
-
-%s: [imprint_link]'=>'%s
-
-Termin: [title]
-Datum: [date]
-Zeit: [time]
-Ort: [location]
-
-Impressum: [imprint_link]']];
+Bitte buchen Sie den früheren Termin direkt auf der Website.','Host'=>'Einladende Person','HTML'=>'HTML','Imprint'=>'Impressum','Insert placeholder'=>'Platzhalter einfügen','Invalid appointment format.'=>'Ungültiges Termin-Format.','Inviting person'=>'Einladende Person','Legal Notice'=>'Impressum','Legal notice'=>'Impressum','Link to booking confirmation'=>'Link zur Buchungsbestätigung','Link to cancel'=>'Link zum Stornieren','Link to imprint'=>'Link zum Impressum','Location'=>'Ort','Logfile is empty.'=>'Logdatei ist leer.','Mail body'=>'Mailtext','Mail Templates'=>'Mail-Vorlagen','Message (optional):'=>'Nachricht (optional):','Network error. Please try again.'=>'Netzwerkfehler. Bitte erneut versuchen.','New booking received:'=>'Neue Buchung eingegangen:','New booking: [title] on [date]'=>'Neue Buchung: [title] am [date]','New Template'=>'Neue Vorlage','No appointment specified.'=>'Kein Termin angegeben.','No appointments found.'=>'Keine Termine gefunden.','No authenticated email address found.'=>'Keine authentifizierte E-Mail-Adresse gefunden.','Person'=>'Person','Plain text'=>'Plaintext','Please book the earlier slot directly on the website.'=>'Bitte buchen Sie den früheren Termin direkt auf der Website.','Please confirm your appointment by email.'=>'Bitte bestätigen Sie Ihren Termin per E-Mail.','Please confirm your appointment request:'=>'Bitte bestätigen Sie Ihren Terminwunsch:','Please provide an email address.'=>'Bitte eine E-Mail-Adresse angeben.','Privacy Policy'=>'Datenschutz','Really cancel this booking?'=>'Buchung wirklich stornieren?','Really delete this template?'=>'Vorlage wirklich löschen?','Reminder Email'=>'Erinnerungsmail','Reminder for the following appointment:'=>'Erinnerung an folgenden Termin:','Reminder for your appointment:'=>'Erinnerung an Ihren Termin:','Reminder to booking person'=>'Erinnerung an buchende Person','Reminder to host'=>'Erinnerung an einladende Person','Reminder: [title] on [date]'=>'Erinnerung: [title] am [date]','Reset'=>'Zurücksetzen','RRZE Appointment'=>'RRZE Appointment','Save template'=>'Vorlage speichern','Send Test Email'=>'Testmail senden','Settings issues detected.'=>'Probleme bei den Einstellungen festgestellt.','Settings saved.'=>'Einstellungen gespeichert.','Subject'=>'Betreff','Template deleted.'=>'Vorlage gelöscht.','Template saved as draft. Please fill in all fields (title, subject and body for all sections) to publish the template.'=>'Vorlage als Entwurf gespeichert. Bitte alle Felder ausfüllen (Titel, Betreff und Mailtext für alle Abschnitte), um die Vorlage zu veröffentlichen.','Template saved.'=>'Vorlage gespeichert.','Template title'=>'Titel der Vorlage','The template cannot be deleted because it is still in use: %s'=>'Die Vorlage kann nicht gelöscht werden, da sie noch verwendet wird in: %s','there'=>'dort','This appointment is no longer available.'=>'Dieser Termin ist nicht mehr verfügbar.','This cancellation link is invalid or has already been used.'=>'Dieser Storno-Link ist ungültig oder wurde bereits verwendet.','This confirmation link has expired or is invalid.'=>'Dieser Bestätigungslink ist abgelaufen oder ungültig.','Time'=>'Zeit','Time (from – to)'=>'Uhrzeit (von – bis)','Times on selected day'=>'Uhrzeiten am ausgewählten Tag','Tip: Activate the RRZE FAUdir plugin to conveniently import person data.'=>'Tipp: Aktivieren Sie das RRZE-FAUdir-Plugin, um Personendaten bequem zu importieren.','Title'=>'Titel','Title of the appointment'=>'Titel des Termins','To'=>'Bis','Unnamed tab'=>'Unbenannter Tab','Yes, I would like to be notified if an earlier appointment becomes available.'=>'Ja, ich möchte informiert werden, wenn ein früherer Termin frei wird.','You do not have enough permissions to do that.'=>'Sie haben nicht die Erlaubnis, dies zu tun.','Your appointment has been cancelled.'=>'Ihr Termin wurde storniert.','Your appointment has been cancelled:'=>'Ihr Termin wurde storniert:','Your appointment has been confirmed. A confirmation has been sent by email.'=>'Ihr Termin wurde bestätigt. Eine Bestätigung wurde per E-Mail versendet.','Your appointment has been confirmed:'=>'Ihr Termin wurde bestätigt:','Your appointment on %s at %s'=>'Ihr Termin am %s um %s','Your current appointment is on %s at %s.'=>'Ihr aktueller Termin ist am %s um %s.','Your email address:'=>'Ihre E-Mail-Adresse:','Your name:'=>'Ihr Name:']];
