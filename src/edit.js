@@ -500,10 +500,10 @@ export default function Edit({ attributes, setAttributes }) {
                         onChange={(value) => setAttributes({ location: value })}
                     />
                     <TextControl
-                        label={__('Map (URL)', 'rrze-appointment')}
+                        label={__('Map (URL)', 'rrze-appointment')} 
                         help={locationUrl && !/^https?:\/\//.test(locationUrl)
                             ? <span style={{ color: '#d63638' }}>{__('Please enter a valid URL (starting with https://).', 'rrze-appointment')}</span>
-                            : <a href="https://karte.fau.de" target="_blank" rel="noopener noreferrer">karte.fau.de</a>
+                            : <a href="https://karte.fau.de">🔗 karte.fau.de</a>
                         }
                         value={locationUrl}
                         onChange={(value) => setAttributes({ locationUrl: value })}
@@ -710,9 +710,9 @@ export default function Edit({ attributes, setAttributes }) {
                             <legend className="rrze-appointment__title">{derivedTitle || __('Appointment title', 'rrze-appointment')}</legend>
                             {description && <p>{description}</p>}
                             {location && <p><strong>{__('Location', 'rrze-appointment')}:</strong> {/^https?:\/\//.test(location) ? (
-                                <a href={location} target="_blank" rel="noopener noreferrer">{location}</a>
+                                <a href={location}>{location}</a>
                             ) : locationUrl ? (
-                                <a href={locationUrl} target="_blank" rel="noopener noreferrer">{location}</a>
+                                <a href={locationUrl}>{location}</a>
                             ) : location}</p>}
                         {slots.length > 0 ? (
                             <Fragment>
