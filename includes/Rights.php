@@ -41,10 +41,9 @@ class Rights
             if (class_exists('\RRZE\AccessControl\Permissions')) {
                 try {
                     $permissions = new \RRZE\AccessControl\Permissions();
-                    $auth = $permissions->simplesamlAuth();
-                    if ($auth && is_object($auth) && $auth->isAuthenticated()) {
-                        $attrs = (array) $auth->getAttributes();
-                        error_log('RRZE Appointment Rights::get attributes: ' . wp_json_encode($attrs));
+                    $checkSSOLoggedIn = $permissions->checkSSOLoggedIn();
+                    $attrs = is_array($permissions->personAttributes ?? null) ? $permissions->personAttributes : [];
+                    if ($checkSSOLoggedIn && !empty($attrs)) {
 
                         $idm = sanitize_text_field(self::firstAttribute($attrs, [
                             'uid',
