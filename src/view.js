@@ -315,7 +315,9 @@
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({})
+                        body: JSON.stringify({
+                            returnTo: window.location.href.split('#')[0]
+                        })
                     })
                         .then(async (r) => {
                             const text = await r.text();

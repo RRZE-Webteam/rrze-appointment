@@ -402,10 +402,11 @@ class Main
     public function handleGetBooker(WP_REST_Request $request): WP_REST_Response
     {
         try {
-            $redirectUrl = wp_get_referer() ?: home_url('/');
+            $requestReturnTo = (string) ($request->get_param('returnTo') ?? '');
+            $redirectUrl = wp_validate_redirect($requestReturnTo, wp_get_referer() ?: home_url('/'));
             $loginUrl = add_query_arg([
                 'rrze_appt_sso' => '1',
-                'rrze_appt_return' => rawurlencode($redirectUrl),
+                'rrze_appt_return' => $redirectUrl,
             ], home_url('/'));
 
             if (!class_exists('\RRZE\AccessControl\Permissions')) {
@@ -418,10 +419,22 @@ class Main
             }
 
             $permissions = new \RRZE\AccessControl\Permissions();
+            $auth = method_exists($permissions, 'simplesamlAuth') ? $permissions->simplesamlAuth() : null;
+            if (!is_object($auth) || !method_exists($auth, 'isAuthenticated')) {
+                return new WP_REST_Response([
+                    'needsLogin' => true,
+                    'loginUrl' => $loginUrl,
+                    'data' => [
+                        'idm' => null,
+                        'bookerEmail' => '',
+                        'bookerName' => '',
+                        'attributes' => []
+                    ]
+                ], 200);
+            }
 
-            $loggedIn = $permissions->checkSSOLoggedIn();
-            $attrs = $permissions->personAttributes ?? [];
-
+            $loggedIn = (bool) $auth->isAuthenticated();
+            $attrs = $loggedIn && method_exists($auth, 'getAttributes') ? (array) $auth->getAttributes() : [];
             $idm = $attrs['uid'][0] ?? null;
 
             if (!$loggedIn || !$idm) {
@@ -467,7 +480,7 @@ class Main
         }
 
         $returnToParam = isset($_GET['rrze_appt_return']) ? wp_unslash($_GET['rrze_appt_return']) : '';
-        $returnTo = $returnToParam ? rawurldecode((string) $returnToParam) : remove_query_arg(['rrze_appt_sso', 'rrze_appt_return']);
+        $returnTo = $returnToParam ?: remove_query_arg(['rrze_appt_sso', 'rrze_appt_return']);
         $returnTo = wp_validate_redirect($returnTo, home_url('/'));
 
         if (!class_exists('\RRZE\AccessControl\Permissions')) {
