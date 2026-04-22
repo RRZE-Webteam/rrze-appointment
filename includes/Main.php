@@ -51,7 +51,7 @@ class Main
         add_action('enqueue_block_editor_assets', [$this, 'enqueueAdminAssets']);
         add_action('wp_ajax_rrze_appointment_book', [$this, 'handleBooking']);
         add_action('wp_ajax_nopriv_rrze_appointment_book', [$this, 'handleBooking']);
-        add_action('wp_ajax_rrze_appointment_get_booker', [$this, 'handleGetBooker']);
+        // add_action('wp_ajax_rrze_appointment_get_booker', [$this, 'handleGetBooker']);
         add_action('wp_ajax_nopriv_rrze_appointment_get_booker', [$this, 'handleGetBooker']);
         add_action('template_redirect', [$this, 'handleConfirm']);
         add_action('template_redirect', [$this, 'handleCancel']);
