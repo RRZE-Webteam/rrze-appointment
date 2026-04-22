@@ -342,6 +342,18 @@
                                 return;
                             }
 
+                            if (res.needsLogin) {
+                                const loginUrl = (res.loginUrl || '').trim();
+                                if (!loginUrl) {
+                                    console.error('SSO login URL is missing.');
+                                    return;
+                                }
+                                sessionStorage.setItem('rrze_appt_slot', slot.value);
+                                sessionStorage.setItem('rrze_appt_page', window.location.href.split('#')[0]);
+                                window.location.href = loginUrl;
+                                return;
+                            }
+
                             const booker = res.data || {};
 
                             openOverlay(slot.value, booker, button);

@@ -401,15 +401,29 @@ class Main
     public function handleGetBooker(WP_REST_Request $request): WP_REST_Response
     {
         try {
+            $redirectUrl = wp_get_referer() ?: home_url('/');
+            $loginUrl = '';
+
             if (!class_exists('\RRZE\AccessControl\Permissions')) {
                 return new WP_REST_Response([
                     'needsLogin' => true,
+                    'loginUrl' => $loginUrl,
                     'data' => null,
                     'error' => 'AccessControl not available'
                 ], 200);
             }
 
             $permissions = new \RRZE\AccessControl\Permissions();
+            try {
+                if (method_exists($permissions, 'simplesamlAuth')) {
+                    $auth = $permissions->simplesamlAuth();
+                    if (is_object($auth) && method_exists($auth, 'getLoginURL')) {
+                        $loginUrl = (string) $auth->getLoginURL($redirectUrl);
+                    }
+                }
+            } catch (\Throwable $e) {
+                $loginUrl = '';
+            }
 
             $loggedIn = $permissions->checkSSOLoggedIn();
             $attrs = $permissions->personAttributes ?? [];
@@ -419,6 +433,7 @@ class Main
             if (!$loggedIn || !$idm) {
                 return new WP_REST_Response([
                     'needsLogin' => true,
+                    'loginUrl' => $loginUrl,
                     'data' => [
                         'idm' => null,
                         'bookerEmail' => '',
@@ -430,6 +445,7 @@ class Main
 
             return new WP_REST_Response([
                 'needsLogin' => false,
+                'loginUrl' => '',
                 'data' => [
                     'idm' => $idm,
                     'bookerEmail' => $attrs['mail'][0] ?? '',
@@ -443,6 +459,7 @@ class Main
         } catch (\Throwable $e) {
             return new WP_REST_Response([
                 'needsLogin' => true,
+                'loginUrl' => '',
                 'error' => $e->getMessage(),
                 'data' => null
             ], 200);
