@@ -39,31 +39,48 @@ class Rights
             //     return ['idm' => $idm, 'bookerName' => $name, 'bookerEmail' => $email];
             // }
 
-            // 2. Check SSO session passively (no requireAuth trigger)
+
             if (class_exists('\RRZE\AccessControl\Permissions')) {
                 try {
-                    $permissions = new \RRZE\AccessControl\Permissions();
-                    $auth = $permissions->simplesamlAuth();
-                    if ($auth && is_object($auth) && $auth->isAuthenticated()) {
-                        $attrs = $auth->getAttributes();
+                    $permissionsInstance = new Permissions();
+                    $checkSSOLoggedIn = $permissionsInstance->checkSSOLoggedIn();
+                    $personAttributes = $permissionsInstance->personAttributes;
 
-                        echo '<pre>';
-                        var_dump($attrs);
-                        exit;
-                        
-                        $idm   = sanitize_text_field($attrs['uid'][0]       ?? '');
-                        $first = sanitize_text_field($attrs['givenName'][0] ?? $attrs['gn'][0] ?? '');
-                        $last  = sanitize_text_field($attrs['sn'][0]        ?? '');
-                        $email = sanitize_email($attrs['mail'][0]            ?? '');
+                    echo '<pre>';
+                    var_dump($personAttributes);
+                    exit;
 
-                        if ($idm) {
-                            return ['idm' => $idm, 'bookerName' => trim("$first $last"), 'bookerEmail' => $email];
-                        }
-                    }
+                    // $this->idm = (!empty($personAttributes['uid'][0]) ? $personAttributes['uid'][0] : null);
                 } catch (\Exception $e) {
                     // SSO not available — fall through
                 }
             }
+
+            // 2. Check SSO session passively (no requireAuth trigger)
+            // if (class_exists('\RRZE\AccessControl\Permissions')) {
+            //     try {
+            //         $permissions = new \RRZE\AccessControl\Permissions();
+            //         $auth = $permissions->simplesamlAuth();
+            //         if ($auth && is_object($auth) && $auth->isAuthenticated()) {
+            //             $attrs = $auth->getAttributes();
+
+            //             echo '<pre>';
+            //             var_dump($attrs);
+            //             exit;
+
+            //             $idm   = sanitize_text_field($attrs['uid'][0]       ?? '');
+            //             $first = sanitize_text_field($attrs['givenName'][0] ?? $attrs['gn'][0] ?? '');
+            //             $last  = sanitize_text_field($attrs['sn'][0]        ?? '');
+            //             $email = sanitize_email($attrs['mail'][0]            ?? '');
+
+            //             if ($idm) {
+            //                 return ['idm' => $idm, 'bookerName' => trim("$first $last"), 'bookerEmail' => $email];
+            //             }
+            //         }
+            //     } catch (\Exception $e) {
+            //         // SSO not available — fall through
+            //     }
+            // }
 
             // 3. Not authenticated
             return ['idm' => '', 'bookerName' => '', 'bookerEmail' => ''];
