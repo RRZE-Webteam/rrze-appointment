@@ -399,10 +399,17 @@ class Main
     }
 
 
-    public function handleGetBooker(WP_REST_Request $request): WP_REST_Response
+    public function handleGetBooker($request = null)
     {
+        $isRestRequest = $request instanceof WP_REST_Request;
+
         try {
-            $requestReturnTo = (string) ($request->get_param('returnTo') ?? '');
+            $requestReturnTo = '';
+            if ($isRestRequest) {
+                $requestReturnTo = (string) ($request->get_param('returnTo') ?? '');
+            } elseif (isset($_POST['returnTo'])) {
+                $requestReturnTo = sanitize_text_field(wp_unslash($_POST['returnTo']));
+            }
             $redirectUrl = wp_validate_redirect($requestReturnTo, wp_get_referer() ?: home_url('/'));
             $loginUrl = add_query_arg([
                 'rrze_appt_sso' => '1',
@@ -410,12 +417,16 @@ class Main
             ], home_url('/'));
 
             if (!class_exists('\RRZE\AccessControl\Permissions')) {
-                return new WP_REST_Response([
+                $response = [
                     'needsLogin' => true,
                     'loginUrl' => $loginUrl,
                     'data' => null,
                     'error' => 'AccessControl not available'
-                ], 200);
+                ];
+                if ($isRestRequest) {
+                    return new WP_REST_Response($response, 200);
+                }
+                wp_send_json_error($response);
             }
 
             // Passive SSO check only: never trigger auth flow in this REST handler.
@@ -425,7 +436,7 @@ class Main
             $bookerName = $serverBooker['bookerName'] ?? '';
 
             if (!$idm) {
-                return new WP_REST_Response([
+                $response = [
                     'needsLogin' => true,
                     'loginUrl' => $loginUrl,
                     'data' => [
@@ -434,10 +445,14 @@ class Main
                         'bookerName' => '',
                         'attributes' => []
                     ]
-                ], 200);
+                ];
+                if ($isRestRequest) {
+                    return new WP_REST_Response($response, 200);
+                }
+                wp_send_json_error($response);
             }
 
-            return new WP_REST_Response([
+            $response = [
                 'needsLogin' => false,
                 'loginUrl' => '',
                 'data' => [
@@ -446,15 +461,23 @@ class Main
                     'bookerName' => $bookerName,
                     'attributes' => []
                 ]
-            ], 200);
+            ];
+            if ($isRestRequest) {
+                return new WP_REST_Response($response, 200);
+            }
+            wp_send_json_success($response['data']);
 
         } catch (\Throwable $e) {
-            return new WP_REST_Response([
+            $response = [
                 'needsLogin' => true,
                 'loginUrl' => '',
                 'error' => $e->getMessage(),
                 'data' => null
-            ], 200);
+            ];
+            if ($isRestRequest) {
+                return new WP_REST_Response($response, 200);
+            }
+            wp_send_json_error($response);
         }
     }
 
