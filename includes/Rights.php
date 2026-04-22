@@ -46,6 +46,11 @@ class Rights
                     $auth = $permissions->simplesamlAuth();
                     if ($auth && is_object($auth) && $auth->isAuthenticated()) {
                         $attrs = $auth->getAttributes();
+
+                        echo '<pre>';
+                        var_dump($attrs);
+                        exit;
+                        
                         $idm   = sanitize_text_field($attrs['uid'][0]       ?? '');
                         $first = sanitize_text_field($attrs['givenName'][0] ?? $attrs['gn'][0] ?? '');
                         $last  = sanitize_text_field($attrs['sn'][0]        ?? '');
