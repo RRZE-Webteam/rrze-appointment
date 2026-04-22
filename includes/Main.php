@@ -434,6 +434,7 @@ class Main
             $idm = $serverBooker['idm'] ?? null;
             $bookerEmail = $serverBooker['bookerEmail'] ?? '';
             $bookerName = $serverBooker['bookerName'] ?? '';
+            $bookerAttributes = is_array($serverBooker['attributes'] ?? null) ? $serverBooker['attributes'] : [];
 
             if (!$idm) {
                 $response = [
@@ -459,7 +460,7 @@ class Main
                     'idm' => $idm,
                     'bookerEmail' => $bookerEmail,
                     'bookerName' => $bookerName,
-                    'attributes' => []
+                    'attributes' => $bookerAttributes
                 ]
             ];
             if ($isRestRequest) {

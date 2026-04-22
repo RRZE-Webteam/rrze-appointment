@@ -44,12 +44,12 @@ class Rights
                     $auth = $permissions->simplesamlAuth();
                     if ($auth && is_object($auth) && $auth->isAuthenticated()) {
                         $attrs = (array) $auth->getAttributes();
+                        error_log('RRZE Appointment Rights::get attributes: ' . wp_json_encode($attrs));
 
                         $idm = sanitize_text_field(self::firstAttribute($attrs, [
                             'uid',
                             'idm',
                             'eduPersonPrincipalName',
-                            'urn:oid:0.9.2342.19200300.100.1.1',
                         ]));
 
                         $first = sanitize_text_field(self::firstAttribute($attrs, [
@@ -57,25 +57,26 @@ class Rights
                             'gn',
                             'displayName',
                             'cn',
-                            'urn:oid:2.5.4.42',
-                            'urn:oid:2.5.4.3',
                         ]));
 
                         $last = sanitize_text_field(self::firstAttribute($attrs, [
                             'sn',
                             'surname',
-                            'urn:oid:2.5.4.4',
                         ]));
 
                         $email = sanitize_email(self::firstAttribute($attrs, [
                             'mail',
                             'email',
                             'mailPrimaryAddress',
-                            'urn:oid:0.9.2342.19200300.100.1.3',
                         ]));
 
                         if ($idm) {
-                            return ['idm' => $idm, 'bookerName' => trim("$first $last"), 'bookerEmail' => $email];
+                            return [
+                                'idm' => $idm,
+                                'bookerName' => trim("$first $last"),
+                                'bookerEmail' => $email,
+                                'attributes' => $attrs,
+                            ];
                         }
                     }
                 } catch (\Exception $e) {
@@ -84,7 +85,7 @@ class Rights
             }
 
             // 3. Not authenticated
-            return ['idm' => '', 'bookerName' => '', 'bookerEmail' => ''];
+            return ['idm' => '', 'bookerName' => '', 'bookerEmail' => '', 'attributes' => []];
         } catch (\Exception $e) {
             throw new CustomException($e->getMessage(), $e->getCode(), null);
         }
