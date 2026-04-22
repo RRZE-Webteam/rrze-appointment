@@ -55,6 +55,7 @@ class Main
         add_action('wp_ajax_nopriv_rrze_appointment_book', [$this, 'handleBooking']);
         add_action('wp_ajax_rrze_appointment_get_booker', [$this, 'handleGetBooker']);
         add_action('wp_ajax_nopriv_rrze_appointment_get_booker', [$this, 'handleGetBooker']);
+        add_action('template_redirect', [$this, 'handleSsoLogin']);
         add_action('template_redirect', [$this, 'handleConfirm']);
         add_action('template_redirect', [$this, 'handleCancel']);
         add_action('rrze_appointment_expire_pending', ['RRZE\Appointment\TokenManager', 'expirePending']);
@@ -402,7 +403,7 @@ class Main
     {
         try {
             $redirectUrl = wp_get_referer() ?: home_url('/');
-            $loginUrl = '';
+            $loginUrl = add_query_arg('rrze_appt_sso', '1', $redirectUrl);
 
             if (!class_exists('\RRZE\AccessControl\Permissions')) {
                 return new WP_REST_Response([
@@ -414,16 +415,6 @@ class Main
             }
 
             $permissions = new \RRZE\AccessControl\Permissions();
-            try {
-                if (method_exists($permissions, 'simplesamlAuth')) {
-                    $auth = $permissions->simplesamlAuth();
-                    if (is_object($auth) && method_exists($auth, 'getLoginURL')) {
-                        $loginUrl = (string) $auth->getLoginURL($redirectUrl);
-                    }
-                }
-            } catch (\Throwable $e) {
-                $loginUrl = '';
-            }
 
             $loggedIn = $permissions->checkSSOLoggedIn();
             $attrs = $permissions->personAttributes ?? [];
@@ -463,6 +454,36 @@ class Main
                 'error' => $e->getMessage(),
                 'data' => null
             ], 200);
+        }
+    }
+
+    public function handleSsoLogin(): void
+    {
+        if (empty($_GET['rrze_appt_sso'])) {
+            return;
+        }
+
+        $returnTo = remove_query_arg('rrze_appt_sso');
+        if (!$returnTo) {
+            $returnTo = home_url('/');
+        }
+
+        if (!class_exists('\RRZE\AccessControl\Permissions')) {
+            wp_die(esc_html__('SSO is not available.', 'rrze-appointment'), '', ['response' => 500]);
+        }
+
+        try {
+            $permissions = new \RRZE\AccessControl\Permissions();
+            $auth = method_exists($permissions, 'simplesamlAuth') ? $permissions->simplesamlAuth() : null;
+            if (!is_object($auth) || !method_exists($auth, 'requireAuth')) {
+                wp_die(esc_html__('SSO is not available.', 'rrze-appointment'), '', ['response' => 500]);
+            }
+
+            $auth->requireAuth(['ReturnTo' => $returnTo]);
+            wp_safe_redirect($returnTo);
+            exit;
+        } catch (\Throwable $e) {
+            wp_die(esc_html__('SSO login failed.', 'rrze-appointment'), '', ['response' => 500]);
         }
     }
     private function icsEscape(string $value): string
