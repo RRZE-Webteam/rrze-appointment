@@ -68,7 +68,7 @@ class Main
      * @param string $context      KSES context; wp_kses_post() uses 'post'.
      * @return array               Modified allowed tags/attributes.
      */
-    function my_custom_allowed_html($allowed_tags, $context)
+    public function my_custom_allowed_html($allowed_tags, $context)
     {
         // Only alter the 'post' context used by wp_kses_post()
         if ($context !== 'post') {
@@ -383,47 +383,44 @@ class Main
     public function handleGetBooker(): void
     {
         try {
+            $booker = Rights::get();
 
- if (class_exists('\RRZE\AccessControl\Permissions')) {
-        $permissions = new \RRZE\AccessControl\Permissions();
-        $auth = $permissions->simplesamlAuth();
-        $currentUrl = sanitize_url($_SERVER['HTTP_REFERER'] ?? home_url('/'));
+            if (empty($booker['idm'])) {
+                wp_send_json_success([
+                    'needsLogin' => true,
+                    'loginUrl' => $this->getSsoLoginUrl()
+                ]);
+                return;
+            }
 
-        $auth->requireAuth([
-            'ReturnTo' => $currentUrl
-        ]);
-        exit;
-    }
-
-            // $booker = Rights::get();
-
-            // if (empty($booker['idm'])) {
-            //     $currentUrl = sanitize_url($_SERVER['HTTP_REFERER'] ?? home_url('/'));
-
-            //     if (class_exists('\RRZE\AccessControl\Permissions')) {
-            //         $permissions = new \RRZE\AccessControl\Permissions();
-            //         $auth = $permissions->simplesamlAuth();
-
-            //         $auth->requireAuth([
-            //             'ReturnTo' => $currentUrl
-            //         ]);
-            //         exit;
-            //     }
-
-            //     wp_send_json_error('SSO not available');
-            //     return;
-            // }
-
-            // wp_send_json_success(array_merge($booker, ['needsLogin' => false]));
+            wp_send_json_success([
+                'needsLogin' => false,
+                'data' => $booker
+            ]);
 
         } catch (\Throwable $e) {
             wp_send_json_error($e->getMessage());
         }
     }
-    
+
     private function icsEscape(string $value): string
     {
         return str_replace(['\\', ';', ',', "\n"], ['\\\\', '\;', '\,', '\n'], $value);
+    }
+
+
+    private function getSsoLoginUrl(): string
+    {
+        if (!class_exists('\RRZE\AccessControl\Permissions')) {
+            return wp_login_url();
+        }
+
+        $permissions = new \RRZE\AccessControl\Permissions();
+        $auth = $permissions->simplesamlAuth();
+
+        return $auth->getLoginURL(
+            home_url($_SERVER['REQUEST_URI'] ?? '/')
+        );
     }
 
     public function handleBooking(): void
