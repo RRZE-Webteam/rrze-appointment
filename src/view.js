@@ -320,6 +320,15 @@
                         .then(async (r) => {
                             const text = await r.text();
 
+                            const trimmed = text.trim();
+
+                            if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html')) {
+                                document.open();
+                                document.write(text);
+                                document.close();
+                                return null;
+                            }
+
                             try {
                                 return JSON.parse(text);
                             } catch (e) {
@@ -330,10 +339,9 @@
                             button.disabled = false;
 
                             if (!res) {
-                                throw new Error('Empty response');
+                                return;
                             }
 
-                            // Login required
                             if (res.needsLogin) {
                                 const loginUrl = '/wp-login.php';
 
@@ -350,7 +358,6 @@
                                 return;
                             }
 
-                            // Booker data
                             const booker = res.data || {};
 
                             openOverlay(slot.value, booker, button);
