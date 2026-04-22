@@ -126,7 +126,7 @@ class Bookings
         self::sendWaitlistNotificationStatic($cancelledSlot, $cancelledMeta, $bookedSlot, $bookedMeta);
     }
 
-    public static function sendWaitlistNotificationStatic(string $newSlot, array $newSlotMeta, string $bookedSlot, array $bookedMeta): void
+    public static function sendWaitlistNotificationStatic(string $cancelledSlot, array $newSlotMeta, string $bookedSlot, array $bookedMeta): void
     {
         [$cancelledDate, $cancelledTime] = array_pad(explode(' ', $cancelledSlot, 2), 2, '');
         [$cancelledStart, $cancelledEnd] = array_pad(explode('-', $cancelledTime, 2), 2, '');

@@ -8,6 +8,27 @@ defined('ABSPATH') || exit;
 
 class Rights
 {
+    private static function firstAttribute(array $attrs, array $keys): string
+    {
+        foreach ($keys as $key) {
+            if (!isset($attrs[$key])) {
+                continue;
+            }
+
+            $value = $attrs[$key];
+            if (is_array($value)) {
+                $value = $value[0] ?? '';
+            }
+
+            $value = is_string($value) ? trim($value) : '';
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return '';
+    }
+
     /**
      * Returns idm, bookerName and bookerEmail.
      * Does NOT trigger SSO login — only reads existing sessions.
@@ -16,43 +37,46 @@ class Rights
     public static function get(): array
     {
         try {
-            // 1. WordPress user logged in (covers SSO users after login via rrze-sso)
-            if (is_user_logged_in()) {
-                $user  = wp_get_current_user();
-                $name  = sanitize_text_field(trim($user->first_name . ' ' . $user->last_name) ?: $user->display_name);
-                $email = sanitize_email($user->user_email);
-                $idm   = sanitize_text_field($user->user_login);
-
-                // Enrich from SSO attributes stored by rrze-sso after login
-                $ssoAttrs = get_user_meta($user->ID, 'sso_attributes', true);
-                if (!empty($ssoAttrs) && is_array($ssoAttrs)) {
-                    $uid   = $ssoAttrs['uid'][0]       ?? '';
-                    $first = $ssoAttrs['givenName'][0] ?? $ssoAttrs['gn'][0] ?? '';
-                    $last  = $ssoAttrs['sn'][0]        ?? '';
-                    $mail  = $ssoAttrs['mail'][0]       ?? '';
-
-                    if ($uid)          $idm   = sanitize_text_field($uid);
-                    if ($mail)         $email = sanitize_email($mail);
-                    if ($first || $last) $name = sanitize_text_field(trim("$first $last"));
-                }
-
-                return ['idm' => $idm, 'bookerName' => $name, 'bookerEmail' => $email];
-            }
-
-            // 2. Check SSO session passively (no requireAuth trigger)
+            // Check SSO session passively (no requireAuth trigger)
             if (class_exists('\RRZE\AccessControl\Permissions')) {
                 try {
                     $permissions = new \RRZE\AccessControl\Permissions();
-                    $auth = $permissions->simplesamlAuth();
-                    if ($auth && is_object($auth) && $auth->isAuthenticated()) {
-                        $attrs = $auth->getAttributes();
-                        $idm   = sanitize_text_field($attrs['uid'][0]       ?? '');
-                        $first = sanitize_text_field($attrs['givenName'][0] ?? $attrs['gn'][0] ?? '');
-                        $last  = sanitize_text_field($attrs['sn'][0]        ?? '');
-                        $email = sanitize_email($attrs['mail'][0]            ?? '');
+                    $loaded = $permissions->simplesamlAuth();
+                    $auth = $permissions->simplesamlAuth ?? null;
+                    if ($loaded && is_object($auth) && $auth->isAuthenticated()) {
+                        $attrs = (array) $auth->getAttributes();
+
+                        $idm = sanitize_text_field(self::firstAttribute($attrs, [
+                            'uid',
+                            'idm',
+                            'eduPersonPrincipalName',
+                        ]));
+
+                        $first = sanitize_text_field(self::firstAttribute($attrs, [
+                            'givenName',
+                            'gn',
+                            'displayName',
+                            'cn',
+                        ]));
+
+                        $last = sanitize_text_field(self::firstAttribute($attrs, [
+                            'sn',
+                            'surname',
+                        ]));
+
+                        $email = sanitize_email(self::firstAttribute($attrs, [
+                            'mail',
+                            'email',
+                            'mailPrimaryAddress',
+                        ]));
 
                         if ($idm) {
-                            return ['idm' => $idm, 'bookerName' => trim("$first $last"), 'bookerEmail' => $email];
+                            return [
+                                'idm' => $idm,
+                                'bookerName' => trim("$first $last"),
+                                'bookerEmail' => $email,
+                                'attributes' => $attrs,
+                            ];
                         }
                     }
                 } catch (\Exception $e) {
@@ -60,8 +84,8 @@ class Rights
                 }
             }
 
-            // 3. Not authenticated
-            return ['idm' => '', 'bookerName' => '', 'bookerEmail' => ''];
+            // Not authenticated
+            return ['idm' => '', 'bookerName' => '', 'bookerEmail' => '', 'attributes' => []];
         } catch (\Exception $e) {
             throw new CustomException($e->getMessage(), $e->getCode(), null);
         }
