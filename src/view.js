@@ -342,22 +342,6 @@
                                 return;
                             }
 
-                            if (res.needsLogin) {
-                                const loginUrl = '/wp-login.php';
-
-                                sessionStorage.setItem('rrze_appt_slot', slot.value);
-                                sessionStorage.setItem('rrze_appt_page', window.location.href.split('#')[0]);
-
-                                const redirectTo = encodeURIComponent(window.location.href.split('#')[0]);
-
-                                window.location.href =
-                                    loginUrl.includes('redirect_to')
-                                        ? loginUrl
-                                        : loginUrl + (loginUrl.includes('?') ? '&' : '?') + 'redirect_to=' + redirectTo;
-
-                                return;
-                            }
-
                             const booker = res.data || {};
 
                             openOverlay(slot.value, booker, button);
