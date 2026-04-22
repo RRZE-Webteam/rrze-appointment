@@ -37,7 +37,7 @@ class Rights
     public static function get(): array
     {
         try {
-            // 2. Check SSO session passively (no requireAuth trigger)
+            // Check SSO session passively (no requireAuth trigger)
             if (class_exists('\RRZE\AccessControl\Permissions')) {
                 try {
                     $permissions = new \RRZE\AccessControl\Permissions();
@@ -84,7 +84,7 @@ class Rights
                 }
             }
 
-            // 3. Not authenticated
+            // Not authenticated
             return ['idm' => '', 'bookerName' => '', 'bookerEmail' => '', 'attributes' => []];
         } catch (\Exception $e) {
             throw new CustomException($e->getMessage(), $e->getCode(), null);

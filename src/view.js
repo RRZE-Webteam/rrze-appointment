@@ -357,7 +357,7 @@
                             }
 
                             const booker = res.data || {};
-                            console.log('RRZE Appointment attributes from Rights::get()', booker.attributes || {});
+                            // console.log('RRZE Appointment attributes from Rights::get()', booker.attributes || {});
 
                             openOverlay(slot.value, booker, button);
                             renderDaySlots(activeDate);
@@ -549,7 +549,7 @@
                     .then((r) => r.json())
                     .then((res) => {
                         const booker = res.success ? (res.data || {}) : {};
-                        console.log('RRZE Appointment attributes from Rights::get()', booker.attributes || {});
+                        // console.log('RRZE Appointment attributes from Rights::get()', booker.attributes || {});
                         openOverlay(autoSlot, booker);
                     })
                     .catch(() => openOverlay(autoSlot, {}));
