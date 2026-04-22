@@ -475,7 +475,24 @@ class Main
         try {
             $permissions = new \RRZE\AccessControl\Permissions();
             $auth = method_exists($permissions, 'simplesamlAuth') ? $permissions->simplesamlAuth() : null;
-            if (!is_object($auth) || !method_exists($auth, 'requireAuth')) {
+            if (!is_object($auth)) {
+                wp_die(esc_html__('SSO is not available.', 'rrze-appointment'), '', ['response' => 500]);
+            }
+
+            if (method_exists($auth, 'isAuthenticated') && $auth->isAuthenticated()) {
+                wp_safe_redirect($returnTo);
+                exit;
+            }
+
+            if (method_exists($auth, 'getLoginURL')) {
+                $loginUrl = (string) $auth->getLoginURL($returnTo);
+                if ($loginUrl !== '') {
+                    wp_redirect($loginUrl);
+                    exit;
+                }
+            }
+
+            if (!method_exists($auth, 'requireAuth')) {
                 wp_die(esc_html__('SSO is not available.', 'rrze-appointment'), '', ['response' => 500]);
             }
 
