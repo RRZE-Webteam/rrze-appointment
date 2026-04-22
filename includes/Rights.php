@@ -17,27 +17,27 @@ class Rights
     {
         try {
             // 1. WordPress user logged in (covers SSO users after login via rrze-sso)
-            if (is_user_logged_in()) {
-                $user  = wp_get_current_user();
-                $name  = sanitize_text_field(trim($user->first_name . ' ' . $user->last_name) ?: $user->display_name);
-                $email = sanitize_email($user->user_email);
-                $idm   = sanitize_text_field($user->user_login);
+            // if (is_user_logged_in()) {
+            //     $user  = wp_get_current_user();
+            //     $name  = sanitize_text_field(trim($user->first_name . ' ' . $user->last_name) ?: $user->display_name);
+            //     $email = sanitize_email($user->user_email);
+            //     $idm   = sanitize_text_field($user->user_login);
 
-                // Enrich from SSO attributes stored by rrze-sso after login
-                $ssoAttrs = get_user_meta($user->ID, 'sso_attributes', true);
-                if (!empty($ssoAttrs) && is_array($ssoAttrs)) {
-                    $uid   = $ssoAttrs['uid'][0]       ?? '';
-                    $first = $ssoAttrs['givenName'][0] ?? $ssoAttrs['gn'][0] ?? '';
-                    $last  = $ssoAttrs['sn'][0]        ?? '';
-                    $mail  = $ssoAttrs['mail'][0]       ?? '';
+            //     // Enrich from SSO attributes stored by rrze-sso after login
+            //     $ssoAttrs = get_user_meta($user->ID, 'sso_attributes', true);
+            //     if (!empty($ssoAttrs) && is_array($ssoAttrs)) {
+            //         $uid   = $ssoAttrs['uid'][0]       ?? '';
+            //         $first = $ssoAttrs['givenName'][0] ?? $ssoAttrs['gn'][0] ?? '';
+            //         $last  = $ssoAttrs['sn'][0]        ?? '';
+            //         $mail  = $ssoAttrs['mail'][0]       ?? '';
 
-                    if ($uid)          $idm   = sanitize_text_field($uid);
-                    if ($mail)         $email = sanitize_email($mail);
-                    if ($first || $last) $name = sanitize_text_field(trim("$first $last"));
-                }
+            //         if ($uid)          $idm   = sanitize_text_field($uid);
+            //         if ($mail)         $email = sanitize_email($mail);
+            //         if ($first || $last) $name = sanitize_text_field(trim("$first $last"));
+            //     }
 
-                return ['idm' => $idm, 'bookerName' => $name, 'bookerEmail' => $email];
-            }
+            //     return ['idm' => $idm, 'bookerName' => $name, 'bookerEmail' => $email];
+            // }
 
             // 2. Check SSO session passively (no requireAuth trigger)
             if (class_exists('\RRZE\AccessControl\Permissions')) {
