@@ -383,26 +383,38 @@ class Main
     public function handleGetBooker(): void
     {
         try {
-            $booker = Rights::get();
 
-            if (empty($booker['idm'])) {
-                $currentUrl = sanitize_url($_SERVER['HTTP_REFERER'] ?? home_url('/'));
+ if (class_exists('\RRZE\AccessControl\Permissions')) {
+        $permissions = new \RRZE\AccessControl\Permissions();
+        $auth = $permissions->simplesamlAuth();
+        $currentUrl = sanitize_url($_SERVER['HTTP_REFERER'] ?? home_url('/'));
 
-                if (class_exists('\RRZE\AccessControl\Permissions')) {
-                    $permissions = new \RRZE\AccessControl\Permissions();
-                    $auth = $permissions->simplesamlAuth();
+        $auth->requireAuth([
+            'ReturnTo' => $currentUrl
+        ]);
+        exit;
+    }
 
-                    $auth->requireAuth([
-                        'ReturnTo' => $currentUrl
-                    ]);
-                    exit;
-                }
+            // $booker = Rights::get();
 
-                wp_send_json_error('SSO not available');
-                return;
-            }
+            // if (empty($booker['idm'])) {
+            //     $currentUrl = sanitize_url($_SERVER['HTTP_REFERER'] ?? home_url('/'));
 
-            wp_send_json_success(array_merge($booker, ['needsLogin' => false]));
+            //     if (class_exists('\RRZE\AccessControl\Permissions')) {
+            //         $permissions = new \RRZE\AccessControl\Permissions();
+            //         $auth = $permissions->simplesamlAuth();
+
+            //         $auth->requireAuth([
+            //             'ReturnTo' => $currentUrl
+            //         ]);
+            //         exit;
+            //     }
+
+            //     wp_send_json_error('SSO not available');
+            //     return;
+            // }
+
+            // wp_send_json_success(array_merge($booker, ['needsLogin' => false]));
 
         } catch (\Throwable $e) {
             wp_send_json_error($e->getMessage());
