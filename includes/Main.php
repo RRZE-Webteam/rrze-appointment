@@ -418,12 +418,13 @@ class Main
                 ], 200);
             }
 
-            $permissions = new \RRZE\AccessControl\Permissions();
-            $loggedIn = method_exists($permissions, 'checkSSOLoggedIn') ? (bool) $permissions->checkSSOLoggedIn() : false;
-            $attrs = $permissions->personAttributes ?? [];
-            $idm = $attrs['uid'][0] ?? null;
+            // Passive SSO check only: never trigger auth flow in this REST handler.
+            $serverBooker = Rights::get();
+            $idm = $serverBooker['idm'] ?? null;
+            $bookerEmail = $serverBooker['bookerEmail'] ?? '';
+            $bookerName = $serverBooker['bookerName'] ?? '';
 
-            if (!$loggedIn || !$idm) {
+            if (!$idm) {
                 return new WP_REST_Response([
                     'needsLogin' => true,
                     'loginUrl' => $loginUrl,
@@ -441,11 +442,9 @@ class Main
                 'loginUrl' => '',
                 'data' => [
                     'idm' => $idm,
-                    'bookerEmail' => $attrs['mail'][0] ?? '',
-                    'bookerName' => trim(
-                        ($attrs['givenName'][0] ?? '') . ' ' . ($attrs['sn'][0] ?? '')
-                    ),
-                    'attributes' => $attrs
+                    'bookerEmail' => $bookerEmail,
+                    'bookerName' => $bookerName,
+                    'attributes' => []
                 ]
             ], 200);
 
