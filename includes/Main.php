@@ -419,22 +419,8 @@ class Main
             }
 
             $permissions = new \RRZE\AccessControl\Permissions();
-            $auth = method_exists($permissions, 'simplesamlAuth') ? $permissions->simplesamlAuth() : null;
-            if (!is_object($auth) || !method_exists($auth, 'isAuthenticated')) {
-                return new WP_REST_Response([
-                    'needsLogin' => true,
-                    'loginUrl' => $loginUrl,
-                    'data' => [
-                        'idm' => null,
-                        'bookerEmail' => '',
-                        'bookerName' => '',
-                        'attributes' => []
-                    ]
-                ], 200);
-            }
-
-            $loggedIn = (bool) $auth->isAuthenticated();
-            $attrs = $loggedIn && method_exists($auth, 'getAttributes') ? (array) $auth->getAttributes() : [];
+            $loggedIn = method_exists($permissions, 'checkSSOLoggedIn') ? (bool) $permissions->checkSSOLoggedIn() : false;
+            $attrs = $permissions->personAttributes ?? [];
             $idm = $attrs['uid'][0] ?? null;
 
             if (!$loggedIn || !$idm) {
@@ -489,26 +475,45 @@ class Main
 
         try {
             $permissions = new \RRZE\AccessControl\Permissions();
-            $auth = method_exists($permissions, 'simplesamlAuth') ? $permissions->simplesamlAuth() : null;
-            if (!is_object($auth)) {
-                wp_die(esc_html__('SSO is not available.', 'rrze-appointment'), '', ['response' => 500]);
+            $loggedIn = false;
+            if (method_exists($permissions, 'checkSSOLoggedIn')) {
+                try {
+                    $loggedIn = (bool) $permissions->checkSSOLoggedIn();
+                } catch (\Throwable $e) {
+                    $loggedIn = false;
+                }
             }
 
-            if (method_exists($auth, 'isAuthenticated') && $auth->isAuthenticated()) {
+            if ($loggedIn) {
                 wp_safe_redirect($returnTo);
                 exit;
             }
 
-            if (!method_exists($auth, 'requireAuth')) {
-                wp_die(esc_html__('SSO is not available.', 'rrze-appointment'), '', ['response' => 500]);
+            $auth = method_exists($permissions, 'simplesamlAuth') ? $permissions->simplesamlAuth() : null;
+            if (is_object($auth)) {
+                if (method_exists($auth, 'isAuthenticated') && $auth->isAuthenticated()) {
+                    wp_safe_redirect($returnTo);
+                    exit;
+                }
+
+                if (method_exists($auth, 'requireAuth')) {
+                    $auth->requireAuth([
+                        'ReturnTo' => $returnTo,
+                        'KeepPost' => false,
+                    ]);
+                    wp_safe_redirect($returnTo);
+                    exit;
+                }
             }
 
-            $auth->requireAuth([
-                'ReturnTo' => $returnTo,
-                'KeepPost' => false,
-            ]);
-            wp_safe_redirect($returnTo);
-            exit;
+            // Last fallback: try the plugin-level check once again in case it performs redirects internally.
+            if (method_exists($permissions, 'checkSSOLoggedIn')) {
+                $permissions->checkSSOLoggedIn();
+                wp_safe_redirect($returnTo);
+                exit;
+            }
+
+            wp_die(esc_html__('SSO is not available.', 'rrze-appointment'), '', ['response' => 500]);
         } catch (\Throwable $e) {
             wp_die(esc_html__('SSO login failed.', 'rrze-appointment'), '', ['response' => 500]);
         }
