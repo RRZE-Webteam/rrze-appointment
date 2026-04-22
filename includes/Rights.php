@@ -8,6 +8,27 @@ defined('ABSPATH') || exit;
 
 class Rights
 {
+    private static function firstAttribute(array $attrs, array $keys): string
+    {
+        foreach ($keys as $key) {
+            if (!isset($attrs[$key])) {
+                continue;
+            }
+
+            $value = $attrs[$key];
+            if (is_array($value)) {
+                $value = $value[0] ?? '';
+            }
+
+            $value = is_string($value) ? trim($value) : '';
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return '';
+    }
+
     /**
      * Returns idm, bookerName and bookerEmail.
      * Does NOT trigger SSO login — only reads existing sessions.
@@ -22,12 +43,36 @@ class Rights
                     $permissions = new \RRZE\AccessControl\Permissions();
                     $auth = $permissions->simplesamlAuth();
                     if ($auth && is_object($auth) && $auth->isAuthenticated()) {
-                        $attrs = $auth->getAttributes();
+                        $attrs = (array) $auth->getAttributes();
 
-                        $idm   = sanitize_text_field($attrs['uid'][0]       ?? '');
-                        $first = sanitize_text_field($attrs['givenName'][0] ?? $attrs['gn'][0] ?? '');
-                        $last  = sanitize_text_field($attrs['sn'][0]        ?? '');
-                        $email = sanitize_email($attrs['mail'][0]            ?? '');
+                        $idm = sanitize_text_field(self::firstAttribute($attrs, [
+                            'uid',
+                            'idm',
+                            'eduPersonPrincipalName',
+                            'urn:oid:0.9.2342.19200300.100.1.1',
+                        ]));
+
+                        $first = sanitize_text_field(self::firstAttribute($attrs, [
+                            'givenName',
+                            'gn',
+                            'displayName',
+                            'cn',
+                            'urn:oid:2.5.4.42',
+                            'urn:oid:2.5.4.3',
+                        ]));
+
+                        $last = sanitize_text_field(self::firstAttribute($attrs, [
+                            'sn',
+                            'surname',
+                            'urn:oid:2.5.4.4',
+                        ]));
+
+                        $email = sanitize_email(self::firstAttribute($attrs, [
+                            'mail',
+                            'email',
+                            'mailPrimaryAddress',
+                            'urn:oid:0.9.2342.19200300.100.1.3',
+                        ]));
 
                         if ($idm) {
                             return ['idm' => $idm, 'bookerName' => trim("$first $last"), 'bookerEmail' => $email];
