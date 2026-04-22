@@ -380,48 +380,45 @@ class Main
         wp_send_json($this->getFAUdirPersons());
     }
 
+
     public function handleGetBooker(): void
     {
         try {
-            $booker = Rights::get();
-
-            if (empty($booker['idm'])) {
+            if (!class_exists('\RRZE\AccessControl\Permissions')) {
                 wp_send_json_success([
                     'needsLogin' => true,
-                    'loginUrl' => $this->getSsoLoginUrl()
+                    'idm' => null,
                 ]);
                 return;
             }
 
+            $permissions = new \RRZE\AccessControl\Permissions();
+
+            $loggedIn = $permissions->checkSSOLoggedIn();
+            $attrs = $permissions->personAttributes ?? [];
+
+            $idm = $attrs['uid'][0] ?? null;
+
             wp_send_json_success([
-                'needsLogin' => false,
-                'data' => $booker
+                'needsLogin' => !$loggedIn || !$idm,
+                'data' => [
+                    'idm' => $idm,
+                    'attributes' => $attrs
+                ]
             ]);
 
         } catch (\Throwable $e) {
-            wp_send_json_error($e->getMessage());
+            wp_send_json_success([
+                'needsLogin' => true,
+                'error' => $e->getMessage()
+            ]);
         }
     }
-
     private function icsEscape(string $value): string
     {
         return str_replace(['\\', ';', ',', "\n"], ['\\\\', '\;', '\,', '\n'], $value);
     }
 
-
-    private function getSsoLoginUrl(): string
-    {
-        if (!class_exists('\RRZE\AccessControl\Permissions')) {
-            return wp_login_url();
-        }
-
-        $permissions = new \RRZE\AccessControl\Permissions();
-        $auth = $permissions->simplesamlAuth();
-
-        return $auth->getLoginURL(
-            home_url($_SERVER['REQUEST_URI'] ?? '/')
-        );
-    }
 
     public function handleBooking(): void
     {
