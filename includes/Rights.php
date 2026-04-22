@@ -41,9 +41,10 @@ class Rights
             if (class_exists('\RRZE\AccessControl\Permissions')) {
                 try {
                     $permissions = new \RRZE\AccessControl\Permissions();
-                    $checkSSOLoggedIn = $permissions->checkSSOLoggedIn();
-                    $attrs = is_array($permissions->personAttributes ?? null) ? $permissions->personAttributes : [];
-                    if ($checkSSOLoggedIn && !empty($attrs)) {
+                    $loaded = $permissions->simplesamlAuth();
+                    $auth = $permissions->simplesamlAuth ?? null;
+                    if ($loaded && is_object($auth) && $auth->isAuthenticated()) {
+                        $attrs = (array) $auth->getAttributes();
 
                         $idm = sanitize_text_field(self::firstAttribute($attrs, [
                             'uid',
