@@ -403,7 +403,10 @@ class Main
     {
         try {
             $redirectUrl = wp_get_referer() ?: home_url('/');
-            $loginUrl = add_query_arg('rrze_appt_sso', '1', $redirectUrl);
+            $loginUrl = add_query_arg([
+                'rrze_appt_sso' => '1',
+                'rrze_appt_return' => rawurlencode($redirectUrl),
+            ], home_url('/'));
 
             if (!class_exists('\RRZE\AccessControl\Permissions')) {
                 return new WP_REST_Response([
@@ -463,10 +466,9 @@ class Main
             return;
         }
 
-        $returnTo = remove_query_arg('rrze_appt_sso');
-        if (!$returnTo) {
-            $returnTo = home_url('/');
-        }
+        $returnToParam = isset($_GET['rrze_appt_return']) ? wp_unslash($_GET['rrze_appt_return']) : '';
+        $returnTo = $returnToParam ? rawurldecode((string) $returnToParam) : remove_query_arg(['rrze_appt_sso', 'rrze_appt_return']);
+        $returnTo = wp_validate_redirect($returnTo, home_url('/'));
 
         if (!class_exists('\RRZE\AccessControl\Permissions')) {
             wp_die(esc_html__('SSO is not available.', 'rrze-appointment'), '', ['response' => 500]);
@@ -484,19 +486,14 @@ class Main
                 exit;
             }
 
-            if (method_exists($auth, 'getLoginURL')) {
-                $loginUrl = (string) $auth->getLoginURL($returnTo);
-                if ($loginUrl !== '') {
-                    wp_redirect($loginUrl);
-                    exit;
-                }
-            }
-
             if (!method_exists($auth, 'requireAuth')) {
                 wp_die(esc_html__('SSO is not available.', 'rrze-appointment'), '', ['response' => 500]);
             }
 
-            $auth->requireAuth(['ReturnTo' => $returnTo]);
+            $auth->requireAuth([
+                'ReturnTo' => $returnTo,
+                'KeepPost' => false,
+            ]);
             wp_safe_redirect($returnTo);
             exit;
         } catch (\Throwable $e) {
