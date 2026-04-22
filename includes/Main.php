@@ -4,6 +4,8 @@ namespace RRZE\Appointment;
 
 // use function RRZE\Appointment\plugin;
 
+use WP_REST_Request;
+use WP_REST_Response;
 use RRZE\Appointment\Rights;
 use RRZE\Appointment\Defaults;
 use RRZE\Appointment\Settings;
@@ -51,15 +53,29 @@ class Main
         add_action('enqueue_block_editor_assets', [$this, 'enqueueAdminAssets']);
         add_action('wp_ajax_rrze_appointment_book', [$this, 'handleBooking']);
         add_action('wp_ajax_nopriv_rrze_appointment_book', [$this, 'handleBooking']);
-        // add_action('wp_ajax_rrze_appointment_get_booker', [$this, 'handleGetBooker']);
+        add_action('wp_ajax_rrze_appointment_get_booker', [$this, 'handleGetBooker']);
         add_action('wp_ajax_nopriv_rrze_appointment_get_booker', [$this, 'handleGetBooker']);
         add_action('template_redirect', [$this, 'handleConfirm']);
         add_action('template_redirect', [$this, 'handleCancel']);
         add_action('rrze_appointment_expire_pending', ['RRZE\Appointment\TokenManager', 'expirePending']);
         add_action('save_post', [$this, 'handleSavePost'], 10, 2);
+        add_action('rest_api_init', [$this, 'registerRestRoutes']);
     }
 
 
+    public function registerRestRoutes()
+    {
+        register_rest_route('rrze/v2/appointment', '/booker', [
+            'methods' => 'POST',
+            'callback' => [$this, 'handleGetBooker'],
+            'permission_callback' => [$this, 'allowBookerRequest'],
+        ]);
+    }
+
+    public function allowBookerRequest($request)
+    {
+        return true;
+    }
 
     /**
      * Allow needed HTML on post content sanitized by wp_kses_post().
@@ -337,6 +353,7 @@ class Main
                 $pending = TokenManager::getPendingSlots();
                 wp_localize_script($viewHandle, 'rrze_appointment', [
                     'ajaxUrl' => admin_url('admin-ajax.php'),
+                    'restUrl' => rest_url('rrze/v2/appointment/booker'),                    
                     'nonce' => wp_create_nonce('rrze_appointment_book'),
                     'bookedSlots' => array_values(array_unique(array_merge($booked, $pending))),
                     'i18n' => [
@@ -381,15 +398,15 @@ class Main
     }
 
 
-    public function handleGetBooker(): void
+    public function handleGetBooker(WP_REST_Request $request): WP_REST_Response
     {
         try {
             if (!class_exists('\RRZE\AccessControl\Permissions')) {
-                wp_send_json_success([
+                return new WP_REST_Response([
                     'needsLogin' => true,
-                    'idm' => null,
-                ]);
-                return;
+                    'data' => null,
+                    'error' => 'AccessControl not available'
+                ], 200);
             }
 
             $permissions = new \RRZE\AccessControl\Permissions();
@@ -399,19 +416,36 @@ class Main
 
             $idm = $attrs['uid'][0] ?? null;
 
-            wp_send_json_success([
-                'needsLogin' => !$loggedIn || !$idm,
+            if (!$loggedIn || !$idm) {
+                return new WP_REST_Response([
+                    'needsLogin' => true,
+                    'data' => [
+                        'idm' => null,
+                        'bookerEmail' => '',
+                        'bookerName' => '',
+                        'attributes' => []
+                    ]
+                ], 200);
+            }
+
+            return new WP_REST_Response([
+                'needsLogin' => false,
                 'data' => [
                     'idm' => $idm,
+                    'bookerEmail' => $attrs['mail'][0] ?? '',
+                    'bookerName' => trim(
+                        ($attrs['givenName'][0] ?? '') . ' ' . ($attrs['sn'][0] ?? '')
+                    ),
                     'attributes' => $attrs
                 ]
-            ]);
+            ], 200);
 
         } catch (\Throwable $e) {
-            wp_send_json_success([
+            return new WP_REST_Response([
                 'needsLogin' => true,
-                'error' => $e->getMessage()
-            ]);
+                'error' => $e->getMessage(),
+                'data' => null
+            ], 200);
         }
     }
     private function icsEscape(string $value): string
