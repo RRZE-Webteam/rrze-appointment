@@ -449,6 +449,7 @@
                     if (dateGroup) {
                         const hasSlots = slots.length > 0;
                         dateGroup.classList.toggle('is-hidden', !hasSlots);
+                        dateGroup.hidden = !hasSlots;
                         if (hasSlots) {
                             hasVisibleGroups = true;
                         }
@@ -456,6 +457,7 @@
                 });
 
                 groupedFieldset.classList.toggle('is-hidden', !hasVisibleGroups);
+                groupedFieldset.hidden = !hasVisibleGroups;
             }
 
             function renderCalendar() {
