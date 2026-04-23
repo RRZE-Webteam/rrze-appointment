@@ -556,6 +556,7 @@ class Main
             $title = sanitize_text_field($_POST['title'] ?? __('Appointment', 'rrze-appointment'));
             $location = sanitize_text_field($_POST['location'] ?? '');
             $personId = (int) ($_POST['person_id'] ?? 0);
+            $personEmail = sanitize_email($_POST['person_email'] ?? '');
             $bookerName = sanitize_text_field($_POST['booker_name'] ?? '');
             $bookerMsg = sanitize_textarea_field($_POST['booker_message'] ?? '');
             $bookerWaitlist = !empty($_POST['booker_waitlist']) && $_POST['booker_waitlist'] === '1';
@@ -599,6 +600,7 @@ class Main
                 'title' => $title,
                 'location' => $location,
                 'person_id' => $personId,
+                'person_email' => $personEmail,
                 'booker_email' => $bookerEmail,
                 'booker_name' => $bookerName,
                 'booker_message' => $bookerMsg,
@@ -773,13 +775,10 @@ class Main
 
             Settings::sendMail($bookerEmail, $subjectBooker, $plainBooker, $htmlBooker, [$tmpFile]);
 
-            $adminEmail = get_option('admin_email');
-            $toAdmin = '';
-            if ($personId > 0)
-                $toAdmin = (string) get_post_meta($personId, 'person_email', true);
-            if (!$toAdmin)
-                $toAdmin = $adminEmail;
-            Settings::sendMail($toAdmin, $subjectHost, $plainHost, $htmlHost, [$tmpFile]);
+            $toAdmin = sanitize_email((string) ($meta['person_email'] ?? ''));
+            if ($toAdmin) {
+                Settings::sendMail($toAdmin, $subjectHost, $plainHost, $htmlHost, [$tmpFile]);
+            }
 
             @unlink($tmpFile);
 

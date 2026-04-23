@@ -3,7 +3,7 @@ import { __ } from '@wordpress/i18n';
 import { generateTimeSlots, renderGroupedSlotsAccordion } from './utils';
 
 export default function Save({ attributes }) {
-    const { title, location, description, personId, tplId, locationUrl, color, style, bookingCutoff } = attributes;
+    const { title, location, description, personId, personEmail, tplId, locationUrl, color, style, bookingCutoff } = attributes;
     const slots = generateTimeSlots(attributes);
     const colorClass = color ? `is-${color}` : '';
     const styleClass = style === 'dark' ? 'is-style-dark' : 'is-style-light';
@@ -14,6 +14,7 @@ export default function Save({ attributes }) {
             data-title={title}
             data-location={location}
             data-person-id={personId || 0}
+            data-person-email={personEmail || ''}
             data-tpl-id={tplId || 0}
             data-booking-cutoff={bookingCutoff || 0}
         >

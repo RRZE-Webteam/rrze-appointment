@@ -28,13 +28,15 @@
         }
 
         function parseSlotValue(value) {
-            const [date, timeRange = ''] = value.split(' ');
-            const [startTime = ''] = timeRange.split('-');
+            const slotString = String(value || '').trim();
+            const match = slotString.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})/);
+            const date = match ? match[1] : '';
+            const startTime = match ? match[2] : '';
 
             return {
                 date,
                 time: startTime,
-                value
+                value: slotString
             };
         }
 
@@ -82,32 +84,66 @@
             }
 
             const dateMap = buildDateMap(groupedInputs);
-            const availableDates = Array.from(dateMap.keys()).sort();
-            if (availableDates.length === 0) {
-                return;
-            }
+            let availableDates = [];
+            let dateSet = new Set();
+            let firstDate = null;
+            let lastDate = null;
+            let totalMonths = 0;
 
-            const dateSet = new Set(availableDates);
-            const firstDate = parseDate(availableDates[0]);
-            const lastDate = parseDate(availableDates[availableDates.length - 1]);
-            const totalMonths = getMonthDiff(firstDate, lastDate);
-
-            let activeDate = availableDates[0];
+            let activeDate = '';
             let selectedSlotValue = '';
-            let currentYear = firstDate.getFullYear();
-            let currentMonth = firstDate.getMonth();
+            let currentYear = new Date().getFullYear();
+            let currentMonth = new Date().getMonth();
 
             const bookedSlots = new Set(window.rrze_appointment?.bookedSlots || []);
             const bookingCutoff = parseInt(form.dataset.bookingCutoff || '0', 10);
 
+            function parseSlotStart(slotValue) {
+                const parsed = parseSlotValue(slotValue);
+                if (!parsed.date || !parsed.time) return null;
+                const slotStart = new Date(`${parsed.date}T${parsed.time}:00`);
+                return Number.isNaN(slotStart.getTime()) ? null : slotStart;
+            }
+
+            function isSlotInPast(slotValue) {
+                const slotStart = parseSlotStart(slotValue);
+                if (!slotStart) return false;
+                return slotStart <= new Date();
+            }
+
             function isSlotCutoff(slotValue) {
                 if (!bookingCutoff) return false;
-                const [date, timeRange = ''] = slotValue.split(' ');
-                const [startTime = ''] = timeRange.split('-');
-                if (!date || !startTime) return false;
-                const slotStart = new Date(`${date}T${startTime}:00`);
+                const slotStart = parseSlotStart(slotValue);
+                if (!slotStart) return false;
                 return (slotStart - Date.now()) < bookingCutoff * 60 * 1000;
             }
+
+            function isSlotUnavailable(slotValue) {
+                return bookedSlots.has(slotValue) || isSlotInPast(slotValue) || isSlotCutoff(slotValue);
+            }
+
+            dateMap.forEach((slots, date) => {
+                const filtered = slots.filter((slot) => !isSlotUnavailable(slot.value));
+                if (filtered.length > 0) {
+                    dateMap.set(date, filtered);
+                } else {
+                    dateMap.delete(date);
+                }
+            });
+
+            availableDates = Array.from(dateMap.keys()).sort();
+            if (availableDates.length === 0) {
+                groupedFieldset.classList.add('is-hidden');
+                daySlotsFieldset.classList.add('is-hidden');
+                return;
+            }
+            dateSet = new Set(availableDates);
+            firstDate = parseDate(availableDates[0]);
+            lastDate = parseDate(availableDates[availableDates.length - 1]);
+            totalMonths = getMonthDiff(firstDate, lastDate);
+            activeDate = availableDates[0];
+            currentYear = firstDate.getFullYear();
+            currentMonth = firstDate.getMonth();
 
             function markHiddenInput(value) {
                 groupedInputs.forEach((input) => {
@@ -116,6 +152,7 @@
             }
 
             function openOverlay(value, booker = {}, triggerButton = null) {
+                if (isSlotUnavailable(value)) return;
                 const parsed = parseSlotValue(value);
                 if (!parsed.date || !parsed.time) return;
 
@@ -242,6 +279,7 @@
                     data.append('title', form.dataset.title || '');
                     data.append('location', form.dataset.location || '');
                     data.append('person_id', form.dataset.personId || '0');
+                    data.append('person_email', form.dataset.personEmail || '');
                     data.append('tpl_id', form.dataset.tplId || '0');
                     data.append('booker_name', nameInput.value.trim());
                     data.append('booker_message', messageInput.value.trim());
@@ -290,7 +328,7 @@
             }
 
             function createSlotButton(slot) {
-                const isBooked = bookedSlots.has(slot.value) || isSlotCutoff(slot.value);
+                const isBooked = isSlotUnavailable(slot.value);
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.className = 'rrze-appointment__slot-button';
@@ -397,15 +435,30 @@
             }
 
             function renderGroupedSlots() {
+                let hasVisibleGroups = false;
                 groupedFieldset.querySelectorAll('.rrze-appointment__slot-grid').forEach((grid) => {
                     const date = grid.dataset.date;
                     const slots = dateMap.get(date) || [];
+                    const dateGroup = grid.closest('.rrze-appointment__date-group');
 
                     grid.innerHTML = '';
                     slots.forEach((slot) => {
                         grid.appendChild(createSlotButton(slot));
                     });
+
+                    // Hide date groups that no longer contain bookable slots (e.g. only past times).
+                    if (dateGroup) {
+                        const hasSlots = slots.length > 0;
+                        dateGroup.classList.toggle('is-hidden', !hasSlots);
+                        dateGroup.hidden = !hasSlots;
+                        if (hasSlots) {
+                            hasVisibleGroups = true;
+                        }
+                    }
                 });
+
+                groupedFieldset.classList.toggle('is-hidden', !hasVisibleGroups);
+                groupedFieldset.hidden = !hasVisibleGroups;
             }
 
             function renderCalendar() {
@@ -489,7 +542,8 @@
 
                     if (dateSet.has(dateString)) {
                         const dateSlots = dateMap.get(dateString) || [];
-                        const allBooked = dateSlots.length > 0 && dateSlots.every((s) => bookedSlots.has(s.value) || isSlotCutoff(s.value));
+                        const allBooked = dateSlots.length > 0
+                            && dateSlots.every((s) => bookedSlots.has(s.value) || isSlotInPast(s.value) || isSlotCutoff(s.value));
 
                         if (!allBooked) button.classList.add('is-available');
                         if (allBooked) button.classList.add('is-booked');

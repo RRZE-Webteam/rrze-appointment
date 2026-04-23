@@ -102,9 +102,10 @@ class Reminder
             $bodyBooker     = Settings::renderTemplate(!empty($tplBooker['body'])      ? $tplBooker['body']      : $defBooker['body'],      $vars);
             $bodyBookerHtml = Settings::renderTemplate(!empty($tplBooker['body_html']) ? $tplBooker['body_html'] : $defBooker['body_html'], $vars);
 
-            $personEmail = $personId > 0 ? (string) get_post_meta($personId, 'person_email', true) : '';
-            $toAdmin     = $personEmail ?: get_option('admin_email');
-            Settings::sendMail($toAdmin, $subject, $body, $bodyHtml);
+            $toAdmin = sanitize_email((string) ($meta['person_email'] ?? ''));
+            if ($toAdmin) {
+                Settings::sendMail($toAdmin, $subject, $body, $bodyHtml);
+            }
 
             if ($bookerEmail) {
                 Settings::sendMail($bookerEmail, $subject, $bodyBooker, $bodyBookerHtml);

@@ -233,9 +233,10 @@ class Bookings
             $plain   = Settings::renderTemplate($bodyTpl, $vars);
             $html    = Settings::renderTemplate($bodyHtmlTpl, $vars);
 
-            $toAdmin = $personId > 0 ? (string) get_post_meta($personId, 'person_email', true) : '';
-            if (!$toAdmin) $toAdmin = get_option('admin_email');
-            Settings::sendMail($toAdmin, $subject, $plain, $html);
+            $toAdmin = sanitize_email((string) ($meta['person_email'] ?? ''));
+            if ($toAdmin) {
+                Settings::sendMail($toAdmin, $subject, $plain, $html);
+            }
 
             if ($bookerEmail) {
                 Settings::sendMail($bookerEmail, $subject, $plain, $html);
