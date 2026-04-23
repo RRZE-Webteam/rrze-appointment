@@ -434,15 +434,28 @@
             }
 
             function renderGroupedSlots() {
+                let hasVisibleGroups = false;
                 groupedFieldset.querySelectorAll('.rrze-appointment__slot-grid').forEach((grid) => {
                     const date = grid.dataset.date;
                     const slots = dateMap.get(date) || [];
+                    const dateGroup = grid.closest('.rrze-appointment__date-group');
 
                     grid.innerHTML = '';
                     slots.forEach((slot) => {
                         grid.appendChild(createSlotButton(slot));
                     });
+
+                    // Hide date groups that no longer contain bookable slots (e.g. only past times).
+                    if (dateGroup) {
+                        const hasSlots = slots.length > 0;
+                        dateGroup.classList.toggle('is-hidden', !hasSlots);
+                        if (hasSlots) {
+                            hasVisibleGroups = true;
+                        }
+                    }
                 });
+
+                groupedFieldset.classList.toggle('is-hidden', !hasVisibleGroups);
             }
 
             function renderCalendar() {
