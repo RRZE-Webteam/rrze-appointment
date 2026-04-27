@@ -21,7 +21,7 @@ class MailTemplate
             }
         }
         if (!$logoHtml) {
-            $logoHtml = '<span style="font-size:20px;font-weight:bold;color:#ffffff;">' . esc_html($siteName) . '</span>';
+            $logoHtml = '<span style="font-size:20px;font-weight:bold;color:#1e1e1e;">' . esc_html($siteName) . '</span>';
         }
 
         // Footer-Links
@@ -29,12 +29,12 @@ class MailTemplate
 
         $privacyUrl = get_privacy_policy_url();
         if ($privacyUrl) {
-            $footerLinks[] = '<a href="' . esc_url($privacyUrl) . '" style="color:#c8d8e8;text-decoration:none;">' . esc_html__('Privacy Policy', 'rrze-appointment') . '</a>';
+            $footerLinks[] = '<a href="' . esc_url($privacyUrl) . '" style="color:#1e3a8a;text-decoration:none;">' . esc_html__('Privacy Policy', 'rrze-appointment') . '</a>';
         }
 
         $imprintUrl = TokenManager::imprintUrl();
         if ($imprintUrl) {
-            $footerLinks[] = '<a href="' . esc_url($imprintUrl) . '" style="color:#c8d8e8;text-decoration:none;">' . esc_html__('Legal Notice', 'rrze-appointment') . '</a>';
+            $footerLinks[] = '<a href="' . esc_url($imprintUrl) . '" style="color:#1e3a8a;text-decoration:none;">' . esc_html__('Legal Notice', 'rrze-appointment') . '</a>';
         }
 
         $footerLinksHtml = implode(' &nbsp;&middot;&nbsp; ', $footerLinks);
@@ -54,7 +54,7 @@ class MailTemplate
 
         <!-- Header -->
         <tr>
-          <td style="background:#003865;padding:24px 32px;border-radius:4px 4px 0 0;">
+          <td style="padding:24px 32px;border-radius:4px 4px 0 0;">
             <a href="' . esc_url($siteUrl) . '" style="text-decoration:none;">' . $logoHtml . '</a>
           </td>
         </tr>
@@ -68,11 +68,11 @@ class MailTemplate
 
         <!-- Footer -->
         <tr>
-          <td style="background:#003865;padding:16px 32px;border-radius:0 0 4px 4px;">
-            <p style="margin:0 0 6px;font-size:12px;color:#c8d8e8;">
-              <a href="' . esc_url($siteUrl) . '" style="color:#c8d8e8;text-decoration:none;">' . esc_html($siteName) . '</a>
+          <td style="padding:16px 32px;border-radius:0 0 4px 4px;">
+            <p style="margin:0 0 6px;font-size:12px;color:#3c434a;">
+              <a href="' . esc_url($siteUrl) . '" style="color:#1e3a8a;text-decoration:none;">' . esc_html($siteName) . '</a>
             </p>
-            ' . ($footerLinksHtml ? '<p style="margin:0;font-size:12px;color:#c8d8e8;">' . $footerLinksHtml . '</p>' : '') . '
+            ' . ($footerLinksHtml ? '<p style="margin:0;font-size:12px;color:#3c434a;">' . $footerLinksHtml . '</p>' : '') . '
           </td>
         </tr>
 
