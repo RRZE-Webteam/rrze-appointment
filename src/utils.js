@@ -78,6 +78,7 @@ export function generateTimeSlots(attributes) {
     ) return [];
 
     const overrides = (dateOverrides && typeof dateOverrides === 'object') ? dateOverrides : {};
+    const now = new Date();
     const slots = [];
 
     for (const dateString of calendarDates) {
@@ -94,6 +95,8 @@ export function generateTimeSlots(attributes) {
         const slotMap = new Map();
 
         const addSlot = (slot) => {
+            const slotStart = new Date(`${slot.date}T${slot.startTime}:00`);
+            if (!Number.isNaN(slotStart.getTime()) && slotStart <= now) return;
             if (removedSlots.has(slot.value) || slotMap.has(slot.value)) return;
             slotMap.set(slot.value, slot);
             dateSlots.push(slot);

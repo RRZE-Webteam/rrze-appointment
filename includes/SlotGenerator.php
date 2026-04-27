@@ -27,6 +27,8 @@ class SlotGenerator
 
         $slots = [];
 
+        $nowTs = current_time('timestamp');
+
         foreach ($dates as $dateString) {
             $override      = $dateOverrides[$dateString] ?? [];
             $slotDuration  = isset($override['duration'])      ? (int) $override['duration']      : $duration;
@@ -44,7 +46,11 @@ class SlotGenerator
             while ($slotStart + $slotDuration <= $endMinutes) {
                 $slotEnd = $slotStart + $slotDuration;
                 $value   = $dateString . ' ' . self::minutesToTime($slotStart) . '-' . self::minutesToTime($slotEnd);
-                if (!isset($removedSlots[$value]) && !isset($seen[$value])) {
+                if (
+                    self::slotStartTimestamp($dateString, self::minutesToTime($slotStart)) > $nowTs
+                    && !isset($removedSlots[$value])
+                    && !isset($seen[$value])
+                ) {
                     $slots[]      = $value;
                     $seen[$value] = true;
                 }
@@ -60,7 +66,11 @@ class SlotGenerator
                 $eeMin = $extraEnd ? self::timeToMinutes($extraEnd) : $esMin + $slotDuration;
                 if ($eeMin === null || $eeMin > 1440) continue;
                 $value = $dateString . ' ' . self::minutesToTime($esMin) . '-' . self::minutesToTime($eeMin);
-                if (!isset($removedSlots[$value]) && !isset($seen[$value])) {
+                if (
+                    self::slotStartTimestamp($dateString, self::minutesToTime($esMin)) > $nowTs
+                    && !isset($removedSlots[$value])
+                    && !isset($seen[$value])
+                ) {
                     $slots[]      = $value;
                     $seen[$value] = true;
                 }
@@ -117,5 +127,11 @@ class SlotGenerator
     private static function minutesToTime(int $minutes): string
     {
         return sprintf('%02d:%02d', intdiv($minutes, 60), $minutes % 60);
+    }
+
+    private static function slotStartTimestamp(string $dateString, string $time): int
+    {
+        $dt = \DateTime::createFromFormat('Y-m-d H:i', $dateString . ' ' . $time, wp_timezone());
+        return $dt ? $dt->getTimestamp() : 0;
     }
 }
