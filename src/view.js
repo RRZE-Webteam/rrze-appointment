@@ -29,15 +29,24 @@
 
         function parseSlotValue(value) {
             const slotString = String(value || '').trim();
-            const match = slotString.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})/);
+            const match = slotString.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})(?:-(\d{1,2}:\d{2}))?/);
             const date = match ? match[1] : '';
             const startTime = match ? match[2] : '';
+            const endTime = match ? (match[3] || '') : '';
 
             return {
                 date,
                 time: startTime,
+                endTime,
                 value: slotString
             };
+        }
+
+        function formatSlotLabelFromValue(value) {
+            const parsed = parseSlotValue(value);
+            if (!parsed.time) return '';
+            if (parsed.endTime) return `${parsed.time} - ${parsed.endTime}`;
+            return parsed.time;
         }
 
         function buildDateMap(inputs) {
@@ -50,8 +59,10 @@
                     return;
                 }
 
+                const fallbackTimeLabel = formatSlotLabelFromValue(value);
                 const label = input.dataset.label?.trim() || input.closest('button')?.textContent?.trim()
                     || input.closest('label')?.querySelector('span')?.textContent?.trim()
+                    || fallbackTimeLabel
                     || value;
 
                 if (!map.has(parsed.date)) {
