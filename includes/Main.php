@@ -34,6 +34,97 @@ class Main
     public $defaults;
     public $settings;
 
+    private function extractFirstEmailFromValue($value): string
+    {
+        if (is_string($value)) {
+            $email = sanitize_email($value);
+            return $email ?: '';
+        }
+
+        if (!is_array($value)) {
+            return '';
+        }
+
+        foreach ($value as $entry) {
+            if (is_string($entry)) {
+                $email = sanitize_email($entry);
+                if ($email) {
+                    return $email;
+                }
+                continue;
+            }
+
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            foreach (['email', 'value', 'mail'] as $key) {
+                if (!empty($entry[$key])) {
+                    $email = sanitize_email((string) $entry[$key]);
+                    if ($email) {
+                        return $email;
+                    }
+                }
+            }
+        }
+
+        return '';
+    }
+
+    private function extractFirstEmailRecursive($value): string
+    {
+        if (is_string($value)) {
+            $email = sanitize_email($value);
+            return $email ?: '';
+        }
+
+        if (!is_array($value)) {
+            return '';
+        }
+
+        // Prioritize known email-like keys first.
+        foreach (['email', 'emails', 'emailAddress', 'emailAddresses', 'mail', 'mails', 'value'] as $key) {
+            if (!array_key_exists($key, $value) || empty($value[$key])) {
+                continue;
+            }
+
+            $email = $this->extractFirstEmailFromValue($value[$key]);
+            if ($email) {
+                return $email;
+            }
+        }
+
+        // Fallback: recursively inspect nested arrays/objects.
+        foreach ($value as $nested) {
+            if (!is_array($nested) && !is_string($nested)) {
+                continue;
+            }
+            $email = $this->extractFirstEmailRecursive($nested);
+            if ($email) {
+                return $email;
+            }
+        }
+
+        return '';
+    }
+
+    private function extractFirstWorkplaceEmail(array $workplace): string
+    {
+        foreach (['email', 'emails', 'emailAddress', 'emailAddresses', 'mail'] as $key) {
+            if (empty($workplace[$key])) {
+                continue;
+            }
+
+            $email = $this->extractFirstEmailFromValue($workplace[$key]);
+            if ($email) {
+                return $email;
+            }
+        }
+
+        // Some FAUdir workplace payloads keep email addresses deeply nested.
+        return $this->extractFirstEmailRecursive($workplace);
+    }
+
     public function __construct()
     {
         add_action('init', [MailTemplatePost::class, 'register'], 5);
@@ -292,7 +383,7 @@ class Main
             $given = $person['givenName'] ?? '';
             $family = $person['familyName'] ?? '';
             $prefix = $person['honorificPrefix'] ?? '';
-            $email = $person['email'] ?? '';
+            $email = sanitize_email($person['email'] ?? '');
             $label = trim("$given $family") ?: get_the_title($post_id);
 
             $consultationHours = [];
@@ -301,14 +392,22 @@ class Main
             $locationUrl = '';
 
             foreach ($person['contacts'] ?? [] as $contact) {
+                $contact_detail = [];
                 $contact_id = $contact['identifier'] ?? '';
-                if (!$contact_id)
-                    continue;
-                $contact_detail = $api->getContact($contact_id);
-                if (!is_array($contact_detail))
-                    continue;
+                if ($contact_id) {
+                    $contact_detail = $api->getContact($contact_id);
+                }
+
+                if (!is_array($contact_detail) || empty($contact_detail)) {
+                    // Some datasets already include workplace/contact data inline.
+                    $contact_detail = is_array($contact) ? $contact : [];
+                }
 
                 foreach ($contact_detail['workplaces'] ?? [] as $wp) {
+                    if (!$email) {
+                        $email = $this->extractFirstWorkplaceEmail((array) $wp);
+                    }
+
                     if (!empty($wp['consultationHours'])) {
                         $consultationHours = $wp['consultationHours'];
                         $hoursType = 'consultation';
@@ -320,6 +419,16 @@ class Main
                         $location = implode(', ', array_filter([$wp['room'] ?? '', $wp['street'] ?? '', $wp['city'] ?? '']));
                         $locationUrl = $wp['faumap'] ?? '';
                         break 2;
+                    }
+                }
+            }
+
+            // Additional safety net: some responses keep workplaces directly on person.
+            if (!$email) {
+                foreach ($person['workplaces'] ?? [] as $workplace) {
+                    $email = $this->extractFirstWorkplaceEmail((array) $workplace);
+                    if ($email) {
+                        break;
                     }
                 }
             }
