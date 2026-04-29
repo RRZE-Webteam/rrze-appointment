@@ -14,6 +14,31 @@ class Bookings
     const SLOTS_OPTION = 'rrze_appointment_booked_slots';
     const META_OPTION  = 'rrze_appointment_booked_slots_meta';
 
+    private static function resolvePersonName(int $personId, array $meta = []): string
+    {
+        if ($personId <= 0) {
+            return trim((string) ($meta['person_name'] ?? ''));
+        }
+
+        $parts = array_filter([
+            (string) get_post_meta($personId, 'person_honorificPrefix', true),
+            (string) get_post_meta($personId, 'person_givenName', true),
+            (string) get_post_meta($personId, 'person_familyName', true),
+        ]);
+        $name = trim(implode(' ', $parts));
+        if ($name !== '') {
+            return $name;
+        }
+
+        // Fallback for instances where custom person meta fields are empty.
+        $title = trim((string) get_the_title($personId));
+        if ($title !== '') {
+            return $title;
+        }
+
+        return trim((string) ($meta['person_name'] ?? '')) ?: "Person #$personId";
+    }
+
     public static function getAll(array $filter = []): array
     {
         try {
@@ -38,12 +63,7 @@ class Bookings
                     'tpl_id'       => (int) ($meta['tpl_id'] ?? 0),
                 ];
 
-                if ($booking['person_id'] > 0) {
-                    $pTitle  = (string) get_post_meta($booking['person_id'], 'person_honorificPrefix', true);
-                    $pGiven  = (string) get_post_meta($booking['person_id'], 'person_givenName', true);
-                    $pFamily = (string) get_post_meta($booking['person_id'], 'person_familyName', true);
-                    $booking['person_name'] = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
-                }
+                $booking['person_name'] = self::resolvePersonName($booking['person_id'], $meta);
 
                 if (!empty($filter['date_from']) && $datePart < $filter['date_from']) continue;
                 if (!empty($filter['date_to'])   && $datePart > $filter['date_to'])   continue;
@@ -254,10 +274,7 @@ class Bookings
             foreach ($allMeta as $meta) {
                 $pid = (int) ($meta['person_id'] ?? 0);
                 if ($pid > 0 && !isset($persons[$pid])) {
-                    $pTitle  = (string) get_post_meta($pid, 'person_honorificPrefix', true);
-                    $pGiven  = (string) get_post_meta($pid, 'person_givenName', true);
-                    $pFamily = (string) get_post_meta($pid, 'person_familyName', true);
-                    $persons[$pid] = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily]))) ?: "Person #$pid";
+                    $persons[$pid] = self::resolvePersonName($pid, $meta);
                 }
             }
             asort($persons);
