@@ -403,6 +403,15 @@ msgstr "Ihr Name:"
 msgid "Message (optional):"
 msgstr "Nachricht (optional):"
 
+msgid "Please enter your name."
+msgstr "Bitte geben Sie Ihren Namen ein."
+
+msgid "Please enter a valid email address."
+msgstr "Bitte geben Sie eine gueltige E-Mail-Adresse ein."
+
+msgid "Please enter a message."
+msgstr "Bitte geben Sie eine Nachricht ein."
+
 msgid "Book"
 msgstr "Buchen"
 
@@ -447,6 +456,12 @@ msgstr "Kalender-Ansicht"
 
 msgid "Click a date to add or remove it."
 msgstr "Ein Klick auf ein Datum fügt es hinzu oder entfernt es wieder."
+
+msgid "Require message field"
+msgstr "Nachrichtenfeld verpflichtend"
+
+msgid "If enabled, users must fill in the message field during booking."
+msgstr "Wenn aktiviert, muessen Nutzer beim Buchen das Nachrichtenfeld ausfuellen."
 
 msgid "Appointment title"
 msgstr "Termin-Titel"

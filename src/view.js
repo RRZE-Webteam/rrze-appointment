@@ -239,9 +239,12 @@
 
                 const messageLabel = document.createElement('label');
                 messageLabel.className = 'rrze-appointment__overlay-label';
-                messageLabel.textContent = requireMessage
-                    ? (i18n.message || 'Message:')
-                    : (i18n.messageOptional || 'Message (optional):');
+                const optionalMessageLabel = i18n.messageOptional || i18n.message || 'Message (optional):';
+                const requiredMessageLabel = (i18n.message || optionalMessageLabel)
+                    .replace(/\s*\(\s*optional\s*\)\s*:?/i, ':')
+                    .replace(/\s{2,}/g, ' ')
+                    .trim();
+                messageLabel.textContent = requireMessage ? requiredMessageLabel : optionalMessageLabel;
                 const messageInput = document.createElement('textarea');
                 messageInput.className = 'rrze-appointment__overlay-message';
                 messageInput.rows = 4;
