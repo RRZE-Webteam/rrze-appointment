@@ -15,6 +15,7 @@ $personEmail = (string) ($attributes['personEmail'] ?? '');
 $tplId = (int) ($attributes['tplId'] ?? 0);
 $bookingCutoff = (int) ($attributes['bookingCutoff'] ?? 0);
 $requireMessage = !empty($attributes['requireMessage']);
+$hideAllAppointmentsAccordion = !empty($attributes['hideAllAppointmentsAccordion']);
 $locationUrl = (string) ($attributes['locationUrl'] ?? '');
 $color = (string) ($attributes['color'] ?? '');
 $style = (string) ($attributes['style'] ?? 'light');
@@ -61,6 +62,7 @@ $locationIsUrl = preg_match('#^https?://#i', $location) === 1;
     data-tpl-id="<?php echo esc_attr((string) $tplId); ?>"
     data-booking-cutoff="<?php echo esc_attr((string) $bookingCutoff); ?>"
     data-require-message="<?php echo $requireMessage ? '1' : '0'; ?>"
+    data-hide-all-appointments-accordion="<?php echo $hideAllAppointmentsAccordion ? '1' : '0'; ?>"
 >
     <fieldset class="rrze-appointment__fieldset">
         <?php if ($title !== '') : ?>
@@ -92,7 +94,7 @@ $locationIsUrl = preg_match('#^https?://#i', $location) === 1;
                 <div class="rrze-appointment__day-slots-list"></div>
             </div>
 
-            <div class="rrze-appointment__accordion rrze-appointment__slots-grouped" data-accordion="open">
+            <div class="rrze-appointment__accordion rrze-appointment__slots-grouped<?php echo $hideAllAppointmentsAccordion ? ' is-hidden' : ''; ?>" data-accordion="open"<?php echo $hideAllAppointmentsAccordion ? ' hidden' : ''; ?>>
                 <button type="button" class="rrze-appointment__accordion-toggle" aria-expanded="true">
                     <?php echo esc_html__('All appointments', 'rrze-appointment'); ?>
                 </button>

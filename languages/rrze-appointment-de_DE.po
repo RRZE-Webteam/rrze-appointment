@@ -463,6 +463,12 @@ msgstr "Nachrichtenfeld verpflichtend"
 msgid "If enabled, users must fill in the message field during booking."
 msgstr "Wenn aktiviert, müssen Nutzer beim Buchen das Nachrichtenfeld ausfüllen."
 
+msgid "Hide \"All appointments\" accordion"
+msgstr "Akkordeon \"Alle Termine\" ausblenden"
+
+msgid "If enabled, the grouped list under \"All appointments\" is hidden on the frontend."
+msgstr "Wenn aktiviert, wird die gruppierte Liste unter \"Alle Termine\" im Frontend ausgeblendet."
+
 msgid "Appointment title"
 msgstr "Termin-Titel"
 

@@ -228,7 +228,8 @@ export default function Edit({ attributes, setAttributes }) {
         color,
         style,
         bookingCutoff,
-        requireMessage
+        requireMessage,
+        hideAllAppointmentsAccordion
     } = attributes;
 
     const colorClass = color ? `is-${color}` : '';
@@ -549,6 +550,12 @@ export default function Edit({ attributes, setAttributes }) {
                         checked={!!requireMessage}
                         onChange={(value) => setAttributes({ requireMessage: !!value })}
                     />
+                    <ToggleControl
+                        label={editorI18n.hideAllAppointmentsField || __('Hide "All appointments" accordion', 'rrze-appointment')}
+                        help={editorI18n.hideAllAppointmentsHelp || __('If enabled, the grouped list under "All appointments" is hidden on the frontend.', 'rrze-appointment')}
+                        checked={!!hideAllAppointmentsAccordion}
+                        onChange={(value) => setAttributes({ hideAllAppointmentsAccordion: !!value })}
+                    />
 
                     <p><strong>{__('Calendar view', 'rrze-appointment')}</strong></p>
                     <p>{__('Click a date to add or remove it.', 'rrze-appointment')}</p>
@@ -726,7 +733,7 @@ export default function Edit({ attributes, setAttributes }) {
                         {slots.length > 0 ? (
                             <Fragment>
                                 <PreviewCalendar slots={slots} onRemoveSlot={handleRemoveSlot} onAddSlot={handleOpenAddSlot} activeDate={activeDate} setActiveDate={setActiveDate} />
-                                {renderGroupedSlotsAccordion(slots, 'rrze_appointment_slot_preview', { onRemoveSlot: handleRemoveSlot, onAddSlot: handleOpenAddSlot })}
+                                {!hideAllAppointmentsAccordion && renderGroupedSlotsAccordion(slots, 'rrze_appointment_slot_preview', { onRemoveSlot: handleRemoveSlot, onAddSlot: handleOpenAddSlot })}
                             </Fragment>
                         ) : (
                             <p>{__('Please select at least one day in the appointment settings.', 'rrze-appointment')}</p>

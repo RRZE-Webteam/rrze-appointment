@@ -504,6 +504,8 @@ class Main
                 'editorI18n' => [
                     'requireMessageField' => __('Require message field', 'rrze-appointment'),
                     'requireMessageHelp' => __('If enabled, users must fill in the message field during booking.', 'rrze-appointment'),
+                    'hideAllAppointmentsField' => __('Hide "All appointments" accordion', 'rrze-appointment'),
+                    'hideAllAppointmentsHelp' => __('If enabled, the grouped list under "All appointments" is hidden on the frontend.', 'rrze-appointment'),
                 ],
             ]);
         } catch (CustomException $e) {
@@ -513,6 +515,8 @@ class Main
                 'editorI18n' => [
                     'requireMessageField' => __('Require message field', 'rrze-appointment'),
                     'requireMessageHelp' => __('If enabled, users must fill in the message field during booking.', 'rrze-appointment'),
+                    'hideAllAppointmentsField' => __('Hide "All appointments" accordion', 'rrze-appointment'),
+                    'hideAllAppointmentsHelp' => __('If enabled, the grouped list under "All appointments" is hidden on the frontend.', 'rrze-appointment'),
                 ],
             ]);
         }

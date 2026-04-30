@@ -109,6 +109,7 @@
             const bookedSlots = new Set(window.rrze_appointment?.bookedSlots || []);
             const bookingCutoff = parseInt(form.dataset.bookingCutoff || '0', 10);
             const requireMessage = form.dataset.requireMessage === '1';
+            const hideAllAppointmentsAccordion = form.dataset.hideAllAppointmentsAccordion === '1';
 
             function parseSlotStart(slotValue) {
                 const parsed = parseSlotValue(slotValue);
@@ -477,6 +478,12 @@
             }
 
             function renderGroupedSlots() {
+                if (hideAllAppointmentsAccordion) {
+                    groupedFieldset.classList.add('is-hidden');
+                    groupedFieldset.hidden = true;
+                    return;
+                }
+
                 let hasVisibleGroups = false;
                 groupedFieldset.querySelectorAll('.rrze-appointment__slot-grid').forEach((grid) => {
                     const date = grid.dataset.date;
