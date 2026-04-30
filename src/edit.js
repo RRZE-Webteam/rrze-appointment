@@ -4,7 +4,8 @@ import {
     PanelBody,
     SelectControl,
     TextControl,
-    TextareaControl
+    TextareaControl,
+    ToggleControl
 } from '@wordpress/components';
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
 import { Fragment, useEffect, useMemo, useState } from '@wordpress/element';
@@ -225,7 +226,8 @@ export default function Edit({ attributes, setAttributes }) {
         locationUrl,
         color,
         style,
-        bookingCutoff
+        bookingCutoff,
+        requireMessage
     } = attributes;
 
     const colorClass = color ? `is-${color}` : '';
@@ -539,6 +541,12 @@ export default function Edit({ attributes, setAttributes }) {
                             { label: '1440 min', value: '1440' },
                         ]}
                         onChange={(value) => setAttributes({ bookingCutoff: Number(value) })}
+                    />
+                    <ToggleControl
+                        label={__('Require message field', 'rrze-appointment')}
+                        help={__('If enabled, users must fill in the message field during booking.', 'rrze-appointment')}
+                        checked={!!requireMessage}
+                        onChange={(value) => setAttributes({ requireMessage: !!value })}
                     />
 
                     <p><strong>{__('Calendar view', 'rrze-appointment')}</strong></p>

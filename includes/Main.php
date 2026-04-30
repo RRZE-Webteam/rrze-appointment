@@ -669,6 +669,7 @@ class Main
             $bookerName = sanitize_text_field($_POST['booker_name'] ?? '');
             $bookerMsg = sanitize_textarea_field($_POST['booker_message'] ?? '');
             $bookerWaitlist = !empty($_POST['booker_waitlist']) && $_POST['booker_waitlist'] === '1';
+            $requireMessage = !empty($_POST['require_message']) && $_POST['require_message'] === '1';
 
             // E-Mail immer aus der Server-Session lesen, nie vom Client
             $serverBooker = Rights::get();
@@ -683,6 +684,10 @@ class Main
                 wp_send_json_error(__('No appointment specified.', 'rrze-appointment'));
             if (!$bookerEmail)
                 wp_send_json_error(__('Please provide an email address.', 'rrze-appointment'));
+            if (!$bookerName)
+                wp_send_json_error(__('Please provide your name.', 'rrze-appointment'));
+            if ($requireMessage && !$bookerMsg)
+                wp_send_json_error(__('Please provide a message.', 'rrze-appointment'));
 
             [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
             [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');

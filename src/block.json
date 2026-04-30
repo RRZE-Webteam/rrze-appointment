@@ -89,6 +89,10 @@
       "type": "number",
       "default": 0
     },
+    "requireMessage": {
+      "type": "boolean",
+      "default": false
+    },
     "color": {
       "type": "string"
     },

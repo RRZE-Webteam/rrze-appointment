@@ -108,6 +108,7 @@
 
             const bookedSlots = new Set(window.rrze_appointment?.bookedSlots || []);
             const bookingCutoff = parseInt(form.dataset.bookingCutoff || '0', 10);
+            const requireMessage = form.dataset.requireMessage === '1';
 
             function parseSlotStart(slotValue) {
                 const parsed = parseSlotValue(slotValue);
@@ -221,6 +222,7 @@
                 emailInput.placeholder = 'name@example.de';
                 emailInput.value = booker.bookerEmail || '';
                 emailInput.readOnly = !!booker.bookerEmail;
+                emailInput.required = true;
                 emailLabel.appendChild(emailInput);
 
                 const nameLabel = document.createElement('label');
@@ -232,14 +234,18 @@
                 nameInput.placeholder = 'Vorname Nachname';
                 nameInput.value = booker.bookerName || '';
                 nameInput.readOnly = !!booker.bookerName;
+                nameInput.required = true;
                 nameLabel.appendChild(nameInput);
 
                 const messageLabel = document.createElement('label');
                 messageLabel.className = 'rrze-appointment__overlay-label';
-                messageLabel.textContent = i18n.message || 'Message (optional):';
+                messageLabel.textContent = requireMessage
+                    ? (i18n.message || 'Message:')
+                    : (i18n.messageOptional || 'Message (optional):');
                 const messageInput = document.createElement('textarea');
                 messageInput.className = 'rrze-appointment__overlay-message';
                 messageInput.rows = 4;
+                messageInput.required = requireMessage;
                 messageLabel.appendChild(messageInput);
 
                 const waitlistLabel = document.createElement('label');
@@ -279,6 +285,27 @@
                 });
 
                 confirmBtn.addEventListener('click', () => {
+                    const nameValue = nameInput.value.trim();
+                    const emailValue = emailInput.value.trim();
+                    const messageValue = messageInput.value.trim();
+                    const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
+
+                    if (!nameValue) {
+                        status.textContent = i18n.nameRequired || 'Please enter your name.';
+                        nameInput.focus();
+                        return;
+                    }
+                    if (!emailValue || !emailIsValid) {
+                        status.textContent = i18n.emailRequired || 'Please enter a valid email address.';
+                        emailInput.focus();
+                        return;
+                    }
+                    if (requireMessage && !messageValue) {
+                        status.textContent = i18n.messageRequired || 'Please enter a message.';
+                        messageInput.focus();
+                        return;
+                    }
+
                     confirmBtn.disabled = true;
                     cancelBtn.disabled = true;
                     status.textContent = i18n.booking || 'Booking…';
@@ -292,9 +319,10 @@
                     data.append('person_id', form.dataset.personId || '0');
                     data.append('person_email', form.dataset.personEmail || '');
                     data.append('tpl_id', form.dataset.tplId || '0');
-                    data.append('booker_name', nameInput.value.trim());
-                    data.append('booker_message', messageInput.value.trim());
+                    data.append('booker_name', nameValue);
+                    data.append('booker_message', messageValue);
                     data.append('booker_waitlist', waitlistCheckbox.checked ? '1' : '0');
+                    data.append('require_message', requireMessage ? '1' : '0');
 
                     fetch(window.rrze_appointment?.ajaxUrl || '/wp-admin/admin-ajax.php', {
                         method: 'POST',

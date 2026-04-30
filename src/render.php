@@ -14,6 +14,7 @@ $personId = (int) ($attributes['personId'] ?? 0);
 $personEmail = (string) ($attributes['personEmail'] ?? '');
 $tplId = (int) ($attributes['tplId'] ?? 0);
 $bookingCutoff = (int) ($attributes['bookingCutoff'] ?? 0);
+$requireMessage = !empty($attributes['requireMessage']);
 $locationUrl = (string) ($attributes['locationUrl'] ?? '');
 $color = (string) ($attributes['color'] ?? '');
 $style = (string) ($attributes['style'] ?? 'light');
@@ -59,6 +60,7 @@ $locationIsUrl = preg_match('#^https?://#i', $location) === 1;
     data-person-email="<?php echo esc_attr($personEmail); ?>"
     data-tpl-id="<?php echo esc_attr((string) $tplId); ?>"
     data-booking-cutoff="<?php echo esc_attr((string) $bookingCutoff); ?>"
+    data-require-message="<?php echo $requireMessage ? '1' : '0'; ?>"
 >
     <fieldset class="rrze-appointment__fieldset">
         <?php if ($title !== '') : ?>
