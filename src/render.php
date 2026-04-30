@@ -48,8 +48,6 @@ foreach ($groups as &$dateSlots) {
 unset($dateSlots);
 
 $locationIsUrl = preg_match('#^https?://#i', $location) === 1;
-
-ob_start();
 ?>
 <form
     class="<?php echo esc_attr(implode(' ', array_filter($classes))); ?>"
@@ -138,4 +136,3 @@ ob_start();
     </fieldset>
 </form>
 <?php
-return (string) ob_get_clean();
