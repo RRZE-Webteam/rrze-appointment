@@ -2,9 +2,8 @@ import { registerBlockType } from '@wordpress/blocks';
 import './style.scss';
 import './pre-publish';
 import Edit from './edit';
-import Save from './save';
 
 registerBlockType('rrze/appointment', {
     edit: Edit,
-    save: Save,
+    save: () => null,
 });
