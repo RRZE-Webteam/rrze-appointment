@@ -461,7 +461,7 @@ msgid "Require message field"
 msgstr "Nachrichtenfeld verpflichtend"
 
 msgid "If enabled, users must fill in the message field during booking."
-msgstr "Wenn aktiviert, muessen Nutzer beim Buchen das Nachrichtenfeld ausfuellen."
+msgstr "Wenn aktiviert, müssen Nutzer beim Buchen das Nachrichtenfeld ausfüllen."
 
 msgid "Appointment title"
 msgstr "Termin-Titel"
