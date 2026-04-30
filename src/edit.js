@@ -209,6 +209,7 @@ function PreviewCalendar({ slots, onRemoveSlot, onAddSlot, activeDate, setActive
 }
 
 export default function Edit({ attributes, setAttributes }) {
+    const editorI18n = window.rrze_appointment?.editorI18n || {};
     const {
         title,
         startTime,
@@ -543,8 +544,8 @@ export default function Edit({ attributes, setAttributes }) {
                         onChange={(value) => setAttributes({ bookingCutoff: Number(value) })}
                     />
                     <ToggleControl
-                        label={__('Require message field', 'rrze-appointment')}
-                        help={__('If enabled, users must fill in the message field during booking.', 'rrze-appointment')}
+                        label={editorI18n.requireMessageField || __('Require message field', 'rrze-appointment')}
+                        help={editorI18n.requireMessageHelp || __('If enabled, users must fill in the message field during booking.', 'rrze-appointment')}
                         checked={!!requireMessage}
                         onChange={(value) => setAttributes({ requireMessage: !!value })}
                     />

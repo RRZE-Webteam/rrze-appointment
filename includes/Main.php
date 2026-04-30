@@ -498,9 +498,23 @@ class Main
     {
         try {
             $persons = $this->getFAUdirPersons();
-            $data = wp_json_encode(['persons' => $persons, 'recurrenceLimit' => (int) Settings::get('recurrence_limit')]);
+            $data = wp_json_encode([
+                'persons' => $persons,
+                'recurrenceLimit' => (int) Settings::get('recurrence_limit'),
+                'editorI18n' => [
+                    'requireMessageField' => __('Require message field', 'rrze-appointment'),
+                    'requireMessageHelp' => __('If enabled, users must fill in the message field during booking.', 'rrze-appointment'),
+                ],
+            ]);
         } catch (CustomException $e) {
-            $data = wp_json_encode(['persons' => ['error' => true, 'message' => $e->getMessage(), 'data' => []], 'recurrenceLimit' => 52]);
+            $data = wp_json_encode([
+                'persons' => ['error' => true, 'message' => $e->getMessage(), 'data' => []],
+                'recurrenceLimit' => 52,
+                'editorI18n' => [
+                    'requireMessageField' => __('Require message field', 'rrze-appointment'),
+                    'requireMessageHelp' => __('If enabled, users must fill in the message field during booking.', 'rrze-appointment'),
+                ],
+            ]);
         }
         wp_add_inline_script('rrze-appointment-editor-script', 'window.rrze_appointment = ' . $data . ';', 'before');
     }
