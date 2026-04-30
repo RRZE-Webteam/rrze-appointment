@@ -3,7 +3,7 @@
 /*
 Plugin Name:        RRZE Appointment
 Plugin URI:         https://github.com/RRZE-Webteam/rrze-appointment
-Version:            1.3.9
+Version:            1.3.10
 Description:        Appointments the easy way.
 Author:             RRZE Webteam
 Author URI:         https://www.wp.rrze.fau.de/
