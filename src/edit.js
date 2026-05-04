@@ -591,12 +591,6 @@ export default function Edit({ attributes, setAttributes }) {
                         checked={!!requireMessage}
                         onChange={(value) => setAttributes({ requireMessage: !!value })}
                     />
-                    <ToggleControl
-                        label={editorI18n.hideAllAppointmentsField || __('Hide "All appointments" accordion', 'rrze-appointment')}
-                        help={editorI18n.hideAllAppointmentsHelp || __('If enabled, the grouped list under "All appointments" is hidden on the frontend.', 'rrze-appointment')}
-                        checked={!!hideAllAppointmentsAccordion}
-                        onChange={(value) => setAttributes({ hideAllAppointmentsAccordion: !!value })}
-                    />
 
                     <p><strong>{__('Calendar view', 'rrze-appointment')}</strong></p>
                     <p>{__('Click a date to add or remove it.', 'rrze-appointment')}</p>
@@ -757,8 +751,14 @@ export default function Edit({ attributes, setAttributes }) {
                         }
                     />
                     <ToggleControl
-                        label={__('Hide weekends (Saturday and Sunday)', 'rrze-appointment')}
-                        help={__('If enabled, weekend columns are not shown in the calendar.', 'rrze-appointment')}
+                        label={editorI18n.hideAllAppointmentsField || __('Hide "All appointments" accordion', 'rrze-appointment')}
+                        help={editorI18n.hideAllAppointmentsHelp || __('If enabled, the grouped list under "All appointments" is hidden on the frontend.', 'rrze-appointment')}
+                        checked={!!hideAllAppointmentsAccordion}
+                        onChange={(value) => setAttributes({ hideAllAppointmentsAccordion: !!value })}
+                    />
+                    <ToggleControl
+                        label={editorI18n.hideWeekendsField || __('Hide weekends', 'rrze-appointment')}
+                        help={editorI18n.hideWeekendsHelp || __('If enabled, weekend columns are not shown in the calendar.', 'rrze-appointment')}
                         checked={!!hideWeekends}
                         onChange={(value) => setAttributes({ hideWeekends: !!value })}
                     />

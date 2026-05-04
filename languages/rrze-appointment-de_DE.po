@@ -568,9 +568,11 @@ msgstr "Dunkel"
 msgid "Appearance"
 msgstr "Erscheinungsbild"
 
-msgid "Hide weekends (Saturday and Sunday)"
-msgstr "Wochenenden ausblenden (Samstag und Sonntag)"
+#: includes/Main.php src/edit.js
+msgid "Hide weekends"
+msgstr "Wochenenden ausblenden"
 
+#: includes/Main.php src/edit.js
 msgid "If enabled, weekend columns are not shown in the calendar."
 msgstr "Wenn aktiviert, werden die Wochenend-Spalten im Kalender nicht angezeigt."
 
