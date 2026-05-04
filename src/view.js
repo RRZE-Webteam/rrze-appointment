@@ -23,6 +23,47 @@
             return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         }
 
+        function getWeekdayMonthGridCells(year, monthIndex) {
+            const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+            const monthEnd = new Date(year, monthIndex, daysInMonth);
+
+            let firstWd = new Date(year, monthIndex, 1);
+            while (firstWd <= monthEnd) {
+                const dow = firstWd.getDay();
+                if (dow !== 0 && dow !== 6) {
+                    break;
+                }
+                firstWd.setDate(firstWd.getDate() + 1);
+            }
+            if (firstWd > monthEnd) {
+                return [];
+            }
+
+            const firstDowMon0 = (firstWd.getDay() + 6) % 7;
+            const cells = [];
+            for (let i = 0; i < firstDowMon0; i += 1) {
+                cells.push({ type: 'empty' });
+            }
+
+            const cursor = new Date(firstWd);
+            while (cursor <= monthEnd) {
+                const dow = cursor.getDay();
+                if (dow !== 0 && dow !== 6) {
+                    const y = cursor.getFullYear();
+                    const m = cursor.getMonth();
+                    const dNum = cursor.getDate();
+                    cells.push({ type: 'day', day: dNum, dateString: toDateString(y, m, dNum) });
+                }
+                cursor.setDate(cursor.getDate() + 1);
+            }
+
+            const trail = (5 - (cells.length % 5)) % 5;
+            for (let i = 0; i < trail; i += 1) {
+                cells.push({ type: 'empty' });
+            }
+            return cells;
+        }
+
         function getMonthDiff(start, end) {
             return ((end.getFullYear() - start.getFullYear()) * 12) + (end.getMonth() - start.getMonth());
         }
@@ -110,6 +151,7 @@
             const bookingCutoff = parseInt(form.dataset.bookingCutoff || '0', 10);
             const requireMessage = form.dataset.requireMessage === '1';
             const hideAllAppointmentsAccordion = form.dataset.hideAllAppointmentsAccordion === '1';
+            const hideWeekends = form.dataset.hideWeekends === '1';
 
             function parseSlotStart(slotValue) {
                 const parsed = parseSlotValue(slotValue);
@@ -554,29 +596,12 @@
                 monthWrapper.appendChild(titleRow);
 
                 const grid = document.createElement('div');
-                grid.className = 'rrze-appointment__calendar-grid';
-
-                WEEKDAYS.forEach((weekday) => {
-                    const cell = document.createElement('div');
-                    cell.className = 'rrze-appointment__weekday';
-                    cell.textContent = weekday;
-                    grid.appendChild(cell);
-                });
-
-                const firstWeekdayIndex = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
-                const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-
-                for (let e = 0; e < firstWeekdayIndex; e += 1) {
-                    const empty = document.createElement('div');
-                    empty.className = 'rrze-appointment__calendar-empty';
-                    grid.appendChild(empty);
-                }
+                grid.className = ['rrze-appointment__calendar-grid', hideWeekends ? 'is-hide-weekends' : ''].filter(Boolean).join(' ');
 
                 const today = new Date();
                 const todayStr = toDateString(today.getFullYear(), today.getMonth(), today.getDate());
 
-                for (let day = 1; day <= daysInMonth; day += 1) {
-                    const dateString = toDateString(year, monthIndex, day);
+                function appendDayButton(day, dateString) {
                     const dayOfWeek = new Date(year, monthIndex, day).getDay();
                     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                     const isPast = dateString < todayStr;
@@ -586,6 +611,7 @@
                     button.type = 'button';
                     button.className = 'rrze-appointment__calendar-day';
                     if (isWeekend || isPast) button.classList.add('is-past');
+                    if (isWeekend) button.classList.add('is-weekend');
                     if (isToday) button.classList.add('is-today');
                     button.textContent = String(day);
 
@@ -612,6 +638,46 @@
                     }
 
                     grid.appendChild(button);
+                }
+
+                if (hideWeekends) {
+                    WEEKDAYS.slice(0, 5).forEach((weekday) => {
+                        const cell = document.createElement('div');
+                        cell.className = 'rrze-appointment__weekday';
+                        cell.textContent = weekday;
+                        grid.appendChild(cell);
+                    });
+
+                    getWeekdayMonthGridCells(year, monthIndex).forEach((cell) => {
+                        if (cell.type === 'empty') {
+                            const empty = document.createElement('div');
+                            empty.className = 'rrze-appointment__calendar-empty';
+                            grid.appendChild(empty);
+                            return;
+                        }
+                        appendDayButton(cell.day, cell.dateString);
+                    });
+                } else {
+                    WEEKDAYS.forEach((weekday) => {
+                        const cell = document.createElement('div');
+                        cell.className = 'rrze-appointment__weekday';
+                        cell.textContent = weekday;
+                        grid.appendChild(cell);
+                    });
+
+                    const firstWeekdayIndex = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
+                    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+
+                    for (let e = 0; e < firstWeekdayIndex; e += 1) {
+                        const empty = document.createElement('div');
+                        empty.className = 'rrze-appointment__calendar-empty';
+                        grid.appendChild(empty);
+                    }
+
+                    for (let day = 1; day <= daysInMonth; day += 1) {
+                        const dateString = toDateString(year, monthIndex, day);
+                        appendDayButton(day, dateString);
+                    }
                 }
 
                 monthWrapper.appendChild(grid);

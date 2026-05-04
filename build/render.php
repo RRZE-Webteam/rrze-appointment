@@ -16,6 +16,7 @@ $tplId = (int) ($attributes['tplId'] ?? 0);
 $bookingCutoff = (int) ($attributes['bookingCutoff'] ?? 0);
 $requireMessage = !empty($attributes['requireMessage']);
 $hideAllAppointmentsAccordion = !empty($attributes['hideAllAppointmentsAccordion']);
+$hideWeekends = !empty($attributes['hideWeekends']);
 $locationUrl = (string) ($attributes['locationUrl'] ?? '');
 $color = (string) ($attributes['color'] ?? '');
 $style = (string) ($attributes['style'] ?? 'light');
@@ -63,6 +64,7 @@ $locationIsUrl = preg_match('#^https?://#i', $location) === 1;
     data-booking-cutoff="<?php echo esc_attr((string) $bookingCutoff); ?>"
     data-require-message="<?php echo $requireMessage ? '1' : '0'; ?>"
     data-hide-all-appointments-accordion="<?php echo $hideAllAppointmentsAccordion ? '1' : '0'; ?>"
+    data-hide-weekends="<?php echo $hideWeekends ? '1' : '0'; ?>"
 >
     <fieldset class="rrze-appointment__fieldset">
         <?php if ($title !== '') : ?>

@@ -568,6 +568,12 @@ msgstr "Dunkel"
 msgid "Appearance"
 msgstr "Erscheinungsbild"
 
+msgid "Hide weekends (Saturday and Sunday)"
+msgstr "Wochenenden ausblenden (Samstag und Sonntag)"
+
+msgid "If enabled, weekend columns are not shown in the calendar."
+msgstr "Wenn aktiviert, werden die Wochenend-Spalten im Kalender nicht angezeigt."
+
 msgid "Do not repeat"
 msgstr "Nicht wiederholen"
 

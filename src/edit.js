@@ -13,6 +13,7 @@ import apiFetch from '@wordpress/api-fetch';
 import {
     formatDate,
     formatDateDisplay,
+    getWeekdayMonthGridCells,
     parseDateString,
     parseTimeToMinutes,
     getCalendarDates,
@@ -94,7 +95,7 @@ function CalendarMultiSelect({ selectedDates, activeDate, onToggleDate }) {
 }
 
 
-function PreviewCalendar({ slots, onRemoveSlot, onAddSlot, activeDate, setActiveDate }) {
+function PreviewCalendar({ slots, onRemoveSlot, onAddSlot, activeDate, setActiveDate, hideWeekends }) {
     const groupedSlots = groupSlotsByDate(slots);
     const dates = Object.keys(groupedSlots).sort();
     const firstDate = parseDateString(dates[0]);
@@ -133,41 +134,80 @@ function PreviewCalendar({ slots, onRemoveSlot, onAddSlot, activeDate, setActive
                         <span>{viewDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</span>
                         <button type="button" onClick={() => setViewDate(new Date(year, monthIndex + 1, 1))} className="rrze-appointment__calendar-nav">{'›'}</button>
                     </div>
-                    <div className="rrze-appointment__calendar-grid">
-                        {weekdays.map((w) => (
-                            <div className="rrze-appointment__weekday" key={w}>{w}</div>
-                        ))}
-                        {Array.from({ length: firstWeekdayIndex }).map((_, i) => (
-                            <div className="rrze-appointment__calendar-empty" key={`empty-${i}`} />
-                        ))}
-                        {Array.from({ length: daysInMonth }).map((_, dayIndex) => {
-                            const day = dayIndex + 1;
-                            const dateString = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                            const today = new Date();
-                            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                            const dayOfWeek = new Date(year, monthIndex, day).getDay();
-                            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-                            const isPast = dateString < todayStr;
-                            const isToday = dateString === todayStr;
-                            const isAvailable = dates.includes(dateString);
-                            const isActive = dateString === activeDate;
-                            const classNames = ['rrze-appointment__calendar-day'];
-                            if (isPast || isWeekend) classNames.push('is-past');
-                            if (isToday) classNames.push('is-today');
-                            if (isAvailable) classNames.push('is-available');
-                            if (isActive) classNames.push('is-active');
-                            return (
-                                <button
-                                    key={dateString}
-                                    type="button"
-                                    className={classNames.join(' ')}
-                                    disabled={!isAvailable}
-                                    onClick={() => isAvailable && setActiveDate(dateString)}
-                                >
-                                    {day}
-                                </button>
-                            );
-                        })}
+                    <div className={['rrze-appointment__calendar-grid', hideWeekends ? 'is-hide-weekends' : ''].filter(Boolean).join(' ')}>
+                        {hideWeekends ? (
+                            <Fragment>
+                                {weekdays.slice(0, 5).map((w) => (
+                                    <div className="rrze-appointment__weekday" key={w}>{w}</div>
+                                ))}
+                                {getWeekdayMonthGridCells(year, monthIndex).map((cell, idx) => {
+                                    if (cell.type === 'empty') {
+                                        return <div className="rrze-appointment__calendar-empty" key={`w-empty-${idx}`} />;
+                                    }
+                                    const dateString = cell.dateString;
+                                    const today = new Date();
+                                    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                                    const isPast = dateString < todayStr;
+                                    const isToday = dateString === todayStr;
+                                    const isAvailable = dates.includes(dateString);
+                                    const isActive = dateString === activeDate;
+                                    const classNames = ['rrze-appointment__calendar-day'];
+                                    if (isPast) classNames.push('is-past');
+                                    if (isToday) classNames.push('is-today');
+                                    if (isAvailable) classNames.push('is-available');
+                                    if (isActive) classNames.push('is-active');
+                                    return (
+                                        <button
+                                            key={dateString}
+                                            type="button"
+                                            className={classNames.join(' ')}
+                                            disabled={!isAvailable}
+                                            onClick={() => isAvailable && setActiveDate(dateString)}
+                                        >
+                                            {cell.day}
+                                        </button>
+                                    );
+                                })}
+                            </Fragment>
+                        ) : (
+                            <Fragment>
+                                {weekdays.map((w) => (
+                                    <div className="rrze-appointment__weekday" key={w}>{w}</div>
+                                ))}
+                                {Array.from({ length: firstWeekdayIndex }).map((_, i) => (
+                                    <div className="rrze-appointment__calendar-empty" key={`empty-${i}`} />
+                                ))}
+                                {Array.from({ length: daysInMonth }).map((_, dayIndex) => {
+                                    const day = dayIndex + 1;
+                                    const dateString = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                    const today = new Date();
+                                    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                                    const dayOfWeek = new Date(year, monthIndex, day).getDay();
+                                    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                                    const isPast = dateString < todayStr;
+                                    const isToday = dateString === todayStr;
+                                    const isAvailable = dates.includes(dateString);
+                                    const isActive = dateString === activeDate;
+                                    const classNames = ['rrze-appointment__calendar-day'];
+                                    if (isPast || isWeekend) classNames.push('is-past');
+                                    if (isWeekend) classNames.push('is-weekend');
+                                    if (isToday) classNames.push('is-today');
+                                    if (isAvailable) classNames.push('is-available');
+                                    if (isActive) classNames.push('is-active');
+                                    return (
+                                        <button
+                                            key={dateString}
+                                            type="button"
+                                            className={classNames.join(' ')}
+                                            disabled={!isAvailable}
+                                            onClick={() => isAvailable && setActiveDate(dateString)}
+                                        >
+                                            {day}
+                                        </button>
+                                    );
+                                })}
+                            </Fragment>
+                        )}
                     </div>
                 </div>
             </div>
@@ -229,7 +269,8 @@ export default function Edit({ attributes, setAttributes }) {
         style,
         bookingCutoff,
         requireMessage,
-        hideAllAppointmentsAccordion
+        hideAllAppointmentsAccordion,
+        hideWeekends
     } = attributes;
 
     const colorClass = color ? `is-${color}` : '';
@@ -715,6 +756,12 @@ export default function Edit({ attributes, setAttributes }) {
                             setAttributes({ color: value })
                         }
                     />
+                    <ToggleControl
+                        label={__('Hide weekends (Saturday and Sunday)', 'rrze-appointment')}
+                        help={__('If enabled, weekend columns are not shown in the calendar.', 'rrze-appointment')}
+                        checked={!!hideWeekends}
+                        onChange={(value) => setAttributes({ hideWeekends: !!value })}
+                    />
                 </PanelBody>
 
             </InspectorControls>
@@ -732,7 +779,7 @@ export default function Edit({ attributes, setAttributes }) {
                             ) : location}</p>}
                         {slots.length > 0 ? (
                             <Fragment>
-                                <PreviewCalendar slots={slots} onRemoveSlot={handleRemoveSlot} onAddSlot={handleOpenAddSlot} activeDate={activeDate} setActiveDate={setActiveDate} />
+                                <PreviewCalendar slots={slots} onRemoveSlot={handleRemoveSlot} onAddSlot={handleOpenAddSlot} activeDate={activeDate} setActiveDate={setActiveDate} hideWeekends={!!hideWeekends} />
                                 {!hideAllAppointmentsAccordion && renderGroupedSlotsAccordion(slots, 'rrze_appointment_slot_preview', { onRemoveSlot: handleRemoveSlot, onAddSlot: handleOpenAddSlot })}
                             </Fragment>
                         ) : (
