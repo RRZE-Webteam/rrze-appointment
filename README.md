@@ -17,7 +17,7 @@ WordPress plugin for handling appointments.
 
 ## Description
 
-RRZE Appointment lets you manage appointments and office hours directly in WordPress. Features include one-click booking, email reminders, early-slot notifications, login via SS=, and automatic user data import from FAUdir. Customizable templates and Gutenberg block integration make setup quick and flexible.
+RRZE Appointment lets you manage appointments and office hours directly in WordPress. Features include one-click booking, email reminders, early-slot notifications, login via SSO, and automatic user data import from FAUdir. Customizable templates and Gutenberg block integration make setup quick and flexible.
 
 ---
 
