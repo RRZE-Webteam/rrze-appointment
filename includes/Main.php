@@ -734,12 +734,16 @@ class Main
                 $pGiven = (string) get_post_meta($personId, 'person_givenName', true);
                 $pFamily = (string) get_post_meta($personId, 'person_familyName', true);
                 $pName = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
+                if ($pName === '') {
+                    $pName = trim((string) get_the_title($personId));
+                }
             }
 
             $meta = [
                 'title' => $title,
                 'location' => $location,
                 'person_id' => $personId,
+                'person_name' => $pName,
                 'person_email' => $personEmail,
                 'booker_email' => $bookerEmail,
                 'booker_name' => $bookerName,

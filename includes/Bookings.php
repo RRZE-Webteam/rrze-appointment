@@ -33,7 +33,17 @@ class Bookings
     private static function resolvePersonName(int $personId, array $meta = []): string
     {
         if ($personId <= 0) {
-            return trim((string) ($meta['person_name'] ?? ''));
+            $storedName = trim((string) ($meta['person_name'] ?? ''));
+            if ($storedName !== '') {
+                return $storedName;
+            }
+
+            $storedEmail = sanitize_email((string) ($meta['person_email'] ?? ''));
+            if ($storedEmail !== '') {
+                return $storedEmail;
+            }
+
+            return '–';
         }
 
         $parts = array_filter([
