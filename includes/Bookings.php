@@ -14,10 +14,36 @@ class Bookings
     const SLOTS_OPTION = 'rrze_appointment_booked_slots';
     const META_OPTION  = 'rrze_appointment_booked_slots_meta';
 
+    private static function isPastSlot(string $slot): bool
+    {
+        [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
+        [$startTime] = array_pad(explode('-', $timePart, 2), 1, '');
+        if ($datePart === '' || $startTime === '') {
+            return false;
+        }
+
+        $slotStart = \DateTime::createFromFormat('Y-m-d H:i', $datePart . ' ' . $startTime, wp_timezone());
+        if (!$slotStart) {
+            return false;
+        }
+
+        return $slotStart->getTimestamp() <= current_time('timestamp');
+    }
+
     private static function resolvePersonName(int $personId, array $meta = []): string
     {
         if ($personId <= 0) {
-            return trim((string) ($meta['person_name'] ?? ''));
+            $storedName = trim((string) ($meta['person_name'] ?? ''));
+            if ($storedName !== '') {
+                return $storedName;
+            }
+
+            $storedEmail = sanitize_email((string) ($meta['person_email'] ?? ''));
+            if ($storedEmail !== '') {
+                return $storedEmail;
+            }
+
+            return '–';
         }
 
         $parts = array_filter([
@@ -47,6 +73,10 @@ class Bookings
 
             $bookings = [];
             foreach ($slots as $slot) {
+                if (self::isPastSlot((string) $slot)) {
+                    continue;
+                }
+
                 $meta = $allMeta[$slot] ?? [];
                 [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
 

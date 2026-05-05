@@ -61,6 +61,10 @@
             display: grid;
             grid-template-columns: repeat(7, minmax(2rem, 1fr));
             gap: 0.15rem;
+
+            &.is-hide-weekends {
+                grid-template-columns: repeat(5, minmax(2rem, 1fr));
+            }
         }
 
         &-empty,

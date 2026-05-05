@@ -19,6 +19,48 @@ export function formatDate(dateObj) {
     return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
 }
 
+/**
+ * Mo–Fr month grid without weekends: weekdays of the target month only, no placeholders for the previous month.
+ * Leading empties align the first in-month weekday under Mo–Fr headers; trailing empties complete the last row.
+ */
+export function getWeekdayMonthGridCells(year, monthIndex) {
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+    const monthEnd = new Date(year, monthIndex, daysInMonth);
+
+    let firstWd = new Date(year, monthIndex, 1);
+    while (firstWd <= monthEnd) {
+        const dow = firstWd.getDay();
+        if (dow !== 0 && dow !== 6) {
+            break;
+        }
+        firstWd.setDate(firstWd.getDate() + 1);
+    }
+    if (firstWd > monthEnd) {
+        return [];
+    }
+
+    const firstDowMon0 = (firstWd.getDay() + 6) % 7;
+    const cells = [];
+    for (let i = 0; i < firstDowMon0; i += 1) {
+        cells.push({ type: 'empty' });
+    }
+
+    const cursor = new Date(firstWd);
+    while (cursor <= monthEnd) {
+        const dow = cursor.getDay();
+        if (dow !== 0 && dow !== 6) {
+            cells.push({ type: 'day', day: cursor.getDate(), dateString: formatDate(cursor) });
+        }
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    const trail = (5 - (cells.length % 5)) % 5;
+    for (let i = 0; i < trail; i += 1) {
+        cells.push({ type: 'empty' });
+    }
+    return cells;
+}
+
 export function parseDateString(value) {
     if (!value || typeof value !== 'string') return null;
     const [year, month, day] = value.split('-').map(Number);

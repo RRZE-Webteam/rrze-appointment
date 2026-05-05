@@ -89,6 +89,18 @@
       "type": "number",
       "default": 0
     },
+    "requireMessage": {
+      "type": "boolean",
+      "default": false
+    },
+    "hideAllAppointmentsAccordion": {
+      "type": "boolean",
+      "default": false
+    },
+    "hideWeekends": {
+      "type": "boolean",
+      "default": false
+    },
     "color": {
       "type": "string"
     },
@@ -98,6 +110,7 @@
     }
   },
   "editorScript": "file:./index.js",
+  "render": "file:./render.php",
   "viewScript": "file:./view.js",
   "style": "file:./style-index.css"
 }

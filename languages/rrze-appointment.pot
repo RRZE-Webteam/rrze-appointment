@@ -679,3 +679,13 @@ msgstr ""
 #: includes/Main.php:342
 msgid "Your name:"
 msgstr ""
+
+#: includes/Main.php:509 includes/Main.php:522
+#: src/edit.js
+msgid "Hide weekends"
+msgstr ""
+
+#: includes/Main.php:510 includes/Main.php:523
+#: src/edit.js
+msgid "If enabled, weekend columns are not shown in the calendar."
+msgstr ""

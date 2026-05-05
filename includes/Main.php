@@ -472,6 +472,10 @@ class Main
                         'yourEmail' => __('Your email address:', 'rrze-appointment'),
                         'yourName' => __('Your name:', 'rrze-appointment'),
                         'message' => __('Message (optional):', 'rrze-appointment'),
+                        'messageOptional' => __('Message (optional):', 'rrze-appointment'),
+                        'nameRequired' => __('Please enter your name.', 'rrze-appointment'),
+                        'emailRequired' => __('Please enter a valid email address.', 'rrze-appointment'),
+                        'messageRequired' => __('Please enter a message.', 'rrze-appointment'),
                         'book' => __('Book', 'rrze-appointment'),
                         'cancel' => __('Cancel', 'rrze-appointment'),
                         'booking' => __('Booking…', 'rrze-appointment'),
@@ -494,9 +498,31 @@ class Main
     {
         try {
             $persons = $this->getFAUdirPersons();
-            $data = wp_json_encode(['persons' => $persons, 'recurrenceLimit' => (int) Settings::get('recurrence_limit')]);
+            $data = wp_json_encode([
+                'persons' => $persons,
+                'recurrenceLimit' => (int) Settings::get('recurrence_limit'),
+                'editorI18n' => [
+                    'requireMessageField' => __('Require message field', 'rrze-appointment'),
+                    'requireMessageHelp' => __('If enabled, users must fill in the message field during booking.', 'rrze-appointment'),
+                    'hideAllAppointmentsField' => __('Hide "All appointments" accordion', 'rrze-appointment'),
+                    'hideAllAppointmentsHelp' => __('If enabled, the grouped list under "All appointments" is hidden on the frontend.', 'rrze-appointment'),
+                    'hideWeekendsField' => __('Hide weekends', 'rrze-appointment'),
+                    'hideWeekendsHelp' => __('If enabled, weekend columns are not shown in the calendar.', 'rrze-appointment'),
+                ],
+            ]);
         } catch (CustomException $e) {
-            $data = wp_json_encode(['persons' => ['error' => true, 'message' => $e->getMessage(), 'data' => []], 'recurrenceLimit' => 52]);
+            $data = wp_json_encode([
+                'persons' => ['error' => true, 'message' => $e->getMessage(), 'data' => []],
+                'recurrenceLimit' => 52,
+                'editorI18n' => [
+                    'requireMessageField' => __('Require message field', 'rrze-appointment'),
+                    'requireMessageHelp' => __('If enabled, users must fill in the message field during booking.', 'rrze-appointment'),
+                    'hideAllAppointmentsField' => __('Hide "All appointments" accordion', 'rrze-appointment'),
+                    'hideAllAppointmentsHelp' => __('If enabled, the grouped list under "All appointments" is hidden on the frontend.', 'rrze-appointment'),
+                    'hideWeekendsField' => __('Hide weekends', 'rrze-appointment'),
+                    'hideWeekendsHelp' => __('If enabled, weekend columns are not shown in the calendar.', 'rrze-appointment'),
+                ],
+            ]);
         }
         wp_add_inline_script('rrze-appointment-editor-script', 'window.rrze_appointment = ' . $data . ';', 'before');
     }
@@ -669,6 +695,7 @@ class Main
             $bookerName = sanitize_text_field($_POST['booker_name'] ?? '');
             $bookerMsg = sanitize_textarea_field($_POST['booker_message'] ?? '');
             $bookerWaitlist = !empty($_POST['booker_waitlist']) && $_POST['booker_waitlist'] === '1';
+            $requireMessage = !empty($_POST['require_message']) && $_POST['require_message'] === '1';
 
             // E-Mail immer aus der Server-Session lesen, nie vom Client
             $serverBooker = Rights::get();
@@ -683,6 +710,10 @@ class Main
                 wp_send_json_error(__('No appointment specified.', 'rrze-appointment'));
             if (!$bookerEmail)
                 wp_send_json_error(__('Please provide an email address.', 'rrze-appointment'));
+            if (!$bookerName)
+                wp_send_json_error(__('Please provide your name.', 'rrze-appointment'));
+            if ($requireMessage && !$bookerMsg)
+                wp_send_json_error(__('Please provide a message.', 'rrze-appointment'));
 
             [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
             [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
@@ -703,12 +734,16 @@ class Main
                 $pGiven = (string) get_post_meta($personId, 'person_givenName', true);
                 $pFamily = (string) get_post_meta($personId, 'person_familyName', true);
                 $pName = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
+                if ($pName === '') {
+                    $pName = trim((string) get_the_title($personId));
+                }
             }
 
             $meta = [
                 'title' => $title,
                 'location' => $location,
                 'person_id' => $personId,
+                'person_name' => $pName,
                 'person_email' => $personEmail,
                 'booker_email' => $bookerEmail,
                 'booker_name' => $bookerName,
