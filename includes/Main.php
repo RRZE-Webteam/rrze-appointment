@@ -692,14 +692,17 @@ class Main
             $location = sanitize_text_field($_POST['location'] ?? '');
             $personId = (int) ($_POST['person_id'] ?? 0);
             $personEmail = sanitize_email($_POST['person_email'] ?? '');
-            $bookerName = sanitize_text_field($_POST['booker_name'] ?? '');
+            $postedBookerName = sanitize_text_field($_POST['booker_name'] ?? '');
             $bookerMsg = sanitize_textarea_field($_POST['booker_message'] ?? '');
             $bookerWaitlist = !empty($_POST['booker_waitlist']) && $_POST['booker_waitlist'] === '1';
             $requireMessage = !empty($_POST['require_message']) && $_POST['require_message'] === '1';
 
             // E-Mail immer aus der Server-Session lesen, nie vom Client
             $serverBooker = Rights::get();
+            $isSsoAuthenticated = !empty($serverBooker['idm']);
             $bookerEmail = sanitize_email($serverBooker['bookerEmail'] ?? '');
+            $serverBookerName = sanitize_text_field($serverBooker['bookerName'] ?? '');
+            $bookerName = $isSsoAuthenticated ? $serverBookerName : $postedBookerName;
             if (!$bookerEmail) {
                 wp_send_json_error(__('No authenticated email address found.', 'rrze-appointment'));
                 return;

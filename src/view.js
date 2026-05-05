@@ -263,8 +263,9 @@
                 emailInput.type = 'email';
                 emailInput.className = 'rrze-appointment__overlay-email';
                 emailInput.placeholder = 'name@example.de';
+                const isSsoBooker = !!booker.idm;
                 emailInput.value = booker.bookerEmail || '';
-                emailInput.readOnly = !!booker.bookerEmail;
+                emailInput.readOnly = isSsoBooker || !!booker.bookerEmail;
                 emailInput.required = true;
                 emailLabel.appendChild(emailInput);
 
@@ -276,7 +277,7 @@
                 nameInput.className = 'rrze-appointment__overlay-name';
                 nameInput.placeholder = 'Vorname Nachname';
                 nameInput.value = booker.bookerName || '';
-                nameInput.readOnly = !!booker.bookerName;
+                nameInput.readOnly = isSsoBooker || !!booker.bookerName;
                 nameInput.required = true;
                 nameLabel.appendChild(nameInput);
 
