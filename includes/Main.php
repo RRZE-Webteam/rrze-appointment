@@ -504,6 +504,8 @@ class Main
                 'editorI18n' => [
                     'requireMessageField' => __('Require message field', 'rrze-appointment'),
                     'requireMessageHelp' => __('If enabled, users must fill in the message field during booking.', 'rrze-appointment'),
+                    'disableSsoField' => __('Disable SSO', 'rrze-appointment'),
+                    'disableSsoHelp' => __('If enabled, booking works without SSO login.', 'rrze-appointment'),
                     'hideAllAppointmentsField' => __('Hide "All appointments" accordion', 'rrze-appointment'),
                     'hideAllAppointmentsHelp' => __('If enabled, the grouped list under "All appointments" is hidden on the frontend.', 'rrze-appointment'),
                     'hideWeekendsField' => __('Hide weekends', 'rrze-appointment'),
@@ -517,6 +519,8 @@ class Main
                 'editorI18n' => [
                     'requireMessageField' => __('Require message field', 'rrze-appointment'),
                     'requireMessageHelp' => __('If enabled, users must fill in the message field during booking.', 'rrze-appointment'),
+                    'disableSsoField' => __('Disable SSO', 'rrze-appointment'),
+                    'disableSsoHelp' => __('If enabled, booking works without SSO login.', 'rrze-appointment'),
                     'hideAllAppointmentsField' => __('Hide "All appointments" accordion', 'rrze-appointment'),
                     'hideAllAppointmentsHelp' => __('If enabled, the grouped list under "All appointments" is hidden on the frontend.', 'rrze-appointment'),
                     'hideWeekendsField' => __('Hide weekends', 'rrze-appointment'),
@@ -692,20 +696,27 @@ class Main
             $location = sanitize_text_field($_POST['location'] ?? '');
             $personId = (int) ($_POST['person_id'] ?? 0);
             $personEmail = sanitize_email($_POST['person_email'] ?? '');
+            $postedBookerEmail = sanitize_email($_POST['booker_email'] ?? '');
             $postedBookerName = sanitize_text_field($_POST['booker_name'] ?? '');
             $bookerMsg = sanitize_textarea_field($_POST['booker_message'] ?? '');
             $bookerWaitlist = !empty($_POST['booker_waitlist']) && $_POST['booker_waitlist'] === '1';
             $requireMessage = !empty($_POST['require_message']) && $_POST['require_message'] === '1';
+            $disableSso = !empty($_POST['disable_sso']) && $_POST['disable_sso'] === '1';
 
-            // E-Mail immer aus der Server-Session lesen, nie vom Client
-            $serverBooker = Rights::get();
-            $isSsoAuthenticated = !empty($serverBooker['idm']);
-            $bookerEmail = sanitize_email($serverBooker['bookerEmail'] ?? '');
-            $serverBookerName = sanitize_text_field($serverBooker['bookerName'] ?? '');
-            $bookerName = $isSsoAuthenticated ? $serverBookerName : $postedBookerName;
-            if (!$bookerEmail) {
-                wp_send_json_error(__('No authenticated email address found.', 'rrze-appointment'));
-                return;
+            if ($disableSso) {
+                $bookerEmail = $postedBookerEmail;
+                $bookerName = $postedBookerName;
+            } else {
+                // E-Mail immer aus der Server-Session lesen, nie vom Client
+                $serverBooker = Rights::get();
+                $isSsoAuthenticated = !empty($serverBooker['idm']);
+                $bookerEmail = sanitize_email($serverBooker['bookerEmail'] ?? '');
+                $serverBookerName = sanitize_text_field($serverBooker['bookerName'] ?? '');
+                $bookerName = $isSsoAuthenticated ? $serverBookerName : $postedBookerName;
+                if (!$bookerEmail) {
+                    wp_send_json_error(__('No authenticated email address found.', 'rrze-appointment'));
+                    return;
+                }
             }
             $tplId = (int) ($_POST['tpl_id'] ?? 0);
 

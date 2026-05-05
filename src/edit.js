@@ -269,6 +269,7 @@ export default function Edit({ attributes, setAttributes }) {
         style,
         bookingCutoff,
         requireMessage,
+        disableSso,
         hideAllAppointmentsAccordion,
         hideWeekends
     } = attributes;
@@ -590,6 +591,12 @@ export default function Edit({ attributes, setAttributes }) {
                         help={editorI18n.requireMessageHelp || __('If enabled, users must fill in the message field during booking.', 'rrze-appointment')}
                         checked={!!requireMessage}
                         onChange={(value) => setAttributes({ requireMessage: !!value })}
+                    />
+                    <ToggleControl
+                        label={editorI18n.disableSsoField || __('Disable SSO', 'rrze-appointment')}
+                        help={editorI18n.disableSsoHelp || __('If enabled, booking works without SSO login.', 'rrze-appointment')}
+                        checked={!!disableSso}
+                        onChange={(value) => setAttributes({ disableSso: !!value })}
                     />
 
                     <p><strong>{__('Calendar view', 'rrze-appointment')}</strong></p>

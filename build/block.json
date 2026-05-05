@@ -93,6 +93,10 @@
       "type": "boolean",
       "default": false
     },
+    "disableSso": {
+      "type": "boolean",
+      "default": false
+    },
     "hideAllAppointmentsAccordion": {
       "type": "boolean",
       "default": false
