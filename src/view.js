@@ -150,6 +150,7 @@
             const bookedSlots = new Set(window.rrze_appointment?.bookedSlots || []);
             const bookingCutoff = parseInt(form.dataset.bookingCutoff || '0', 10);
             const requireMessage = form.dataset.requireMessage === '1';
+            const disableSso = form.dataset.disableSso === '1';
             const hideAllAppointmentsAccordion = form.dataset.hideAllAppointmentsAccordion === '1';
             const hideWeekends = form.dataset.hideWeekends === '1';
 
@@ -366,6 +367,8 @@
                     data.append('person_id', form.dataset.personId || '0');
                     data.append('person_email', form.dataset.personEmail || '');
                     data.append('tpl_id', form.dataset.tplId || '0');
+                    data.append('disable_sso', disableSso ? '1' : '0');
+                    data.append('booker_email', emailValue);
                     data.append('booker_name', nameValue);
                     data.append('booker_message', messageValue);
                     data.append('booker_waitlist', waitlistCheckbox.checked ? '1' : '0');
@@ -432,6 +435,13 @@
                 }
 
                 button.addEventListener('click', () => {
+                    if (disableSso) {
+                        openOverlay(slot.value, {}, button);
+                        renderDaySlots(activeDate);
+                        renderGroupedSlots();
+                        return;
+                    }
+
                     button.disabled = true;
 
                     fetch(window.rrze_appointment?.restUrl || '/wp-json/rrze/v2/appointment/booker', {
@@ -708,7 +718,7 @@
             const autoSlot = sessionStorage.getItem('rrze_appt_slot');
             const autoPage = sessionStorage.getItem('rrze_appt_page');
             const onCorrectPage = !autoPage || autoPage === window.location.href.split('#')[0];
-            if (autoSlot && onCorrectPage) {
+            if (autoSlot && onCorrectPage && !disableSso) {
                 sessionStorage.removeItem('rrze_appt_slot');
                 sessionStorage.removeItem('rrze_appt_page');
 

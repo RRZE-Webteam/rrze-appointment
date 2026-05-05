@@ -15,6 +15,7 @@ $personEmail = (string) ($attributes['personEmail'] ?? '');
 $tplId = (int) ($attributes['tplId'] ?? 0);
 $bookingCutoff = (int) ($attributes['bookingCutoff'] ?? 0);
 $requireMessage = !empty($attributes['requireMessage']);
+$disableSso = !empty($attributes['disableSso']);
 $hideAllAppointmentsAccordion = !empty($attributes['hideAllAppointmentsAccordion']);
 $hideWeekends = !empty($attributes['hideWeekends']);
 $locationUrl = (string) ($attributes['locationUrl'] ?? '');
@@ -63,6 +64,7 @@ $locationIsUrl = preg_match('#^https?://#i', $location) === 1;
     data-tpl-id="<?php echo esc_attr((string) $tplId); ?>"
     data-booking-cutoff="<?php echo esc_attr((string) $bookingCutoff); ?>"
     data-require-message="<?php echo $requireMessage ? '1' : '0'; ?>"
+    data-disable-sso="<?php echo $disableSso ? '1' : '0'; ?>"
     data-hide-all-appointments-accordion="<?php echo $hideAllAppointmentsAccordion ? '1' : '0'; ?>"
     data-hide-weekends="<?php echo $hideWeekends ? '1' : '0'; ?>"
 >
