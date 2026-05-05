@@ -403,6 +403,15 @@ msgstr "Ihr Name:"
 msgid "Message (optional):"
 msgstr "Nachricht (optional):"
 
+msgid "Message"
+msgstr "Nachricht"
+
+msgid "Disable SSO"
+msgstr "SSO deaktivieren"
+
+msgid "If enabled, booking works without SSO login."
+msgstr "Wenn aktiviert, ist die Buchung ohne SSO-Login möglich."
+
 msgid "Please enter your name."
 msgstr "Bitte geben Sie Ihren Namen ein."
 
