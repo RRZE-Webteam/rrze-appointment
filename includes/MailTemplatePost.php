@@ -13,12 +13,6 @@ class MailTemplatePost
     private const EDITABLE_DEFAULT_CREATED_OPTION = 'rrze_appt_editable_default_template_created';
     private const TEMPLATE_TYPES = ['booking_pending', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation', 'waitlist_earlier_slot'];
 
-    private static function getWaitlistHeading(): string
-    {
-        $locale = function_exists('determine_locale') ? determine_locale() : get_locale();
-        return str_starts_with((string) $locale, 'de') ? 'Früherer Termin verfügbar' : 'Earlier appointment available';
-    }
-
     public static function register(): void
     {
         try {
@@ -174,7 +168,7 @@ class MailTemplatePost
                     . '<p><a href="[imprint_link]">' . $legal . '</a></p>',
             ],
             'waitlist_earlier_slot' => [
-                'subject'   => self::getWaitlistHeading(),
+                'subject'   => __('Earlier appointment available', 'rrze-appointment'),
                 'body'      =>
                     sprintf(__('Hello %s,', 'rrze-appointment'), '[name]')
                     . "\n\n"

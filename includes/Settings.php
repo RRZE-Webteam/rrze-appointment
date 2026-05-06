@@ -9,12 +9,6 @@ class Settings
     const OPTION_NAME = 'rrze_appointment_settings';
     const PAGE_SLUG   = 'rrze-appointment-settings';
 
-    private static function getWaitlistHeading(): string
-    {
-        $locale = function_exists('determine_locale') ? determine_locale() : get_locale();
-        return str_starts_with((string) $locale, 'de') ? 'Früherer Termin verfügbar' : 'Earlier appointment available';
-    }
-
     public static function getPlaceholders(): array
     {
         return [
@@ -432,7 +426,7 @@ class Settings
             'reminder_admin'  => __('Reminder to host', 'rrze-appointment'),
             'reminder_booker' => __('Reminder to booking person', 'rrze-appointment'),
             'cancellation'    => __('Cancellation', 'rrze-appointment'),
-            'waitlist_earlier_slot' => self::getWaitlistHeading(),
+            'waitlist_earlier_slot' => __('Earlier appointment available', 'rrze-appointment'),
         ];
         ?>
         <a href="<?php echo esc_url($backUrl); ?>" class="button" style="margin-bottom:1rem;">

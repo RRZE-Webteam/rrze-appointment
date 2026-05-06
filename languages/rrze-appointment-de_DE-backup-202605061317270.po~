@@ -122,6 +122,9 @@ msgstr "Deaktiviert"
 msgid "Earlier appointment available: %s on %s"
 msgstr "Früherer Termin verfügbar: %s am %s"
 
+msgid "Earlier appointment available"
+msgstr "Früherer Termin verfügbar"
+
 #: includes/Settings.php:329
 msgid "Edit"
 msgstr "Bearbeiten"
@@ -403,6 +406,24 @@ msgstr "Ihr Name:"
 msgid "Message (optional):"
 msgstr "Nachricht (optional):"
 
+msgid "Message"
+msgstr "Nachricht"
+
+msgid "Disable SSO"
+msgstr "SSO deaktivieren"
+
+msgid "If enabled, booking works without SSO login."
+msgstr "Wenn aktiviert, ist die Buchung ohne SSO-Login möglich."
+
+msgid "Please enter your name."
+msgstr "Bitte geben Sie Ihren Namen ein."
+
+msgid "Please enter a valid email address."
+msgstr "Bitte geben Sie eine gueltige E-Mail-Adresse ein."
+
+msgid "Please enter a message."
+msgstr "Bitte geben Sie eine Nachricht ein."
+
 msgid "Book"
 msgstr "Buchen"
 
@@ -447,6 +468,18 @@ msgstr "Kalender-Ansicht"
 
 msgid "Click a date to add or remove it."
 msgstr "Ein Klick auf ein Datum fügt es hinzu oder entfernt es wieder."
+
+msgid "Require message field"
+msgstr "Nachrichtenfeld verpflichtend"
+
+msgid "If enabled, users must fill in the message field during booking."
+msgstr "Wenn aktiviert, müssen Nutzer beim Buchen das Nachrichtenfeld ausfüllen."
+
+msgid "Hide \"All appointments\" accordion"
+msgstr "Akkordeon \"Alle Termine\" ausblenden"
+
+msgid "If enabled, the grouped list under \"All appointments\" is hidden on the frontend."
+msgstr "Wenn aktiviert, wird die gruppierte Liste unter \"Alle Termine\" im Frontend ausgeblendet."
 
 msgid "Appointment title"
 msgstr "Termin-Titel"
@@ -546,6 +579,14 @@ msgstr "Dunkel"
 
 msgid "Appearance"
 msgstr "Erscheinungsbild"
+
+#: includes/Main.php src/edit.js
+msgid "Hide weekends"
+msgstr "Wochenenden ausblenden"
+
+#: includes/Main.php src/edit.js
+msgid "If enabled, weekend columns are not shown in the calendar."
+msgstr "Wenn aktiviert, werden die Wochenend-Spalten im Kalender nicht angezeigt."
 
 msgid "Do not repeat"
 msgstr "Nicht wiederholen"
@@ -718,3 +759,60 @@ msgstr "Bestätigung"
 
 msgid "Tip: Activate the RRZE FAUdir plugin to conveniently import person data."
 msgstr "Tipp: Aktivieren Sie das RRZE-FAUdir-Plugin, um Personendaten bequem zu importieren."
+
+msgid "Standard template (editable)"
+msgstr "Standardvorlage (editierbar)"
+
+msgid "Waitlist: earlier appointment available"
+msgstr "Warteliste: Früherer Termin verfügbar"
+
+msgid "Date of current appointment"
+msgstr "Datum des aktuellen Termins"
+
+msgid "Time of current appointment"
+msgstr "Uhrzeit des aktuellen Termins"
+
+msgid "Link to post or page"
+msgstr "Link zum Beitrag oder zur Seite"
+
+msgid "Earlier appointment available: [title] on [date]"
+msgstr "Früherer Termin verfügbar: [title] am [date]"
+
+msgid ""
+"Hello [name],\n"
+"\n"
+"An earlier appointment has become available:\n"
+"\n"
+"%s: [title]\n"
+"%s: [date]\n"
+"%s: [time]\n"
+"%s: [location]\n"
+"%s: [person_name]\n"
+"\n"
+"Your current appointment is on [current_date] at [current_time].\n"
+"\n"
+"Please book the earlier slot directly on the website: [post_link]\n"
+"\n"
+"%s: [imprint_link]"
+msgstr ""
+"Hallo [name],\n"
+"\n"
+"Ein frueherer Termin ist frei geworden:\n"
+"\n"
+"%s: [title]\n"
+"%s: [date]\n"
+"%s: [time]\n"
+"%s: [location]\n"
+"%s: [person_name]\n"
+"\n"
+"Ihr aktueller Termin ist am [current_date] um [current_time].\n"
+"\n"
+"Bitte buchen Sie den frueheren Termin direkt auf der Website: [post_link]\n"
+"\n"
+"%s: [imprint_link]"
+
+msgid "Hello [name],"
+msgstr "Hallo [name],"
+
+msgid "Your current appointment is on [current_date] at [current_time]."
+msgstr "Ihr aktueller Termin ist am [current_date] um [current_time]."
