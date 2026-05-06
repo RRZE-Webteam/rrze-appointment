@@ -516,6 +516,10 @@ msgstr "Bitte geben Sie eine gueltige E-Mail-Adresse ein."
 msgid "Please enter your name."
 msgstr "Bitte geben Sie Ihren Namen ein."
 
+#: src/pre-publish.js:46
+msgid "Name and email are missing for one or more appointment blocks. The page has been saved as a draft and cannot be published until all fields are filled in."
+msgstr "Name und E-Mail fehlen in einem oder mehreren Termin-Blocks. Die Seite wurde als Entwurf gespeichert und kann erst veröffentlicht werden, wenn alle Felder ausgefüllt sind."
+
 #: includes/Main.php:735
 msgid "Please provide a message."
 msgstr "Bitte geben Sie eine Nachricht ein."
