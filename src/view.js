@@ -373,6 +373,7 @@
                     data.append('booker_message', messageValue);
                     data.append('booker_waitlist', waitlistCheckbox.checked ? '1' : '0');
                     data.append('require_message', requireMessage ? '1' : '0');
+                    data.append('post_link', window.location.href.split('#')[0]);
 
                     fetch(window.rrze_appointment?.ajaxUrl || '/wp-admin/admin-ajax.php', {
                         method: 'POST',

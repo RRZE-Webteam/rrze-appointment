@@ -9,6 +9,15 @@ defined('ABSPATH') || exit;
 class MailTemplatePost
 {
     const POST_TYPE = 'rrze_appt_mail_tpl';
+    private const EDITABLE_DEFAULT_META_KEY = '_rrze_appt_editable_default_template';
+    private const EDITABLE_DEFAULT_CREATED_OPTION = 'rrze_appt_editable_default_template_created';
+    private const TEMPLATE_TYPES = ['booking_pending', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation', 'waitlist_earlier_slot'];
+
+    private static function getWaitlistHeading(): string
+    {
+        $locale = function_exists('determine_locale') ? determine_locale() : get_locale();
+        return str_starts_with((string) $locale, 'de') ? 'Früherer Termin verfügbar' : 'Earlier appointment available';
+    }
 
     public static function register(): void
     {
@@ -29,7 +38,8 @@ class MailTemplatePost
                       'booking_host_subject', 'booking_host_body', 'booking_host_body_html',
                       'reminder_admin_subject', 'reminder_admin_body', 'reminder_admin_body_html',
                       'reminder_booker_subject', 'reminder_booker_body', 'reminder_booker_body_html',
-                      'cancellation_subject', 'cancellation_body', 'cancellation_body_html'] as $field) {
+                      'cancellation_subject', 'cancellation_body', 'cancellation_body_html',
+                      'waitlist_earlier_slot_subject', 'waitlist_earlier_slot_body', 'waitlist_earlier_slot_body_html'] as $field) {
                 register_post_meta(self::POST_TYPE, 'tpl_' . $field, [
                     'show_in_rest'  => true,
                     'single'        => true,
@@ -163,6 +173,31 @@ class MailTemplatePost
                     . $baseTable
                     . '<p><a href="[imprint_link]">' . $legal . '</a></p>',
             ],
+            'waitlist_earlier_slot' => [
+                'subject'   => self::getWaitlistHeading(),
+                'body'      =>
+                    sprintf(__('Hello %s,', 'rrze-appointment'), '[name]')
+                    . "\n\n"
+                    . __('An earlier appointment has become available:', 'rrze-appointment')
+                    . "\n\n"
+                    . "{$appointment}: [title]\n"
+                    . "{$date}: [date]\n"
+                    . "{$time}: [time]\n"
+                    . "{$location}: [location]\n"
+                    . __('Host', 'rrze-appointment') . ": [person_name]\n\n"
+                    . sprintf(__('Your current appointment is on %s at %s.', 'rrze-appointment'), '[current_date]', '[current_time]')
+                    . "\n\n"
+                    . __('Please book the earlier slot directly on the website.', 'rrze-appointment') . ': [post_link]'
+                    . "\n\n{$legal}: [imprint_link]",
+                'body_html' =>
+                    '<p>' . sprintf(__('Hello %s,', 'rrze-appointment'), '[name]') . '</p>'
+                    . '<p>' . __('An earlier appointment has become available:', 'rrze-appointment') . '</p>'
+                    . $baseTable
+                    . '<p><strong>' . __('Host', 'rrze-appointment') . ':</strong> [person_name]</p>'
+                    . '<p>' . sprintf(__('Your current appointment is on %s at %s.', 'rrze-appointment'), '[current_date]', '[current_time]') . '</p>'
+                    . '<p>' . __('Please book the earlier slot directly on the website.', 'rrze-appointment') . ' <a href="[post_link]">[post_link]</a></p>'
+                    . '<p><a href="[imprint_link]">' . $legal . '</a></p>',
+            ],
         ];
 
         return $defaults[$type] ?? ['subject' => '', 'body' => '', 'body_html' => ''];
@@ -245,7 +280,7 @@ class MailTemplatePost
 
             if (is_wp_error($result)) return $result;
 
-            foreach (['booking_pending', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation'] as $key) {
+            foreach (self::TEMPLATE_TYPES as $key) {
                 update_post_meta($result, "tpl_{$key}_subject",   sanitize_text_field($data["{$key}_subject"] ?? ''));
                 update_post_meta($result, "tpl_{$key}_body",      sanitize_textarea_field($data["{$key}_body"] ?? ''));
                 update_post_meta($result, "tpl_{$key}_body_html", wp_kses_post($data["{$key}_body_html"] ?? ''));
@@ -284,6 +319,51 @@ class MailTemplatePost
             $post = get_post($postId);
             if ($post && $post->post_type === self::POST_TYPE) {
                 wp_delete_post($postId, true);
+            }
+        } catch (\Exception $e) {
+            throw new CustomException($e->getMessage(), $e->getCode(), null);
+        }
+    }
+
+    public static function ensureEditableDefaultTemplateExists(): void
+    {
+        try {
+            $alreadyInitialized = (bool) get_option(self::EDITABLE_DEFAULT_CREATED_OPTION, false);
+            if ($alreadyInitialized) {
+                return;
+            }
+
+            $existing = get_posts([
+                'post_type'      => self::POST_TYPE,
+                'post_status'    => ['publish', 'draft', 'private', 'pending'],
+                'posts_per_page' => 1,
+                'no_found_rows'  => true,
+                'fields'         => 'ids',
+                'meta_key'       => self::EDITABLE_DEFAULT_META_KEY,
+                'meta_value'     => '1',
+            ]);
+
+            if (!empty($existing)) {
+                update_option(self::EDITABLE_DEFAULT_CREATED_OPTION, 1, false);
+                return;
+            }
+
+            $data = [
+                'id'    => 0,
+                'title' => __('Standard template (editable)', 'rrze-appointment'),
+            ];
+
+            foreach (self::TEMPLATE_TYPES as $type) {
+                $default = self::getDefault($type);
+                $data["{$type}_subject"]   = $default['subject'] ?? '';
+                $data["{$type}_body"]      = $default['body'] ?? '';
+                $data["{$type}_body_html"] = $default['body_html'] ?? '';
+            }
+
+            $newId = self::save($data, false);
+            if (!is_wp_error($newId)) {
+                update_post_meta($newId, self::EDITABLE_DEFAULT_META_KEY, '1');
+                update_option(self::EDITABLE_DEFAULT_CREATED_OPTION, 1, false);
             }
         } catch (\Exception $e) {
             throw new CustomException($e->getMessage(), $e->getCode(), null);

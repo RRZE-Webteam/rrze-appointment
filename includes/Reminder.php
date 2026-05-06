@@ -87,6 +87,7 @@ class Reminder
                 '[email]'        => $bookerEmail ?: '–',
                 '[cancel_link]'  => TokenManager::getCancelUrlForSlot($slot),
                 '[imprint_link]' => TokenManager::imprintUrl(),
+                '[post_link]'    => esc_url_raw($meta['post_link'] ?? home_url('/')),
             ];
 
             if ($personId > 0) {

@@ -135,6 +135,7 @@ class Main
     public function onInit()
     {
         $this->defaults = new Defaults();
+        MailTemplatePost::ensureEditableDefaultTemplateExists();
 
         (new Settings())->register();
         (new Reminder())->register();
@@ -702,6 +703,10 @@ class Main
             $bookerWaitlist = !empty($_POST['booker_waitlist']) && $_POST['booker_waitlist'] === '1';
             $requireMessage = !empty($_POST['require_message']) && $_POST['require_message'] === '1';
             $disableSso = !empty($_POST['disable_sso']) && $_POST['disable_sso'] === '1';
+            $postLink = esc_url_raw(wp_unslash($_POST['post_link'] ?? ''));
+            if (!$postLink) {
+                $postLink = home_url('/');
+            }
 
             if ($disableSso) {
                 $bookerEmail = $postedBookerEmail;
@@ -764,6 +769,7 @@ class Main
                 'booker_message' => $bookerMsg,
                 'booker_waitlist' => $bookerWaitlist,
                 'tpl_id' => $tplId,
+                'post_link' => $postLink,
             ];
 
             $confirmToken = TokenManager::createPending($slot, $meta);
@@ -782,6 +788,7 @@ class Main
                 '[confirmation_link]' => $confirmUrl,
                 '[cancel_link]' => TokenManager::cancelUrl(TokenManager::createPendingCancelToken($slot, $meta)),
                 '[imprint_link]' => $imprintUrl,
+                '[post_link]' => $postLink,
             ];
 
             $tpl = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'booking_pending') ?? []) : [];
@@ -892,6 +899,7 @@ class Main
                 '[confirmation_link]' => '',
                 '[cancel_link]' => $cancelUrl,
                 '[imprint_link]' => $imprintUrl,
+                '[post_link]' => esc_url_raw($meta['post_link'] ?? home_url('/')),
             ];
 
             // Mail B an Buchenden
