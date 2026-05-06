@@ -187,6 +187,7 @@ class Bookings
         $bookerName  = $bookedMeta['booker_name']  ?? '';
         $title       = $cancelledMeta['title']     ?? $bookedMeta['title'] ?? '';
         $location    = $cancelledMeta['location']  ?? '';
+        $tplId       = (int) ($bookedMeta['tpl_id'] ?? 0);
 
         $personId = (int) ($cancelledMeta['person_id'] ?? 0);
         $pName    = '';
@@ -197,42 +198,36 @@ class Bookings
             $pName   = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
         }
 
-        $subject = sprintf(
-            __('Earlier appointment available: %s on %s', 'rrze-appointment'),
-            $title,
-            date_i18n(get_option('date_format'), strtotime($cancelledDate))
-        );
+        $vars = [
+            '[title]'        => $title,
+            '[date]'         => date_i18n(get_option('date_format'), strtotime($cancelledDate)),
+            '[time]'         => $cancelledStart . ' – ' . $cancelledEnd,
+            '[current_date]' => date_i18n(get_option('date_format'), strtotime($bookedDate)),
+            '[current_time]' => $bookedStart . ' – ' . $bookedEnd,
+            '[location]'     => $location ?: '–',
+            '[person_name]'  => $pName ?: '–',
+            '[name]'         => $bookerName ?: __('there', 'rrze-appointment'),
+            '[email]'        => $bookerEmail ?: '–',
+            '[imprint_link]' => TokenManager::imprintUrl(),
+            '[post_link]'    => esc_url_raw($bookedMeta['post_link'] ?? home_url('/')),
+        ];
 
-        $plain = sprintf(
-            __(
-                "Hello %s,\n\nAn earlier appointment has become available:\n\nAppointment: %s\nDate: %s\nTime: %s\nLocation: %s\nHost: %s\n\nYour current appointment is on %s at %s.\n\nPlease book the earlier slot directly on the website.",
-                'rrze-appointment'
-            ),
-            $bookerName ?: __('there', 'rrze-appointment'),
-            $title,
-            date_i18n(get_option('date_format'), strtotime($cancelledDate)),
-            $cancelledStart . ' – ' . $cancelledEnd,
-            $location ?: '–',
-            $pName ?: '–',
-            date_i18n(get_option('date_format'), strtotime($bookedDate)),
-            $bookedStart . ' – ' . $bookedEnd
-        );
+        $tpl = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'waitlist_earlier_slot') ?? []) : [];
+        $def = MailTemplatePost::getDefault('waitlist_earlier_slot');
 
-        $html = '<p>' . sprintf(__('Hello %s,', 'rrze-appointment'), esc_html($bookerName ?: __('there', 'rrze-appointment'))) . '</p>'
-            . '<p>' . __('An earlier appointment has become available:', 'rrze-appointment') . '</p>'
-            . '<table>'
-            . '<tr><th>' . __('Appointment', 'rrze-appointment') . '</th><td>' . esc_html($title) . '</td></tr>'
-            . '<tr><th>' . __('Date', 'rrze-appointment') . '</th><td>' . esc_html(date_i18n(get_option('date_format'), strtotime($cancelledDate))) . '</td></tr>'
-            . '<tr><th>' . __('Time', 'rrze-appointment') . '</th><td>' . esc_html($cancelledStart . ' – ' . $cancelledEnd) . '</td></tr>'
-            . '<tr><th>' . __('Location', 'rrze-appointment') . '</th><td>' . esc_html($location ?: '–') . '</td></tr>'
-            . '<tr><th>' . __('Host', 'rrze-appointment') . '</th><td>' . esc_html($pName ?: '–') . '</td></tr>'
-            . '</table>'
-            . '<p>' . sprintf(
-                __('Your current appointment is on %s at %s.', 'rrze-appointment'),
-                esc_html(date_i18n(get_option('date_format'), strtotime($bookedDate))),
-                esc_html($bookedStart . ' – ' . $bookedEnd)
-            ) . '</p>'
-            . '<p>' . __('Please book the earlier slot directly on the website.', 'rrze-appointment') . '</p>';
+        $bodyTpl     = !empty($tpl['body']) ? $tpl['body'] : $def['body'];
+        $bodyHtmlTpl = !empty($tpl['body_html']) ? $tpl['body_html'] : $def['body_html'];
+
+        if (strpos($bodyTpl, '[imprint_link]') === false) {
+            $bodyTpl .= "\n\n" . __('Imprint', 'rrze-appointment') . ": [imprint_link]";
+        }
+        if (strpos($bodyHtmlTpl, '[imprint_link]') === false) {
+            $bodyHtmlTpl .= '<p><a href="[imprint_link]">' . __('Imprint', 'rrze-appointment') . '</a></p>';
+        }
+
+        $subject = Settings::renderTemplate(!empty($tpl['subject']) ? $tpl['subject'] : $def['subject'], $vars);
+        $plain   = Settings::renderTemplate($bodyTpl, $vars);
+        $html    = Settings::renderTemplate($bodyHtmlTpl, $vars);
 
         Settings::sendMail($bookerEmail, $subject, $plain, MailTemplate::wrap($html, $subject));
     }
@@ -268,6 +263,7 @@ class Bookings
                 '[email]'             => $bookerEmail ?: '–',
                 '[cancel_link]'       => '',
                 '[imprint_link]'      => TokenManager::imprintUrl(),
+                '[post_link]'         => esc_url_raw($meta['post_link'] ?? home_url('/')),
             ];
 
             $tpl = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'cancellation') ?? []) : [];

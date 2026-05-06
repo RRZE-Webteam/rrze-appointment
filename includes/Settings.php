@@ -15,6 +15,8 @@ class Settings
             '[title]'             => __('Title of the appointment', 'rrze-appointment'),
             '[date]'              => __('Date of the appointment', 'rrze-appointment'),
             '[time]'              => __('Time (from – to)', 'rrze-appointment'),
+            '[current_date]'      => __('Date of current appointment', 'rrze-appointment'),
+            '[current_time]'      => __('Time of current appointment', 'rrze-appointment'),
             '[location]'          => __('Location', 'rrze-appointment'),
             '[person_name]'       => __('Inviting person', 'rrze-appointment'),
             '[name]'              => __('Booking person (name)', 'rrze-appointment'),
@@ -23,6 +25,7 @@ class Settings
             '[confirmation_link]' => __('Link to booking confirmation', 'rrze-appointment'),
             '[cancel_link]'       => __('Link to cancel', 'rrze-appointment'),
             '[imprint_link]'      => __('Link to imprint', 'rrze-appointment'),
+            '[post_link]'         => __('Link to post or page', 'rrze-appointment'),
         ];
     }
 
@@ -149,7 +152,7 @@ class Settings
             if (empty($title)) {
                 $isDraft = true;
             } else {
-                foreach (['booking_pending', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation'] as $key) {
+                foreach (['booking_pending', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation', 'waitlist_earlier_slot'] as $key) {
                     $subject = sanitize_text_field($_POST["{$key}_subject"] ?? '');
                     $body    = sanitize_textarea_field($_POST["{$key}_body"] ?? '');
                     if (empty($subject) || empty($body)) {
@@ -189,9 +192,12 @@ class Settings
             '[confirmation_link]' => home_url('/'),
             '[cancel_link]'       => home_url('/'),
             '[imprint_link]'      => TokenManager::imprintUrl(),
+            '[post_link]'         => home_url('/'),
+            '[current_date]'      => date_i18n(get_option('date_format'), strtotime('+5 days')),
+            '[current_time]'      => '12:00 – 12:30',
         ];
 
-        $types = ['booking_pending', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation'];
+        $types = ['booking_pending', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation', 'waitlist_earlier_slot'];
         $sent  = 0;
 
         foreach ($types as $type) {
@@ -397,7 +403,7 @@ class Settings
     {
         $backUrl  = add_query_arg(['page' => self::PAGE_SLUG, 'tab' => 'templates'], admin_url('options-general.php'));
         $title    = '';
-        $sections = ['booking_pending' => [], 'booking_booker' => [], 'booking_host' => [], 'reminder_admin' => [], 'reminder_booker' => [], 'cancellation' => []];
+        $sections = ['booking_pending' => [], 'booking_booker' => [], 'booking_host' => [], 'reminder_admin' => [], 'reminder_booker' => [], 'cancellation' => [], 'waitlist_earlier_slot' => []];
 
         if ($id > 0) {
             $post = get_post($id);
@@ -420,6 +426,7 @@ class Settings
             'reminder_admin'  => __('Reminder to host', 'rrze-appointment'),
             'reminder_booker' => __('Reminder to booking person', 'rrze-appointment'),
             'cancellation'    => __('Cancellation', 'rrze-appointment'),
+            'waitlist_earlier_slot' => __('Earlier appointment available', 'rrze-appointment'),
         ];
         ?>
         <a href="<?php echo esc_url($backUrl); ?>" class="button" style="margin-bottom:1rem;">
