@@ -1,5 +1,10 @@
 .rrze-appointment,
 .rrze-appointment-block {
+    $border-radius: 0;
+    $hover-bg: #0D6EFD;
+    $hover-text: #fff;
+    $hover-border: #0D6EFD;
+
     // Caret SVG (FontAwesome chevron-down)
     $caret-svg: "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20320%20512%22%3E%3Cpath%20d%3D%22M137.4%20374.6c12.5%2012.5%2032.8%2012.5%2045.3%200l128-128c9.2-9.2%2011.9-22.9%206.9-34.9s-16.6-19.8-29.6-19.8L32%20192c-12.9%200-24.6%207.8-29.6%2019.8s-2.2%2025.7%206.9%2034.9l128%20128z%22%2F%3E%3C%2Fsvg%3E";
 
@@ -41,6 +46,24 @@
     --rrze-appointment-accordion-accent: var(--rrze-appointment-accordion-bg-active);
     --rrze-appointment-accordion-accent-dark: var(--rrze-appointment-accordion-bg-active-hover);
 
+    fieldset {
+        border: none;
+        padding: 0;
+    }
+
+    legend.rrze-appointment__title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 1rem;
+        padding-top: 2rem;
+    }
+
+    p.rrze-appointment__description,
+    p.rrze-appointment__location {
+        margin-bottom: 2rem;
+    }
+
     &__calendar,
     &__calendar-select {
         margin-bottom: 1rem;
@@ -76,32 +99,62 @@
         }
 
         $cal-border-default: #c8c9c7; // Cool Gray 3 C
-        $cal-bg-past: #d9d9d6; // Cool Gray 1 C
-        $cal-text-past: #97999b; // Cool Gray 7 C
-        $cal-bg-available: #D0E2CC;
-        $cal-border-available: #007a5e;
-        $cal-bg-active: #8eb4d5;
-        $cal-today-outline: #ffc72c;
+        $cal-bg-past: #DFE2E7; // Cool Gray
+        $cal-text-past: #04316a;
+        $cal-bg-available: #10C000;
+        $cal-text-available: #000;
+        $cal-border-available: #10C000;
+        $cal-bg-active: #0D6EFD;
+        $cal-text-active: #fff;
+        $cal-today-outline: #FDDF35;
+        $cal-hover-bg-available: #fff;
+        $cal-hover-text-available: $cal-bg-available;
 
         &-day {
             border: 1px solid $cal-border-default;
-            border-radius: 0.35rem;
+            border-radius: $border-radius;
             background-color: #fff !important;
-            color: #1e1e1e !important;
+            color: #04316a !important;
+            position: relative;
+            height: 42px;
+            font-size: 0.85rem;
 
             &.is-past {
                 background-color: $cal-bg-past !important;
                 border-color: $cal-bg-past;
             }
 
+            &.is-past:not(.is-available) {
+                &::after {
+                    content: "";
+                    position: absolute;
+                    inset: 0;
+                    z-index: 1;
+
+                    pointer-events: none;
+                    opacity: 0.32;
+
+                    background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M-12 24L24 -12M0 36L36 0M12 48L48 12' stroke='%23ffffff' stroke-width='0.8' stroke-linecap='butt'/%3E%3C/svg%3E");
+                    background-repeat: repeat;
+                    background-size: 24px 24px;
+                }
+            }
+
             &.is-available {
                 background-color: $cal-bg-available !important;
+                color: $cal-text-available !important;
                 border-color: $cal-border-available;
                 cursor: pointer;
+                &:hover {
+                    background-color: $hover-bg !important;
+                    color: $hover-text !important;
+                    border-color: $hover-border;
+                }
             }
 
             &.is-active {
                 background-color: $cal-bg-active !important;
+                color: #fff !important;
                 border-color: $cal-bg-active;
             }
 
@@ -121,7 +174,7 @@
         &-nav {
             background: none;
             border: 1px solid $cal-border-default;
-            border-radius: 4px;
+            border-radius: $border-radius;
             color: #1e1e1e;
             cursor: pointer;
             font-size: 22px;
@@ -134,10 +187,18 @@
             // padding: 2px 8px;
             padding: 0;
         }
+
+        button.rrze-appointment__calendar-nav:hover{
+            background: $hover-bg;
+            color: $hover-text;
+            border-color: $hover-border;
+        }
     }
 
     &__weekday {
-        font-size: 0.8rem;
+        font-size: 0.85rem;
+        padding-top: .125rem;
+        padding-bottom: .125rem;
         font-weight: 600;
         text-align: center;
         color: #555;
@@ -203,6 +264,14 @@
             display: none;
         }
 
+        >.rrze-appointment__slot-grid button.rrze-appointment__slot-button {
+            margin-bottom: .125rem;
+        }
+
+        >.rrze-appointment__slot-grid button:last-of-type {
+            margin-bottom: 2rem;
+        }
+
         &[data-accordion="open"] {
 
             >.rrze-appointment__accordion-toggle,
@@ -240,6 +309,15 @@
         margin-top: 0.5rem;
     }
 
+    &__day-slots-title {
+        font-weight: 700;
+        font-size: 24px;
+        line-height: 1.3;
+        letter-spacing: 2%;
+        color: #04316a;
+        margin-top: 2rem;
+    }
+
     &__slot-item {
         position: relative;
         display: block;
@@ -261,8 +339,8 @@
         display: block;
 
         &:hover .rrze-appointment__slot-button {
-            border-color: #7da7f7;
-            background: #f3f8ff;
+            border-color: $hover-text;
+            background: $hover-bg;
         }
     }
 
@@ -281,9 +359,11 @@
     &__slot-button {
         display: block;
         width: 100%;
+        height: 42px;
+        font-size: .85rem;
         padding: 0.5rem 0.65rem;
         border: 1px solid #d0d7de;
-        border-radius: 0.35rem;
+        border-radius: $border-radius;
         background: #fff;
         color: #1e1e1e;
         text-align: center;
@@ -291,9 +371,9 @@
         transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 
         &:hover {
-            border-color: #7da7f7;
-            background: #f3f8ff;
-            color: #7bb725 !important;
+            border-color: $hover-border;
+            background: $hover-bg;
+            color: $hover-text !important;
         }
 
         &.is-active {
@@ -598,6 +678,10 @@ $_tf-dark: #2f586e;
             }
         }
     }
+
+    .is-style-dark .rrze-appointment__calendar-nav {
+        color: #fff;
+    }
 }
 
 // ── FAU Elemental ─────────────────────────────────────────────────────────────
@@ -606,6 +690,11 @@ $_elemental-caret: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'
 .wp-theme-FAU-Elemental .rrze-appointment,
 .fau-elemental .rrze-appointment {
     border-top: 1px solid var(--FAU-Col-FAU-Blau-100, #e9edf2);
+
+    .rrze-appointment__weekday {
+        background: none;
+        color: #fff;
+    }
 
     .rrze-appointment__accordion,
     .rrze-appointment__date-group {
