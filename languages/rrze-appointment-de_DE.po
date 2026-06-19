@@ -765,3 +765,202 @@ msgstr "Ihre E-Mail-Adresse:"
 #: includes/Main.php:474
 msgid "Your name:"
 msgstr "Ihr Name:"
+
+#: includes/Settings.php:756
+msgid "Guided tour"
+msgstr "Geführte Tour"
+
+#: includes/Settings.php:759
+msgid "Setup tour"
+msgstr "Setup-Tour"
+
+#: src/js/rrze-appointment-guided-tour.js
+msgid "Welcome to RRZE Appointment"
+msgstr "Willkommen bei RRZE Appointment"
+
+#: src/js/rrze-appointment-guided-tour.js
+msgid ""
+"This plugin lets you offer bookable appointment slots on your website — with "
+"calendar view, email confirmations, and optional FAUdir integration."
+msgstr ""
+"Mit diesem Plugin können Sie buchbare Terminslots auf Ihrer Website anbieten — "
+"mit Kalenderansicht, E-Mail-Bestätigungen und optionaler FAUdir-Anbindung."
+
+#: src/js/rrze-appointment-guided-tour.js
+msgid "Create appointments with the block"
+msgstr "Termine mit dem Block anlegen"
+
+#: src/js/rrze-appointment-guided-tour.js
+msgid ""
+"Insert the RRZE Appointment block in the editor, select dates and times, "
+"assign a host, and publish the page."
+msgstr ""
+"Fügen Sie den RRZE-Appointment-Block im Editor ein, wählen Sie Datum und "
+"Uhrzeit, weisen Sie eine Person zu und veröffentlichen Sie die Seite."
+
+#: src/js/rrze-appointment-guided-tour.js
+msgid "Customize mail templates"
+msgstr "Mail-Vorlagen anpassen"
+
+#: src/js/rrze-appointment-guided-tour.js
+msgid ""
+"Under Settings → RRZE Appointment → Mail Templates you can adapt "
+"confirmation, reminder, and cancellation emails using placeholders."
+msgstr ""
+"Unter Einstellungen → RRZE Appointment → Mail-Vorlagen können Sie "
+"Bestätigungs-, Erinnerungs- und Storno-Mails mit Platzhaltern anpassen."
+
+#: src/js/rrze-appointment-guided-tour.js src/js/setup-tour.js
+msgid "Manage bookings"
+msgstr "Buchungen verwalten"
+
+#: src/js/rrze-appointment-guided-tour.js
+msgid ""
+"Use the Appointments menu to review all bookings, filter by date or person, "
+"and cancel appointments when needed."
+msgstr ""
+"Nutzen Sie das Menü Termine, um alle Buchungen einzusehen, nach Datum oder "
+"Person zu filtern und Termine bei Bedarf zu stornieren."
+
+#: src/js/rrze-appointment-guided-tour.js
+msgid "RRZE Appointment guided tour"
+msgstr "RRZE Appointment Geführte Tour"
+
+#: src/js/rrze-appointment-guided-tour.js
+msgid "Get started"
+msgstr "Loslegen"
+
+#: src/js/setup-tour.js
+msgid "General settings"
+msgstr "Allgemeine Einstellungen"
+
+#: src/js/setup-tour.js
+msgid ""
+"Open the General tab to configure reminder emails and the recurrence limit "
+"for repeating appointments."
+msgstr ""
+"Öffnen Sie den Tab Allgemein, um Erinnerungsmails und das Wiederholungslimit "
+"für wiederkehrende Termine zu konfigurieren."
+
+#: src/js/setup-tour.js
+msgid "Reminder email"
+msgstr "Erinnerungsmail"
+
+#: src/js/setup-tour.js
+msgid ""
+"Choose how many days before an appointment reminder emails are sent to the "
+"host and the person who booked."
+msgstr ""
+"Wählen Sie, wie viele Tage vor dem Termin Erinnerungsmails an die einladende "
+"Person und die buchende Person versendet werden."
+
+#: src/js/setup-tour.js
+msgid ""
+"Set the maximum number of recurring appointment dates generated from a single "
+"block."
+msgstr ""
+"Legen Sie die maximale Anzahl wiederkehrender Termine fest, die aus einem "
+"einzelnen Block erzeugt werden."
+
+#: src/js/setup-tour.js
+msgid "Save settings"
+msgstr "Einstellungen speichern"
+
+#: src/js/setup-tour.js
+msgid "Click Save changes to store your general settings."
+msgstr ""
+"Klicken Sie auf Änderungen speichern, um Ihre allgemeinen Einstellungen zu "
+"speichern."
+
+#: src/js/setup-tour.js
+msgid "Mail templates tab"
+msgstr "Tab Mail-Vorlagen"
+
+#: src/js/setup-tour.js
+msgid ""
+"Switch to Mail Templates to customize confirmation, reminder, and "
+"cancellation emails."
+msgstr ""
+"Wechseln Sie zu Mail-Vorlagen, um Bestätigungs-, Erinnerungs- und Storno-"
+"Mails anzupassen."
+
+#: src/js/setup-tour.js
+msgid "Create a template"
+msgstr "Vorlage erstellen"
+
+#: src/js/setup-tour.js
+msgid ""
+"Create a custom mail template or use the built-in default. You can send test "
+"emails to verify the content."
+msgstr ""
+"Erstellen Sie eine eigene Mail-Vorlage oder nutzen Sie die eingebaute "
+"Standardvorlage. Sie können Testmails versenden, um den Inhalt zu prüfen."
+
+#: src/js/setup-tour.js
+msgid "Appointments overview"
+msgstr "Terminübersicht"
+
+#: src/js/setup-tour.js
+msgid ""
+"Open the Appointments menu to view, filter, and cancel bookings from the "
+"frontend."
+msgstr ""
+"Öffnen Sie das Menü Termine, um Buchungen aus dem Frontend einzusehen, zu "
+"filtern und zu stornieren."
+
+#: src/js/setup-tour.js
+msgid "Filter appointments"
+msgstr "Termine filtern"
+
+#: src/js/setup-tour.js
+msgid ""
+"Filter bookings by date range or person to quickly find specific appointments."
+msgstr ""
+"Filtern Sie Buchungen nach Datumsbereich oder Person, um bestimmte Termine "
+"schnell zu finden."
+
+#: src/js/setup-tour.js
+msgid ""
+"Each row shows date, time, title, host, and booker. Use Cancel booking to "
+"release a slot and notify participants."
+msgstr ""
+"Jede Zeile zeigt Datum, Uhrzeit, Titel, einladende Person und buchende Person. "
+"Mit Stornieren geben Sie einen Slot frei und benachrichtigen die Beteiligten."
+
+#: src/js/setup-tour.js
+msgid "Close setup tour"
+msgstr "Setup-Tour schließen"
+
+#: src/js/setup-tour.js
+msgid "Continue to the next section to see the highlighted field."
+msgstr ""
+"Wechseln Sie zum nächsten Bereich, um das hervorgehobene Feld zu sehen."
+
+#: src/js/setup-tour.js
+msgid "Open"
+msgstr "Öffnen"
+
+#: src/js/setup-tour.js
+msgid "Continue"
+msgstr "Weiter"
+
+#: src/js/setup-tour.js
+msgid "Next"
+msgstr "Weiter"
+
+#: src/js/setup-tour-step.js
+#, php-format
+msgid "Step %1$d of %2$d"
+msgstr "Schritt %1$d von %2$d"
+
+#: src/js/setup-tour-step.js
+msgid "Previous"
+msgstr "Zurück"
+
+#: src/js/setup-tour-step.js
+msgid "Skip tour"
+msgstr "Tour überspringen"
+
+#: src/js/setup-tour-step.js
+msgid "Finish"
+msgstr "Fertig"
