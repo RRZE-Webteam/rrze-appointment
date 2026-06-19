@@ -78,6 +78,9 @@ class Settings
         add_action('admin_init', [$this, 'handleCancelPost']);
         add_action('admin_init', [$this, 'handleTestMail']);
         add_action('admin_print_footer_scripts', [$this, 'renderAdminJs']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueueGuidedTour']);
+        add_action('wp_ajax_rrze_appointment_dismiss_guided_tour', [$this, 'dismissGuidedTour']);
+        add_action('wp_ajax_rrze_appointment_dismiss_setup_tour', [$this, 'dismissSetupTour']);
     }
 
     public function addMenuPage(): void
@@ -237,8 +240,11 @@ class Settings
     {
         if (!current_user_can('manage_options')) return;
         ?>
-        <div class="wrap">
-            <h1><?php esc_html_e('Appointments', 'rrze-appointment'); ?></h1>
+        <div class="wrap rrze-appointment-settings-wrap">
+            <h1 class="wp-heading-inline" data-rrze-tour="bookings-page"><?php esc_html_e('Appointments', 'rrze-appointment'); ?></h1>
+            <?php $this->renderGuidedTourButtons(); ?>
+            <hr class="wp-header-end">
+            <div id="rrze-appointment-guided-tour-root"></div>
             <?php $this->renderTabBookings(); ?>
         </div>
         <?php
@@ -251,7 +257,7 @@ class Settings
         for ($i = 1; $i <= 7; $i++) {
             $options[$i] = $i;
         }
-        echo '<select name="' . esc_attr(self::OPTION_NAME) . '[reminder_days]">';
+        echo '<select name="' . esc_attr(self::OPTION_NAME) . '[reminder_days]" data-rrze-tour="reminder-days">';
         foreach ($options as $val => $label) {
             printf('<option value="%d"%s>%s</option>', $val, selected($value, $val, false), esc_html($label));
         }
@@ -262,7 +268,7 @@ class Settings
     {
         $value = (int) self::get('recurrence_limit');
         printf(
-            '<input type="number" name="%s[recurrence_limit]" value="%d" min="1" max="730" step="1" class="small-text"> %s',
+            '<input type="number" name="%s[recurrence_limit]" value="%d" min="1" max="730" step="1" class="small-text" data-rrze-tour="recurrence-limit"> %s',
             esc_attr(self::OPTION_NAME),
             $value,
             esc_html__('Maximum number of recurrences (default: 52).', 'rrze-appointment')
@@ -280,15 +286,18 @@ class Settings
             'templates' => __('Mail Templates', 'rrze-appointment'),
         ];
         ?>
-        <div class="wrap">
-            <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
+        <div class="wrap rrze-appointment-settings-wrap">
+            <h1 class="wp-heading-inline"><?php echo esc_html(get_admin_page_title()); ?></h1>
+            <?php $this->renderGuidedTourButtons(); ?>
+            <hr class="wp-header-end">
+            <div id="rrze-appointment-guided-tour-root"></div>
 
             <nav class="nav-tab-wrapper">
                 <?php foreach ($tabs as $key => $label) :
                     $url    = add_query_arg(['page' => self::PAGE_SLUG, 'tab' => $key], admin_url('options-general.php'));
                     $active = $tab === $key ? ' nav-tab-active' : '';
                     ?>
-                    <a href="<?php echo esc_url($url); ?>" class="nav-tab<?php echo $active; ?>"><?php echo esc_html($label); ?></a>
+                    <a href="<?php echo esc_url($url); ?>" class="nav-tab<?php echo $active; ?>" data-rrze-tour="tab-<?php echo esc_attr($key); ?>"><?php echo esc_html($label); ?></a>
                 <?php endforeach; ?>
             </nav>
 
@@ -310,7 +319,7 @@ class Settings
             <?php
             settings_fields('rrze_appointment_settings_group');
             do_settings_sections(self::PAGE_SLUG);
-            submit_button();
+            submit_button(null, 'primary', 'submit', true, ['data-rrze-tour' => 'save-settings']);
             ?>
         </form>
         <?php
@@ -342,11 +351,11 @@ class Settings
         $templates = MailTemplatePost::getAll();
         $newUrl    = add_query_arg(['page' => self::PAGE_SLUG, 'tab' => 'templates', 'new' => '1'], admin_url('options-general.php'));
         ?>
-        <a href="<?php echo esc_url($newUrl); ?>" class="button button-primary" style="margin-bottom:1rem;">
+        <a href="<?php echo esc_url($newUrl); ?>" class="button button-primary" style="margin-bottom:1rem;" data-rrze-tour="new-template">
             <?php esc_html_e('New Template', 'rrze-appointment'); ?>
         </a>
 
-        <table class="widefat striped" style="margin-top:0.5rem;">
+        <table class="widefat striped" style="margin-top:0.5rem;" data-rrze-tour="template-list">
             <thead>
                 <tr>
                     <th><?php esc_html_e('Title', 'rrze-appointment'); ?></th>
@@ -544,7 +553,7 @@ class Settings
         $persons        = Bookings::getPersonsFromBookings();
         $baseUrl        = add_query_arg(['page' => 'rrze-appointment-bookings'], admin_url('admin.php'));
         ?>
-        <form method="get" action="" style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+        <form method="get" action="" style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;" data-rrze-tour="bookings-filter">
             <input type="hidden" name="page" value="rrze-appointment-bookings">
             <label>
                 <?php esc_html_e('From', 'rrze-appointment'); ?>
@@ -572,7 +581,7 @@ class Settings
         <?php if (empty($bookings)) : ?>
             <p><?php esc_html_e('No appointments found.', 'rrze-appointment'); ?></p>
         <?php else : ?>
-            <table class="widefat striped">
+            <table class="widefat striped" data-rrze-tour="bookings-table">
                 <thead>
                     <tr>
                         <th><?php esc_html_e('Date', 'rrze-appointment'); ?></th>
@@ -738,5 +747,140 @@ class Settings
         }());
         </script>
         <?php
+    }
+
+    private function renderGuidedTourButtons(): void
+    {
+        ?>
+        <button type="button" id="rrze-appointment-start-guided-tour" class="page-title-action">
+            <?php esc_html_e('Guided tour', 'rrze-appointment'); ?>
+        </button>
+        <button type="button" id="rrze-appointment-start-setup-tour" class="page-title-action">
+            <?php esc_html_e('Setup tour', 'rrze-appointment'); ?>
+        </button>
+        <?php
+    }
+
+    public function enqueueGuidedTour(string $hook): void
+    {
+        $guide_hooks = [
+            'settings_page_' . self::PAGE_SLUG,
+            'toplevel_page_rrze-appointment-bookings',
+        ];
+
+        if (!in_array($hook, $guide_hooks, true)) {
+            return;
+        }
+
+        $script_path = plugin()->getPath() . 'build/rrze-appointment-guided-tour.js';
+        $asset_path  = plugin()->getPath() . 'build/rrze-appointment-guided-tour.asset.php';
+
+        if (!is_readable($script_path) || !is_readable($asset_path)) {
+            return;
+        }
+
+        /** @var array{dependencies: string[], version: string} $asset_file */
+        $asset_file = include $asset_path;
+
+        wp_enqueue_style('dashicons');
+        wp_enqueue_style('wp-components');
+
+        $admin_css = plugin()->getPath() . 'assets/css/rrze-appointment-admin.css';
+        if (is_readable($admin_css)) {
+            wp_enqueue_style(
+                'rrze-appointment-admin-css',
+                plugin()->getUrl() . 'assets/css/rrze-appointment-admin.css',
+                ['wp-components'],
+                (string) filemtime($admin_css)
+            );
+        }
+
+        foreach (['wp-element', 'wp-components'] as $package_handle) {
+            wp_enqueue_script($package_handle);
+        }
+
+        wp_enqueue_script(
+            'rrze-appointment-guided-tour',
+            plugin()->getUrl() . 'build/rrze-appointment-guided-tour.js',
+            $asset_file['dependencies'],
+            $asset_file['version'],
+            true
+        );
+
+        wp_set_script_translations(
+            'rrze-appointment-guided-tour',
+            'rrze-appointment',
+            plugin()->getPath('languages')
+        );
+
+        $setupTourStepId = '';
+        if (isset($_GET['rrze_setup_tour_step'])) {
+            $setupTourStepId = sanitize_key((string) wp_unslash($_GET['rrze_setup_tour_step']));
+        }
+
+        $context = $this->getActiveGuideContext();
+
+        wp_localize_script('rrze-appointment-guided-tour', 'rrzeAppointmentGuide', [
+            'autoStart'       => !get_user_meta(get_current_user_id(), 'rrze_appointment_guided_tour_dismissed', true),
+            'autoStartSetup'  => isset($_GET['rrze_setup_tour']),
+            'setupTourStepId' => $setupTourStepId,
+            'settingsUrl'     => add_query_arg(['page' => self::PAGE_SLUG], admin_url('options-general.php')),
+            'bookingsUrl'     => add_query_arg(['page' => 'rrze-appointment-bookings'], admin_url('admin.php')),
+            'activeTab'       => $context['tab'],
+            'activeScreen'    => $context['screen'],
+            'ajaxUrl'         => admin_url('admin-ajax.php'),
+            'nonce'           => wp_create_nonce('rrze_appointment_guided_tour'),
+            'setupTourNonce'  => wp_create_nonce('rrze_appointment_setup_tour'),
+        ]);
+    }
+
+    public function dismissSetupTour(): void
+    {
+        check_ajax_referer('rrze_appointment_setup_tour', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(null, 403);
+        }
+
+        update_user_meta(get_current_user_id(), 'rrze_appointment_setup_tour_dismissed', 1);
+        wp_send_json_success();
+    }
+
+    public function dismissGuidedTour(): void
+    {
+        check_ajax_referer('rrze_appointment_guided_tour', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(null, 403);
+        }
+
+        update_user_meta(get_current_user_id(), 'rrze_appointment_guided_tour_dismissed', 1);
+        wp_send_json_success();
+    }
+
+    private function isOnGuidePage(): bool
+    {
+        $screen = get_current_screen();
+        if (!$screen) {
+            return false;
+        }
+
+        return in_array($screen->id, ['settings_page_' . self::PAGE_SLUG, 'toplevel_page_rrze-appointment-bookings'], true);
+    }
+
+    /**
+     * @return array{screen: string, tab: string}
+     */
+    private function getActiveGuideContext(): array
+    {
+        $screen = get_current_screen();
+        if ($screen && $screen->id === 'toplevel_page_rrze-appointment-bookings') {
+            return ['screen' => 'bookings', 'tab' => ''];
+        }
+
+        return [
+            'screen' => 'settings',
+            'tab'    => sanitize_key($_GET['tab'] ?? 'general'),
+        ];
     }
 }
