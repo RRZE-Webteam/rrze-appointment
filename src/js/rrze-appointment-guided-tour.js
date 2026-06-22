@@ -72,6 +72,11 @@ function ToursApp( { autoStartGuide, autoStartSetup, setupTourStepId } ) {
 		dismissTour();
 	};
 
+	const githubUrl =
+		'https://github.com/RRZE-Webteam/rrze-appointment';
+	const docuUrl =
+		'https://www.wp.rrze.fau.de/plugins/externe-daten-einbinden/rrze-appointment/';
+
 	const guidePages = [
 		{
 			image: <GuideIcon dashicon="dashicons-welcome-learn-more" />,
@@ -143,6 +148,45 @@ function ToursApp( { autoStartGuide, autoStartSetup, setupTourStepId } ) {
 				</>
 			),
 		},
+		{
+			image: <GuideIcon dashicon="dashicons-heart" />,
+			content: (
+				<>
+					<h1 className="rrze-appointment-guided-tour__heading">
+						{ __( 'Feedback and open source', 'rrze-appointment' ) }
+					</h1>
+					<p className="rrze-appointment-guided-tour__text">
+						{ __(
+							'We welcome your feedback. Everyone who wants to contribute is invited to take part.',
+							'rrze-appointment'
+						) }
+					</p>
+					<p className="rrze-appointment-guided-tour__text">
+						{ __(
+							'RRZE Appointment is open source on',
+							'rrze-appointment'
+						) }{ ' ' }
+						<a
+							href={ githubUrl }
+							target="_self"
+							rel="noopener noreferrer"
+						>
+							GitHub
+						</a>
+						.
+					</p>
+					<p className="rrze-appointment-guided-tour__text">
+						<a
+							href={ docuUrl }
+							target="_self"
+							rel="noopener noreferrer"
+						>
+							{ __( 'Documentation', 'rrze-appointment' ) }
+						</a>
+					</p>
+				</>
+			),
+		},
 	];
 
 	return (
@@ -151,7 +195,7 @@ function ToursApp( { autoStartGuide, autoStartSetup, setupTourStepId } ) {
 				<Guide
 					className="rrze-appointment-guided-tour"
 					contentLabel={ __(
-						'RRZE Appointment guided tour',
+						'About RRZE Appointment',
 						'rrze-appointment'
 					) }
 					finishButtonText={ __( 'Get started', 'rrze-appointment' ) }

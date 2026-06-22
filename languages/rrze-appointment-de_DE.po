@@ -767,12 +767,12 @@ msgid "Your name:"
 msgstr "Ihr Name:"
 
 #: includes/Settings.php:756
-msgid "Guided tour"
-msgstr "Geführte Tour"
+msgid "About"
+msgstr "Über"
 
 #: includes/Settings.php:759
-msgid "Setup tour"
-msgstr "Setup-Tour"
+msgid "Tour"
+msgstr "Tour"
 
 #: src/js/rrze-appointment-guided-tour.js
 msgid "Welcome to RRZE Appointment"
@@ -823,8 +823,24 @@ msgstr ""
 "Person zu filtern und Termine bei Bedarf zu stornieren."
 
 #: src/js/rrze-appointment-guided-tour.js
-msgid "RRZE Appointment guided tour"
-msgstr "RRZE Appointment Geführte Tour"
+msgid "Feedback and open source"
+msgstr "Feedback und Open Source"
+
+#: src/js/rrze-appointment-guided-tour.js
+msgid "We welcome your feedback. Everyone who wants to contribute is invited to take part."
+msgstr "Wir freuen uns über Ihr Feedback. Wer mitarbeiten möchte, ist herzlich eingeladen."
+
+#: src/js/rrze-appointment-guided-tour.js
+msgid "RRZE Appointment is open source on"
+msgstr "RRZE Appointment ist Open Source auf"
+
+#: src/js/rrze-appointment-guided-tour.js
+msgid "Documentation"
+msgstr "Dokumentation"
+
+#: src/js/rrze-appointment-guided-tour.js
+msgid "About RRZE Appointment"
+msgstr "Über RRZE Appointment"
 
 #: src/js/rrze-appointment-guided-tour.js
 msgid "Get started"

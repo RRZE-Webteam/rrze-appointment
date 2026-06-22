@@ -754,11 +754,11 @@ msgid "Your name:"
 msgstr ""
 
 #: includes/Settings.php:756
-msgid "Guided tour"
+msgid "About"
 msgstr ""
 
 #: includes/Settings.php:759
-msgid "Setup tour"
+msgid "Tour"
 msgstr ""
 
 #: src/js/rrze-appointment-guided-tour.js
@@ -802,7 +802,25 @@ msgid ""
 msgstr ""
 
 #: src/js/rrze-appointment-guided-tour.js
-msgid "RRZE Appointment guided tour"
+msgid "Feedback and open source"
+msgstr ""
+
+#: src/js/rrze-appointment-guided-tour.js
+msgid ""
+"We welcome your feedback. Everyone who wants to contribute is invited to "
+"take part."
+msgstr ""
+
+#: src/js/rrze-appointment-guided-tour.js
+msgid "RRZE Appointment is open source on"
+msgstr ""
+
+#: src/js/rrze-appointment-guided-tour.js
+msgid "Documentation"
+msgstr ""
+
+#: src/js/rrze-appointment-guided-tour.js
+msgid "About RRZE Appointment"
 msgstr ""
 
 #: src/js/rrze-appointment-guided-tour.js
