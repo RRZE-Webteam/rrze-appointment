@@ -579,7 +579,24 @@ class Settings
         </form>
 
         <?php if (empty($bookings)) : ?>
-            <p><?php esc_html_e('No appointments found.', 'rrze-appointment'); ?></p>
+            <table class="widefat striped" data-rrze-tour="bookings-table">
+                <thead>
+                    <tr>
+                        <th><?php esc_html_e('Date', 'rrze-appointment'); ?></th>
+                        <th><?php esc_html_e('Time', 'rrze-appointment'); ?></th>
+                        <th><?php esc_html_e('Title', 'rrze-appointment'); ?></th>
+                        <th><?php esc_html_e('Person', 'rrze-appointment'); ?></th>
+                        <th><?php esc_html_e('Booker', 'rrze-appointment'); ?></th>
+                        <th><?php esc_html_e('Email', 'rrze-appointment'); ?></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="7"><?php esc_html_e('No appointments found.', 'rrze-appointment'); ?></td>
+                    </tr>
+                </tbody>
+            </table>
         <?php else : ?>
             <table class="widefat striped" data-rrze-tour="bookings-table">
                 <thead>
@@ -753,10 +770,10 @@ class Settings
     {
         ?>
         <button type="button" id="rrze-appointment-start-guided-tour" class="page-title-action">
-            <?php esc_html_e('Guided tour', 'rrze-appointment'); ?>
+            <?php esc_html_e('About', 'rrze-appointment'); ?>
         </button>
         <button type="button" id="rrze-appointment-start-setup-tour" class="page-title-action">
-            <?php esc_html_e('Setup tour', 'rrze-appointment'); ?>
+            <?php esc_html_e('Tour', 'rrze-appointment'); ?>
         </button>
         <?php
     }

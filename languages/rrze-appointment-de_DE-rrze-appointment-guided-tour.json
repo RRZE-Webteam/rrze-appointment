@@ -26,7 +26,13 @@
 			"Use the Appointments menu to review all bookings, filter by date or person, and cancel appointments when needed.": [
 				"Nutzen Sie das Menü Termine, um alle Buchungen einzusehen, nach Datum oder Person zu filtern und Termine bei Bedarf zu stornieren."
 			],
-			"RRZE Appointment guided tour": ["RRZE Appointment Geführte Tour"],
+			"Feedback and open source": ["Feedback und Open Source"],
+			"We welcome your feedback. Everyone who wants to contribute is invited to take part.": [
+				"Wir freuen uns über Ihr Feedback. Wer mitarbeiten möchte, ist herzlich eingeladen."
+			],
+			"RRZE Appointment is open source on": ["RRZE Appointment ist Open Source auf"],
+			"Documentation": ["Dokumentation"],
+			"About RRZE Appointment": ["Über RRZE Appointment"],
 			"Get started": ["Loslegen"],
 			"General settings": ["Allgemeine Einstellungen"],
 			"Open the General tab to configure reminder emails and the recurrence limit for repeating appointments.": [

@@ -16,6 +16,7 @@ function getSetupSteps() {
 	return [
 		{
 			id: 'tab-general',
+			number: 1,
 			tab: 'general',
 			screen: 'settings',
 			target: '[data-rrze-tour="tab-general"]',
@@ -27,6 +28,7 @@ function getSetupSteps() {
 		},
 		{
 			id: 'reminder-days',
+			number: 2,
 			tab: 'general',
 			screen: 'settings',
 			target: '[data-rrze-tour="reminder-days"]',
@@ -38,6 +40,7 @@ function getSetupSteps() {
 		},
 		{
 			id: 'recurrence-limit',
+			number: 3,
 			tab: 'general',
 			screen: 'settings',
 			target: '[data-rrze-tour="recurrence-limit"]',
@@ -49,6 +52,7 @@ function getSetupSteps() {
 		},
 		{
 			id: 'save-general',
+			number: 4,
 			tab: 'general',
 			screen: 'settings',
 			target: '[data-rrze-tour="save-settings"]',
@@ -60,6 +64,7 @@ function getSetupSteps() {
 		},
 		{
 			id: 'tab-templates',
+			number: 5,
 			tab: 'templates',
 			screen: 'settings',
 			target: '[data-rrze-tour="tab-templates"]',
@@ -71,6 +76,7 @@ function getSetupSteps() {
 		},
 		{
 			id: 'new-template',
+			number: 6,
 			tab: 'templates',
 			screen: 'settings',
 			target: '[data-rrze-tour="new-template"]',
@@ -79,10 +85,10 @@ function getSetupSteps() {
 				'Create a custom mail template or use the built-in default. You can send test emails to verify the content.',
 				'rrze-appointment'
 			),
-			optional: true,
 		},
 		{
 			id: 'bookings-intro',
+			number: 7,
 			tab: '',
 			screen: 'bookings',
 			target: '[data-rrze-tour="bookings-page"]',
@@ -94,6 +100,7 @@ function getSetupSteps() {
 		},
 		{
 			id: 'bookings-filter',
+			number: 8,
 			tab: '',
 			screen: 'bookings',
 			target: '[data-rrze-tour="bookings-filter"]',
@@ -105,6 +112,7 @@ function getSetupSteps() {
 		},
 		{
 			id: 'bookings-table',
+			number: 9,
 			tab: '',
 			screen: 'bookings',
 			target: '[data-rrze-tour="bookings-table"]',
@@ -113,9 +121,44 @@ function getSetupSteps() {
 				'Each row shows date, time, title, host, and booker. Use Cancel booking to release a slot and notify participants.',
 				'rrze-appointment'
 			),
-			optional: true,
 		},
 	];
+}
+
+const TOUR_STEP_COUNT = 9;
+
+function isTransitionStep( step ) {
+	return isTabStep( step );
+}
+
+function hasArrivedAtStep( step ) {
+	if ( ! step || ! isStepOnActiveScreen( step ) ) {
+		return false;
+	}
+
+	if ( step.screen === 'settings' && ! isStepOnActiveTab( step ) ) {
+		return false;
+	}
+
+	return Boolean( findStepTarget( step ) );
+}
+
+function skipCompletedTransitionSteps( steps, index, stepId ) {
+	if ( ! stepId || index < 0 || index >= steps.length ) {
+		return index;
+	}
+
+	const step = steps[ index ];
+
+	if ( ! step || step.id !== stepId || ! isTransitionStep( step ) ) {
+		return index;
+	}
+
+	if ( ! hasArrivedAtStep( step ) ) {
+		return index;
+	}
+
+	return findNextStepIndex( steps, index );
 }
 
 function dismissSetupTour() {
@@ -260,7 +303,7 @@ function resolveGlobalStepIndex( steps, stepId ) {
 		return resolved >= 0 ? resolved : 0;
 	}
 
-	return skipRedundantTabSteps( steps, 0 );
+	return 0;
 }
 
 function isTabStep( step ) {
@@ -303,26 +346,6 @@ function isStepTargetVisible( step ) {
 	return Boolean( findStepTarget( step ) );
 }
 
-function skipRedundantTabSteps( steps, startIndex ) {
-	let index = startIndex;
-
-	while ( index < steps.length ) {
-		const step = steps[ index ];
-
-		if (
-			! step.id.startsWith( 'tab-' ) ||
-			! isStepOnActiveScreen( step ) ||
-			! isStepOnActiveTab( step )
-		) {
-			break;
-		}
-
-		index++;
-	}
-
-	return index;
-}
-
 function findNextStepIndex( steps, fromIndex ) {
 	let index = fromIndex + 1;
 
@@ -357,15 +380,20 @@ function findPreviousStepIndex( steps, fromIndex ) {
 
 export function SetupTour( { initialStepId = '', onClose } ) {
 	const allSteps = useMemo( getSetupSteps, [] );
-	const [ globalStepIndex, setGlobalStepIndex ] = useState( () =>
-		resolveGlobalStepIndex( allSteps, initialStepId )
-	);
+	const [ globalStepIndex, setGlobalStepIndex ] = useState( () => {
+		const resolved = resolveGlobalStepIndex( allSteps, initialStepId );
+		return skipCompletedTransitionSteps(
+			allSteps,
+			resolved,
+			initialStepId
+		);
+	} );
 	const [ anchor, setAnchor ] = useState( null );
 	const [ spotlightRect, setSpotlightRect ] = useState( null );
 
 	const currentStep = allSteps[ globalStepIndex ];
-	const totalSteps = allSteps.length;
-	const stepNumber = globalStepIndex + 1;
+	const totalSteps = TOUR_STEP_COUNT;
+	const stepNumber = currentStep?.number ?? globalStepIndex + 1;
 
 	const goToGlobalStep = useCallback(
 		( index, { switchContext = false } = {} ) => {
