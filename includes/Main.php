@@ -151,7 +151,7 @@ class Main
         add_action('template_redirect', [$this, 'handleConfirm']);
         add_action('template_redirect', [$this, 'handleCancel']);
         add_action('rrze_appointment_expire_pending', ['RRZE\Appointment\TokenManager', 'expirePending']);
-        add_action('save_post', [$this, 'handleSavePost'], 10, 2);
+        add_action('post_updated', [$this, 'handlePostUpdated'], 10, 3);
         add_action('rest_api_init', [$this, 'registerRestRoutes']);
     }
 
@@ -768,6 +768,7 @@ class Main
                 'booker_name' => $bookerName,
                 'booker_message' => $bookerMsg,
                 'booker_waitlist' => $bookerWaitlist,
+                'waitlist_notified_slots' => [],
                 'tpl_id' => $tplId,
                 'post_link' => $postLink,
             ];
@@ -996,15 +997,17 @@ class Main
             wp_die(esc_html($e->getMessage()), '', ['response' => 500]);
         }
     }
-    public function handleSavePost(int $postId, \WP_Post $post): void
+    public function handlePostUpdated(int $postId, \WP_Post $postAfter, \WP_Post $postBefore): void
     {
         if (wp_is_post_revision($postId) || wp_is_post_autosave($postId))
             return;
-        if (!has_blocks($post->post_content))
+        if ($postAfter->post_status !== 'publish' || !has_blocks($postAfter->post_content))
             return;
 
-        $today = date('Y-m-d');
-        $allMeta = (array) get_option(Bookings::META_OPTION, []);
+        $today       = current_time('Y-m-d');
+        $allMeta     = (array) get_option(Bookings::META_OPTION, []);
+        $bookedSlots = (array) get_option(Bookings::SLOTS_OPTION, []);
+        $bookedSet   = array_flip($bookedSlots);
 
         // Collect all waitlisted bookings grouped by person_id
         $waitlisted = []; // person_id => [ [slot, meta], ... ]
@@ -1021,38 +1024,48 @@ class Main
         if (empty($waitlisted))
             return;
 
-        $blocks = parse_blocks($post->post_content);
-        foreach ($blocks as $block) {
-            if (($block['blockName'] ?? '') !== 'rrze/appointment')
+        $previousSlotsByPerson = [];
+        if ($postBefore->post_status === 'publish' && has_blocks($postBefore->post_content)) {
+            $previousSlotsByPerson = $this->collectAppointmentSlots($postBefore->post_content);
+        }
+
+        $currentSlotsByPerson = $this->collectAppointmentSlots($postAfter->post_content);
+
+        foreach ($waitlisted as $personId => $entries) {
+            if (empty($currentSlotsByPerson[$personId]))
                 continue;
 
-            $attrs = $block['attrs'] ?? [];
-            $personId = (int) ($attrs['personId'] ?? 0);
-            if (!isset($waitlisted[$personId]))
+            // Only slots introduced by this update became newly available.
+            // Slots that were already free when a booking was made are present
+            // in both snapshots and therefore never trigger a notification.
+            $addedSlots = array_diff_key(
+                $currentSlotsByPerson[$personId],
+                $previousSlotsByPerson[$personId] ?? []
+            );
+            $addedSlots = array_filter(
+                $addedSlots,
+                fn($attrs, $slot) => !isset($bookedSet[$slot]) && explode(' ', $slot)[0] >= $today,
+                ARRAY_FILTER_USE_BOTH
+            );
+            if (empty($addedSlots))
                 continue;
 
-            $newSlots = SlotGenerator::fromAttributes($attrs);
-            if (empty($newSlots))
-                continue;
-
-            // Only future slots that are not already booked
-            $bookedSlots = (array) get_option(Bookings::SLOTS_OPTION, []);
-            $bookedSet = array_flip($bookedSlots);
-            $newSlots = array_filter($newSlots, fn($s) => !isset($bookedSet[$s]) && explode(' ', $s)[0] >= $today);
-
-            foreach ($waitlisted[$personId] as $entry) {
+            foreach ($entries as $entry) {
                 $bookedSlot = $entry['slot'];
                 $bookedMeta = $entry['meta'];
-                $bookedDate = explode(' ', $bookedSlot)[0];
 
-                // Find new slots that are earlier than the booked slot
-                $earlier = array_filter($newSlots, fn($s) => $s < $bookedSlot);
+                // Find the single earliest newly available slot before the booking.
+                $earlier = array_filter(
+                    array_keys($addedSlots),
+                    fn($slot) => $slot < $bookedSlot
+                );
                 if (empty($earlier))
                     continue;
 
+                $earliest = (string) min($earlier);
                 Bookings::sendWaitlistNotificationStatic(
-                    (string) min($earlier), // earliest new slot
-                    $attrs,
+                    $earliest,
+                    $addedSlots[$earliest],
                     $bookedSlot,
                     $bookedMeta
                 );
@@ -1060,5 +1073,29 @@ class Main
         }
     }
 
-}
+    private function collectAppointmentSlots(string $postContent): array
+    {
+        $slotsByPerson = [];
+        $this->collectAppointmentSlotsFromBlocks(parse_blocks($postContent), $slotsByPerson);
+        return $slotsByPerson;
+    }
 
+    private function collectAppointmentSlotsFromBlocks(array $blocks, array &$slotsByPerson): void
+    {
+        foreach ($blocks as $block) {
+            if (($block['blockName'] ?? '') === 'rrze/appointment') {
+                $attrs    = $block['attrs'] ?? [];
+                $personId = (int) ($attrs['personId'] ?? 0);
+
+                foreach (SlotGenerator::fromAttributes($attrs) as $slot) {
+                    $slotsByPerson[$personId][$slot] = $attrs;
+                }
+            }
+
+            if (!empty($block['innerBlocks']) && is_array($block['innerBlocks'])) {
+                $this->collectAppointmentSlotsFromBlocks($block['innerBlocks'], $slotsByPerson);
+            }
+        }
+    }
+
+}
