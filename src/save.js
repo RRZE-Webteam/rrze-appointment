@@ -1,6 +1,7 @@
 import { Fragment } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { generateTimeSlots, renderGroupedSlotsAccordion } from './utils';
+import { generateTimeSlots } from './utils';
+import { renderGroupedSlotsAccordion } from './slot-accordion';
 
 export default function Save({ attributes }) {
     const { title, location, description, personId, personEmail, tplId, locationUrl, color, style, bookingCutoff } = attributes;

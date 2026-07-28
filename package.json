@@ -37,6 +37,7 @@
     "build:readme": "node build-readme.js"
   },
   "devDependencies": {
-    "@wordpress/scripts": "^30.11.0"
+    "@wordpress/scripts": "^30.11.0",
+    "@types/wordpress__blocks": "^15.17.0"
   }
 }
