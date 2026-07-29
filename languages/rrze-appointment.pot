@@ -185,6 +185,10 @@ msgstr ""
 msgid "Booking confirmation: [title] on [date]"
 msgstr ""
 
+#: includes/Settings.php:117
+msgid "Booking data retention"
+msgstr ""
+
 #: includes/Settings.php:23
 msgid "Booking person (email)"
 msgstr ""
@@ -256,6 +260,12 @@ msgstr ""
 
 #: includes/Settings.php:425
 msgid "Confirmation to host"
+msgstr ""
+
+#: includes/Settings.php:288
+msgid ""
+"Completed bookings are permanently deleted this many days after the "
+"appointment ends (default: 30)."
 msgstr ""
 
 #: includes/Settings.php:578 includes/MailTemplatePost.php:54

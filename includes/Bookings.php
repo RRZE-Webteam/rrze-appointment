@@ -33,6 +33,99 @@ class Bookings
         return $slotStart->getTimestamp() <= current_time('timestamp');
     }
 
+    private static function getSlotEnd(string $slot): ?\DateTimeImmutable
+    {
+        [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
+        [, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
+        if ($datePart === '' || $endTime === '') {
+            return null;
+        }
+
+        $slotEnd = \DateTimeImmutable::createFromFormat(
+            '!Y-m-d H:i',
+            $datePart . ' ' . $endTime,
+            wp_timezone()
+        );
+        if (!$slotEnd || $slotEnd->format('Y-m-d H:i') !== $datePart . ' ' . $endTime) {
+            return null;
+        }
+
+        return $slotEnd;
+    }
+
+    /**
+     * Permanently removes completed bookings after their configured retention period.
+     *
+     * This is deliberately different from cancel(): no emails or waitlist
+     * notifications are sent for data-retention cleanup.
+     */
+    public static function cleanupExpired(int $retentionDays): int
+    {
+        try {
+            $retentionDays = min(3650, max(0, $retentionDays));
+            $now           = current_datetime();
+            $slots         = (array) get_option(self::SLOTS_OPTION, []);
+            $allMeta       = (array) get_option(self::META_OPTION, []);
+            $knownSlots    = array_unique(array_merge(
+                array_values(array_filter($slots, 'is_string')),
+                array_values(array_filter(array_keys($allMeta), 'is_string'))
+            ));
+            $expiredSlots = [];
+
+            foreach ($knownSlots as $slot) {
+                $slotEnd = self::getSlotEnd($slot);
+                if (!$slotEnd) {
+                    continue;
+                }
+
+                $deleteAfter = $slotEnd->modify("+{$retentionDays} days");
+                if ($deleteAfter <= $now) {
+                    $expiredSlots[$slot] = true;
+                }
+            }
+
+            if (empty($expiredSlots)) {
+                return 0;
+            }
+
+            $remainingSlots = array_values(array_filter(
+                $slots,
+                static fn($slot): bool => !is_string($slot) || !isset($expiredSlots[$slot])
+            ));
+            update_option(self::SLOTS_OPTION, $remainingSlots, false);
+
+            foreach ($expiredSlots as $slot => $_) {
+                unset($allMeta[$slot]);
+                wp_clear_scheduled_hook(Reminder::CRON_HOOK, [$slot]);
+                delete_option(self::WAITLIST_LOCK_PREFIX . md5($slot));
+            }
+            update_option(self::META_OPTION, $allMeta, false);
+
+            $tokens = (array) get_option(TokenManager::CANCEL_OPTION, []);
+            foreach ($tokens as $token => $entry) {
+                $tokenSlot = is_array($entry) ? ($entry['slot'] ?? '') : $entry;
+                if (is_string($tokenSlot) && isset($expiredSlots[$tokenSlot])) {
+                    unset($tokens[$token]);
+                }
+            }
+            update_option(TokenManager::CANCEL_OPTION, $tokens, false);
+
+            $pending = (array) get_option(TokenManager::PENDING_OPTION, []);
+            foreach ($pending as $token => $entry) {
+                $pendingSlot = is_array($entry) ? ($entry['slot'] ?? '') : '';
+                if (is_string($pendingSlot) && isset($expiredSlots[$pendingSlot])) {
+                    unset($pending[$token]);
+                    wp_clear_scheduled_hook('rrze_appointment_expire_pending', [$token]);
+                }
+            }
+            update_option(TokenManager::PENDING_OPTION, $pending, false);
+
+            return count($expiredSlots);
+        } catch (\Exception $e) {
+            throw new CustomException($e->getMessage(), $e->getCode(), null);
+        }
+    }
+
     private static function resolvePersonName(int $personId, array $meta = []): string
     {
         if ($personId <= 0) {

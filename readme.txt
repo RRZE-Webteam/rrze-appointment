@@ -27,6 +27,7 @@ RRZE Appointment lets you manage appointments and office hours directly in WordP
 * Quick and easy creation of consultation/office hours
 * One-click booking for users
 * Reminder email sent 1 day before the appointment
+* Configurable automatic deletion of completed booking data
 * Notifications when an earlier slot becomes available
 * Integration of person data from FAUdir
 * User-friendly booking management

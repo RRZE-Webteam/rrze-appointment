@@ -34,6 +34,7 @@ class Settings
         return [
             'reminder_days'     => 0,
             'recurrence_limit'  => 52,
+            'retention_days'    => 30,
         ];
     }
 
@@ -114,6 +115,7 @@ class Settings
         add_settings_section('rrze_appointment_general', '', '__return_false', self::PAGE_SLUG);
         add_settings_field('reminder_days', __('Reminder Email', 'rrze-appointment'), [$this, 'renderReminderDaysField'], self::PAGE_SLUG, 'rrze_appointment_general');
         add_settings_field('recurrence_limit', __('Recurrence limit', 'rrze-appointment'), [$this, 'renderRecurrenceLimitField'], self::PAGE_SLUG, 'rrze_appointment_general');
+        add_settings_field('retention_days', __('Booking data retention', 'rrze-appointment'), [$this, 'renderRetentionDaysField'], self::PAGE_SLUG, 'rrze_appointment_general');
     }
 
     public function sanitize(array $input): array
@@ -121,6 +123,7 @@ class Settings
         return [
             'reminder_days'    => (int) ($input['reminder_days'] ?? 0),
             'recurrence_limit' => max(1, (int) ($input['recurrence_limit'] ?? 52)),
+            'retention_days'   => min(3650, max(0, (int) ($input['retention_days'] ?? 30))),
         ];
     }
 
@@ -272,6 +275,17 @@ class Settings
             esc_attr(self::OPTION_NAME),
             $value,
             esc_html__('Maximum number of recurrences (default: 52).', 'rrze-appointment')
+        );
+    }
+
+    public function renderRetentionDaysField(): void
+    {
+        $value = (int) self::get('retention_days');
+        printf(
+            '<input type="number" name="%s[retention_days]" value="%d" min="0" max="3650" step="1" class="small-text"> %s',
+            esc_attr(self::OPTION_NAME),
+            $value,
+            esc_html__('Completed bookings are permanently deleted this many days after the appointment ends (default: 30).', 'rrze-appointment')
         );
     }
 

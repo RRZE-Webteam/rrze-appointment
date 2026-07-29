@@ -184,6 +184,10 @@ msgstr "Buchung storniert und Storno-Mails versendet."
 msgid "Booking confirmation: [title] on [date]"
 msgstr "Buchungsbestätigung: [title] am [date]"
 
+#: includes/Settings.php:117
+msgid "Booking data retention"
+msgstr "Aufbewahrung von Buchungsdaten"
+
 #: includes/Settings.php:23
 msgid "Booking person (email)"
 msgstr "Buchende Person (E-Mail)"
@@ -256,6 +260,14 @@ msgstr "Bestätigung an buchende Person"
 #: includes/Settings.php:425
 msgid "Confirmation to host"
 msgstr "Bestätigung an einladende Person"
+
+#: includes/Settings.php:288
+msgid ""
+"Completed bookings are permanently deleted this many days after the "
+"appointment ends (default: 30)."
+msgstr ""
+"Abgeschlossene Buchungen werden so viele Tage nach Ende des Termins "
+"dauerhaft gelöscht (Standard: 30)."
 
 #: includes/Settings.php:578 includes/MailTemplatePost.php:54
 msgid "Date"

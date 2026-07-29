@@ -119,6 +119,8 @@ class Reminder
     public function checkAndSendReminders(): void
     {
         try {
+            Bookings::cleanupExpired((int) Settings::get('retention_days'));
+
             $days = (int) Settings::get('reminder_days');
             if ($days < 1) return;
 
