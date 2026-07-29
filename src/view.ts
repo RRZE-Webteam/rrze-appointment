@@ -294,9 +294,8 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				emailInput.type = 'email';
 				emailInput.className = 'rrze-appointment__overlay-email';
 				emailInput.placeholder = 'name@example.de';
-				const isSsoBooker = !! booker.idm;
 				emailInput.value = booker.bookerEmail || '';
-				emailInput.readOnly = isSsoBooker || !! booker.bookerEmail;
+				emailInput.readOnly = !! booker.bookerEmail;
 				emailInput.required = true;
 				emailLabel.appendChild( emailInput );
 
@@ -308,7 +307,7 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				nameInput.className = 'rrze-appointment__overlay-name';
 				nameInput.placeholder = 'Vorname Nachname';
 				nameInput.value = booker.bookerName || '';
-				nameInput.readOnly = isSsoBooker || !! booker.bookerName;
+				nameInput.readOnly = !! booker.bookerName;
 				nameInput.required = true;
 				nameLabel.appendChild( nameInput );
 
@@ -597,7 +596,6 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 							}
 
 							const booker = res.data || {};
-							// console.log('RRZE Appointment attributes from Rights::get()', booker.attributes || {});
 
 							openOverlay( slot.value, booker, button );
 							renderDaySlots( activeDate );
@@ -922,7 +920,6 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 					.then( ( r ) => r.json() as Promise< BookerAjaxResponse > )
 					.then( ( res ) => {
 						const booker = res.success ? res.data || {} : {};
-						// console.log('RRZE Appointment attributes from Rights::get()', booker.attributes || {});
 						openOverlay( autoSlot, booker );
 					} )
 					.catch( () => openOverlay( autoSlot, {} ) );

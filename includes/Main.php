@@ -572,20 +572,17 @@ class Main
 
             // Passive SSO check only: never trigger auth flow in this REST handler.
             $serverBooker = Rights::get();
-            $idm = $serverBooker['idm'] ?? null;
+            $isAuthenticated = !empty($serverBooker['authenticated']);
             $bookerEmail = $serverBooker['bookerEmail'] ?? '';
             $bookerName = $serverBooker['bookerName'] ?? '';
-            $bookerAttributes = is_array($serverBooker['attributes'] ?? null) ? $serverBooker['attributes'] : [];
 
-            if (!$idm) {
+            if (!$isAuthenticated) {
                 $response = [
                     'needsLogin' => true,
                     'loginUrl' => $loginUrl,
                     'data' => [
-                        'idm' => null,
                         'bookerEmail' => '',
                         'bookerName' => '',
-                        'attributes' => []
                     ]
                 ];
                 if ($isRestRequest) {
@@ -598,10 +595,8 @@ class Main
                 'needsLogin' => false,
                 'loginUrl' => '',
                 'data' => [
-                    'idm' => $idm,
                     'bookerEmail' => $bookerEmail,
                     'bookerName' => $bookerName,
-                    'attributes' => $bookerAttributes
                 ]
             ];
             if ($isRestRequest) {
@@ -715,7 +710,7 @@ class Main
             } else {
                 // E-Mail immer aus der Server-Session lesen, nie vom Client
                 $serverBooker = Rights::get();
-                $isSsoAuthenticated = !empty($serverBooker['idm']);
+                $isSsoAuthenticated = !empty($serverBooker['authenticated']);
                 $bookerEmail = sanitize_email($serverBooker['bookerEmail'] ?? '');
                 $serverBookerName = sanitize_text_field($serverBooker['bookerName'] ?? '');
                 $bookerName = $isSsoAuthenticated ? $serverBookerName : $postedBookerName;

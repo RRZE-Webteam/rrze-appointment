@@ -189,10 +189,8 @@ export interface FrontendSlot {
 export type FrontendDateMap = Map< string, FrontendSlot[] >;
 
 export interface Booker {
-	idm?: unknown;
 	bookerEmail?: string;
 	bookerName?: string;
-	attributes?: Record< string, unknown >;
 }
 
 export interface BookingResponse {
