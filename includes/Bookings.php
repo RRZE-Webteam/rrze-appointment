@@ -115,7 +115,7 @@ class Bookings
                 $pendingSlot = is_array($entry) ? ($entry['slot'] ?? '') : '';
                 if (is_string($pendingSlot) && isset($expiredSlots[$pendingSlot])) {
                     unset($pending[$token]);
-                    wp_clear_scheduled_hook('rrze_appointment_expire_pending', [$token]);
+                    wp_clear_scheduled_hook(TokenManager::PENDING_EXPIRY_HOOK, [$token]);
                 }
             }
             update_option(TokenManager::PENDING_OPTION, $pending, false);

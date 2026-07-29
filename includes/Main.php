@@ -136,6 +136,7 @@ class Main
     {
         $this->defaults = new Defaults();
         MailTemplatePost::ensureEditableDefaultTemplateExists();
+        TokenManager::cleanupPendingState();
 
         (new Settings())->register();
         (new Reminder())->register();
@@ -150,7 +151,7 @@ class Main
         add_action('template_redirect', [$this, 'handleSsoLogin']);
         add_action('template_redirect', [$this, 'handleConfirm']);
         add_action('template_redirect', [$this, 'handleCancel']);
-        add_action('rrze_appointment_expire_pending', ['RRZE\Appointment\TokenManager', 'expirePending']);
+        add_action(TokenManager::PENDING_EXPIRY_HOOK, [TokenManager::class, 'expirePending']);
         add_action('post_updated', [$this, 'handlePostUpdated'], 10, 3);
         add_action('rest_api_init', [$this, 'registerRestRoutes']);
     }
@@ -787,7 +788,7 @@ class Main
                 '[email]' => $bookerEmail ?: '–',
                 '[message]' => $bookerMsg ?: '',
                 '[confirmation_link]' => $confirmUrl,
-                '[cancel_link]' => TokenManager::cancelUrl(TokenManager::createPendingCancelToken($slot, $meta)),
+                '[cancel_link]' => TokenManager::cancelUrl(TokenManager::createPendingCancelToken($confirmToken)),
                 '[imprint_link]' => $imprintUrl,
                 '[post_link]' => $postLink,
             ];
@@ -972,18 +973,10 @@ class Main
                 wp_die(__('This cancellation link is invalid or has already been used.', 'rrze-appointment'), '', ['response' => 410]);
             }
 
-            TokenManager::deleteCancelToken($token);
-
             if ($entry['type'] === 'pending') {
-                // Anfrage noch nicht bestätigt — Pending-Eintrag entfernen
-                $pending = (array) get_option(TokenManager::PENDING_OPTION, []);
-                foreach ($pending as $pToken => $pEntry) {
-                    if ($pEntry['slot'] === $entry['slot']) {
-                        unset($pending[$pToken]);
-                    }
-                }
-                update_option(TokenManager::PENDING_OPTION, $pending, false);
+                TokenManager::deletePending((string) ($entry['pending_token'] ?? ''));
             } else {
+                TokenManager::deleteCancelToken($token);
                 Bookings::cancel($entry['slot']);
             }
 
