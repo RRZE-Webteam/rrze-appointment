@@ -8,6 +8,9 @@
   "supports": {
     "html": false
   },
+  "usesContext": [
+    "postId"
+  ],
   "attributes": {
     "title": {
       "type": "string",

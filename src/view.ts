@@ -428,29 +428,14 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 						window.rrze_appointment?.nonce || ''
 					);
 					data.append( 'slot', value );
-					data.append( 'title', form.dataset.title || '' );
-					data.append( 'location', form.dataset.location || '' );
-					data.append( 'person_id', form.dataset.personId || '0' );
-					data.append(
-						'person_email',
-						form.dataset.personEmail || ''
-					);
-					data.append( 'tpl_id', form.dataset.tplId || '0' );
-					data.append( 'disable_sso', disableSso ? '1' : '0' );
+					data.append( 'post_id', form.dataset.postId || '0' );
+					data.append( 'block_id', form.dataset.blockId || '' );
 					data.append( 'booker_email', emailValue );
 					data.append( 'booker_name', nameValue );
 					data.append( 'booker_message', messageValue );
 					data.append(
 						'booker_waitlist',
 						waitlistCheckbox.checked ? '1' : '0'
-					);
-					data.append(
-						'require_message',
-						requireMessage ? '1' : '0'
-					);
-					data.append(
-						'post_link',
-						window.location.href.split( '#' )[ 0 ]
 					);
 
 					fetch(

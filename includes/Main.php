@@ -12,6 +12,7 @@ use RRZE\Appointment\Settings;
 use RRZE\Appointment\Reminder;
 use RRZE\Appointment\Bookings;
 use RRZE\Appointment\SlotGenerator;
+use RRZE\Appointment\AppointmentBlock;
 use RRZE\Appointment\MailTemplatePost;
 use RRZE\Appointment\TokenManager;
 use RRZE\Appointment\Common\Settings\Settings as CommonSettings;
@@ -689,20 +690,35 @@ class Main
             check_ajax_referer('rrze_appointment_book', 'nonce');
 
             $slot = sanitize_text_field($_POST['slot'] ?? '');
-            $title = sanitize_text_field($_POST['title'] ?? __('Appointment', 'rrze-appointment'));
-            $location = sanitize_text_field($_POST['location'] ?? '');
-            $personId = (int) ($_POST['person_id'] ?? 0);
-            $personEmail = sanitize_email($_POST['person_email'] ?? '');
+            $postId = absint($_POST['post_id'] ?? 0);
+            $blockFingerprint = sanitize_text_field($_POST['block_id'] ?? '');
             $postedBookerEmail = sanitize_email($_POST['booker_email'] ?? '');
             $postedBookerName = sanitize_text_field($_POST['booker_name'] ?? '');
             $bookerMsg = sanitize_textarea_field($_POST['booker_message'] ?? '');
             $bookerWaitlist = !empty($_POST['booker_waitlist']) && $_POST['booker_waitlist'] === '1';
-            $requireMessage = !empty($_POST['require_message']) && $_POST['require_message'] === '1';
-            $disableSso = !empty($_POST['disable_sso']) && $_POST['disable_sso'] === '1';
-            $postLink = esc_url_raw(wp_unslash($_POST['post_link'] ?? ''));
-            if (!$postLink) {
-                $postLink = home_url('/');
+
+            if (!$slot) {
+                wp_send_json_error(__('No appointment specified.', 'rrze-appointment'));
             }
+
+            $bookingContext = AppointmentBlock::resolvePublished(
+                $postId,
+                $blockFingerprint,
+                $slot
+            );
+            if (is_wp_error($bookingContext)) {
+                wp_send_json_error($bookingContext->get_error_message());
+            }
+
+            $title = $bookingContext['title'];
+            $location = $bookingContext['location'];
+            $personId = $bookingContext['person_id'];
+            $personEmail = $bookingContext['person_email'];
+            $pName = $bookingContext['person_name'];
+            $tplId = $bookingContext['tpl_id'];
+            $requireMessage = $bookingContext['require_message'];
+            $disableSso = $bookingContext['disable_sso'];
+            $postLink = $bookingContext['post_link'];
 
             if ($disableSso) {
                 $bookerEmail = $postedBookerEmail;
@@ -714,15 +730,12 @@ class Main
                 $bookerEmail = sanitize_email($serverBooker['bookerEmail'] ?? '');
                 $serverBookerName = sanitize_text_field($serverBooker['bookerName'] ?? '');
                 $bookerName = $isSsoAuthenticated ? $serverBookerName : $postedBookerName;
-                if (!$bookerEmail) {
+                if (!$isSsoAuthenticated || !$bookerEmail) {
                     wp_send_json_error(__('No authenticated email address found.', 'rrze-appointment'));
                     return;
                 }
             }
-            $tplId = (int) ($_POST['tpl_id'] ?? 0);
 
-            if (!$slot)
-                wp_send_json_error(__('No appointment specified.', 'rrze-appointment'));
             if (!$bookerEmail)
                 wp_send_json_error(__('Please provide an email address.', 'rrze-appointment'));
             if (!$bookerName)
@@ -741,17 +754,6 @@ class Main
             $pending = TokenManager::getPendingSlots();
             if (in_array($slot, $booked, true) || in_array($slot, $pending, true)) {
                 wp_send_json_error(__('This appointment is no longer available.', 'rrze-appointment'));
-            }
-
-            $pName = '';
-            if ($personId > 0) {
-                $pTitle = (string) get_post_meta($personId, 'person_honorificPrefix', true);
-                $pGiven = (string) get_post_meta($personId, 'person_givenName', true);
-                $pFamily = (string) get_post_meta($personId, 'person_familyName', true);
-                $pName = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
-                if ($pName === '') {
-                    $pName = trim((string) get_the_title($personId));
-                }
             }
 
             $meta = [

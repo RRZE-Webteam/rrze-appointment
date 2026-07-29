@@ -7,12 +7,25 @@ defined('ABSPATH') || exit;
 $attributes = is_array($attributes ?? null) ? $attributes : [];
 $slots = SlotGenerator::fromAttributes($attributes);
 
+$sourceAttributes = $attributes;
+if (
+    isset($block)
+    && $block instanceof \WP_Block
+    && is_array($block->parsed_block['attrs'] ?? null)
+) {
+    $sourceAttributes = $block->parsed_block['attrs'];
+}
+$postId = isset($block) && $block instanceof \WP_Block
+    ? (int) ($block->context['postId'] ?? 0)
+    : 0;
+if ($postId <= 0) {
+    $postId = (int) get_the_ID();
+}
+$blockFingerprint = AppointmentBlock::fingerprint($sourceAttributes);
+
 $title = (string) ($attributes['title'] ?? '');
 $location = (string) ($attributes['location'] ?? '');
 $description = (string) ($attributes['description'] ?? '');
-$personId = (int) ($attributes['personId'] ?? 0);
-$personEmail = (string) ($attributes['personEmail'] ?? '');
-$tplId = (int) ($attributes['tplId'] ?? 0);
 $bookingCutoff = (int) ($attributes['bookingCutoff'] ?? 0);
 $requireMessage = !empty($attributes['requireMessage']);
 $disableSso = !empty($attributes['disableSso']);
@@ -57,11 +70,8 @@ $locationIsUrl = preg_match('#^https?://#i', $location) === 1;
     class="<?php echo esc_attr(implode(' ', array_filter($classes))); ?>"
     method="post"
     action=""
-    data-title="<?php echo esc_attr($title); ?>"
-    data-location="<?php echo esc_attr($location); ?>"
-    data-person-id="<?php echo esc_attr((string) $personId); ?>"
-    data-person-email="<?php echo esc_attr($personEmail); ?>"
-    data-tpl-id="<?php echo esc_attr((string) $tplId); ?>"
+    data-post-id="<?php echo esc_attr((string) $postId); ?>"
+    data-block-id="<?php echo esc_attr($blockFingerprint); ?>"
     data-booking-cutoff="<?php echo esc_attr((string) $bookingCutoff); ?>"
     data-require-message="<?php echo $requireMessage ? '1' : '0'; ?>"
     data-disable-sso="<?php echo $disableSso ? '1' : '0'; ?>"
