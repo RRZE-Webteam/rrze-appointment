@@ -113,6 +113,40 @@ function register_blocks(): void
 }
 
 /**
+ * Make the appointment block available only in post and page editors.
+ *
+ * The block remains registered so that existing content can still be rendered.
+ *
+ * @param bool|string[]         $allowedBlockTypes Allowed block types.
+ * @param \WP_Block_Editor_Context $editorContext  Current block editor context.
+ * @return bool|string[]
+ */
+function restrict_appointment_block_to_content($allowedBlockTypes, $editorContext)
+{
+    $post = $editorContext->post ?? null;
+    if (
+        $post instanceof \WP_Post
+        && in_array($post->post_type, ['post', 'page'], true)
+    ) {
+        return $allowedBlockTypes;
+    }
+
+    if ($allowedBlockTypes === true) {
+        $allowedBlockTypes = array_keys(
+            \WP_Block_Type_Registry::get_instance()->get_all_registered()
+        );
+    }
+
+    if (!is_array($allowedBlockTypes)) {
+        return $allowedBlockTypes;
+    }
+
+    return array_values(
+        array_diff($allowedBlockTypes, ['rrze/appointment'])
+    );
+}
+
+/**
  * Handle the loading of the plugin.
  */
 function loaded(): void
@@ -168,4 +202,10 @@ function loaded(): void
     main();
 
     add_action('init', __NAMESPACE__ . '\register_blocks');
+    add_filter(
+        'allowed_block_types_all',
+        __NAMESPACE__ . '\restrict_appointment_block_to_content',
+        10,
+        2
+    );
 }

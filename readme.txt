@@ -38,6 +38,7 @@ RRZE Appointment lets you manage appointments and office hours directly in WordP
 * Adapted to the layouts of the "FAU Einrichtungen" and "FAU Elemental" themes
 * Supports FAU faculty color schemes
 * Can be inserted as a Gutenberg block in posts and pages for flexible placement
+* Site Editor templates and template parts are not supported
 
 == Dependencies ==
 
