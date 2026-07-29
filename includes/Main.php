@@ -605,11 +605,11 @@ class Main
             }
             wp_send_json_success($response['data']);
 
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             $response = [
                 'needsLogin' => true,
                 'loginUrl' => '',
-                'error' => $e->getMessage(),
+                'error' => __('SSO login failed.', 'rrze-appointment'),
                 'data' => null
             ];
             if ($isRestRequest) {
