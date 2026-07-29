@@ -68,7 +68,6 @@ class Settings
         $phpmailer->AltBody  = $phpmailer->Body;
         $phpmailer->Body     = $html;
         $phpmailer->isHTML(true);
-        error_log('RRZE addHtmlPart: AltBody snippet=' . substr($phpmailer->AltBody, 0, 100));
     }
 
     public function register(): void
