@@ -5,7 +5,10 @@ export interface Recurrence {
 	until?: string;
 	anchor?: string;
 	dates?: string[];
+	excludedDates?: string[];
 }
+
+export type RecurrenceRules = Record< string, Recurrence >;
 
 export interface DateOverride {
 	startTime?: string;
@@ -33,6 +36,8 @@ export interface AppointmentAttributes {
 	locationUrl: string;
 	description: string;
 	recurrence: Recurrence;
+	manualDates?: string[];
+	recurrences?: RecurrenceRules;
 	personId: number;
 	personName: string;
 	personEmail: string;

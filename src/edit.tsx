@@ -119,6 +119,9 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 
 		setAttributes( {
 			selectedDates: dates,
+			manualDates: dates,
+			recurrences: {},
+			recurrence: {},
 			startDate: dates[ 0 ],
 			endDate: dates[ dates.length - 1 ],
 			useEndDate: true,

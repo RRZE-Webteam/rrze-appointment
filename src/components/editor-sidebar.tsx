@@ -1,5 +1,6 @@
 import { InspectorControls } from '@wordpress/block-editor';
 import {
+	Button,
 	PanelBody,
 	SelectControl,
 	TextControl,
@@ -16,8 +17,15 @@ import type {
 	MailTemplateOption,
 	Recurrence,
 	RecurrenceFrequency,
+	RecurrenceRules,
 } from '../types';
-import { expandRecurrence, formatDateDisplay } from '../utils';
+import {
+	buildRecurrenceAttributes,
+	createRecurrenceRule,
+	getRecurrenceEditorState,
+	toggleRecurrenceDate,
+} from '../recurrence';
+import { formatDateDisplay } from '../utils';
 import { CalendarMultiSelect } from './calendar-multi-select';
 
 interface EditorSidebarProps {
@@ -42,6 +50,19 @@ const COLOR_OPTIONS = [
 	{ label: 'rw', value: 'rw' },
 	{ label: 'tf', value: 'tf' },
 ];
+
+function getRecurrenceFrequencyLabel( frequency: RecurrenceFrequency ): string {
+	switch ( frequency ) {
+		case 'daily':
+			return __( 'Daily', 'rrze-appointment' );
+		case 'weekly':
+			return __( 'Weekly', 'rrze-appointment' );
+		case 'monthly':
+			return __( 'Monthly', 'rrze-appointment' );
+		default:
+			return '';
+	}
+}
 
 export function EditorSidebar( {
 	activeDate,
@@ -72,7 +93,6 @@ export function EditorSidebar( {
 		personEmail,
 		personId,
 		personName,
-		recurrence,
 		requireMessage,
 		startTime,
 		style,
@@ -83,14 +103,14 @@ export function EditorSidebar( {
 		{ label: __( 'light', 'rrze-appointment' ), value: 'light' },
 		{ label: __( 'dark', 'rrze-appointment' ), value: 'dark' },
 	];
-	const recurrenceSettings: Recurrence =
-		recurrence && typeof recurrence === 'object' ? recurrence : {};
-	const recurrenceFrequency = recurrenceSettings.freq || '';
-	const recurrenceUntil = recurrenceSettings.until || '';
-	const recurrenceAnchor = recurrenceSettings.anchor || '';
-	const recurrenceDates = Array.isArray( recurrenceSettings.dates )
-		? recurrenceSettings.dates
-		: [];
+	const { manualDates, rules: recurrenceRules } =
+		getRecurrenceEditorState( attributes );
+	const activeRecurrence = activeDate
+		? recurrenceRules[ activeDate ] || {}
+		: {};
+	const recurrenceFrequency = activeRecurrence.freq || '';
+	const recurrenceUntil = activeRecurrence.until || '';
+	const recurrenceAnchors = Object.keys( recurrenceRules ).sort();
 	const firstDate = calendarDates[ 0 ] || '';
 	const activeOverrides: DateOverrides =
 		dateOverrides && typeof dateOverrides === 'object' ? dateOverrides : {};
@@ -110,45 +130,30 @@ export function EditorSidebar( {
 			? activeOverride.breakDuration
 			: breakDuration;
 
-	const applyRecurrence = ( nextRecurrence: Recurrence ) => {
-		if ( ! nextRecurrence.freq || ! activeDate ) {
-			const nextDates = calendarDates.filter(
-				( date ) =>
-					! recurrenceDates.includes( date ) ||
-					date === recurrenceAnchor
-			);
-			setAttributes( {
-				recurrence: {},
-				selectedDates: nextDates,
-				startDate: nextDates[ 0 ] || '',
-				endDate: nextDates[ nextDates.length - 1 ] || '',
-				useEndDate: nextDates.length > 1,
-			} );
+	const applyRecurrence = ( settings: Recurrence ) => {
+		if ( ! activeDate ) {
 			return;
 		}
 
-		const anchor = nextRecurrence.anchor || activeDate;
-		const expandedDates = expandRecurrence(
-			{ ...nextRecurrence, anchor },
-			anchor
+		const nextRules: RecurrenceRules = { ...recurrenceRules };
+		const nextManualDates = new Set( manualDates );
+		nextManualDates.add( activeDate );
+
+		if ( ! settings.freq ) {
+			delete nextRules[ activeDate ];
+		} else {
+			const nextRule = createRecurrenceRule( activeDate, settings );
+			if ( nextRule ) {
+				nextRules[ activeDate ] = nextRule;
+			}
+		}
+
+		setAttributes(
+			buildRecurrenceAttributes(
+				Array.from( nextManualDates ),
+				nextRules
+			)
 		);
-		const manualDates = calendarDates.filter(
-			( date ) => ! recurrenceDates.includes( date )
-		);
-		const nextDates = [
-			...new Set( [ ...manualDates, ...expandedDates ] ),
-		].sort();
-		setAttributes( {
-			recurrence: {
-				...nextRecurrence,
-				anchor,
-				dates: expandedDates,
-			},
-			selectedDates: nextDates,
-			startDate: nextDates[ 0 ] || '',
-			endDate: nextDates[ nextDates.length - 1 ] || '',
-			useEndDate: nextDates.length > 1,
-		} );
 	};
 
 	return (
@@ -405,26 +410,25 @@ export function EditorSidebar( {
 					selectedDates={ calendarDates }
 					activeDate={ activeDate }
 					onToggleDate={ ( selectedDate ) => {
-						const dateSet = new Set( calendarDates );
+						const wasSelected =
+							calendarDates.includes( selectedDate );
+						const recurrenceAttributes = toggleRecurrenceDate(
+							attributes,
+							selectedDate
+						);
 						const overridesNext: DateOverrides = {
 							...( dateOverrides &&
 							typeof dateOverrides === 'object'
 								? dateOverrides
 								: {} ),
 						};
-						const wasSelected = dateSet.has( selectedDate );
 						if ( wasSelected ) {
-							dateSet.delete( selectedDate );
 							delete overridesNext[ selectedDate ];
-						} else {
-							dateSet.add( selectedDate );
 						}
-						const nextDates = Array.from( dateSet ).sort();
+						const nextDates =
+							recurrenceAttributes.selectedDates || [];
 						setAttributes( {
-							selectedDates: nextDates,
-							startDate: nextDates[ 0 ] || '',
-							endDate: nextDates[ nextDates.length - 1 ] || '',
-							useEndDate: nextDates.length > 1,
+							...recurrenceAttributes,
 							dateOverrides: overridesNext,
 						} );
 						if ( wasSelected ) {
@@ -558,6 +562,39 @@ export function EditorSidebar( {
 								'rrze-appointment'
 						  ) }
 				</p>
+				{ recurrenceAnchors.length > 0 && (
+					<div className="rrze-appointment-block__recurrence-rules">
+						<p>
+							<strong>
+								{ __( 'Repeat', 'rrze-appointment' ) }
+							</strong>
+						</p>
+						{ recurrenceAnchors.map( ( anchor ) => {
+							const frequency =
+								recurrenceRules[ anchor ].freq || '';
+							const frequencyLabel =
+								getRecurrenceFrequencyLabel( frequency );
+
+							return (
+								<Button
+									key={ anchor }
+									variant={
+										anchor === activeDate
+											? 'primary'
+											: 'secondary'
+									}
+									isSmall
+									onClick={ () => setActiveDate( anchor ) }
+								>
+									{ formatDateDisplay( anchor ) }
+									{ frequencyLabel
+										? ` · ${ frequencyLabel }`
+										: '' }
+								</Button>
+							);
+						} ) }
+					</div>
+				) }
 				<SelectControl
 					label={ __( 'Recurrence', 'rrze-appointment' ) }
 					value={ recurrenceFrequency }
@@ -581,7 +618,7 @@ export function EditorSidebar( {
 					] }
 					onChange={ ( value ) =>
 						applyRecurrence( {
-							...recurrenceSettings,
+							...activeRecurrence,
 							freq: value as RecurrenceFrequency,
 						} )
 					}
@@ -594,7 +631,7 @@ export function EditorSidebar( {
 						value={ recurrenceUntil }
 						onChange={ ( value ) =>
 							applyRecurrence( {
-								...recurrenceSettings,
+								...activeRecurrence,
 								until: value,
 							} )
 						}

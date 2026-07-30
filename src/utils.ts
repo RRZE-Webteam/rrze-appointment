@@ -335,7 +335,8 @@ export function expandRecurrence(
 
 	const untilDate = until ? parseDateString( until ) : null;
 	const results: string[] = [];
-	const current = new Date( anchor );
+	let current = new Date( anchor );
+	let occurrenceIndex = 0;
 
 	const limit =
 		( typeof window !== 'undefined' &&
@@ -347,13 +348,28 @@ export function expandRecurrence(
 		}
 
 		results.push( formatDate( current ) );
+		occurrenceIndex += 1;
 
 		if ( freq === 'daily' ) {
 			current.setDate( current.getDate() + 1 );
 		} else if ( freq === 'weekly' ) {
 			current.setDate( current.getDate() + 7 );
 		} else if ( freq === 'monthly' ) {
-			current.setMonth( current.getMonth() + 1 );
+			const targetMonth = new Date(
+				anchor.getFullYear(),
+				anchor.getMonth() + occurrenceIndex,
+				1
+			);
+			const lastDayOfTargetMonth = new Date(
+				targetMonth.getFullYear(),
+				targetMonth.getMonth() + 1,
+				0
+			).getDate();
+			current = new Date(
+				targetMonth.getFullYear(),
+				targetMonth.getMonth(),
+				Math.min( anchor.getDate(), lastDayOfTargetMonth )
+			);
 		} else {
 			break;
 		}

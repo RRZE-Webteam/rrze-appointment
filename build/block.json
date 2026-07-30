@@ -68,6 +68,12 @@
       "type": "object",
       "default": {}
     },
+    "manualDates": {
+      "type": "array"
+    },
+    "recurrences": {
+      "type": "object"
+    },
     "personId": {
       "type": "number",
       "default": 0

@@ -34,7 +34,8 @@
     "packages-update": "wp-scripts packages-update",
     "plugin-zip": "wp-scripts plugin-zip",
     "start": "wp-scripts start --webpack-copy-php",
-    "build:readme": "node build-readme.js"
+    "build:readme": "node build-readme.js",
+    "test:unit": "wp-scripts test-unit-js"
   },
   "devDependencies": {
     "@wordpress/scripts": "^30.11.0",
