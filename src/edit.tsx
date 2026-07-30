@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
 import {
 	AddSlotDialog,
 	AvailabilityDialog,
-	AvailabilityList,
+	AvailabilityManagerDialog,
 	DeleteAvailabilityDialog,
 	EditorSidebar,
 	HoursImportDialog,
@@ -179,6 +179,10 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 	const [ addSlotEndTime, setAddSlotEndTime ] = useState( '' );
 	const [ addSlotError, setAddSlotError ] = useState( '' );
 	const [ showCalendarPreview, setShowCalendarPreview ] = useState( false );
+	const [ showAvailabilityManager, setShowAvailabilityManager ] =
+		useState( false );
+	const [ returnToAvailabilityManager, setReturnToAvailabilityManager ] =
+		useState( false );
 	const [ availabilityDraft, setAvailabilityDraft ] =
 		useState< AvailabilityEntry | null >( null );
 	const [ editedAvailabilityId, setEditedAvailabilityId ] = useState( '' );
@@ -194,12 +198,14 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 	const activeOverrides: DateOverrides =
 		dateOverrides && typeof dateOverrides === 'object' ? dateOverrides : {};
 
-	const handleAddAvailability = () => {
+	const handleAddAvailability = ( returnToManager = false ) => {
 		const defaultDate = new Date();
 		defaultDate.setDate( defaultDate.getDate() + 1 );
 		const startTime = attributes.startTime || '09:00';
 		const startMinutes = parseTimeToMinutes( startTime ) || 9 * 60;
 		const duration = attributes.duration || 30;
+		setReturnToAvailabilityManager( returnToManager );
+		setShowAvailabilityManager( false );
 		setEditedAvailabilityId( '' );
 		setAvailabilityDraft( {
 			id: createAvailabilityId(),
@@ -214,8 +220,13 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 		} );
 	};
 
-	const handleEditAvailability = ( entry: AvailabilityEntry ) => {
+	const handleEditAvailability = (
+		entry: AvailabilityEntry,
+		returnToManager = false
+	) => {
 		setActiveDate( entry.date );
+		setReturnToAvailabilityManager( returnToManager );
+		setShowAvailabilityManager( false );
 		setEditedAvailabilityId( entry.id );
 		setAvailabilityDraft( {
 			...entry,
@@ -232,6 +243,33 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 		setActiveDate( entry.date );
 		setAvailabilityDraft( null );
 		setEditedAvailabilityId( '' );
+		if ( returnToAvailabilityManager ) {
+			setShowAvailabilityManager( true );
+		}
+		setReturnToAvailabilityManager( false );
+	};
+
+	const handleCancelAvailability = () => {
+		setAvailabilityDraft( null );
+		setEditedAvailabilityId( '' );
+		if ( returnToAvailabilityManager ) {
+			setShowAvailabilityManager( true );
+		}
+		setReturnToAvailabilityManager( false );
+	};
+
+	const handleRequestDeleteAvailability = ( entry: AvailabilityEntry ) => {
+		setShowAvailabilityManager( false );
+		setReturnToAvailabilityManager( true );
+		setAvailabilityToDelete( entry );
+	};
+
+	const handleCloseDeleteAvailability = () => {
+		setAvailabilityToDelete( null );
+		if ( returnToAvailabilityManager ) {
+			setShowAvailabilityManager( true );
+		}
+		setReturnToAvailabilityManager( false );
 	};
 
 	const handleDeleteAvailability = ( id: string ) => {
@@ -370,9 +408,13 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 			<BlockControls>
 				<ToolbarGroup>
 					<ToolbarButton
-						icon="plus-alt2"
-						label={ __( 'Add availability', 'rrze-appointment' ) }
-						onClick={ handleAddAvailability }
+						icon="list-view"
+						label={ __(
+							'Manage availabilities',
+							'rrze-appointment'
+						) }
+						isPressed={ showAvailabilityManager }
+						onClick={ () => setShowAvailabilityManager( true ) }
 					/>
 					<ToolbarButton
 						icon="calendar-alt"
@@ -421,12 +463,6 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 									{ locationContent }
 								</p>
 							) }
-							<AvailabilityList
-								entries={ availabilityEntries }
-								onAdd={ handleAddAvailability }
-								onDelete={ setAvailabilityToDelete }
-								onEdit={ handleEditAvailability }
-							/>
 							{ showCalendarPreview && (
 								<div className="rrze-appointment-block__calendar-preview">
 									<h3>
@@ -455,16 +491,28 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 										) }
 								</div>
 							) }
+							{ showAvailabilityManager && (
+								<AvailabilityManagerDialog
+									entries={ availabilityEntries }
+									onAdd={ () =>
+										handleAddAvailability( true )
+									}
+									onClose={ () =>
+										setShowAvailabilityManager( false )
+									}
+									onDelete={ handleRequestDeleteAvailability }
+									onEdit={ ( entry ) =>
+										handleEditAvailability( entry, true )
+									}
+								/>
+							) }
 							{ availabilityDraft && (
 								<AvailabilityDialog
 									entries={ availabilityEntries }
 									entry={ availabilityDraft }
 									originalId={ editedAvailabilityId }
 									onSave={ handleSaveAvailability }
-									onCancel={ () => {
-										setAvailabilityDraft( null );
-										setEditedAvailabilityId( '' );
-									} }
+									onCancel={ handleCancelAvailability }
 								/>
 							) }
 							{ availabilityToDelete && (
@@ -474,11 +522,9 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 										handleDeleteAvailability(
 											availabilityToDelete.id
 										);
-										setAvailabilityToDelete( null );
+										handleCloseDeleteAvailability();
 									} }
-									onCancel={ () =>
-										setAvailabilityToDelete( null )
-									}
+									onCancel={ handleCloseDeleteAvailability }
 								/>
 							) }
 							{ addSlotDate && (

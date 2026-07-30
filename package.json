@@ -38,7 +38,9 @@
     "test:unit": "wp-scripts test-unit-js"
   },
   "devDependencies": {
-    "@wordpress/scripts": "^30.11.0",
-    "@types/wordpress__blocks": "^15.17.0"
+    "@types/wordpress__blocks": "^15.17.0",
+    "@wordpress/dataviews": "^17.3.0",
+    "@wordpress/icons": "^15.3.0",
+    "@wordpress/scripts": "^30.11.0"
   }
 }

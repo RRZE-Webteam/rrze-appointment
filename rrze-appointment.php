@@ -107,6 +107,20 @@ function load_textdomain(): void
 
 function register_blocks(): void
 {
+    $editor_style_path = __DIR__ . '/build/index.css';
+    if (file_exists($editor_style_path)) {
+        $editor_style_handle = generate_block_asset_handle('rrze/appointment', 'editorStyle');
+        wp_register_style(
+            $editor_style_handle,
+            plugins_url('build/index.css', __FILE__),
+            ['wp-components'],
+            (string) filemtime($editor_style_path)
+        );
+        if (is_rtl() && file_exists(__DIR__ . '/build/index-rtl.css')) {
+            wp_style_add_data($editor_style_handle, 'rtl', 'replace');
+        }
+    }
+
     register_block_type( __DIR__ . '/build' );
     $script_handle = generate_block_asset_handle( 'rrze/appointment', 'editorScript' );
     wp_set_script_translations( $script_handle, 'rrze-appointment', plugin_dir_path( __FILE__ ) . 'languages' );

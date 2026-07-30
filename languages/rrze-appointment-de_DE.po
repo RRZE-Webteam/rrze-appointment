@@ -977,12 +977,12 @@ msgstr "Tour überspringen"
 msgid "Finish"
 msgstr "Fertig"
 
-#: src/components/availability-dialog.tsx src/components/availability-list.tsx
-#: src/edit.tsx
+#: src/components/availability-dialog.tsx
+#: src/components/availability-manager-dialog.tsx
 msgid "Add availability"
 msgstr "Verfügbarkeit hinzufügen"
 
-#: src/components/availability-list.tsx
+#: src/components/availability-manager-dialog.tsx
 msgid ""
 "Add individual appointments or optionally create consultation-hour slots "
 "from a pattern."
@@ -1022,7 +1022,7 @@ msgstr "Sprechzeiten-Muster"
 msgid "Delete time slot"
 msgstr "Zeitfenster löschen"
 
-#: src/components/availability-list.tsx
+#: src/components/availability-data-view.tsx
 msgid "Does not repeat"
 msgstr "Wiederholt sich nicht"
 
@@ -1038,7 +1038,7 @@ msgstr "Sprechzeiten nach Muster befüllen"
 msgid "Import consultation hours"
 msgstr "Sprechzeiten importieren"
 
-#: src/components/availability-list.tsx
+#: src/components/availability-data-view.tsx
 msgid "No availabilities have been configured yet."
 msgstr "Es wurden noch keine Verfügbarkeiten eingerichtet."
 
@@ -1102,30 +1102,37 @@ msgstr "Verfügbarkeit löschen"
 msgid "This also removes all %d occurrences in the series."
 msgstr "Dadurch werden auch alle %d Vorkommen der Serie entfernt."
 
+#: src/components/availability-data-view.tsx
 #: src/components/availability-dialog.tsx
 msgid "Monday"
 msgstr "Montag"
 
+#: src/components/availability-data-view.tsx
 #: src/components/availability-dialog.tsx
 msgid "Tuesday"
 msgstr "Dienstag"
 
+#: src/components/availability-data-view.tsx
 #: src/components/availability-dialog.tsx
 msgid "Wednesday"
 msgstr "Mittwoch"
 
+#: src/components/availability-data-view.tsx
 #: src/components/availability-dialog.tsx
 msgid "Thursday"
 msgstr "Donnerstag"
 
+#: src/components/availability-data-view.tsx
 #: src/components/availability-dialog.tsx
 msgid "Friday"
 msgstr "Freitag"
 
+#: src/components/availability-data-view.tsx
 #: src/components/availability-dialog.tsx
 msgid "Saturday"
 msgstr "Samstag"
 
+#: src/components/availability-data-view.tsx
 #: src/components/availability-dialog.tsx
 msgid "Sunday"
 msgstr "Sonntag"
@@ -1137,3 +1144,55 @@ msgstr "Wiederholen an"
 #: src/components/availability-dialog.tsx
 msgid "Please select at least one weekday."
 msgstr "Bitte wählen Sie mindestens einen Wochentag aus."
+
+#: src/components/availability-data-view.tsx
+msgid "Mon"
+msgstr "Mo"
+
+#: src/components/availability-data-view.tsx
+msgid "Tue"
+msgstr "Di"
+
+#: src/components/availability-data-view.tsx
+msgid "Wed"
+msgstr "Mi"
+
+#: src/components/availability-data-view.tsx
+msgid "Thu"
+msgstr "Do"
+
+#: src/components/availability-data-view.tsx
+msgid "Fri"
+msgstr "Fr"
+
+#: src/components/availability-data-view.tsx
+msgid "Sat"
+msgstr "Sa"
+
+#: src/components/availability-data-view.tsx
+msgid "Sun"
+msgstr "So"
+
+#. translators: %s: weekday name.
+#: src/components/availability-data-view.tsx
+#, php-format
+msgid "Repeats on %s"
+msgstr "Wiederholt sich am %s"
+
+#. translators: %s: weekday name.
+#: src/components/availability-data-view.tsx
+#, php-format
+msgid "Does not repeat on %s"
+msgstr "Keine Wiederholung am %s"
+
+#: src/components/availability-data-view.tsx
+msgid "Slot pattern"
+msgstr "Slot-Muster"
+
+#: src/components/availability-data-view.tsx
+msgid "Repetition"
+msgstr "Wiederholung"
+
+#: src/components/availability-manager-dialog.tsx src/edit.tsx
+msgid "Manage availabilities"
+msgstr "Verfügbarkeiten verwalten"
