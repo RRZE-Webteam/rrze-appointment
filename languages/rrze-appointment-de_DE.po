@@ -114,10 +114,6 @@ msgstr "Aktionen"
 msgid "All"
 msgstr "Alle"
 
-#: includes/Main.php:488 build/render.php:103 src/render.php:103
-msgid "All appointments"
-msgstr "Alle Termine"
-
 #: includes/MailTemplatePost.php:175 includes/MailTemplatePost.php:188
 msgid "An earlier appointment has become available:"
 msgstr "Ein früherer Termin ist frei geworden:"
@@ -342,10 +338,6 @@ msgstr "Allgemein"
 msgid "Hello %s,"
 msgstr "Hallo %s,"
 
-#: includes/Main.php:510 includes/Main.php:525
-msgid "Hide \"All appointments\" accordion"
-msgstr "Akkordeon \"Alle Termine\" ausblenden"
-
 #: includes/Main.php:512 includes/Main.php:527
 msgid "Hide weekends"
 msgstr "Wochenenden ausblenden"
@@ -369,14 +361,6 @@ msgstr ""
 #: includes/Main.php:509 includes/Main.php:524
 msgid "If enabled, booking works without SSO login."
 msgstr "Wenn aktiviert, ist die Buchung ohne SSO-Login möglich."
-
-#: includes/Main.php:511 includes/Main.php:526
-msgid ""
-"If enabled, the grouped list under \"All appointments\" is hidden on the "
-"frontend."
-msgstr ""
-"Wenn aktiviert, wird die gruppierte Liste unter \"Alle Termine\" im Frontend "
-"ausgeblendet."
 
 #: includes/Main.php:507 includes/Main.php:522
 msgid "If enabled, users must fill in the message field during booking."

@@ -215,28 +215,8 @@ class Main
             'header',
             'footer',
             'main',
-            'nav',
-            'details',
-            'summary'
+            'nav'
         ];
-
-        // Ensure details/summary exist with common attributes for accordion UI
-        if (!isset($allowed_tags['details'])) {
-            $allowed_tags['details'] = [];
-        }
-        $allowed_tags['details'] = array_merge($allowed_tags['details'], [
-            'id' => true,
-            'class' => true,
-            'open' => true, // render expanded by default
-        ]);
-
-        if (!isset($allowed_tags['summary'])) {
-            $allowed_tags['summary'] = [];
-        }
-        $allowed_tags['summary'] = array_merge($allowed_tags['summary'], [
-            'id' => true,
-            'class' => true,
-        ]);
 
         // 3) Add Schema.org attributes to the listed tags without removing existing ones
         foreach ($tags_to_extend as $tag) {
@@ -487,7 +467,6 @@ class Main
                         'bookingError' => __('Error booking appointment.', 'rrze-appointment'),
                         'networkError' => __('Network error. Please try again.', 'rrze-appointment'),
                         'availableOn' => __('Available appointments on %s', 'rrze-appointment'),
-                        'allAppointments' => __('All appointments', 'rrze-appointment'),
                         'slotsOnDay' => __('Times on selected day', 'rrze-appointment'),
                     ],
                 ]);
@@ -509,8 +488,6 @@ class Main
                     'requireMessageHelp' => __('If enabled, users must fill in the message field during booking.', 'rrze-appointment'),
                     'disableSsoField' => __('Disable SSO', 'rrze-appointment'),
                     'disableSsoHelp' => __('If enabled, booking works without SSO login.', 'rrze-appointment'),
-                    'hideAllAppointmentsField' => __('Hide "All appointments" accordion', 'rrze-appointment'),
-                    'hideAllAppointmentsHelp' => __('If enabled, the grouped list under "All appointments" is hidden on the frontend.', 'rrze-appointment'),
                     'hideWeekendsField' => __('Hide weekends', 'rrze-appointment'),
                     'hideWeekendsHelp' => __('If enabled, weekend columns are not shown in the calendar.', 'rrze-appointment'),
                 ],
@@ -524,8 +501,6 @@ class Main
                     'requireMessageHelp' => __('If enabled, users must fill in the message field during booking.', 'rrze-appointment'),
                     'disableSsoField' => __('Disable SSO', 'rrze-appointment'),
                     'disableSsoHelp' => __('If enabled, booking works without SSO login.', 'rrze-appointment'),
-                    'hideAllAppointmentsField' => __('Hide "All appointments" accordion', 'rrze-appointment'),
-                    'hideAllAppointmentsHelp' => __('If enabled, the grouped list under "All appointments" is hidden on the frontend.', 'rrze-appointment'),
                     'hideWeekendsField' => __('Hide weekends', 'rrze-appointment'),
                     'hideWeekendsHelp' => __('If enabled, weekend columns are not shown in the calendar.', 'rrze-appointment'),
                 ],

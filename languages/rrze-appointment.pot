@@ -115,10 +115,6 @@ msgstr ""
 msgid "All"
 msgstr ""
 
-#: includes/Main.php:488 build/render.php:103 src/render.php:103
-msgid "All appointments"
-msgstr ""
-
 #: includes/MailTemplatePost.php:175 includes/MailTemplatePost.php:188
 msgid "An earlier appointment has become available:"
 msgstr ""
@@ -341,10 +337,6 @@ msgstr ""
 msgid "Hello %s,"
 msgstr ""
 
-#: includes/Main.php:510 includes/Main.php:525
-msgid "Hide \"All appointments\" accordion"
-msgstr ""
-
 #: includes/Main.php:512 includes/Main.php:527
 msgid "Hide weekends"
 msgstr ""
@@ -367,12 +359,6 @@ msgstr ""
 
 #: includes/Main.php:509 includes/Main.php:524
 msgid "If enabled, booking works without SSO login."
-msgstr ""
-
-#: includes/Main.php:511 includes/Main.php:526
-msgid ""
-"If enabled, the grouped list under \"All appointments\" is hidden on the "
-"frontend."
 msgstr ""
 
 #: includes/Main.php:507 includes/Main.php:522

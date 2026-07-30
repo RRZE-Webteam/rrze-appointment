@@ -106,10 +106,6 @@
       "type": "boolean",
       "default": false
     },
-    "hideAllAppointmentsAccordion": {
-      "type": "boolean",
-      "default": false
-    },
     "hideWeekends": {
       "type": "boolean",
       "default": false

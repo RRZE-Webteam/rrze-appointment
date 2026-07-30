@@ -23,10 +23,8 @@ import {
 	buildRecurrenceAttributes,
 	createRecurrenceRule,
 	getRecurrenceEditorState,
-	toggleRecurrenceDate,
 } from '../recurrence';
 import { formatDateDisplay } from '../utils';
-import { CalendarMultiSelect } from './calendar-multi-select';
 
 interface EditorSidebarProps {
 	activeDate: string;
@@ -41,15 +39,6 @@ interface EditorSidebarProps {
 	setActiveDate: ( date: string ) => void;
 	setAttributes: EditProps[ 'setAttributes' ];
 }
-
-const COLOR_OPTIONS = [
-	{ label: 'fau', value: 'fau' },
-	{ label: 'med', value: 'med' },
-	{ label: 'nat', value: 'nat' },
-	{ label: 'phil', value: 'phil' },
-	{ label: 'rw', value: 'rw' },
-	{ label: 'tf', value: 'tf' },
-];
 
 function getRecurrenceFrequencyLabel( frequency: RecurrenceFrequency ): string {
 	switch ( frequency ) {
@@ -80,13 +69,11 @@ export function EditorSidebar( {
 	const {
 		bookingCutoff,
 		breakDuration,
-		color,
 		dateOverrides,
 		description,
 		disableSso,
 		duration,
 		endTime,
-		hideAllAppointmentsAccordion,
 		hideWeekends,
 		location,
 		locationUrl,
@@ -95,14 +82,9 @@ export function EditorSidebar( {
 		personName,
 		requireMessage,
 		startTime,
-		style,
 		tplId,
 	} = attributes;
 	const editorI18n = window.rrze_appointment?.editorI18n || {};
-	const styleOptions = [
-		{ label: __( 'light', 'rrze-appointment' ), value: 'light' },
-		{ label: __( 'dark', 'rrze-appointment' ), value: 'dark' },
-	];
 	const { manualDates, rules: recurrenceRules } =
 		getRecurrenceEditorState( attributes );
 	const activeRecurrence = activeDate
@@ -395,51 +377,17 @@ export function EditorSidebar( {
 					}
 				/>
 
-				<p>
-					<strong>
-						{ __( 'Calendar view', 'rrze-appointment' ) }
-					</strong>
+				<p className="rrze-appointment-block__active-date-hint">
+					{ activeDate
+						? `${ __(
+								'Applies to',
+								'rrze-appointment'
+						  ) }: ${ formatDateDisplay( activeDate ) }`
+						: __(
+								'Please select a day first.',
+								'rrze-appointment'
+						  ) }
 				</p>
-				<p>
-					{ __(
-						'Click a date to add or remove it.',
-						'rrze-appointment'
-					) }
-				</p>
-				<CalendarMultiSelect
-					selectedDates={ calendarDates }
-					activeDate={ activeDate }
-					onToggleDate={ ( selectedDate ) => {
-						const wasSelected =
-							calendarDates.includes( selectedDate );
-						const recurrenceAttributes = toggleRecurrenceDate(
-							attributes,
-							selectedDate
-						);
-						const overridesNext: DateOverrides = {
-							...( dateOverrides &&
-							typeof dateOverrides === 'object'
-								? dateOverrides
-								: {} ),
-						};
-						if ( wasSelected ) {
-							delete overridesNext[ selectedDate ];
-						}
-						const nextDates =
-							recurrenceAttributes.selectedDates || [];
-						setAttributes( {
-							...recurrenceAttributes,
-							dateOverrides: overridesNext,
-						} );
-						if ( wasSelected ) {
-							if ( activeDate === selectedDate ) {
-								setActiveDate( nextDates[ 0 ] || '' );
-							}
-						} else {
-							setActiveDate( selectedDate );
-						}
-					} }
-				/>
 				<TextControl
 					label={ __( 'Start time', 'rrze-appointment' ) }
 					type="time"
@@ -640,45 +588,11 @@ export function EditorSidebar( {
 			</PanelBody>
 
 			<PanelBody
-				title={ __( 'Appearance', 'rrze-appointment' ) }
-				name={ __( 'Appearance', 'rrze-appointment' ) }
-				icon="admin-appearance"
+				title={ __( 'Calendar view', 'rrze-appointment' ) }
+				name={ __( 'Calendar view', 'rrze-appointment' ) }
+				icon="calendar-alt"
 				initialOpen={ false }
 			>
-				<SelectControl
-					label={ __( 'Accordion style', 'rrze-appointment' ) }
-					value={ style || 'light' }
-					options={ styleOptions }
-					onChange={ ( value ) => setAttributes( { style: value } ) }
-				/>
-				<SelectControl
-					label={ __( 'Color', 'rrze-appointment' ) }
-					value={ color || '' }
-					options={ COLOR_OPTIONS }
-					onChange={ ( value ) => setAttributes( { color: value } ) }
-				/>
-				<ToggleControl
-					label={
-						editorI18n.hideAllAppointmentsField ||
-						__(
-							'Hide "All appointments" accordion',
-							'rrze-appointment'
-						)
-					}
-					help={
-						editorI18n.hideAllAppointmentsHelp ||
-						__(
-							'If enabled, the grouped list under "All appointments" is hidden on the frontend.',
-							'rrze-appointment'
-						)
-					}
-					checked={ !! hideAllAppointmentsAccordion }
-					onChange={ ( value ) =>
-						setAttributes( {
-							hideAllAppointmentsAccordion: !! value,
-						} )
-					}
-				/>
 				<ToggleControl
 					label={
 						editorI18n.hideWeekendsField ||

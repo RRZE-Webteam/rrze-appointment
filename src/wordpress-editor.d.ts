@@ -15,6 +15,11 @@ declare module '@wordpress/block-editor' {
 		children?: ReactNode;
 	}
 
+	interface BlockControlsProps {
+		children?: ReactNode;
+	}
+
+	export const BlockControls: ComponentType< BlockControlsProps >;
 	export const InspectorControls: ComponentType< InspectorControlsProps >;
 	export function useBlockProps(
 		props?: HTMLAttributes< HTMLDivElement >
@@ -67,10 +72,25 @@ declare module '@wordpress/components' {
 		onChange: ( value: boolean ) => void;
 	}
 
+	interface ToolbarGroupProps {
+		children?: ReactNode;
+	}
+
+	interface ToolbarButtonProps {
+		children?: ReactNode;
+		disabled?: boolean;
+		icon?: string;
+		isPressed?: boolean;
+		label: string;
+		onClick?: () => void;
+	}
+
 	export const Button: ComponentType< ButtonProps >;
 	export const PanelBody: ComponentType< PanelBodyProps >;
 	export const SelectControl: ComponentType< SelectControlProps >;
 	export const TextControl: ComponentType< TextControlProps >;
 	export const TextareaControl: ComponentType< TextControlProps >;
 	export const ToggleControl: ComponentType< ToggleControlProps >;
+	export const ToolbarButton: ComponentType< ToolbarButtonProps >;
+	export const ToolbarGroup: ComponentType< ToolbarGroupProps >;
 }

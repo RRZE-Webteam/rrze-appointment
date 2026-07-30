@@ -46,7 +46,6 @@ export interface AppointmentAttributes {
 	bookingCutoff: number;
 	requireMessage: boolean;
 	disableSso: boolean;
-	hideAllAppointmentsAccordion: boolean;
 	hideWeekends: boolean;
 	color?: string;
 	style: string;
@@ -104,14 +103,11 @@ export interface EditorI18n {
 	requireMessageHelp?: string;
 	disableSsoField?: string;
 	disableSsoHelp?: string;
-	hideAllAppointmentsField?: string;
-	hideAllAppointmentsHelp?: string;
 	hideWeekendsField?: string;
 	hideWeekendsHelp?: string;
 }
 
 export interface FrontendI18n {
-	allAppointments?: string;
 	availableOn?: string;
 	book?: string;
 	booked?: string;
@@ -148,34 +144,21 @@ export interface HoursOverlay {
 	type: 'consultation' | 'office';
 }
 
-export interface CalendarMultiSelectProps {
-	selectedDates: string[];
-	activeDate: string;
-	onToggleDate: ( date: string ) => void;
-}
-
 export interface PreviewCalendarProps {
 	slots: TimeSlot[];
+	selectedDates: string[];
 	onRemoveSlot?: ( slot: TimeSlot ) => void;
 	onAddSlot?: ( date: string ) => void;
+	onToggleDate?: ( date: string ) => void;
 	activeDate: string;
 	setActiveDate: ( date: string ) => void;
 	hideWeekends: boolean;
+	isDateSelectionMode?: boolean;
 }
 
 export interface EditProps {
 	attributes: AppointmentAttributes;
 	setAttributes: ( attributes: Partial< AppointmentAttributes > ) => void;
-}
-
-export interface SlotAccordionHandlers {
-	onRemoveSlot?: ( slot: TimeSlot ) => void;
-	onAddSlot?: ( date: string ) => void;
-}
-
-export interface GroupedSlotsAccordionProps extends SlotAccordionHandlers {
-	slots: TimeSlot[];
-	name: string;
 }
 
 export interface ParsedSlotValue {

@@ -102,15 +102,15 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 			const daySlotsList = form.querySelector< HTMLElement >(
 				'.rrze-appointment__day-slots-list'
 			);
-			const groupedFieldset = form.querySelector< HTMLElement >(
-				'.rrze-appointment__slots-grouped'
+			const slotData = form.querySelector< HTMLElement >(
+				'.rrze-appointment__slot-data'
 			);
 
 			if (
 				! calendar ||
 				! daySlotsFieldset ||
 				! daySlotsList ||
-				! groupedFieldset
+				! slotData
 			) {
 				return;
 			}
@@ -118,18 +118,18 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 			const calendarElement = calendar;
 			const daySlotsFieldsetElement = daySlotsFieldset;
 			const daySlotsListElement = daySlotsList;
-			const groupedFieldsetElement = groupedFieldset;
+			const slotDataElement = slotData;
 
-			const groupedInputs = Array.from(
-				groupedFieldsetElement.querySelectorAll< HTMLInputElement >(
+			const slotInputs = Array.from(
+				slotDataElement.querySelectorAll< HTMLInputElement >(
 					'input[name="rrze_appointment_slot"]'
 				)
 			);
-			if ( groupedInputs.length === 0 ) {
+			if ( slotInputs.length === 0 ) {
 				return;
 			}
 
-			const dateMap = buildDateMap( groupedInputs );
+			const dateMap = buildDateMap( slotInputs );
 			let availableDates: string[] = [];
 			let dateSet = new Set< string >();
 
@@ -145,8 +145,6 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 			);
 			const requireMessage = form.dataset.requireMessage === '1';
 			const disableSso = form.dataset.disableSso === '1';
-			const hideAllAppointmentsAccordion =
-				form.dataset.hideAllAppointmentsAccordion === '1';
 			const hideWeekends = form.dataset.hideWeekends === '1';
 
 			function parseSlotStart( slotValue: string ): Date | null {
@@ -202,7 +200,6 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 
 			availableDates = Array.from( dateMap.keys() ).sort();
 			if ( availableDates.length === 0 ) {
-				groupedFieldsetElement.classList.add( 'is-hidden' );
 				daySlotsFieldsetElement.classList.add( 'is-hidden' );
 				return;
 			}
@@ -213,7 +210,7 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 			let currentMonth = firstDate.getMonth();
 
 			function markHiddenInput( value: string ): void {
-				groupedInputs.forEach( ( input ) => {
+				slotInputs.forEach( ( input ) => {
 					input.checked = input.value === value;
 				} );
 			}
@@ -458,7 +455,6 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 								cancelBtn.disabled = false;
 								renderCalendar();
 								renderDaySlots( activeDate );
-								renderGroupedSlots();
 							} else {
 								status.textContent =
 									res.data ||
@@ -513,7 +509,6 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 					if ( disableSso ) {
 						openOverlay( slot.value, {}, button );
 						renderDaySlots( activeDate );
-						renderGroupedSlots();
 						return;
 					}
 
@@ -584,14 +579,12 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 
 							openOverlay( slot.value, booker, button );
 							renderDaySlots( activeDate );
-							renderGroupedSlots();
 						} )
 						.catch( () => {
 							button.disabled = false;
 
 							openOverlay( slot.value, {}, button );
 							renderDaySlots( activeDate );
-							renderGroupedSlots();
 						} );
 				} );
 				return button;
@@ -624,54 +617,6 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				slots.forEach( ( slot ) => {
 					daySlotsListElement.appendChild( createSlotButton( slot ) );
 				} );
-			}
-
-			function renderGroupedSlots(): void {
-				if ( hideAllAppointmentsAccordion ) {
-					groupedFieldsetElement.classList.add( 'is-hidden' );
-					groupedFieldsetElement.hidden = true;
-					return;
-				}
-
-				let hasVisibleGroups = false;
-				groupedFieldsetElement
-					.querySelectorAll< HTMLElement >(
-						'.rrze-appointment__slot-grid'
-					)
-					.forEach( ( grid ) => {
-						const date = grid.dataset.date;
-						if ( ! date ) {
-							return;
-						}
-						const slots = dateMap.get( date ) || [];
-						const dateGroup = grid.closest< HTMLElement >(
-							'.rrze-appointment__date-group'
-						);
-
-						grid.innerHTML = '';
-						slots.forEach( ( slot ) => {
-							grid.appendChild( createSlotButton( slot ) );
-						} );
-
-						// Hide date groups that no longer contain bookable slots (e.g. only past times).
-						if ( dateGroup ) {
-							const hasSlots = slots.length > 0;
-							dateGroup.classList.toggle(
-								'is-hidden',
-								! hasSlots
-							);
-							dateGroup.hidden = ! hasSlots;
-							if ( hasSlots ) {
-								hasVisibleGroups = true;
-							}
-						}
-					} );
-
-				groupedFieldsetElement.classList.toggle(
-					'is-hidden',
-					! hasVisibleGroups
-				);
-				groupedFieldsetElement.hidden = ! hasVisibleGroups;
 			}
 
 			function renderCalendar(): void {
@@ -856,33 +801,6 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 
 			renderCalendar();
 			renderDaySlots( activeDate );
-			renderGroupedSlots();
-
-			// Akkordeon-Verhalten und i18n
-			form.querySelectorAll< HTMLButtonElement >(
-				'.rrze-appointment__accordion-toggle'
-			).forEach( ( toggle ) => {
-				if ( ! toggle.textContent?.trim() ) {
-					toggle.textContent =
-						i18n.allAppointments || 'All appointments';
-				}
-			} );
-			form.querySelectorAll< HTMLButtonElement >(
-				'.rrze-appointment__accordion-toggle, .rrze-appointment__date-group-toggle'
-			).forEach( ( toggle ) => {
-				toggle.addEventListener( 'click', () => {
-					const parent = toggle.parentElement;
-					if ( ! parent ) {
-						return;
-					}
-					const isOpen = parent.dataset.accordion === 'open';
-					parent.dataset.accordion = isOpen ? 'closed' : 'open';
-					toggle.setAttribute(
-						'aria-expanded',
-						isOpen ? 'false' : 'true'
-					);
-				} );
-			} );
 
 			// Nach SSO-Login: Slot aus sessionStorage lesen und Overlay automatisch öffnen
 			const autoSlot = sessionStorage.getItem( 'rrze_appt_slot' );

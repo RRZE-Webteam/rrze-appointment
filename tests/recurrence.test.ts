@@ -40,7 +40,6 @@ function createAttributes(
 		bookingCutoff: 0,
 		requireMessage: false,
 		disableSso: false,
-		hideAllAppointmentsAccordion: false,
 		hideWeekends: false,
 		style: 'light',
 		...overrides,

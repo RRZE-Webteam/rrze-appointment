@@ -1,5 +1,6 @@
 import apiFetch from '@wordpress/api-fetch';
-import { useBlockProps } from '@wordpress/block-editor';
+import { BlockControls, useBlockProps } from '@wordpress/block-editor';
+import { ToolbarButton, ToolbarGroup } from '@wordpress/components';
 import { Fragment, useEffect, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import type { ReactNode } from 'react';
@@ -9,7 +10,6 @@ import {
 	HoursImportDialog,
 	PreviewCalendar,
 } from './components';
-import { renderGroupedSlotsAccordion } from './slot-accordion';
 import type {
 	DateOverrides,
 	EditProps,
@@ -21,10 +21,12 @@ import type {
 } from './types';
 import {
 	formatDate,
+	formatDateDisplay,
 	generateTimeSlots,
 	getCalendarDates,
 	parseTimeToMinutes,
 } from './utils';
+import { toggleRecurrenceDate } from './recurrence';
 
 export default function Edit( { attributes, setAttributes }: EditProps ) {
 	const {
@@ -36,7 +38,6 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 		locationUrl,
 		color,
 		style,
-		hideAllAppointmentsAccordion,
 		hideWeekends,
 	} = attributes;
 
@@ -149,6 +150,9 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 	const [ addSlotTime, setAddSlotTime ] = useState( '' );
 	const [ addSlotEndTime, setAddSlotEndTime ] = useState( '' );
 	const [ addSlotError, setAddSlotError ] = useState( '' );
+	const [ isDateSelectionMode, setIsDateSelectionMode ] = useState(
+		() => calendarDates.length === 0
+	);
 
 	useEffect( () => {
 		if ( ! activeDate || ! calendarDates.includes( activeDate ) ) {
@@ -158,6 +162,33 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 
 	const activeOverrides: DateOverrides =
 		dateOverrides && typeof dateOverrides === 'object' ? dateOverrides : {};
+
+	const handleToggleDate = ( date: string ) => {
+		const wasSelected = calendarDates.includes( date );
+		const recurrenceAttributes = toggleRecurrenceDate( attributes, date );
+		const nextDates = recurrenceAttributes.selectedDates || [];
+		const nextOverrides = { ...activeOverrides };
+
+		if ( wasSelected ) {
+			delete nextOverrides[ date ];
+		}
+
+		setAttributes( {
+			...recurrenceAttributes,
+			dateOverrides: nextOverrides,
+		} );
+
+		if ( wasSelected ) {
+			if ( activeDate === date ) {
+				setActiveDate( nextDates[ 0 ] || '' );
+			}
+			if ( nextDates.length === 0 ) {
+				setIsDateSelectionMode( true );
+			}
+			return;
+		}
+		setActiveDate( date );
+	};
 
 	const handleRemoveSlot = ( slot: TimeSlot ) => {
 		if ( ! slot || ! slot.date ) {
@@ -277,6 +308,47 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 
 	return (
 		<Fragment>
+			<BlockControls>
+				<ToolbarGroup>
+					<ToolbarButton
+						icon="calendar-alt"
+						label={ __( 'Calendar view', 'rrze-appointment' ) }
+						isPressed={ isDateSelectionMode }
+						onClick={ () =>
+							setIsDateSelectionMode(
+								( isSelecting ) => ! isSelecting
+							)
+						}
+					/>
+					<ToolbarButton
+						icon="plus-alt2"
+						label={
+							activeDate
+								? `${ __(
+										'New time for',
+										'rrze-appointment'
+								  ) } ${ formatDateDisplay( activeDate ) }`
+								: __( 'Add', 'rrze-appointment' )
+						}
+						disabled={ ! activeDate }
+						onClick={ () => handleOpenAddSlot( activeDate ) }
+					/>
+					<ToolbarButton
+						icon="trash"
+						label={
+							activeDate
+								? `${ __(
+										'Delete',
+										'rrze-appointment'
+								  ) }: ${ formatDateDisplay( activeDate ) }`
+								: __( 'Delete', 'rrze-appointment' )
+						}
+						disabled={ ! activeDate }
+						onClick={ () => handleToggleDate( activeDate ) }
+					/>
+				</ToolbarGroup>
+			</BlockControls>
+
 			<EditorSidebar
 				activeDate={ activeDate }
 				attributes={ attributes }
@@ -316,34 +388,35 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 									{ locationContent }
 								</p>
 							) }
-							{ slots.length > 0 ? (
-								<Fragment>
-									<PreviewCalendar
-										slots={ slots }
-										onRemoveSlot={ handleRemoveSlot }
-										onAddSlot={ handleOpenAddSlot }
-										activeDate={ activeDate }
-										setActiveDate={ setActiveDate }
-										hideWeekends={ !! hideWeekends }
-									/>
-									{ ! hideAllAppointmentsAccordion &&
-										renderGroupedSlotsAccordion(
-											slots,
-											'rrze_appointment_slot_preview',
-											{
-												onRemoveSlot: handleRemoveSlot,
-												onAddSlot: handleOpenAddSlot,
-											}
+							<PreviewCalendar
+								slots={ slots }
+								selectedDates={ calendarDates }
+								onRemoveSlot={ handleRemoveSlot }
+								onAddSlot={ handleOpenAddSlot }
+								onToggleDate={ handleToggleDate }
+								activeDate={ activeDate }
+								setActiveDate={ setActiveDate }
+								hideWeekends={ !! hideWeekends }
+								isDateSelectionMode={ isDateSelectionMode }
+							/>
+							{ calendarDates.length === 0 &&
+								! isDateSelectionMode && (
+									<p>
+										{ __(
+											'Please select a day first.',
+											'rrze-appointment'
 										) }
-								</Fragment>
-							) : (
-								<p>
-									{ __(
-										'Please select at least one day in the appointment settings.',
-										'rrze-appointment'
-									) }
-								</p>
-							) }
+									</p>
+								) }
+							{ calendarDates.length > 0 &&
+								slots.length === 0 && (
+									<p>
+										{ __(
+											'No time slots available.',
+											'rrze-appointment'
+										) }
+									</p>
+								) }
 							{ addSlotDate && (
 								<AddSlotDialog
 									date={ addSlotDate }

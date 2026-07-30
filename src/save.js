@@ -1,7 +1,6 @@
 import { Fragment } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { generateTimeSlots } from './utils';
-import { renderGroupedSlotsAccordion } from './slot-accordion';
 
 export default function Save({ attributes }) {
     const { title, location, description, personId, personEmail, tplId, locationUrl, color, style, bookingCutoff } = attributes;
@@ -43,7 +42,17 @@ export default function Save({ attributes }) {
                             <div className="rrze-appointment__day-slots-list" />
                         </div>
 
-                        {renderGroupedSlotsAccordion(slots, 'rrze_appointment_slot')}
+                        <div className="rrze-appointment__slot-data" hidden aria-hidden="true">
+                            {slots.map((slot) => (
+                                <input
+                                    key={slot.value}
+                                    type="radio"
+                                    name="rrze_appointment_slot"
+                                    value={slot.value}
+                                    data-label={slot.timeRange}
+                                />
+                            ))}
+                        </div>
 
                         <div className="rrze-appointment__selected-info is-hidden" aria-live="polite" />
                     </Fragment>
