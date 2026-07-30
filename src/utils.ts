@@ -111,6 +111,19 @@ export function formatDateDisplay( dateString: string ): string {
 	} );
 }
 
+export function formatDateWithWeekdayDisplay( dateString: string ): string {
+	const dateObj = parseDateString( dateString );
+	if ( ! dateObj ) {
+		return dateString;
+	}
+	return dateObj.toLocaleDateString( 'de-DE', {
+		weekday: 'long',
+		day: '2-digit',
+		month: '2-digit',
+		year: 'numeric',
+	} );
+}
+
 export function normalizeDateList( values: unknown ): string[] {
 	if ( ! Array.isArray( values ) ) {
 		return [];
@@ -176,6 +189,33 @@ export function getCalendarDates(
 	return getDateRange( attributes.startDate, selectedEndDate );
 }
 
+function getRecurrenceAnchor(
+	attributes: AppointmentAttributes,
+	date: string
+): string {
+	const rules =
+		attributes.recurrences && typeof attributes.recurrences === 'object'
+			? attributes.recurrences
+			: {};
+	const matchingRule = Object.entries( rules ).find(
+		( [ , rule ] ) =>
+			Array.isArray( rule.dates ) && rule.dates.includes( date )
+	);
+	if ( matchingRule ) {
+		return matchingRule[ 0 ];
+	}
+
+	const legacyRule = attributes.recurrence;
+	if (
+		Array.isArray( legacyRule?.dates ) &&
+		legacyRule.dates.includes( date )
+	) {
+		return legacyRule.anchor || legacyRule.dates[ 0 ] || '';
+	}
+
+	return '';
+}
+
 export function generateTimeSlots(
 	attributes: AppointmentAttributes
 ): TimeSlot[] {
@@ -207,7 +247,14 @@ export function generateTimeSlots(
 	const slots: TimeSlot[] = [];
 
 	for ( const dateString of calendarDates ) {
-		const override = overrides[ dateString ] || {};
+		const recurrenceAnchor = getRecurrenceAnchor( attributes, dateString );
+		const seriesOverride = recurrenceAnchor
+			? overrides[ recurrenceAnchor ] || {}
+			: {};
+		const override = {
+			...seriesOverride,
+			...( overrides[ dateString ] || {} ),
+		};
 		const slotDuration =
 			override.duration !== null && override.duration !== undefined
 				? Number( override.duration )

@@ -6,11 +6,19 @@ import { __ } from '@wordpress/i18n';
 import type { ReactNode } from 'react';
 import {
 	AddSlotDialog,
+	AvailabilityDialog,
+	AvailabilityList,
+	DeleteAvailabilityDialog,
 	EditorSidebar,
 	HoursImportDialog,
 	PreviewCalendar,
 } from './components';
+import {
+	buildAvailabilityAttributes,
+	getAvailabilityEntries,
+} from './availability';
 import type {
+	AvailabilityEntry,
 	DateOverrides,
 	EditProps,
 	FaudirPerson,
@@ -21,12 +29,11 @@ import type {
 } from './types';
 import {
 	formatDate,
-	formatDateDisplay,
 	generateTimeSlots,
 	getCalendarDates,
+	minutesToTime,
 	parseTimeToMinutes,
 } from './utils';
-import { toggleRecurrenceDate } from './recurrence';
 
 export default function Edit( { attributes, setAttributes }: EditProps ) {
 	const {
@@ -98,39 +105,57 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 			return;
 		}
 
-		// weekday: 0=So,1=Mo,...,6=Sa — wir wollen die nächsten 8 Wochen ab heute
 		const today = new Date();
-		const dates: string[] = [];
-		for ( let i = 1; i <= 56; i++ ) {
-			const d = new Date( today );
-			d.setDate( today.getDate() + i );
-			const jsDay = d.getDay(); // 0=So,1=Mo,...
-			if ( hours.some( ( h ) => h.weekday === jsDay ) ) {
-				dates.push( formatDate( d ) );
-			}
-		}
-		if ( ! dates.length ) {
+		const lastDate = new Date( today );
+		lastDate.setDate( today.getDate() + 56 );
+		const seenWeekdays = new Set< number >();
+		const importedEntries = hours.reduce< AvailabilityEntry[] >(
+			( entries, hour ) => {
+				if ( seenWeekdays.has( hour.weekday ) ) {
+					return entries;
+				}
+				seenWeekdays.add( hour.weekday );
+
+				const firstDate = new Date( today );
+				let daysAhead = ( hour.weekday - today.getDay() + 7 ) % 7;
+				if ( daysAhead === 0 ) {
+					daysAhead = 7;
+				}
+				firstDate.setDate( today.getDate() + daysAhead );
+				entries.push( {
+					date: formatDate( firstDate ),
+					startTime: hour.from || '09:00',
+					endTime: hour.to || '17:00',
+					duration: attributes.duration || 30,
+					breakDuration: attributes.breakDuration || 0,
+					recurrence: {
+						freq: 'weekly',
+						until: formatDate( lastDate ),
+					},
+				} );
+				return entries;
+			},
+			[]
+		);
+		if ( importedEntries.length === 0 ) {
 			return;
 		}
 
-		// startTime/endTime aus erstem Eintrag
-		const firstHour = hours[ 0 ];
-		const newStart = firstHour.from || '09:00';
-		const newEnd = firstHour.to || '17:00';
-
 		setAttributes( {
-			selectedDates: dates,
-			manualDates: dates,
-			recurrences: {},
-			recurrence: {},
-			startDate: dates[ 0 ],
-			endDate: dates[ dates.length - 1 ],
-			useEndDate: true,
-			startTime: newStart,
-			endTime: newEnd,
+			...buildAvailabilityAttributes(
+				{
+					...attributes,
+					selectedDates: [],
+					manualDates: [],
+					recurrences: {},
+					recurrence: {},
+					dateOverrides: {},
+				},
+				importedEntries
+			),
 			useConsultationHours: true,
 		} );
-		setActiveDate( dates[ 0 ] );
+		setActiveDate( importedEntries[ 0 ].date );
 	};
 
 	const derivedTitle = selectedPerson
@@ -145,14 +170,19 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 
 	const calendarDates = getCalendarDates( attributes );
 	const slots = generateTimeSlots( attributes );
+	const availabilityEntries = getAvailabilityEntries( attributes );
 	const [ activeDate, setActiveDate ] = useState( calendarDates[ 0 ] || '' );
 	const [ addSlotDate, setAddSlotDate ] = useState< string | null >( null );
 	const [ addSlotTime, setAddSlotTime ] = useState( '' );
 	const [ addSlotEndTime, setAddSlotEndTime ] = useState( '' );
 	const [ addSlotError, setAddSlotError ] = useState( '' );
-	const [ isDateSelectionMode, setIsDateSelectionMode ] = useState(
-		() => calendarDates.length === 0
-	);
+	const [ showCalendarPreview, setShowCalendarPreview ] = useState( false );
+	const [ availabilityDraft, setAvailabilityDraft ] =
+		useState< AvailabilityEntry | null >( null );
+	const [ editedAvailabilityDate, setEditedAvailabilityDate ] =
+		useState( '' );
+	const [ availabilityToDelete, setAvailabilityToDelete ] =
+		useState< AvailabilityEntry | null >( null );
 
 	useEffect( () => {
 		if ( ! activeDate || ! calendarDates.includes( activeDate ) ) {
@@ -163,31 +193,58 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 	const activeOverrides: DateOverrides =
 		dateOverrides && typeof dateOverrides === 'object' ? dateOverrides : {};
 
-	const handleToggleDate = ( date: string ) => {
-		const wasSelected = calendarDates.includes( date );
-		const recurrenceAttributes = toggleRecurrenceDate( attributes, date );
-		const nextDates = recurrenceAttributes.selectedDates || [];
-		const nextOverrides = { ...activeOverrides };
-
-		if ( wasSelected ) {
-			delete nextOverrides[ date ];
-		}
-
-		setAttributes( {
-			...recurrenceAttributes,
-			dateOverrides: nextOverrides,
+	const handleAddAvailability = () => {
+		const defaultDate = new Date();
+		defaultDate.setDate( defaultDate.getDate() + 1 );
+		const startTime = attributes.startTime || '09:00';
+		const startMinutes = parseTimeToMinutes( startTime ) || 9 * 60;
+		const duration = attributes.duration || 30;
+		setEditedAvailabilityDate( '' );
+		setAvailabilityDraft( {
+			date: formatDate( defaultDate ),
+			startTime,
+			endTime: minutesToTime(
+				Math.min( startMinutes + duration, 23 * 60 + 45 )
+			),
+			duration,
+			breakDuration: 0,
+			recurrence: {},
 		} );
+	};
 
-		if ( wasSelected ) {
-			if ( activeDate === date ) {
-				setActiveDate( nextDates[ 0 ] || '' );
-			}
-			if ( nextDates.length === 0 ) {
-				setIsDateSelectionMode( true );
-			}
-			return;
+	const handleEditAvailability = ( entry: AvailabilityEntry ) => {
+		setActiveDate( entry.date );
+		setEditedAvailabilityDate( entry.date );
+		setAvailabilityDraft( {
+			...entry,
+			recurrence: { ...entry.recurrence },
+		} );
+	};
+
+	const handleSaveAvailability = ( entry: AvailabilityEntry ) => {
+		const nextEntries = availabilityEntries.filter(
+			( currentEntry ) => currentEntry.date !== editedAvailabilityDate
+		);
+		nextEntries.push( entry );
+		setAttributes( buildAvailabilityAttributes( attributes, nextEntries ) );
+		setActiveDate( entry.date );
+		setAvailabilityDraft( null );
+		setEditedAvailabilityDate( '' );
+	};
+
+	const handleDeleteAvailability = ( date: string ) => {
+		const nextEntries = availabilityEntries.filter(
+			( entry ) => entry.date !== date
+		);
+		const nextAttributes = buildAvailabilityAttributes(
+			attributes,
+			nextEntries
+		);
+		setAttributes( nextAttributes );
+		if ( activeDate === date ) {
+			const nextDates = nextAttributes.selectedDates || [];
+			setActiveDate( nextDates[ 0 ] || '' );
 		}
-		setActiveDate( date );
 	};
 
 	const handleRemoveSlot = ( slot: TimeSlot ) => {
@@ -311,55 +368,29 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 			<BlockControls>
 				<ToolbarGroup>
 					<ToolbarButton
-						icon="calendar-alt"
-						label={ __( 'Calendar view', 'rrze-appointment' ) }
-						isPressed={ isDateSelectionMode }
-						onClick={ () =>
-							setIsDateSelectionMode(
-								( isSelecting ) => ! isSelecting
-							)
-						}
-					/>
-					<ToolbarButton
 						icon="plus-alt2"
-						label={
-							activeDate
-								? `${ __(
-										'New time for',
-										'rrze-appointment'
-								  ) } ${ formatDateDisplay( activeDate ) }`
-								: __( 'Add', 'rrze-appointment' )
-						}
-						disabled={ ! activeDate }
-						onClick={ () => handleOpenAddSlot( activeDate ) }
+						label={ __( 'Add availability', 'rrze-appointment' ) }
+						onClick={ handleAddAvailability }
 					/>
 					<ToolbarButton
-						icon="trash"
-						label={
-							activeDate
-								? `${ __(
-										'Delete',
-										'rrze-appointment'
-								  ) }: ${ formatDateDisplay( activeDate ) }`
-								: __( 'Delete', 'rrze-appointment' )
+						icon="calendar-alt"
+						label={ __( 'Calendar preview', 'rrze-appointment' ) }
+						isPressed={ showCalendarPreview }
+						onClick={ () =>
+							setShowCalendarPreview( ( visible ) => ! visible )
 						}
-						disabled={ ! activeDate }
-						onClick={ () => handleToggleDate( activeDate ) }
 					/>
 				</ToolbarGroup>
 			</BlockControls>
 
 			<EditorSidebar
-				activeDate={ activeDate }
 				attributes={ attributes }
-				calendarDates={ calendarDates }
 				derivedTitle={ derivedTitle }
 				faudirError={ faudirError }
 				faudirMessage={ faudirMessage }
 				faudirPersons={ faudirPersons }
 				mailTemplates={ mailTemplates }
 				onHoursFound={ setHoursOverlay }
-				setActiveDate={ setActiveDate }
 				setAttributes={ setAttributes }
 			/>
 
@@ -388,35 +419,74 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 									{ locationContent }
 								</p>
 							) }
-							<PreviewCalendar
-								slots={ slots }
-								selectedDates={ calendarDates }
-								onRemoveSlot={ handleRemoveSlot }
-								onAddSlot={ handleOpenAddSlot }
-								onToggleDate={ handleToggleDate }
-								activeDate={ activeDate }
-								setActiveDate={ setActiveDate }
-								hideWeekends={ !! hideWeekends }
-								isDateSelectionMode={ isDateSelectionMode }
+							<AvailabilityList
+								entries={ availabilityEntries }
+								onAdd={ handleAddAvailability }
+								onDelete={ ( date ) => {
+									const entry = availabilityEntries.find(
+										( currentEntry ) =>
+											currentEntry.date === date
+									);
+									if ( entry ) {
+										setAvailabilityToDelete( entry );
+									}
+								} }
+								onEdit={ handleEditAvailability }
 							/>
-							{ calendarDates.length === 0 &&
-								! isDateSelectionMode && (
-									<p>
+							{ showCalendarPreview && (
+								<div className="rrze-appointment-block__calendar-preview">
+									<h3>
 										{ __(
-											'Please select a day first.',
+											'Calendar preview',
 											'rrze-appointment'
 										) }
-									</p>
-								) }
-							{ calendarDates.length > 0 &&
-								slots.length === 0 && (
-									<p>
-										{ __(
-											'No time slots available.',
-											'rrze-appointment'
+									</h3>
+									<PreviewCalendar
+										slots={ slots }
+										selectedDates={ calendarDates }
+										onRemoveSlot={ handleRemoveSlot }
+										onAddSlot={ handleOpenAddSlot }
+										activeDate={ activeDate }
+										setActiveDate={ setActiveDate }
+										hideWeekends={ !! hideWeekends }
+									/>
+									{ calendarDates.length > 0 &&
+										slots.length === 0 && (
+											<p>
+												{ __(
+													'No time slots available.',
+													'rrze-appointment'
+												) }
+											</p>
 										) }
-									</p>
-								) }
+								</div>
+							) }
+							{ availabilityDraft && (
+								<AvailabilityDialog
+									entries={ availabilityEntries }
+									entry={ availabilityDraft }
+									originalDate={ editedAvailabilityDate }
+									onSave={ handleSaveAvailability }
+									onCancel={ () => {
+										setAvailabilityDraft( null );
+										setEditedAvailabilityDate( '' );
+									} }
+								/>
+							) }
+							{ availabilityToDelete && (
+								<DeleteAvailabilityDialog
+									entry={ availabilityToDelete }
+									onConfirm={ () => {
+										handleDeleteAvailability(
+											availabilityToDelete.date
+										);
+										setAvailabilityToDelete( null );
+									} }
+									onCancel={ () =>
+										setAvailabilityToDelete( null )
+									}
+								/>
+							) }
 							{ addSlotDate && (
 								<AddSlotDialog
 									date={ addSlotDate }

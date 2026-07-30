@@ -30,7 +30,15 @@ class SlotGenerator
         $nowTs = current_time('timestamp');
 
         foreach ($dates as $dateString) {
-            $override      = $dateOverrides[$dateString] ?? [];
+            $recurrenceAnchor = self::getRecurrenceAnchor($attrs, $dateString);
+            $seriesOverride = (
+                $recurrenceAnchor !== ''
+                && is_array($dateOverrides[$recurrenceAnchor] ?? null)
+            ) ? $dateOverrides[$recurrenceAnchor] : [];
+            $dateOverride = is_array($dateOverrides[$dateString] ?? null)
+                ? $dateOverrides[$dateString]
+                : [];
+            $override = array_merge($seriesOverride, $dateOverride);
             $slotDuration  = isset($override['duration'])      ? (int) $override['duration']      : $duration;
             $pauseMinutes  = isset($override['breakDuration']) ? (int) $override['breakDuration'] : $breakDuration;
             $startMinutes  = self::timeToMinutes($override['startTime'] ?? $startTime);
@@ -80,6 +88,25 @@ class SlotGenerator
         }
 
         return $slots;
+    }
+
+    private static function getRecurrenceAnchor(array $attrs, string $date): string
+    {
+        $rules = is_array($attrs['recurrences'] ?? null) ? $attrs['recurrences'] : [];
+        foreach ($rules as $anchor => $rule) {
+            $ruleDates = is_array($rule['dates'] ?? null) ? $rule['dates'] : [];
+            if (in_array($date, $ruleDates, true)) {
+                return (string) $anchor;
+            }
+        }
+
+        $legacyRule = is_array($attrs['recurrence'] ?? null) ? $attrs['recurrence'] : [];
+        $legacyDates = is_array($legacyRule['dates'] ?? null) ? $legacyRule['dates'] : [];
+        if (!in_array($date, $legacyDates, true)) {
+            return '';
+        }
+
+        return (string) ($legacyRule['anchor'] ?? ($legacyDates[0] ?? ''));
     }
 
     private static function getCalendarDates(array $attrs): array

@@ -1,5 +1,6 @@
 import { __ } from '@wordpress/i18n';
 import { useEffect, useMemo, useState } from '@wordpress/element';
+import { Button } from '@wordpress/components';
 import type {
 	PreviewCalendarProps,
 	TimeSlot,
@@ -20,10 +21,8 @@ interface CalendarDayButtonProps {
 	availableDates: Set< string >;
 	dateString: string;
 	day: number;
-	isDateSelectionMode: boolean;
 	isWeekend?: boolean;
 	onSelectDate: ( date: string ) => void;
-	onToggleDate?: ( date: string ) => void;
 	today: string;
 }
 
@@ -32,18 +31,15 @@ function CalendarDayButton( {
 	availableDates,
 	dateString,
 	day,
-	isDateSelectionMode,
 	isWeekend = false,
 	onSelectDate,
-	onToggleDate,
 	today,
 }: CalendarDayButtonProps ) {
 	const isAvailable = availableDates.has( dateString );
 	const isPast = dateString < today;
 
 	return (
-		<button
-			type="button"
+		<Button
 			className={ [
 				'rrze-appointment__calendar-day',
 				isPast ? 'is-past' : '',
@@ -51,24 +47,14 @@ function CalendarDayButton( {
 				dateString === today ? 'is-today' : '',
 				isAvailable ? 'is-available' : '',
 				dateString === activeDate ? 'is-active' : '',
-				isDateSelectionMode ? 'is-selection-mode' : '',
 			]
 				.filter( Boolean )
 				.join( ' ' ) }
-			disabled={
-				isDateSelectionMode ? isPast || ! onToggleDate : ! isAvailable
-			}
-			aria-pressed={ isDateSelectionMode ? isAvailable : undefined }
-			onClick={ () => {
-				if ( isDateSelectionMode ) {
-					onToggleDate?.( dateString );
-					return;
-				}
-				onSelectDate( dateString );
-			} }
+			disabled={ ! isAvailable }
+			onClick={ () => onSelectDate( dateString ) }
 		>
 			{ day }
-		</button>
+		</Button>
 	);
 }
 
@@ -100,10 +86,8 @@ interface MonthGridProps {
 	activeDate: string;
 	availableDates: Set< string >;
 	hideWeekends: boolean;
-	isDateSelectionMode: boolean;
 	monthIndex: number;
 	onSelectDate: ( date: string ) => void;
-	onToggleDate?: ( date: string ) => void;
 	today: string;
 	year: number;
 }
@@ -112,10 +96,8 @@ function MonthGrid( {
 	activeDate,
 	availableDates,
 	hideWeekends,
-	isDateSelectionMode,
 	monthIndex,
 	onSelectDate,
-	onToggleDate,
 	today,
 	year,
 }: MonthGridProps ) {
@@ -163,13 +145,11 @@ function MonthGrid( {
 						availableDates={ availableDates }
 						dateString={ cell.dateString }
 						day={ cell.day }
-						isDateSelectionMode={ isDateSelectionMode }
 						isWeekend={
 							! hideWeekends &&
 							( dayOfWeek === 0 || dayOfWeek === 6 )
 						}
 						onSelectDate={ onSelectDate }
-						onToggleDate={ onToggleDate }
 						today={ today }
 					/>
 				);
@@ -210,61 +190,33 @@ function DaySlots( {
 						className="rrze-appointment__slot-item"
 						key={ slot.value }
 					>
-						<button
-							type="button"
+						<Button
 							className="rrze-appointment__slot-button"
+							disabled
 						>
 							{ slot.timeRange }
-						</button>
+						</Button>
 						{ onRemoveSlot && (
-							<button
-								type="button"
+							<Button
 								className="rrze-appointment__slot-delete"
-								aria-label={ `Uhrzeit ${ slot.timeRange } löschen` }
+								label={ __(
+									'Delete time slot',
+									'rrze-appointment'
+								) }
+								icon="no-alt"
+								isDestructive
 								onClick={ () => onRemoveSlot( slot ) }
-							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									viewBox="0 0 24 24"
-									width="16"
-									height="16"
-									aria-hidden="true"
-									focusable="false"
-								>
-									<line
-										x1="5"
-										y1="5"
-										x2="19"
-										y2="19"
-										stroke="currentColor"
-										strokeWidth="2.5"
-										strokeLinecap="round"
-									/>
-									<line
-										x1="19"
-										y1="5"
-										x2="5"
-										y2="19"
-										stroke="currentColor"
-										strokeWidth="2.5"
-										strokeLinecap="round"
-									/>
-								</svg>
-							</button>
+							/>
 						) }
 					</div>
 				) ) }
 				{ onAddSlot && (
-					<button
-						type="button"
+					<Button
 						className="rrze-appointment__slot-add"
-						aria-label={ `Uhrzeit am ${ formatDateDisplay(
-							activeDate
-						) } hinzufügen` }
+						label={ __( 'Add time slot', 'rrze-appointment' ) }
+						icon="plus-alt2"
 						onClick={ () => onAddSlot( activeDate ) }
-					>
-						+
-					</button>
+					/>
 				) }
 			</div>
 		</fieldset>
@@ -276,11 +228,9 @@ export function PreviewCalendar( {
 	selectedDates,
 	onRemoveSlot,
 	onAddSlot,
-	onToggleDate,
 	activeDate,
 	setActiveDate,
 	hideWeekends,
-	isDateSelectionMode = false,
 }: PreviewCalendarProps ) {
 	const groupedSlots = useMemo( () => groupSlotsByDate( slots ), [ slots ] );
 	const dates = useMemo(
@@ -312,7 +262,7 @@ export function PreviewCalendar( {
 		} );
 	}, [ activeDate ] );
 
-	if ( ( dates.length === 0 || ! firstDate ) && ! isDateSelectionMode ) {
+	if ( dates.length === 0 || ! firstDate ) {
 		return null;
 	}
 
@@ -321,19 +271,11 @@ export function PreviewCalendar( {
 
 	return (
 		<>
-			{ isDateSelectionMode && (
-				<p className="rrze-appointment-block__calendar-instructions">
-					{ __(
-						'Click a date to add or remove it.',
-						'rrze-appointment'
-					) }
-				</p>
-			) }
 			<div className="rrze-appointment__calendar">
 				<div className="rrze-appointment__calendar-month">
 					<div className="rrze-appointment__calendar-title">
-						<button
-							type="button"
+						<Button
+							label={ __( 'Previous month', 'rrze-appointment' ) }
 							onClick={ () =>
 								setViewDate(
 									new Date( year, monthIndex - 1, 1 )
@@ -342,15 +284,15 @@ export function PreviewCalendar( {
 							className="rrze-appointment__calendar-nav"
 						>
 							{ '‹' }
-						</button>
+						</Button>
 						<span>
 							{ viewDate.toLocaleDateString( 'de-DE', {
 								month: 'long',
 								year: 'numeric',
 							} ) }
 						</span>
-						<button
-							type="button"
+						<Button
+							label={ __( 'Next month', 'rrze-appointment' ) }
 							onClick={ () =>
 								setViewDate(
 									new Date( year, monthIndex + 1, 1 )
@@ -359,16 +301,14 @@ export function PreviewCalendar( {
 							className="rrze-appointment__calendar-nav"
 						>
 							{ '›' }
-						</button>
+						</Button>
 					</div>
 					<MonthGrid
 						activeDate={ activeDate }
 						availableDates={ availableDates }
 						hideWeekends={ hideWeekends }
-						isDateSelectionMode={ isDateSelectionMode }
 						monthIndex={ monthIndex }
 						onSelectDate={ setActiveDate }
-						onToggleDate={ onToggleDate }
 						today={ formatDate( new Date() ) }
 						year={ year }
 					/>

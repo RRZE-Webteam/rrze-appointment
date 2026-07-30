@@ -36,9 +36,52 @@ declare module '@wordpress/components' {
 
 	interface ButtonProps {
 		children?: ReactNode;
+		className?: string;
+		disabled?: boolean;
+		icon?: string;
+		isDestructive?: boolean;
+		label?: string;
 		variant?: 'primary' | 'secondary' | 'tertiary' | 'link';
 		isSmall?: boolean;
 		onClick?: () => void;
+	}
+
+	interface CardProps {
+		children?: ReactNode;
+		className?: string;
+		elevation?: number;
+		isBorderless?: boolean;
+		isRounded?: boolean;
+		size?: 'none' | 'xSmall' | 'small' | 'medium' | 'large';
+	}
+
+	interface FlexProps {
+		children?: ReactNode;
+		align?: string;
+		className?: string;
+		direction?: 'row' | 'column';
+		expanded?: boolean;
+		gap?: number;
+		justify?: string;
+		wrap?: boolean;
+	}
+
+	interface ModalProps {
+		children?: ReactNode;
+		className?: string;
+		contentLabel?: string;
+		isDismissible?: boolean;
+		onRequestClose: () => void;
+		role?: string;
+		size?: 'small' | 'medium' | 'large' | 'fill';
+		title?: string;
+	}
+
+	interface NoticeProps {
+		children?: ReactNode;
+		className?: string;
+		isDismissible?: boolean;
+		status?: 'error' | 'warning' | 'success' | 'info';
 	}
 
 	interface PanelBodyProps {
@@ -86,6 +129,15 @@ declare module '@wordpress/components' {
 	}
 
 	export const Button: ComponentType< ButtonProps >;
+	export const Card: ComponentType< CardProps >;
+	export const CardBody: ComponentType< CardProps >;
+	export const CardFooter: ComponentType< CardProps >;
+	export const CardHeader: ComponentType< CardProps >;
+	export const Flex: ComponentType< FlexProps >;
+	export const FlexBlock: ComponentType< FlexProps >;
+	export const FlexItem: ComponentType< FlexProps >;
+	export const Modal: ComponentType< ModalProps >;
+	export const Notice: ComponentType< NoticeProps >;
 	export const PanelBody: ComponentType< PanelBodyProps >;
 	export const SelectControl: ComponentType< SelectControlProps >;
 	export const TextControl: ComponentType< TextControlProps >;

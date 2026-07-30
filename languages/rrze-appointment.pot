@@ -938,3 +938,131 @@ msgstr ""
 #: src/js/setup-tour-step.js
 msgid "Finish"
 msgstr ""
+
+#: src/components/availability-dialog.tsx src/components/availability-list.tsx
+#: src/edit.tsx
+msgid "Add availability"
+msgstr ""
+
+#: src/components/availability-list.tsx
+msgid ""
+"Add individual appointments or optionally create consultation-hour slots "
+"from a pattern."
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid ""
+"An availability is already configured for at least one of these dates."
+msgstr ""
+
+#: src/components/preview-calendar.tsx
+msgid "Add time slot"
+msgstr ""
+
+#: src/components/availability-list.tsx
+msgid "Availabilities"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Break between slots"
+msgstr ""
+
+#: src/edit.tsx
+msgid "Calendar preview"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Consultation hours pattern"
+msgstr ""
+
+#: src/components/preview-calendar.tsx
+msgid "Delete time slot"
+msgstr ""
+
+#: src/components/availability-list.tsx
+msgid "Does not repeat"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Edit availability"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Fill consultation hours from pattern"
+msgstr ""
+
+#: src/components/hours-import-dialog.tsx
+msgid "Import consultation hours"
+msgstr ""
+
+#: src/components/availability-list.tsx
+msgid "No availabilities have been configured yet."
+msgstr ""
+
+#: src/components/preview-calendar.tsx
+msgid "Next month"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Occurrences"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Please select a date."
+msgstr ""
+
+#: src/components/preview-calendar.tsx
+msgid "Previous month"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Save"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Slot duration"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Slots"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "The appointment duration must be divisible by 15 minutes."
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "The date must not be in the past."
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "The recurrence end must not be before the start date."
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "The selected pattern does not create a complete slot."
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Use individual appointment"
+msgstr ""
+
+#: src/components/availability-list.tsx
+msgid "until"
+msgstr ""
+
+#. translators: %s: availability date.
+#: src/components/delete-availability-dialog.tsx
+#, php-format
+msgid "Do you really want to delete the availability on %s?"
+msgstr ""
+
+#: src/components/delete-availability-dialog.tsx
+msgid "Delete availability"
+msgstr ""
+
+#. translators: %d: number of occurrences in the recurrence series.
+#: src/components/delete-availability-dialog.tsx
+#, php-format
+msgid "This also removes all %d occurrences in the series."
+msgstr ""

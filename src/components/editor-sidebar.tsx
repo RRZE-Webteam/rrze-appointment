@@ -1,6 +1,5 @@
 import { InspectorControls } from '@wordpress/block-editor';
 import {
-	Button,
 	PanelBody,
 	SelectControl,
 	TextControl,
@@ -10,70 +9,37 @@ import {
 import { __ } from '@wordpress/i18n';
 import type {
 	AppointmentAttributes,
-	DateOverrides,
 	EditProps,
 	FaudirPerson,
 	HoursOverlay,
 	MailTemplateOption,
-	Recurrence,
-	RecurrenceFrequency,
-	RecurrenceRules,
 } from '../types';
-import {
-	buildRecurrenceAttributes,
-	createRecurrenceRule,
-	getRecurrenceEditorState,
-} from '../recurrence';
-import { formatDateDisplay } from '../utils';
 
 interface EditorSidebarProps {
-	activeDate: string;
 	attributes: AppointmentAttributes;
-	calendarDates: string[];
 	derivedTitle: string;
 	faudirError: boolean;
 	faudirMessage: string;
 	faudirPersons: FaudirPerson[];
 	mailTemplates: MailTemplateOption[];
 	onHoursFound: ( overlay: HoursOverlay ) => void;
-	setActiveDate: ( date: string ) => void;
 	setAttributes: EditProps[ 'setAttributes' ];
 }
 
-function getRecurrenceFrequencyLabel( frequency: RecurrenceFrequency ): string {
-	switch ( frequency ) {
-		case 'daily':
-			return __( 'Daily', 'rrze-appointment' );
-		case 'weekly':
-			return __( 'Weekly', 'rrze-appointment' );
-		case 'monthly':
-			return __( 'Monthly', 'rrze-appointment' );
-		default:
-			return '';
-	}
-}
-
 export function EditorSidebar( {
-	activeDate,
 	attributes,
-	calendarDates,
 	derivedTitle,
 	faudirError,
 	faudirMessage,
 	faudirPersons,
 	mailTemplates,
 	onHoursFound,
-	setActiveDate,
 	setAttributes,
 }: EditorSidebarProps ) {
 	const {
 		bookingCutoff,
-		breakDuration,
-		dateOverrides,
 		description,
 		disableSso,
-		duration,
-		endTime,
 		hideWeekends,
 		location,
 		locationUrl,
@@ -81,62 +47,9 @@ export function EditorSidebar( {
 		personId,
 		personName,
 		requireMessage,
-		startTime,
 		tplId,
 	} = attributes;
 	const editorI18n = window.rrze_appointment?.editorI18n || {};
-	const { manualDates, rules: recurrenceRules } =
-		getRecurrenceEditorState( attributes );
-	const activeRecurrence = activeDate
-		? recurrenceRules[ activeDate ] || {}
-		: {};
-	const recurrenceFrequency = activeRecurrence.freq || '';
-	const recurrenceUntil = activeRecurrence.until || '';
-	const recurrenceAnchors = Object.keys( recurrenceRules ).sort();
-	const firstDate = calendarDates[ 0 ] || '';
-	const activeOverrides: DateOverrides =
-		dateOverrides && typeof dateOverrides === 'object' ? dateOverrides : {};
-	const activeOverride = activeDate
-		? activeOverrides[ activeDate ] || {}
-		: {};
-	const effectiveStartTime = activeOverride.startTime || startTime;
-	const effectiveEndTime = activeOverride.endTime || endTime;
-	const effectiveDuration =
-		activeOverride.duration !== null &&
-		activeOverride.duration !== undefined
-			? activeOverride.duration
-			: duration;
-	const effectiveBreakDuration =
-		activeOverride.breakDuration !== null &&
-		activeOverride.breakDuration !== undefined
-			? activeOverride.breakDuration
-			: breakDuration;
-
-	const applyRecurrence = ( settings: Recurrence ) => {
-		if ( ! activeDate ) {
-			return;
-		}
-
-		const nextRules: RecurrenceRules = { ...recurrenceRules };
-		const nextManualDates = new Set( manualDates );
-		nextManualDates.add( activeDate );
-
-		if ( ! settings.freq ) {
-			delete nextRules[ activeDate ];
-		} else {
-			const nextRule = createRecurrenceRule( activeDate, settings );
-			if ( nextRule ) {
-				nextRules[ activeDate ] = nextRule;
-			}
-		}
-
-		setAttributes(
-			buildRecurrenceAttributes(
-				Array.from( nextManualDates ),
-				nextRules
-			)
-		);
-	};
 
 	return (
 		<InspectorControls>
@@ -376,215 +289,6 @@ export function EditorSidebar( {
 						setAttributes( { disableSso: !! value } )
 					}
 				/>
-
-				<p className="rrze-appointment-block__active-date-hint">
-					{ activeDate
-						? `${ __(
-								'Applies to',
-								'rrze-appointment'
-						  ) }: ${ formatDateDisplay( activeDate ) }`
-						: __(
-								'Please select a day first.',
-								'rrze-appointment'
-						  ) }
-				</p>
-				<TextControl
-					label={ __( 'Start time', 'rrze-appointment' ) }
-					type="time"
-					step={ 300 }
-					value={ effectiveStartTime }
-					onChange={ ( value ) => {
-						if ( activeDate && activeDate !== firstDate ) {
-							setAttributes( {
-								dateOverrides: {
-									...activeOverrides,
-									[ activeDate ]: {
-										...activeOverride,
-										startTime: value,
-									},
-								},
-							} );
-							return;
-						}
-						setAttributes( { startTime: value } );
-					} }
-				/>
-				<TextControl
-					label={ __( 'End time', 'rrze-appointment' ) }
-					type="time"
-					step={ 300 }
-					value={ effectiveEndTime }
-					onChange={ ( value ) => {
-						if ( activeDate && activeDate !== firstDate ) {
-							setAttributes( {
-								dateOverrides: {
-									...activeOverrides,
-									[ activeDate ]: {
-										...activeOverride,
-										endTime: value,
-									},
-								},
-							} );
-							return;
-						}
-						setAttributes( { endTime: value } );
-					} }
-				/>
-
-				<SelectControl
-					label={ __( 'Duration', 'rrze-appointment' ) }
-					value={ String( effectiveDuration ) }
-					options={ [
-						{ label: '15 Minuten', value: '15' },
-						{ label: '30 Minuten', value: '30' },
-						{ label: '45 Minuten', value: '45' },
-						{ label: '60 Minuten', value: '60' },
-						{ label: '75 Minuten', value: '75' },
-						{ label: '90 Minuten', value: '90' },
-						{ label: '120 Minuten', value: '120' },
-					] }
-					onChange={ ( value ) => {
-						if ( activeDate && activeDate !== firstDate ) {
-							setAttributes( {
-								dateOverrides: {
-									...activeOverrides,
-									[ activeDate ]: {
-										...activeOverride,
-										duration: Number( value ),
-									},
-								},
-							} );
-							return;
-						}
-						setAttributes( { duration: Number( value ) } );
-					} }
-				/>
-
-				<SelectControl
-					label={ __( 'Break', 'rrze-appointment' ) }
-					value={ String( effectiveBreakDuration ) }
-					options={ [
-						{ label: '0 Minuten', value: '0' },
-						{ label: '5 Minuten', value: '5' },
-						{ label: '10 Minuten', value: '10' },
-						{ label: '15 Minuten', value: '15' },
-						{ label: '20 Minuten', value: '20' },
-						{ label: '25 Minuten', value: '25' },
-						{ label: '30 Minuten', value: '30' },
-						{ label: '35 Minuten', value: '35' },
-						{ label: '40 Minuten', value: '40' },
-						{ label: '45 Minuten', value: '45' },
-						{ label: '50 Minuten', value: '50' },
-						{ label: '55 Minuten', value: '55' },
-					] }
-					onChange={ ( value ) => {
-						if ( activeDate && activeDate !== firstDate ) {
-							setAttributes( {
-								dateOverrides: {
-									...activeOverrides,
-									[ activeDate ]: {
-										...activeOverride,
-										breakDuration: Number( value ),
-									},
-								},
-							} );
-							return;
-						}
-						setAttributes( { breakDuration: Number( value ) } );
-					} }
-				/>
-			</PanelBody>
-
-			<PanelBody
-				title={ __( 'Repeat', 'rrze-appointment' ) }
-				initialOpen={ false }
-			>
-				<p className="rrze-appointment-block__recurrence-hint">
-					{ activeDate
-						? `${ __(
-								'Applies to',
-								'rrze-appointment'
-						  ) }: ${ formatDateDisplay( activeDate ) }`
-						: __(
-								'Please select a day first.',
-								'rrze-appointment'
-						  ) }
-				</p>
-				{ recurrenceAnchors.length > 0 && (
-					<div className="rrze-appointment-block__recurrence-rules">
-						<p>
-							<strong>
-								{ __( 'Repeat', 'rrze-appointment' ) }
-							</strong>
-						</p>
-						{ recurrenceAnchors.map( ( anchor ) => {
-							const frequency =
-								recurrenceRules[ anchor ].freq || '';
-							const frequencyLabel =
-								getRecurrenceFrequencyLabel( frequency );
-
-							return (
-								<Button
-									key={ anchor }
-									variant={
-										anchor === activeDate
-											? 'primary'
-											: 'secondary'
-									}
-									isSmall
-									onClick={ () => setActiveDate( anchor ) }
-								>
-									{ formatDateDisplay( anchor ) }
-									{ frequencyLabel
-										? ` · ${ frequencyLabel }`
-										: '' }
-								</Button>
-							);
-						} ) }
-					</div>
-				) }
-				<SelectControl
-					label={ __( 'Recurrence', 'rrze-appointment' ) }
-					value={ recurrenceFrequency }
-					options={ [
-						{
-							label: __( 'Do not repeat', 'rrze-appointment' ),
-							value: '',
-						},
-						{
-							label: __( 'Daily', 'rrze-appointment' ),
-							value: 'daily',
-						},
-						{
-							label: __( 'Weekly', 'rrze-appointment' ),
-							value: 'weekly',
-						},
-						{
-							label: __( 'Monthly', 'rrze-appointment' ),
-							value: 'monthly',
-						},
-					] }
-					onChange={ ( value ) =>
-						applyRecurrence( {
-							...activeRecurrence,
-							freq: value as RecurrenceFrequency,
-						} )
-					}
-				/>
-
-				{ recurrenceFrequency && (
-					<TextControl
-						label={ __( 'Ends on', 'rrze-appointment' ) }
-						type="date"
-						value={ recurrenceUntil }
-						onChange={ ( value ) =>
-							applyRecurrence( {
-								...activeRecurrence,
-								until: value,
-							} )
-						}
-					/>
-				) }
 			</PanelBody>
 
 			<PanelBody

@@ -1,4 +1,12 @@
-import { Button, TextControl } from '@wordpress/components';
+import {
+	Button,
+	Flex,
+	FlexBlock,
+	FlexItem,
+	Modal,
+	Notice,
+	TextControl,
+} from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { formatDateDisplay } from '../utils';
 
@@ -24,42 +32,53 @@ export function AddSlotDialog( {
 	startTime,
 }: AddSlotDialogProps ) {
 	return (
-		<div className="rrze-appointment-block__overlay">
-			<div className="rrze-appointment-block__overlay-box">
-				<p className="rrze-appointment-block__overlay-title">
-					<strong>
-						{ __( 'New time for', 'rrze-appointment' ) }{ ' ' }
-						{ formatDateDisplay( date ) }
-					</strong>
-				</p>
-				<TextControl
-					label={ __( 'Start time', 'rrze-appointment' ) }
-					type="time"
-					step={ 300 }
-					value={ startTime }
-					onChange={ onStartTimeChange }
-				/>
-				<TextControl
-					label={ __( 'End time', 'rrze-appointment' ) }
-					type="time"
-					step={ 300 }
-					value={ endTime }
-					onChange={ onEndTimeChange }
-				/>
+		<Modal
+			title={ `${ __(
+				'New time for',
+				'rrze-appointment'
+			) } ${ formatDateDisplay( date ) }` }
+			size="small"
+			onRequestClose={ onCancel }
+		>
+			<Flex direction="column" align="stretch" gap={ 4 }>
+				<Flex align="flex-start" gap={ 4 } wrap>
+					<FlexBlock>
+						<TextControl
+							label={ __( 'Start time', 'rrze-appointment' ) }
+							type="time"
+							step={ 300 }
+							value={ startTime }
+							onChange={ onStartTimeChange }
+						/>
+					</FlexBlock>
+					<FlexBlock>
+						<TextControl
+							label={ __( 'End time', 'rrze-appointment' ) }
+							type="time"
+							step={ 300 }
+							value={ endTime }
+							onChange={ onEndTimeChange }
+						/>
+					</FlexBlock>
+				</Flex>
 				{ error && (
-					<p className="rrze-appointment-block__overlay-error">
+					<Notice status="error" isDismissible={ false }>
 						{ error }
-					</p>
+					</Notice>
 				) }
-				<div className="rrze-appointment-block__overlay-actions">
-					<Button variant="primary" onClick={ onConfirm }>
-						{ __( 'Add', 'rrze-appointment' ) }
-					</Button>
-					<Button variant="secondary" onClick={ onCancel }>
-						{ __( 'Cancel', 'rrze-appointment' ) }
-					</Button>
-				</div>
-			</div>
-		</div>
+				<Flex justify="flex-end">
+					<FlexItem>
+						<Button variant="secondary" onClick={ onCancel }>
+							{ __( 'Cancel', 'rrze-appointment' ) }
+						</Button>
+					</FlexItem>
+					<FlexItem>
+						<Button variant="primary" onClick={ onConfirm }>
+							{ __( 'Add', 'rrze-appointment' ) }
+						</Button>
+					</FlexItem>
+				</Flex>
+			</Flex>
+		</Modal>
 	);
 }

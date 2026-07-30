@@ -1,4 +1,4 @@
-import { Button } from '@wordpress/components';
+import { Button, Flex, FlexItem, Modal } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import type { HoursOverlay } from '../types';
 
@@ -25,20 +25,24 @@ export function HoursImportDialog( {
 			  );
 
 	return (
-		<div className="rrze-appointment-block__overlay">
-			<div className="rrze-appointment-block__overlay-box">
-				<p className="rrze-appointment-block__overlay-text">
-					{ message }
-				</p>
-				<div className="rrze-appointment-block__overlay-actions">
-					<Button variant="primary" onClick={ onConfirm }>
-						{ __( 'Yes', 'rrze-appointment' ) }
-					</Button>
+		<Modal
+			title={ __( 'Import consultation hours', 'rrze-appointment' ) }
+			size="small"
+			onRequestClose={ onCancel }
+		>
+			<p>{ message }</p>
+			<Flex justify="flex-end">
+				<FlexItem>
 					<Button variant="secondary" onClick={ onCancel }>
 						{ __( 'No', 'rrze-appointment' ) }
 					</Button>
-				</div>
-			</div>
-		</div>
+				</FlexItem>
+				<FlexItem>
+					<Button variant="primary" onClick={ onConfirm }>
+						{ __( 'Yes', 'rrze-appointment' ) }
+					</Button>
+				</FlexItem>
+			</Flex>
+		</Modal>
 	);
 }

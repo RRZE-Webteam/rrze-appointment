@@ -21,6 +21,15 @@ export interface DateOverride {
 
 export type DateOverrides = Record< string, DateOverride >;
 
+export interface AvailabilityEntry {
+	date: string;
+	startTime: string;
+	endTime: string;
+	duration: number;
+	breakDuration: number;
+	recurrence: Recurrence;
+}
+
 export interface AppointmentAttributes {
 	title: string;
 	selectedDates: string[];
@@ -149,11 +158,9 @@ export interface PreviewCalendarProps {
 	selectedDates: string[];
 	onRemoveSlot?: ( slot: TimeSlot ) => void;
 	onAddSlot?: ( date: string ) => void;
-	onToggleDate?: ( date: string ) => void;
 	activeDate: string;
 	setActiveDate: ( date: string ) => void;
 	hideWeekends: boolean;
-	isDateSelectionMode?: boolean;
 }
 
 export interface EditProps {
