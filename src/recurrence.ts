@@ -3,6 +3,7 @@ import type {
 	Recurrence,
 	RecurrenceFrequency,
 	RecurrenceRules,
+	RecurrenceWeekday,
 } from './types';
 import { expandRecurrence, normalizeDateList, parseDateString } from './utils';
 
@@ -23,6 +24,35 @@ function isRecurrenceFrequency(
 	return RECURRENCE_FREQUENCIES.includes( value as RecurrenceFrequency );
 }
 
+export function normalizeRecurrenceWeekdays(
+	values: unknown
+): RecurrenceWeekday[] {
+	if ( ! Array.isArray( values ) ) {
+		return [];
+	}
+
+	return [
+		...new Set(
+			values.filter(
+				( value ): value is RecurrenceWeekday =>
+					Number.isInteger( value ) && value >= 0 && value <= 6
+			)
+		),
+	].sort( ( a, b ) => ( ( a + 6 ) % 7 ) - ( ( b + 6 ) % 7 ) );
+}
+
+export function getRecurrenceWeekdays(
+	rule: Recurrence,
+	anchor: string
+): RecurrenceWeekday[] {
+	if ( Array.isArray( rule.weekdays ) ) {
+		return normalizeRecurrenceWeekdays( rule.weekdays );
+	}
+
+	const anchorDate = parseDateString( anchor );
+	return anchorDate ? [ anchorDate.getDay() as RecurrenceWeekday ] : [];
+}
+
 function normalizeRule( anchor: string, rule: Recurrence ): Recurrence | null {
 	if ( ! parseDateString( anchor ) || ! isRecurrenceFrequency( rule.freq ) ) {
 		return null;
@@ -30,11 +60,16 @@ function normalizeRule( anchor: string, rule: Recurrence ): Recurrence | null {
 
 	const excludedDates = normalizeDateList( rule.excludedDates );
 	const excludedSet = new Set( excludedDates );
+	const weekdays =
+		rule.freq === 'weekly'
+			? normalizeRecurrenceWeekdays( rule.weekdays )
+			: [];
 	const normalizedRule: Recurrence = {
 		freq: rule.freq,
 		anchor,
 		...( rule.until ? { until: rule.until } : {} ),
 		...( excludedDates.length > 0 ? { excludedDates } : {} ),
+		...( weekdays.length > 0 ? { weekdays } : {} ),
 	};
 	const dates = expandRecurrence( normalizedRule, anchor ).filter(
 		( date ) => date === anchor || ! excludedSet.has( date )

@@ -8,13 +8,29 @@ import type {
 	AvailabilityEntry,
 	DateOverride,
 	DateOverrides,
+	Recurrence,
 	RecurrenceRules,
 } from './types';
 import {
 	getCalendarDates,
 	normalizeDateList,
+	parseDateString,
 	parseTimeToMinutes,
 } from './utils';
+
+interface AvailabilitySlotInterval {
+	end: number;
+	start: number;
+}
+
+let availabilityIdCounter = 0;
+
+export function createAvailabilityId(): string {
+	availabilityIdCounter += 1;
+	return `availability-${ Date.now().toString(
+		36
+	) }-${ availabilityIdCounter.toString( 36 ) }`;
+}
 
 function getEffectiveOverride(
 	attributes: AppointmentAttributes,
@@ -28,9 +44,89 @@ function getEffectiveOverride(
 	return overrides[ date ] || {};
 }
 
+function normalizeRecurrence( date: string, recurrence: unknown ): Recurrence {
+	if (
+		! recurrence ||
+		typeof recurrence !== 'object' ||
+		Array.isArray( recurrence )
+	) {
+		return {};
+	}
+
+	return createRecurrenceRule( date, recurrence as Recurrence ) || {};
+}
+
+function normalizeAvailabilityEntry(
+	entry: Partial< AvailabilityEntry >,
+	attributes: AppointmentAttributes,
+	index: number
+): AvailabilityEntry | null {
+	if ( ! parseDateString( entry.date ) ) {
+		return null;
+	}
+
+	const date = entry.date as string;
+	const startTime =
+		typeof entry.startTime === 'string'
+			? entry.startTime
+			: attributes.startTime;
+	const endTime =
+		typeof entry.endTime === 'string' ? entry.endTime : attributes.endTime;
+	const duration = Number( entry.duration );
+	const breakDuration = Number( entry.breakDuration );
+	const id =
+		typeof entry.id === 'string' && entry.id
+			? entry.id
+			: `legacy-${ date }-${ startTime }-${ index }`;
+
+	return {
+		id,
+		date,
+		startTime,
+		endTime,
+		duration: Number.isFinite( duration )
+			? duration
+			: Number( attributes.duration ),
+		breakDuration: Number.isFinite( breakDuration )
+			? breakDuration
+			: Number( attributes.breakDuration ),
+		recurrence: normalizeRecurrence( date, entry.recurrence ),
+	};
+}
+
+function sortAvailabilityEntries(
+	entries: AvailabilityEntry[]
+): AvailabilityEntry[] {
+	return [ ...entries ].sort(
+		( a, b ) =>
+			a.date.localeCompare( b.date ) ||
+			a.startTime.localeCompare( b.startTime ) ||
+			a.id.localeCompare( b.id )
+	);
+}
+
 export function getAvailabilityEntries(
 	attributes: AppointmentAttributes
 ): AvailabilityEntry[] {
+	if ( Array.isArray( attributes.availabilities ) ) {
+		return sortAvailabilityEntries(
+			attributes.availabilities.reduce< AvailabilityEntry[] >(
+				( entries, entry, index ) => {
+					const normalizedEntry = normalizeAvailabilityEntry(
+						entry,
+						attributes,
+						index
+					);
+					if ( normalizedEntry ) {
+						entries.push( normalizedEntry );
+					}
+					return entries;
+				},
+				[]
+			)
+		);
+	}
+
 	const { manualDates, rules } = getRecurrenceEditorState( attributes );
 	const editorDates = normalizeDateList( [
 		...manualDates,
@@ -43,6 +139,7 @@ export function getAvailabilityEntries(
 		const override = getEffectiveOverride( attributes, date );
 
 		return {
+			id: `legacy-${ date }`,
 			date,
 			startTime: override.startTime || attributes.startTime,
 			endTime: override.endTime || attributes.endTime,
@@ -65,10 +162,12 @@ export function getAvailabilityDates( entry: AvailabilityEntry ): string[] {
 	}
 
 	const rule = createRecurrenceRule( entry.date, entry.recurrence );
-	return rule?.dates || [ entry.date ];
+	return normalizeDateList( [ entry.date, ...( rule?.dates || [] ) ] );
 }
 
-export function getAvailabilitySlotCount( entry: AvailabilityEntry ): number {
+export function getAvailabilitySlotIntervals(
+	entry: AvailabilityEntry
+): AvailabilitySlotInterval[] {
 	const startMinutes = parseTimeToMinutes( entry.startTime );
 	const endMinutes = parseTimeToMinutes( entry.endTime );
 	if (
@@ -77,46 +176,59 @@ export function getAvailabilitySlotCount( entry: AvailabilityEntry ): number {
 		endMinutes <= startMinutes ||
 		entry.duration <= 0
 	) {
-		return 0;
+		return [];
 	}
 
-	let count = 0;
+	const intervals: AvailabilitySlotInterval[] = [];
 	let slotStart = startMinutes;
 	while ( slotStart + entry.duration <= endMinutes ) {
-		count += 1;
+		intervals.push( {
+			start: slotStart,
+			end: slotStart + entry.duration,
+		} );
 		slotStart += entry.duration + Math.max( 0, entry.breakDuration );
 	}
-	return count;
+	return intervals;
+}
+
+export function getAvailabilitySlotCount( entry: AvailabilityEntry ): number {
+	return getAvailabilitySlotIntervals( entry ).length;
 }
 
 export function buildAvailabilityAttributes(
 	attributes: AppointmentAttributes,
 	entries: AvailabilityEntry[]
 ): Partial< AppointmentAttributes > {
-	const sortedEntries = [ ...entries ].sort( ( a, b ) =>
-		a.date.localeCompare( b.date )
+	const normalizedEntries = sortAvailabilityEntries(
+		entries.reduce< AvailabilityEntry[] >( ( result, entry, index ) => {
+			const normalizedEntry = normalizeAvailabilityEntry(
+				entry,
+				attributes,
+				index
+			);
+			if ( normalizedEntry ) {
+				result.push( normalizedEntry );
+			}
+			return result;
+		}, [] )
 	);
 	const rules: RecurrenceRules = {};
 
-	sortedEntries.forEach( ( entry ) => {
-		if ( ! entry.recurrence.freq ) {
+	normalizedEntries.forEach( ( entry ) => {
+		if ( ! entry.recurrence.freq || rules[ entry.date ] ) {
 			return;
 		}
-		const rule = createRecurrenceRule( entry.date, entry.recurrence );
-		if ( rule ) {
-			rules[ entry.date ] = rule;
-		}
+		rules[ entry.date ] = entry.recurrence;
 	} );
 
 	const recurrenceAttributes = buildRecurrenceAttributes(
-		sortedEntries.map( ( entry ) => entry.date ),
+		normalizeDateList( normalizedEntries.map( ( entry ) => entry.date ) ),
 		rules
 	);
-	const selectedDates = new Set( recurrenceAttributes.selectedDates || [] );
-	const entryDates = new Set( sortedEntries.map( ( entry ) => entry.date ) );
-	const previousEntryDates = new Set(
-		getAvailabilityEntries( attributes ).map( ( entry ) => entry.date )
+	const selectedDateList = normalizeDateList(
+		normalizedEntries.flatMap( getAvailabilityDates )
 	);
+	const selectedDates = new Set( selectedDateList );
 	const currentOverrides =
 		attributes.dateOverrides && typeof attributes.dateOverrides === 'object'
 			? attributes.dateOverrides
@@ -124,16 +236,18 @@ export function buildAvailabilityAttributes(
 	const dateOverrides = Object.entries(
 		currentOverrides
 	).reduce< DateOverrides >( ( nextOverrides, [ date, override ] ) => {
-		if (
-			selectedDates.has( date ) &&
-			( ! previousEntryDates.has( date ) || entryDates.has( date ) )
-		) {
+		if ( selectedDates.has( date ) ) {
 			nextOverrides[ date ] = { ...override };
 		}
 		return nextOverrides;
 	}, {} );
+	const mirroredDates = new Set< string >();
 
-	sortedEntries.forEach( ( entry ) => {
+	normalizedEntries.forEach( ( entry ) => {
+		if ( mirroredDates.has( entry.date ) ) {
+			return;
+		}
+		mirroredDates.add( entry.date );
 		dateOverrides[ entry.date ] = {
 			...( dateOverrides[ entry.date ] || {} ),
 			startTime: entry.startTime,
@@ -143,10 +257,15 @@ export function buildAvailabilityAttributes(
 		};
 	} );
 
-	const firstEntry = sortedEntries[ 0 ];
+	const firstEntry = normalizedEntries[ 0 ];
 
 	return {
 		...recurrenceAttributes,
+		availabilities: normalizedEntries,
+		selectedDates: selectedDateList,
+		startDate: selectedDateList[ 0 ] || '',
+		endDate: selectedDateList[ selectedDateList.length - 1 ] || '',
+		useEndDate: selectedDateList.length > 1,
 		dateOverrides,
 		...( firstEntry
 			? {
@@ -159,19 +278,32 @@ export function buildAvailabilityAttributes(
 	};
 }
 
-export function hasAvailabilityDateConflict(
+export function hasAvailabilityConflict(
 	entries: AvailabilityEntry[],
 	candidate: AvailabilityEntry,
-	originalDate = ''
+	originalId = ''
 ): boolean {
 	const candidateDates = new Set( getAvailabilityDates( candidate ) );
+	const candidateSlots = getAvailabilitySlotIntervals( candidate );
 
 	return entries.some( ( entry ) => {
-		if ( entry.date === originalDate ) {
+		if ( entry.id === originalId ) {
 			return false;
 		}
-		return getAvailabilityDates( entry ).some( ( date ) =>
+		const sharesDate = getAvailabilityDates( entry ).some( ( date ) =>
 			candidateDates.has( date )
+		);
+		if ( ! sharesDate ) {
+			return false;
+		}
+
+		const existingSlots = getAvailabilitySlotIntervals( entry );
+		return existingSlots.some( ( existingSlot ) =>
+			candidateSlots.some(
+				( candidateSlot ) =>
+					existingSlot.start < candidateSlot.end &&
+					candidateSlot.start < existingSlot.end
+			)
 		);
 	} );
 }

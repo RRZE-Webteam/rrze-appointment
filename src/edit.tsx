@@ -15,6 +15,7 @@ import {
 } from './components';
 import {
 	buildAvailabilityAttributes,
+	createAvailabilityId,
 	getAvailabilityEntries,
 } from './availability';
 import type {
@@ -123,6 +124,7 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 				}
 				firstDate.setDate( today.getDate() + daysAhead );
 				entries.push( {
+					id: createAvailabilityId(),
 					date: formatDate( firstDate ),
 					startTime: hour.from || '09:00',
 					endTime: hour.to || '17:00',
@@ -179,8 +181,7 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 	const [ showCalendarPreview, setShowCalendarPreview ] = useState( false );
 	const [ availabilityDraft, setAvailabilityDraft ] =
 		useState< AvailabilityEntry | null >( null );
-	const [ editedAvailabilityDate, setEditedAvailabilityDate ] =
-		useState( '' );
+	const [ editedAvailabilityId, setEditedAvailabilityId ] = useState( '' );
 	const [ availabilityToDelete, setAvailabilityToDelete ] =
 		useState< AvailabilityEntry | null >( null );
 
@@ -199,8 +200,9 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 		const startTime = attributes.startTime || '09:00';
 		const startMinutes = parseTimeToMinutes( startTime ) || 9 * 60;
 		const duration = attributes.duration || 30;
-		setEditedAvailabilityDate( '' );
+		setEditedAvailabilityId( '' );
 		setAvailabilityDraft( {
+			id: createAvailabilityId(),
 			date: formatDate( defaultDate ),
 			startTime,
 			endTime: minutesToTime(
@@ -214,7 +216,7 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 
 	const handleEditAvailability = ( entry: AvailabilityEntry ) => {
 		setActiveDate( entry.date );
-		setEditedAvailabilityDate( entry.date );
+		setEditedAvailabilityId( entry.id );
 		setAvailabilityDraft( {
 			...entry,
 			recurrence: { ...entry.recurrence },
@@ -223,26 +225,26 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 
 	const handleSaveAvailability = ( entry: AvailabilityEntry ) => {
 		const nextEntries = availabilityEntries.filter(
-			( currentEntry ) => currentEntry.date !== editedAvailabilityDate
+			( currentEntry ) => currentEntry.id !== editedAvailabilityId
 		);
 		nextEntries.push( entry );
 		setAttributes( buildAvailabilityAttributes( attributes, nextEntries ) );
 		setActiveDate( entry.date );
 		setAvailabilityDraft( null );
-		setEditedAvailabilityDate( '' );
+		setEditedAvailabilityId( '' );
 	};
 
-	const handleDeleteAvailability = ( date: string ) => {
+	const handleDeleteAvailability = ( id: string ) => {
 		const nextEntries = availabilityEntries.filter(
-			( entry ) => entry.date !== date
+			( entry ) => entry.id !== id
 		);
 		const nextAttributes = buildAvailabilityAttributes(
 			attributes,
 			nextEntries
 		);
 		setAttributes( nextAttributes );
-		if ( activeDate === date ) {
-			const nextDates = nextAttributes.selectedDates || [];
+		const nextDates = nextAttributes.selectedDates || [];
+		if ( activeDate && ! nextDates.includes( activeDate ) ) {
 			setActiveDate( nextDates[ 0 ] || '' );
 		}
 	};
@@ -422,15 +424,7 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 							<AvailabilityList
 								entries={ availabilityEntries }
 								onAdd={ handleAddAvailability }
-								onDelete={ ( date ) => {
-									const entry = availabilityEntries.find(
-										( currentEntry ) =>
-											currentEntry.date === date
-									);
-									if ( entry ) {
-										setAvailabilityToDelete( entry );
-									}
-								} }
+								onDelete={ setAvailabilityToDelete }
 								onEdit={ handleEditAvailability }
 							/>
 							{ showCalendarPreview && (
@@ -465,11 +459,11 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 								<AvailabilityDialog
 									entries={ availabilityEntries }
 									entry={ availabilityDraft }
-									originalDate={ editedAvailabilityDate }
+									originalId={ editedAvailabilityId }
 									onSave={ handleSaveAvailability }
 									onCancel={ () => {
 										setAvailabilityDraft( null );
-										setEditedAvailabilityDate( '' );
+										setEditedAvailabilityId( '' );
 									} }
 								/>
 							) }
@@ -478,7 +472,7 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 									entry={ availabilityToDelete }
 									onConfirm={ () => {
 										handleDeleteAvailability(
-											availabilityToDelete.date
+											availabilityToDelete.id
 										);
 										setAvailabilityToDelete( null );
 									} }

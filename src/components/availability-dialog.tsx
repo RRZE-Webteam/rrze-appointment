@@ -3,6 +3,7 @@ import {
 	Card,
 	CardBody,
 	CardHeader,
+	CheckboxControl,
 	Flex,
 	FlexBlock,
 	FlexItem,
@@ -17,15 +18,25 @@ import { __ } from '@wordpress/i18n';
 import {
 	getAvailabilityDates,
 	getAvailabilitySlotCount,
-	hasAvailabilityDateConflict,
+	hasAvailabilityConflict,
 } from '../availability';
-import type { AvailabilityEntry, RecurrenceFrequency } from '../types';
-import { formatDate, minutesToTime, parseTimeToMinutes } from '../utils';
+import { getRecurrenceWeekdays } from '../recurrence';
+import type {
+	AvailabilityEntry,
+	RecurrenceFrequency,
+	RecurrenceWeekday,
+} from '../types';
+import {
+	formatDate,
+	minutesToTime,
+	parseDateString,
+	parseTimeToMinutes,
+} from '../utils';
 
 interface AvailabilityDialogProps {
 	entries: AvailabilityEntry[];
 	entry: AvailabilityEntry;
-	originalDate?: string;
+	originalId?: string;
 	onCancel: () => void;
 	onSave: ( entry: AvailabilityEntry ) => void;
 }
@@ -43,6 +54,23 @@ const BREAK_OPTIONS = Array.from( { length: 12 }, ( _, index ) => {
 	};
 } );
 
+const WEEKDAY_OPTIONS: Array< {
+	label: string;
+	value: RecurrenceWeekday;
+} > = [
+	{ label: __( 'Monday', 'rrze-appointment' ), value: 1 },
+	{ label: __( 'Tuesday', 'rrze-appointment' ), value: 2 },
+	{ label: __( 'Wednesday', 'rrze-appointment' ), value: 3 },
+	{ label: __( 'Thursday', 'rrze-appointment' ), value: 4 },
+	{ label: __( 'Friday', 'rrze-appointment' ), value: 5 },
+	{ label: __( 'Saturday', 'rrze-appointment' ), value: 6 },
+	{ label: __( 'Sunday', 'rrze-appointment' ), value: 0 },
+];
+
+function getAnchorWeekday( date: string ): RecurrenceWeekday {
+	return ( parseDateString( date )?.getDay() || 0 ) as RecurrenceWeekday;
+}
+
 function usesConsultationPattern( entry: AvailabilityEntry ): boolean {
 	return getAvailabilitySlotCount( entry ) > 1 || entry.breakDuration > 0;
 }
@@ -50,7 +78,7 @@ function usesConsultationPattern( entry: AvailabilityEntry ): boolean {
 export function AvailabilityDialog( {
 	entries,
 	entry,
-	originalDate = '',
+	originalId = '',
 	onCancel,
 	onSave,
 }: AvailabilityDialogProps ) {
@@ -59,6 +87,9 @@ export function AvailabilityDialog( {
 	const [ usePattern, setUsePattern ] = useState(
 		usesConsultationPattern( entry )
 	);
+	const originalDate =
+		entries.find( ( currentEntry ) => currentEntry.id === originalId )
+			?.date || '';
 
 	useEffect( () => {
 		setDraft( entry );
@@ -155,6 +186,18 @@ export function AvailabilityDialog( {
 			return;
 		}
 		if (
+			normalizedDraft.recurrence.freq === 'weekly' &&
+			getRecurrenceWeekdays(
+				normalizedDraft.recurrence,
+				normalizedDraft.date
+			).length === 0
+		) {
+			setError(
+				__( 'Please select at least one weekday.', 'rrze-appointment' )
+			);
+			return;
+		}
+		if (
 			normalizedDraft.recurrence.until &&
 			normalizedDraft.recurrence.until < normalizedDraft.date
 		) {
@@ -166,16 +209,10 @@ export function AvailabilityDialog( {
 			);
 			return;
 		}
-		if (
-			hasAvailabilityDateConflict(
-				entries,
-				normalizedDraft,
-				originalDate
-			)
-		) {
+		if ( hasAvailabilityConflict( entries, normalizedDraft, originalId ) ) {
 			setError(
 				__(
-					'An availability is already configured for at least one of these dates.',
+					'Another availability has an overlapping time slot on at least one of these dates.',
 					'rrze-appointment'
 				)
 			);
@@ -186,7 +223,11 @@ export function AvailabilityDialog( {
 	};
 
 	const isRepeating = !! draft.recurrence.freq;
-	const title = originalDate
+	const selectedWeekdays = getRecurrenceWeekdays(
+		draft.recurrence,
+		draft.date
+	);
+	const title = originalId
 		? __( 'Edit availability', 'rrze-appointment' )
 		: __( 'Add availability', 'rrze-appointment' );
 
@@ -382,6 +423,9 @@ export function AvailabilityDialog( {
 									? {
 											freq: 'weekly',
 											anchor: draft.date,
+											weekdays: [
+												getAnchorWeekday( draft.date ),
+											],
 									  }
 									: {},
 							} )
@@ -417,16 +461,27 @@ export function AvailabilityDialog( {
 										value: 'monthly',
 									},
 								] }
-								onChange={ ( frequency ) =>
-									setDraft( {
-										...draft,
-										recurrence: {
-											...draft.recurrence,
-											freq: frequency as RecurrenceFrequency,
-											anchor: draft.date,
-										},
-									} )
-								}
+								onChange={ ( frequency ) => {
+									const nextFrequency =
+										frequency as RecurrenceFrequency;
+									const recurrence = {
+										...draft.recurrence,
+										freq: nextFrequency,
+										anchor: draft.date,
+									};
+									if (
+										nextFrequency === 'weekly' &&
+										! Array.isArray( recurrence.weekdays )
+									) {
+										recurrence.weekdays = [
+											getAnchorWeekday( draft.date ),
+										];
+									}
+									if ( nextFrequency !== 'weekly' ) {
+										delete recurrence.weekdays;
+									}
+									setDraft( { ...draft, recurrence } );
+								} }
 							/>
 						</FlexBlock>
 						<FlexBlock>
@@ -453,6 +508,50 @@ export function AvailabilityDialog( {
 							/>
 						</FlexBlock>
 					</Flex>
+				) }
+				{ isRepeating && draft.recurrence.freq === 'weekly' && (
+					<Card size="small">
+						<CardHeader>
+							<strong>
+								{ __( 'Repeat on', 'rrze-appointment' ) }
+							</strong>
+						</CardHeader>
+						<CardBody>
+							<Flex align="flex-start" gap={ 4 } wrap>
+								{ WEEKDAY_OPTIONS.map( ( weekday ) => (
+									<FlexItem key={ weekday.value }>
+										<CheckboxControl
+											label={ weekday.label }
+											checked={ selectedWeekdays.includes(
+												weekday.value
+											) }
+											onChange={ ( selected ) => {
+												const weekdays = selected
+													? [
+															...selectedWeekdays,
+															weekday.value,
+													  ]
+													: selectedWeekdays.filter(
+															( value ) =>
+																value !==
+																weekday.value
+													  );
+												setDraft( {
+													...draft,
+													recurrence: {
+														...draft.recurrence,
+														anchor: draft.date,
+														weekdays,
+													},
+												} );
+												setError( '' );
+											} }
+										/>
+									</FlexItem>
+								) ) }
+							</Flex>
+						</CardBody>
+					</Card>
 				) }
 
 				{ error && (

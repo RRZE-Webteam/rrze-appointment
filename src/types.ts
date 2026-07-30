@@ -1,4 +1,5 @@
 export type RecurrenceFrequency = '' | 'daily' | 'weekly' | 'monthly';
+export type RecurrenceWeekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export interface Recurrence {
 	freq?: RecurrenceFrequency;
@@ -6,6 +7,7 @@ export interface Recurrence {
 	anchor?: string;
 	dates?: string[];
 	excludedDates?: string[];
+	weekdays?: RecurrenceWeekday[];
 }
 
 export type RecurrenceRules = Record< string, Recurrence >;
@@ -22,6 +24,7 @@ export interface DateOverride {
 export type DateOverrides = Record< string, DateOverride >;
 
 export interface AvailabilityEntry {
+	id: string;
 	date: string;
 	startTime: string;
 	endTime: string;
@@ -47,6 +50,7 @@ export interface AppointmentAttributes {
 	recurrence: Recurrence;
 	manualDates?: string[];
 	recurrences?: RecurrenceRules;
+	availabilities?: AvailabilityEntry[];
 	personId: number;
 	personName: string;
 	personEmail: string;

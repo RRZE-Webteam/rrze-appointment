@@ -55,6 +55,28 @@ declare module '@wordpress/components' {
 		size?: 'none' | 'xSmall' | 'small' | 'medium' | 'large';
 	}
 
+	interface CheckboxControlProps extends BaseControlProps {
+		checked: boolean;
+		onChange: ( value: boolean ) => void;
+	}
+
+	interface DateCalendarProps {
+		disabled?: ( date: Date ) => boolean;
+		month?: Date;
+		onMonthChange?: ( date: Date ) => void;
+		onSelect?: ( date: Date | undefined ) => void;
+		required?: boolean;
+		selected?: Date;
+		weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+	}
+
+	interface DatePickerProps {
+		currentDate: string;
+		isInvalidDate?: ( date: Date ) => boolean;
+		onChange: ( value: string ) => void;
+		startOfWeek?: number;
+	}
+
 	interface FlexProps {
 		children?: ReactNode;
 		align?: string;
@@ -133,6 +155,9 @@ declare module '@wordpress/components' {
 	export const CardBody: ComponentType< CardProps >;
 	export const CardFooter: ComponentType< CardProps >;
 	export const CardHeader: ComponentType< CardProps >;
+	export const CheckboxControl: ComponentType< CheckboxControlProps >;
+	export const DateCalendar: ComponentType< DateCalendarProps > | undefined;
+	export const DatePicker: ComponentType< DatePickerProps >;
 	export const Flex: ComponentType< FlexProps >;
 	export const FlexBlock: ComponentType< FlexProps >;
 	export const FlexItem: ComponentType< FlexProps >;

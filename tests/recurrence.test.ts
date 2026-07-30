@@ -2,6 +2,7 @@ import {
 	buildRecurrenceAttributes,
 	createRecurrenceRule,
 	getRecurrenceEditorState,
+	getRecurrenceWeekdays,
 	toggleRecurrenceDate,
 } from '../src/recurrence';
 import type { AppointmentAttributes, RecurrenceRules } from '../src/types';
@@ -115,6 +116,35 @@ describe( 'recurrence compatibility', () => {
 			'2026-08-10',
 			'2026-08-24',
 		] );
+	} );
+
+	it( 'expands a weekly rule on multiple selected weekdays', () => {
+		const rule = createRecurrenceRule( '2026-08-03', {
+			freq: 'weekly',
+			until: '2026-08-16',
+			weekdays: [ 1, 3, 5 ],
+		} );
+
+		expect( rule?.dates ).toEqual( [
+			'2026-08-03',
+			'2026-08-05',
+			'2026-08-07',
+			'2026-08-10',
+			'2026-08-12',
+			'2026-08-14',
+		] );
+		expect( rule?.weekdays ).toEqual( [ 1, 3, 5 ] );
+	} );
+
+	it( 'uses the anchor weekday for legacy weekly rules', () => {
+		expect(
+			getRecurrenceWeekdays(
+				{
+					freq: 'weekly',
+				},
+				'2026-08-03'
+			)
+		).toEqual( [ 1 ] );
 	} );
 
 	it( 'removes and restores one generated occurrence as an exclusion', () => {

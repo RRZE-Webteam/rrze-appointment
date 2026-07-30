@@ -74,6 +74,9 @@
     "recurrences": {
       "type": "object"
     },
+    "availabilities": {
+      "type": "array"
+    },
     "personId": {
       "type": "number",
       "default": 0

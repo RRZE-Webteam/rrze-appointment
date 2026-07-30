@@ -952,7 +952,8 @@ msgstr ""
 
 #: src/components/availability-dialog.tsx
 msgid ""
-"An availability is already configured for at least one of these dates."
+"Another availability has an overlapping time slot on at least one of these "
+"dates."
 msgstr ""
 
 #: src/components/preview-calendar.tsx
@@ -999,20 +1000,12 @@ msgstr ""
 msgid "No availabilities have been configured yet."
 msgstr ""
 
-#: src/components/preview-calendar.tsx
-msgid "Next month"
-msgstr ""
-
 #: src/components/availability-dialog.tsx
 msgid "Occurrences"
 msgstr ""
 
 #: src/components/availability-dialog.tsx
 msgid "Please select a date."
-msgstr ""
-
-#: src/components/preview-calendar.tsx
-msgid "Previous month"
 msgstr ""
 
 #: src/components/availability-dialog.tsx
@@ -1065,4 +1058,40 @@ msgstr ""
 #: src/components/delete-availability-dialog.tsx
 #, php-format
 msgid "This also removes all %d occurrences in the series."
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Monday"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Tuesday"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Wednesday"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Thursday"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Friday"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Saturday"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Sunday"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Repeat on"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Please select at least one weekday."
 msgstr ""

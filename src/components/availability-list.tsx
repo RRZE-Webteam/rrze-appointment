@@ -10,18 +10,39 @@ import {
 	Notice,
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
-import {
-	getAvailabilityDates,
-	getAvailabilitySlotCount,
-} from '../availability';
-import type { AvailabilityEntry, RecurrenceFrequency } from '../types';
+import { getAvailabilitySlotCount } from '../availability';
+import { getRecurrenceWeekdays } from '../recurrence';
+import type {
+	AvailabilityEntry,
+	RecurrenceFrequency,
+	RecurrenceWeekday,
+} from '../types';
 import { formatDateWithWeekdayDisplay } from '../utils';
 
 interface AvailabilityListProps {
 	entries: AvailabilityEntry[];
 	onAdd: () => void;
-	onDelete: ( date: string ) => void;
+	onDelete: ( entry: AvailabilityEntry ) => void;
 	onEdit: ( entry: AvailabilityEntry ) => void;
+}
+
+function getWeekdayLabel( weekday: RecurrenceWeekday ): string {
+	switch ( weekday ) {
+		case 1:
+			return __( 'Monday', 'rrze-appointment' );
+		case 2:
+			return __( 'Tuesday', 'rrze-appointment' );
+		case 3:
+			return __( 'Wednesday', 'rrze-appointment' );
+		case 4:
+			return __( 'Thursday', 'rrze-appointment' );
+		case 5:
+			return __( 'Friday', 'rrze-appointment' );
+		case 6:
+			return __( 'Saturday', 'rrze-appointment' );
+		default:
+			return __( 'Sunday', 'rrze-appointment' );
+	}
 }
 
 function getRecurrenceLabel( frequency: RecurrenceFrequency ): string {
@@ -76,14 +97,19 @@ export function AvailabilityList( {
 				) : (
 					<Flex direction="column" align="stretch" gap={ 3 }>
 						{ entries.map( ( entry ) => {
-							const occurrenceCount =
-								getAvailabilityDates( entry ).length;
 							const slotCount = getAvailabilitySlotCount( entry );
+							const recurrenceWeekdays =
+								entry.recurrence.freq === 'weekly'
+									? getRecurrenceWeekdays(
+											entry.recurrence,
+											entry.date
+									  )
+									: [];
 
 							return (
 								<Card
 									className="rrze-appointment-block__availability-card"
-									key={ entry.date }
+									key={ entry.id }
 									size="small"
 								>
 									<CardBody>
@@ -126,13 +152,14 @@ export function AvailabilityList( {
 															''
 													) }
 												</strong>
-												{ entry.recurrence.freq && (
+												{ recurrenceWeekdays.length >
+													0 && (
 													<p>
-														{ occurrenceCount }{ ' ' }
-														{ __(
-															'Occurrences',
-															'rrze-appointment'
-														) }
+														{ recurrenceWeekdays
+															.map(
+																getWeekdayLabel
+															)
+															.join( ', ' ) }
 													</p>
 												) }
 											</FlexItem>
@@ -158,7 +185,7 @@ export function AvailabilityList( {
 													variant="tertiary"
 													isDestructive
 													onClick={ () =>
-														onDelete( entry.date )
+														onDelete( entry )
 													}
 												>
 													{ __(

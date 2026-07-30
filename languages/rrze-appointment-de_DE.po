@@ -992,10 +992,11 @@ msgstr ""
 
 #: src/components/availability-dialog.tsx
 msgid ""
-"An availability is already configured for at least one of these dates."
+"Another availability has an overlapping time slot on at least one of these "
+"dates."
 msgstr ""
-"Für mindestens eines dieser Daten ist bereits eine Verfügbarkeit "
-"eingerichtet."
+"Eine andere Verfügbarkeit hat an mindestens einem dieser Tage ein "
+"überlappendes Zeitfenster."
 
 #: src/components/preview-calendar.tsx
 msgid "Add time slot"
@@ -1041,10 +1042,6 @@ msgstr "Sprechzeiten importieren"
 msgid "No availabilities have been configured yet."
 msgstr "Es wurden noch keine Verfügbarkeiten eingerichtet."
 
-#: src/components/preview-calendar.tsx
-msgid "Next month"
-msgstr "Nächster Monat"
-
 #: src/components/availability-dialog.tsx
 msgid "Occurrences"
 msgstr "Vorkommen"
@@ -1052,10 +1049,6 @@ msgstr "Vorkommen"
 #: src/components/availability-dialog.tsx
 msgid "Please select a date."
 msgstr "Bitte wählen Sie ein Datum aus."
-
-#: src/components/preview-calendar.tsx
-msgid "Previous month"
-msgstr "Vorheriger Monat"
 
 #: src/components/availability-dialog.tsx
 msgid "Save"
@@ -1108,3 +1101,39 @@ msgstr "Verfügbarkeit löschen"
 #, php-format
 msgid "This also removes all %d occurrences in the series."
 msgstr "Dadurch werden auch alle %d Vorkommen der Serie entfernt."
+
+#: src/components/availability-dialog.tsx
+msgid "Monday"
+msgstr "Montag"
+
+#: src/components/availability-dialog.tsx
+msgid "Tuesday"
+msgstr "Dienstag"
+
+#: src/components/availability-dialog.tsx
+msgid "Wednesday"
+msgstr "Mittwoch"
+
+#: src/components/availability-dialog.tsx
+msgid "Thursday"
+msgstr "Donnerstag"
+
+#: src/components/availability-dialog.tsx
+msgid "Friday"
+msgstr "Freitag"
+
+#: src/components/availability-dialog.tsx
+msgid "Saturday"
+msgstr "Samstag"
+
+#: src/components/availability-dialog.tsx
+msgid "Sunday"
+msgstr "Sonntag"
+
+#: src/components/availability-dialog.tsx
+msgid "Repeat on"
+msgstr "Wiederholen an"
+
+#: src/components/availability-dialog.tsx
+msgid "Please select at least one weekday."
+msgstr "Bitte wählen Sie mindestens einen Wochentag aus."
