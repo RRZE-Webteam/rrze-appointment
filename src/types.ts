@@ -113,11 +113,16 @@ export interface FaudirResponse {
 	data: FaudirPerson[];
 }
 
+export interface FaudirImportOptions {
+	importContact: boolean;
+	importLocation: boolean;
+	importHours: boolean;
+	hoursUntil: string;
+}
+
 export interface EditorI18n {
 	requireMessageField?: string;
 	requireMessageHelp?: string;
-	disableSsoField?: string;
-	disableSsoHelp?: string;
 	hideWeekendsField?: string;
 	hideWeekendsHelp?: string;
 }
@@ -159,11 +164,6 @@ export interface MailTemplatePost {
 export interface MailTemplateOption {
 	value: number;
 	label: string;
-}
-
-export interface HoursOverlay {
-	person: FaudirPerson;
-	type: 'consultation' | 'office';
 }
 
 export interface PreviewCalendarProps {
@@ -225,9 +225,12 @@ export interface AppointmentWindowConfig {
 	ajaxUrl?: string;
 	bookedSlots?: string[];
 	editorI18n?: EditorI18n;
+	faudir?: {
+		available: boolean;
+		personsPath?: string;
+	};
 	i18n?: FrontendI18n;
 	nonce?: string;
-	persons?: FaudirResponse;
 	recurrenceLimit?: number;
 	restUrl?: string;
 }

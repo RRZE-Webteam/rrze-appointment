@@ -1,8 +1,12 @@
 import apiFetch from '@wordpress/api-fetch';
-import { BlockControls, useBlockProps } from '@wordpress/block-editor';
+import {
+	BlockControls,
+	RichText,
+	useBlockProps,
+} from '@wordpress/block-editor';
 import { ToolbarButton, ToolbarGroup } from '@wordpress/components';
 import { Fragment, useEffect, useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import type { ReactNode } from 'react';
 import {
 	AddSlotDialog,
@@ -10,7 +14,7 @@ import {
 	AvailabilityManagerDialog,
 	DeleteAvailabilityDialog,
 	EditorSidebar,
-	HoursImportDialog,
+	FaudirImportDialog,
 	PreviewCalendar,
 } from './components';
 import {
@@ -18,12 +22,17 @@ import {
 	createAvailabilityId,
 	getAvailabilityEntries,
 } from './availability';
+import {
+	createFaudirAvailabilityEntries,
+	mergeFaudirAvailabilityEntries,
+} from './faudir';
 import type {
 	AvailabilityEntry,
 	DateOverrides,
 	EditProps,
+	FaudirImportOptions,
 	FaudirPerson,
-	HoursOverlay,
+	FaudirResponse,
 	MailTemplateOption,
 	MailTemplatePost,
 	TimeSlot,
@@ -42,7 +51,6 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 		dateOverrides,
 		location,
 		description,
-		personId,
 		locationUrl,
 		color,
 		style,
@@ -78,97 +86,15 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 			.catch( () => {} );
 	}, [] );
 
-	const [ faudirResponse ] = useState(
-		() =>
-			window.rrze_appointment?.persons || {
-				error: true,
-				message: __( 'No person data available.', 'rrze-appointment' ),
-				data: [],
-			}
+	const faudirAvailable = !! window.rrze_appointment?.faudir?.available;
+	const [ faudirPersons, setFaudirPersons ] = useState< FaudirPerson[] >(
+		[]
 	);
-
-	const faudirPersons =
-		! faudirResponse?.error && Array.isArray( faudirResponse?.data )
-			? faudirResponse.data
-			: [];
-	const faudirError = faudirResponse?.error ?? false;
-	const faudirMessage = faudirResponse?.message || '';
-	const selectedPerson =
-		faudirPersons.find( ( p ) => p.id === personId ) || null;
-
-	const [ hoursOverlay, setHoursOverlay ] = useState< HoursOverlay | null >(
-		null
-	);
-
-	const applyConsultationHours = ( person: FaudirPerson ) => {
-		const hours = person.consultationHours || [];
-		if ( ! hours.length ) {
-			return;
-		}
-
-		const today = new Date();
-		const lastDate = new Date( today );
-		lastDate.setDate( today.getDate() + 56 );
-		const seenWeekdays = new Set< number >();
-		const importedEntries = hours.reduce< AvailabilityEntry[] >(
-			( entries, hour ) => {
-				if ( seenWeekdays.has( hour.weekday ) ) {
-					return entries;
-				}
-				seenWeekdays.add( hour.weekday );
-
-				const firstDate = new Date( today );
-				let daysAhead = ( hour.weekday - today.getDay() + 7 ) % 7;
-				if ( daysAhead === 0 ) {
-					daysAhead = 7;
-				}
-				firstDate.setDate( today.getDate() + daysAhead );
-				entries.push( {
-					id: createAvailabilityId(),
-					date: formatDate( firstDate ),
-					startTime: hour.from || '09:00',
-					endTime: hour.to || '17:00',
-					duration: attributes.duration || 30,
-					breakDuration: attributes.breakDuration || 0,
-					recurrence: {
-						freq: 'weekly',
-						until: formatDate( lastDate ),
-					},
-				} );
-				return entries;
-			},
-			[]
-		);
-		if ( importedEntries.length === 0 ) {
-			return;
-		}
-
-		setAttributes( {
-			...buildAvailabilityAttributes(
-				{
-					...attributes,
-					selectedDates: [],
-					manualDates: [],
-					recurrences: {},
-					recurrence: {},
-					dateOverrides: {},
-				},
-				importedEntries
-			),
-			useConsultationHours: true,
-		} );
-		setActiveDate( importedEntries[ 0 ].date );
-	};
-
-	const derivedTitle = selectedPerson
-		? `${ __( 'Consultation hours of', 'rrze-appointment' ) } ${ [
-				selectedPerson.honorificPrefix,
-				selectedPerson.givenName,
-				selectedPerson.familyName,
-		  ]
-				.filter( Boolean )
-				.join( ' ' ) }`
-		: title;
+	const [ faudirLoaded, setFaudirLoaded ] = useState( false );
+	const [ faudirLoading, setFaudirLoading ] = useState( false );
+	const [ faudirError, setFaudirError ] = useState( '' );
+	const [ showFaudirImport, setShowFaudirImport ] = useState( false );
+	const [ faudirImportNotice, setFaudirImportNotice ] = useState( '' );
 
 	const calendarDates = getCalendarDates( attributes );
 	const slots = generateTimeSlots( attributes );
@@ -191,6 +117,130 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 	const [ editedAvailabilityId, setEditedAvailabilityId ] = useState( '' );
 	const [ availabilityToDelete, setAvailabilityToDelete ] =
 		useState< AvailabilityEntry | null >( null );
+
+	const handleOpenFaudirImport = () => {
+		setShowFaudirImport( true );
+		if ( faudirLoaded || faudirLoading ) {
+			return;
+		}
+
+		setFaudirLoading( true );
+		setFaudirError( '' );
+		apiFetch< FaudirResponse >( {
+			path:
+				window.rrze_appointment?.faudir?.personsPath ||
+				'/rrze/v2/appointment/persons',
+		} )
+			.then( ( response ) => {
+				if ( response.error ) {
+					setFaudirError(
+						response.message ||
+							__(
+								'FAUdir data could not be loaded.',
+								'rrze-appointment'
+							)
+					);
+					return;
+				}
+				setFaudirLoaded( true );
+				setFaudirPersons(
+					Array.isArray( response.data ) ? response.data : []
+				);
+			} )
+			.catch( () => {
+				setFaudirError(
+					__(
+						'FAUdir data could not be loaded. Please try again.',
+						'rrze-appointment'
+					)
+				);
+			} )
+			.finally( () => setFaudirLoading( false ) );
+	};
+
+	const handleFaudirImport = (
+		person: FaudirPerson,
+		options: FaudirImportOptions
+	) => {
+		const nextAttributes: Partial< EditProps[ 'attributes' ] > = {
+			personId: person.id,
+		};
+		if ( options.importContact ) {
+			nextAttributes.personName =
+				[ person.honorificPrefix, person.givenName, person.familyName ]
+					.filter( Boolean )
+					.join( ' ' ) ||
+				person.label ||
+				'';
+			nextAttributes.personEmail = person.email || '';
+		}
+		if ( options.importLocation ) {
+			nextAttributes.location = person.location || '';
+			nextAttributes.locationUrl = person.locationUrl || '';
+		}
+
+		let addedHours = 0;
+		let skippedHours = 0;
+		if ( options.importHours ) {
+			const importedEntries = createFaudirAvailabilityEntries(
+				person.consultationHours || [],
+				{
+					hoursUntil: options.hoursUntil,
+					duration: attributes.duration || 30,
+					breakDuration: attributes.breakDuration || 0,
+				}
+			);
+			const mergeResult = mergeFaudirAvailabilityEntries(
+				availabilityEntries,
+				importedEntries
+			);
+			addedHours = mergeResult.addedEntries.length;
+			skippedHours = mergeResult.skippedCount;
+
+			if ( addedHours > 0 ) {
+				Object.assign(
+					nextAttributes,
+					buildAvailabilityAttributes(
+						attributes,
+						mergeResult.entries
+					),
+					{ useConsultationHours: true }
+				);
+				const firstImportedEntry = mergeResult.addedEntries[ 0 ];
+				if ( firstImportedEntry ) {
+					setActiveDate( firstImportedEntry.date );
+				}
+			}
+		}
+
+		setAttributes( nextAttributes );
+		let importNotice: string = __(
+			'FAUdir information imported.',
+			'rrze-appointment'
+		);
+		if ( options.importHours && skippedHours > 0 ) {
+			importNotice = sprintf(
+				/* translators: 1: Number of imported time ranges. 2: Number of skipped overlaps. */
+				__(
+					'FAUdir information imported. %1$d time ranges added; %2$d overlaps skipped.',
+					'rrze-appointment'
+				),
+				addedHours,
+				skippedHours
+			);
+		} else if ( options.importHours ) {
+			importNotice = sprintf(
+				/* translators: %d: Number of imported time ranges. */
+				__(
+					'FAUdir information imported. %d time ranges added.',
+					'rrze-appointment'
+				),
+				addedHours
+			);
+		}
+		setFaudirImportNotice( importNotice );
+		setShowFaudirImport( false );
+	};
 
 	useEffect( () => {
 		if ( ! activeDate || ! calendarDates.includes( activeDate ) ) {
@@ -462,13 +512,16 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 			</BlockControls>
 
 			<EditorSidebar
+				appointmentDateCount={ calendarDates.length }
 				attributes={ attributes }
-				derivedTitle={ derivedTitle }
-				faudirError={ faudirError }
-				faudirMessage={ faudirMessage }
-				faudirPersons={ faudirPersons }
+				availabilityCount={ availabilityEntries.length }
+				faudirAvailable={ faudirAvailable }
+				importNotice={ faudirImportNotice }
 				mailTemplates={ mailTemplates }
-				onHoursFound={ setHoursOverlay }
+				onImportFromFaudir={ handleOpenFaudirImport }
+				onManageAppointments={ () =>
+					setShowAvailabilityManager( true )
+				}
 				setAttributes={ setAttributes }
 			/>
 
@@ -480,14 +533,32 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 				>
 					<form className="rrze-appointment__form">
 						<fieldset className="rrze-appointment__fieldset">
-							<legend className="rrze-appointment__title">
-								{ derivedTitle ||
-									__(
-										'Appointment title',
-										'rrze-appointment'
-									) }
-							</legend>
-							{ description && <p>{ description }</p> }
+							<RichText
+								tagName="legend"
+								className="rrze-appointment__title"
+								value={ title }
+								allowedFormats={ [] }
+								placeholder={ __(
+									'Add appointment title…',
+									'rrze-appointment'
+								) }
+								onChange={ ( value ) =>
+									setAttributes( { title: value } )
+								}
+							/>
+							<RichText
+								tagName="p"
+								className="rrze-appointment-block__description"
+								value={ description }
+								allowedFormats={ [] }
+								placeholder={ __(
+									'Add a short description…',
+									'rrze-appointment'
+								) }
+								onChange={ ( value ) =>
+									setAttributes( { description: value } )
+								}
+							/>
 							{ location && (
 								<p>
 									<strong>
@@ -588,14 +659,13 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 				</div>
 			</div>
 
-			{ hoursOverlay && (
-				<HoursImportDialog
-					hoursOverlay={ hoursOverlay }
-					onConfirm={ () => {
-						applyConsultationHours( hoursOverlay.person );
-						setHoursOverlay( null );
-					} }
-					onCancel={ () => setHoursOverlay( null ) }
+			{ showFaudirImport && (
+				<FaudirImportDialog
+					error={ faudirError }
+					isLoading={ faudirLoading }
+					persons={ faudirPersons }
+					onConfirm={ handleFaudirImport }
+					onCancel={ () => setShowFaudirImport( false ) }
 				/>
 			) }
 		</Fragment>

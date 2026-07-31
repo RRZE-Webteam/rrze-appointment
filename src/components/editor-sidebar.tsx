@@ -1,44 +1,44 @@
 import { InspectorControls } from '@wordpress/block-editor';
 import {
+	Button,
+	Notice,
 	PanelBody,
 	SelectControl,
 	TextControl,
-	TextareaControl,
 	ToggleControl,
 } from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import type {
 	AppointmentAttributes,
 	EditProps,
-	FaudirPerson,
-	HoursOverlay,
 	MailTemplateOption,
 } from '../types';
 
 interface EditorSidebarProps {
+	appointmentDateCount: number;
 	attributes: AppointmentAttributes;
-	derivedTitle: string;
-	faudirError: boolean;
-	faudirMessage: string;
-	faudirPersons: FaudirPerson[];
+	availabilityCount: number;
+	faudirAvailable: boolean;
+	importNotice: string;
 	mailTemplates: MailTemplateOption[];
-	onHoursFound: ( overlay: HoursOverlay ) => void;
+	onImportFromFaudir: () => void;
+	onManageAppointments: () => void;
 	setAttributes: EditProps[ 'setAttributes' ];
 }
 
 export function EditorSidebar( {
+	appointmentDateCount,
 	attributes,
-	derivedTitle,
-	faudirError,
-	faudirMessage,
-	faudirPersons,
+	availabilityCount,
+	faudirAvailable,
+	importNotice,
 	mailTemplates,
-	onHoursFound,
+	onImportFromFaudir,
+	onManageAppointments,
 	setAttributes,
 }: EditorSidebarProps ) {
 	const {
 		bookingCutoff,
-		description,
 		disableSso,
 		hideWeekends,
 		location,
@@ -50,206 +50,185 @@ export function EditorSidebar( {
 		tplId,
 	} = attributes;
 	const editorI18n = window.rrze_appointment?.editorI18n || {};
+	const appointmentSummary = sprintf(
+		/* translators: 1: Number of schedules. 2: Number of generated appointment dates. */
+		__( 'Schedules: %1$d · Appointment dates: %2$d', 'rrze-appointment' ),
+		availabilityCount,
+		appointmentDateCount
+	);
+	const hasValidEmail =
+		! personEmail ||
+		/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test( personEmail.trim() );
+	let emailHelp;
+	if ( ! personEmail.trim() ) {
+		emailHelp = __(
+			'Enter the address that receives booking requests.',
+			'rrze-appointment'
+		);
+	} else if ( ! hasValidEmail ) {
+		emailHelp = __( 'Enter a valid email address.', 'rrze-appointment' );
+	}
 
 	return (
 		<InspectorControls>
 			<PanelBody
-				title={ __( 'Mail template', 'rrze-appointment' ) }
-				initialOpen={ false }
-			>
-				<SelectControl
-					label={ __( 'Vorlage', 'rrze-appointment' ) }
-					value={ String( tplId || 0 ) }
-					options={ [
-						{
-							label: __( '— Default —', 'rrze-appointment' ),
-							value: '0',
-						},
-						...mailTemplates.map( ( t ) => ( {
-							label: t.label,
-							value: String( t.value ),
-						} ) ),
-					] }
-					onChange={ ( v ) =>
-						setAttributes( { tplId: Number( v ) } )
-					}
-				/>
-			</PanelBody>
-			<PanelBody
-				title={ __( 'Person settings', 'rrze-appointment' ) }
+				title={ __( 'Appointment times', 'rrze-appointment' ) }
 				initialOpen={ true }
 			>
-				{ faudirError && (
-					<p className="rrze-appointment-block__person-error">
-						{ faudirMessage }
-					</p>
-				) }
-				{ ! faudirError && faudirPersons.length > 0 && (
-					<SelectControl
-						label={ __( 'Person', 'rrze-appointment' ) }
-						value={ String( personId || 0 ) }
-						options={ [
-							{
-								label: __( '— none —', 'rrze-appointment' ),
-								value: '0',
-							},
-							...[ ...faudirPersons ]
-								.filter(
-									( p ) =>
-										p.familyName || p.givenName || p.label
-								)
-								.map( ( p ) => ( {
-									label:
-										[
-											p.familyName,
-											p.honorificPrefix
-												? `(${ p.honorificPrefix })`
-												: null,
-											p.givenName
-												? `${ p.givenName }`
-												: null,
-										]
-											.filter( Boolean )
-											.join( ', ' ) ||
-										p.label ||
-										'',
-									value: String( p.id ),
-								} ) )
-								.sort( ( a, b ) =>
-									a.label.localeCompare( b.label, 'de' )
-								),
-						] }
-						onChange={ ( value ) => {
-							const pid = Number( value );
-							const person =
-								faudirPersons.find( ( p ) => p.id === pid ) ||
-								null;
-							const newTitle = person
-								? `${ __(
-										'Consultation hours of',
+				<p>{ appointmentSummary }</p>
+				<Button variant="secondary" onClick={ onManageAppointments }>
+					{ __( 'Manage appointment times', 'rrze-appointment' ) }
+				</Button>
+			</PanelBody>
+
+			<PanelBody
+				title={ __( 'Host and location', 'rrze-appointment' ) }
+				initialOpen={ false }
+			>
+				{ faudirAvailable && (
+					<>
+						<Button
+							variant="secondary"
+							onClick={ onImportFromFaudir }
+						>
+							{ personId > 0
+								? __(
+										'Re-import from FAUdir',
 										'rrze-appointment'
-								  ) } ${ [
-										person.honorificPrefix,
-										person.givenName,
-										person.familyName,
-								  ]
-										.filter( Boolean )
-										.join( ' ' ) }`
-								: '';
-							setAttributes( {
-								personId: pid,
-								title: newTitle,
-								personName: person
-									? [
-											person.honorificPrefix,
-											person.givenName,
-											person.familyName,
-									  ]
-											.filter( Boolean )
-											.join( ' ' )
-									: '',
-								personEmail: person?.email || '',
-								location: person?.location || '',
-								locationUrl: person?.locationUrl || '',
-								useConsultationHours: false,
-							} );
-							if (
-								person &&
-								( person.consultationHours?.length ?? 0 ) > 0
-							) {
-								onHoursFound( {
-									person,
-									type:
-										person.hoursType === 'office'
-											? 'office'
-											: 'consultation',
-								} );
-							}
-						} }
-					/>
+								  )
+								: __(
+										'Import from FAUdir',
+										'rrze-appointment'
+								  ) }
+						</Button>
+						<p className="components-base-control__help">
+							{ __(
+								'Optional: Copy contact details, a location, or weekly hours from FAUdir.',
+								'rrze-appointment'
+							) }
+						</p>
+					</>
+				) }
+				{ importNotice && (
+					<Notice status="success" isDismissible={ false }>
+						{ importNotice }
+					</Notice>
 				) }
 				<TextControl
-					label={ __( 'Name', 'rrze-appointment' ) }
+					label={ __( 'Host name (required)', 'rrze-appointment' ) }
+					help={
+						! personName.trim()
+							? __(
+									'Enter the name shown to people booking an appointment.',
+									'rrze-appointment'
+							  )
+							: undefined
+					}
 					value={ personName }
 					onChange={ ( value ) =>
-						setAttributes( { personName: value } )
+						setAttributes( { personName: value, personId: 0 } )
 					}
+					__nextHasNoMarginBottom
 				/>
 				<TextControl
-					label={ __( 'E-Mail', 'rrze-appointment' ) }
+					label={ __(
+						'Host email address (required)',
+						'rrze-appointment'
+					) }
+					type="email"
+					help={ emailHelp }
 					value={ personEmail }
 					onChange={ ( value ) =>
-						setAttributes( { personEmail: value } )
+						setAttributes( { personEmail: value, personId: 0 } )
 					}
+					__nextHasNoMarginBottom
 				/>
 				<TextControl
 					label={ __( 'Location', 'rrze-appointment' ) }
+					help={ __(
+						'Optional. For example, a room, building, or video meeting.',
+						'rrze-appointment'
+					) }
 					value={ location }
 					onChange={ ( value ) =>
 						setAttributes( { location: value } )
 					}
+					__nextHasNoMarginBottom
 				/>
 				<TextControl
-					label={ __( 'Map (URL)', 'rrze-appointment' ) }
+					label={ __( 'Location link', 'rrze-appointment' ) }
 					help={
-						locationUrl && ! /^https?:\/\//.test( locationUrl ) ? (
-							<span className="rrze-appointment-block__url-error">
-								{ __(
-									'Please enter a valid URL (starting with https://).',
+						locationUrl && ! /^https?:\/\//.test( locationUrl )
+							? __(
+									'Enter a complete URL starting with https://.',
 									'rrze-appointment'
-								) }
-							</span>
-						) : (
-							<a href="https://karte.fau.de">🔗 karte.fau.de</a>
-						)
+							  )
+							: __(
+									'Optional. Link to a room, map, or video meeting.',
+									'rrze-appointment'
+							  )
 					}
 					value={ locationUrl }
 					onChange={ ( value ) =>
 						setAttributes( { locationUrl: value } )
 					}
+					__nextHasNoMarginBottom
 				/>
 			</PanelBody>
-			<PanelBody
-				title={ __( 'Appointment settings', 'rrze-appointment' ) }
-				initialOpen={ true }
-			>
-				<TextControl
-					label={ __( 'Title', 'rrze-appointment' ) }
-					value={ derivedTitle }
-					onChange={ ( value ) =>
-						setAttributes( { title: value, personId: 0 } )
-					}
-				/>
 
-				<TextareaControl
-					label={ __( 'Description', 'rrze-appointment' ) }
-					value={ description }
-					onChange={ ( value ) =>
-						setAttributes( { description: value } )
-					}
-				/>
+			<PanelBody
+				title={ __( 'Booking rules', 'rrze-appointment' ) }
+				initialOpen={ false }
+			>
 				<SelectControl
-					label={ __( 'Booking cutoff', 'rrze-appointment' ) }
+					label={ __( 'Latest booking time', 'rrze-appointment' ) }
 					help={ __(
-						'Minimum minutes before start time that booking is still allowed.',
+						'How long before an appointment booking closes.',
 						'rrze-appointment'
 					) }
 					value={ String( bookingCutoff || 0 ) }
 					options={ [
 						{
-							label: __( 'No restriction', 'rrze-appointment' ),
+							label: __(
+								'Until the appointment starts',
+								'rrze-appointment'
+							),
 							value: '0',
 						},
-						{ label: '15 min', value: '15' },
-						{ label: '30 min', value: '30' },
-						{ label: '60 min', value: '60' },
-						{ label: '90 min', value: '90' },
-						{ label: '120 min', value: '120' },
-						{ label: '180 min', value: '180' },
-						{ label: '240 min', value: '240' },
-						{ label: '360 min', value: '360' },
-						{ label: '720 min', value: '720' },
-						{ label: '1440 min', value: '1440' },
+						{
+							label: __(
+								'15 minutes before',
+								'rrze-appointment'
+							),
+							value: '15',
+						},
+						{
+							label: __(
+								'30 minutes before',
+								'rrze-appointment'
+							),
+							value: '30',
+						},
+						{
+							label: __( '1 hour before', 'rrze-appointment' ),
+							value: '60',
+						},
+						{
+							label: __( '2 hours before', 'rrze-appointment' ),
+							value: '120',
+						},
+						{
+							label: __( '4 hours before', 'rrze-appointment' ),
+							value: '240',
+						},
+						{
+							label: __( '12 hours before', 'rrze-appointment' ),
+							value: '720',
+						},
+						{
+							label: __( '1 day before', 'rrze-appointment' ),
+							value: '1440',
+						},
 					] }
 					onChange={ ( value ) =>
 						setAttributes( { bookingCutoff: Number( value ) } )
@@ -258,12 +237,12 @@ export function EditorSidebar( {
 				<ToggleControl
 					label={
 						editorI18n.requireMessageField ||
-						__( 'Require message field', 'rrze-appointment' )
+						__( 'Require a message', 'rrze-appointment' )
 					}
 					help={
 						editorI18n.requireMessageHelp ||
 						__(
-							'If enabled, users must fill in the message field during booking.',
+							'People must enter a message when requesting an appointment.',
 							'rrze-appointment'
 						)
 					}
@@ -271,29 +250,54 @@ export function EditorSidebar( {
 					onChange={ ( value ) =>
 						setAttributes( { requireMessage: !! value } )
 					}
+					__nextHasNoMarginBottom
 				/>
 				<ToggleControl
-					label={
-						editorI18n.disableSsoField ||
-						__( 'Disable SSO', 'rrze-appointment' )
-					}
-					help={
-						editorI18n.disableSsoHelp ||
-						__(
-							'If enabled, booking works without SSO login.',
-							'rrze-appointment'
-						)
-					}
+					label={ __(
+						'Allow bookings without SSO',
+						'rrze-appointment'
+					) }
+					help={ __(
+						'People can request appointments without signing in.',
+						'rrze-appointment'
+					) }
 					checked={ !! disableSso }
 					onChange={ ( value ) =>
 						setAttributes( { disableSso: !! value } )
+					}
+					__nextHasNoMarginBottom
+				/>
+			</PanelBody>
+
+			<PanelBody
+				title={ __( 'Email notifications', 'rrze-appointment' ) }
+				initialOpen={ false }
+			>
+				<SelectControl
+					label={ __( 'Mail template', 'rrze-appointment' ) }
+					help={ __(
+						'Choose the messages sent for this appointment.',
+						'rrze-appointment'
+					) }
+					value={ String( tplId || 0 ) }
+					options={ [
+						{
+							label: __( 'Default template', 'rrze-appointment' ),
+							value: '0',
+						},
+						...mailTemplates.map( ( template ) => ( {
+							label: template.label,
+							value: String( template.value ),
+						} ) ),
+					] }
+					onChange={ ( value ) =>
+						setAttributes( { tplId: Number( value ) } )
 					}
 				/>
 			</PanelBody>
 
 			<PanelBody
-				title={ __( 'Calendar view', 'rrze-appointment' ) }
-				name={ __( 'Calendar view', 'rrze-appointment' ) }
+				title={ __( 'Calendar display', 'rrze-appointment' ) }
 				icon="calendar-alt"
 				initialOpen={ false }
 			>
@@ -305,7 +309,7 @@ export function EditorSidebar( {
 					help={
 						editorI18n.hideWeekendsHelp ||
 						__(
-							'If enabled, weekend columns are not shown in the calendar.',
+							'Only show Monday through Friday in the calendar.',
 							'rrze-appointment'
 						)
 					}
@@ -313,6 +317,7 @@ export function EditorSidebar( {
 					onChange={ ( value ) =>
 						setAttributes( { hideWeekends: !! value } )
 					}
+					__nextHasNoMarginBottom
 				/>
 			</PanelBody>
 		</InspectorControls>

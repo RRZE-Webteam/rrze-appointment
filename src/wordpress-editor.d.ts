@@ -19,8 +19,18 @@ declare module '@wordpress/block-editor' {
 		children?: ReactNode;
 	}
 
+	interface RichTextProps {
+		allowedFormats?: string[];
+		className?: string;
+		onChange: ( value: string ) => void;
+		placeholder?: string;
+		tagName?: string;
+		value: string;
+	}
+
 	export const BlockControls: ComponentType< BlockControlsProps >;
 	export const InspectorControls: ComponentType< InspectorControlsProps >;
+	export const RichText: ComponentType< RichTextProps >;
 	export function useBlockProps(
 		props?: HTMLAttributes< HTMLDivElement >
 	): HTMLAttributes< HTMLDivElement >;
@@ -30,6 +40,7 @@ declare module '@wordpress/components' {
 	import type { ComponentType, ReactNode } from 'react';
 
 	interface BaseControlProps {
+		__nextHasNoMarginBottom?: boolean;
 		label?: string;
 		help?: ReactNode;
 	}
@@ -63,6 +74,7 @@ declare module '@wordpress/components' {
 
 	interface CheckboxControlProps extends BaseControlProps {
 		checked: boolean;
+		disabled?: boolean;
 		onChange: ( value: boolean ) => void;
 	}
 
@@ -132,6 +144,7 @@ declare module '@wordpress/components' {
 	}
 
 	interface TextControlProps extends BaseControlProps {
+		min?: string;
 		value: string;
 		type?: string;
 		step?: number;
@@ -172,6 +185,7 @@ declare module '@wordpress/components' {
 	export const Notice: ComponentType< NoticeProps >;
 	export const PanelBody: ComponentType< PanelBodyProps >;
 	export const SelectControl: ComponentType< SelectControlProps >;
+	export const Spinner: ComponentType;
 	export const TextControl: ComponentType< TextControlProps >;
 	export const TextareaControl: ComponentType< TextControlProps >;
 	export const ToggleControl: ComponentType< ToggleControlProps >;

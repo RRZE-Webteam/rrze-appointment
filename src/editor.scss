@@ -1,5 +1,43 @@
 @import "../node_modules/@wordpress/dataviews/build-style/style.css";
 
+.rrze-appointment-block {
+
+	.rrze-appointment__title[contenteditable="true"],
+	&__description[contenteditable="true"] {
+		border-radius: 2px;
+		outline: 1px dashed transparent;
+		transition: outline-color 0.15s ease;
+
+		&:hover,
+		&:focus {
+			outline-color: var(--wp-admin-theme-color, #3858e9);
+		}
+	}
+
+	&__description {
+		min-height: 1.5em;
+	}
+
+	&__faudir-preview {
+		margin: 1.5rem 0;
+		padding-top: 1rem;
+		border-top: 1px solid #dcdcde;
+
+		h3 {
+			margin-top: 0;
+		}
+
+		.components-notice {
+			margin: 1rem 0;
+		}
+	}
+
+	&__faudir-hours {
+		margin: 0 0 1rem 1.25rem;
+		font-variant-numeric: tabular-nums;
+	}
+}
+
 .rrze-appointment-data-view {
 
 	&__modal .components-modal__content {

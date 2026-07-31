@@ -128,12 +128,12 @@ class Bookings
 
     private static function resolvePersonName(int $personId, array $meta = []): string
     {
-        if ($personId <= 0) {
-            $storedName = trim((string) ($meta['person_name'] ?? ''));
-            if ($storedName !== '') {
-                return $storedName;
-            }
+        $storedName = trim((string) ($meta['person_name'] ?? ''));
+        if ($storedName !== '') {
+            return $storedName;
+        }
 
+        if ($personId <= 0) {
             $storedEmail = sanitize_email((string) ($meta['person_email'] ?? ''));
             if ($storedEmail !== '') {
                 return $storedEmail;
@@ -158,7 +158,7 @@ class Bookings
             return $title;
         }
 
-        return trim((string) ($meta['person_name'] ?? '')) ?: "Person #$personId";
+        return "Person #$personId";
     }
 
     public static function getAll(array $filter = []): array
@@ -319,13 +319,10 @@ class Bookings
             $tplId       = (int) ($bookedMeta['tpl_id'] ?? 0);
 
             $personId = (int) ($newSlotMeta['person_id'] ?? 0);
-            $pName    = '';
-            if ($personId > 0) {
-                $pTitle  = (string) get_post_meta($personId, 'person_honorificPrefix', true);
-                $pGiven  = (string) get_post_meta($personId, 'person_givenName', true);
-                $pFamily = (string) get_post_meta($personId, 'person_familyName', true);
-                $pName   = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
-            }
+            $pName = self::resolvePersonName(
+                $personId,
+                array_merge($bookedMeta, $newSlotMeta)
+            );
 
             $vars = [
                 '[title]'        => $title,
@@ -453,13 +450,7 @@ class Bookings
             $bookerName  = $meta['booker_name']  ?? '';
             $tplId       = (int) ($meta['tpl_id'] ?? 0);
 
-            $pName = '';
-            if ($personId > 0) {
-                $pTitle  = (string) get_post_meta($personId, 'person_honorificPrefix', true);
-                $pGiven  = (string) get_post_meta($personId, 'person_givenName', true);
-                $pFamily = (string) get_post_meta($personId, 'person_familyName', true);
-                $pName   = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
-            }
+            $pName = self::resolvePersonName($personId, $meta);
 
             $vars = [
                 '[title]'             => $title,

@@ -182,19 +182,34 @@ final class AppointmentBlock
         if ($personId > 0) {
             $person = get_post($personId);
             if (
+                $person instanceof \WP_Post
+                && $person->post_type === 'custom_person'
+                && $person->post_status === 'publish'
+                && $personName === ''
+            ) {
+                $personName = self::getPersonName($person);
+            } elseif (
                 !$person instanceof \WP_Post
                 || $person->post_type !== 'custom_person'
                 || $person->post_status !== 'publish'
             ) {
-                return new \WP_Error(
-                    'rrze_appointment_invalid_host',
-                    __('The configured host is not published.', 'rrze-appointment')
-                );
+                // FAUdir is an optional import source. Keep using the copied
+                // contact details if the source post is later removed.
+                $personId = 0;
             }
+        }
 
-            if ($personName === '') {
-                $personName = self::getPersonName($person);
-            }
+        if ($personName === '') {
+            return new \WP_Error(
+                'rrze_appointment_missing_host',
+                __('A host name is required for this appointment.', 'rrze-appointment')
+            );
+        }
+        if ($personEmail === '') {
+            return new \WP_Error(
+                'rrze_appointment_missing_host_email',
+                __('A host email address is required for this appointment.', 'rrze-appointment')
+            );
         }
 
         $templateId = (int) ($attributes['tplId'] ?? 0);

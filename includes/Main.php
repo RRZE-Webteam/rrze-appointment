@@ -165,6 +165,13 @@ class Main
             'callback' => [$this, 'handleGetBooker'],
             'permission_callback' => [$this, 'allowBookerRequest'],
         ]);
+        register_rest_route('rrze/v2/appointment', '/persons', [
+            'methods' => 'GET',
+            'callback' => [$this, 'handleGetPersons'],
+            'permission_callback' => static function (): bool {
+                return current_user_can('edit_posts');
+            },
+        ]);
     }
 
     public function allowBookerRequest($request)
@@ -486,40 +493,42 @@ class Main
     public function enqueueAdminAssets()
     {
         try {
-            $persons = $this->getFAUdirPersons();
             $data = wp_json_encode([
-                'persons' => $persons,
+                'faudir' => [
+                    'available' => post_type_exists('custom_person')
+                        && class_exists('\RRZE\FAUdir\API')
+                        && class_exists('\RRZE\FAUdir\Config'),
+                    'personsPath' => '/rrze/v2/appointment/persons',
+                ],
                 'recurrenceLimit' => (int) Settings::get('recurrence_limit'),
                 'editorI18n' => [
-                    'requireMessageField' => __('Require message field', 'rrze-appointment'),
-                    'requireMessageHelp' => __('If enabled, users must fill in the message field during booking.', 'rrze-appointment'),
-                    'disableSsoField' => __('Disable SSO', 'rrze-appointment'),
-                    'disableSsoHelp' => __('If enabled, booking works without SSO login.', 'rrze-appointment'),
+                    'requireMessageField' => __('Require a message', 'rrze-appointment'),
+                    'requireMessageHelp' => __('People must enter a message when requesting an appointment.', 'rrze-appointment'),
                     'hideWeekendsField' => __('Hide weekends', 'rrze-appointment'),
-                    'hideWeekendsHelp' => __('If enabled, weekend columns are not shown in the calendar.', 'rrze-appointment'),
+                    'hideWeekendsHelp' => __('Only show Monday through Friday in the calendar.', 'rrze-appointment'),
                 ],
             ]);
         } catch (CustomException $e) {
             $data = wp_json_encode([
-                'persons' => ['error' => true, 'message' => $e->getMessage(), 'data' => []],
+                'faudir' => [
+                    'available' => false,
+                    'personsPath' => '/rrze/v2/appointment/persons',
+                ],
                 'recurrenceLimit' => 52,
                 'editorI18n' => [
-                    'requireMessageField' => __('Require message field', 'rrze-appointment'),
-                    'requireMessageHelp' => __('If enabled, users must fill in the message field during booking.', 'rrze-appointment'),
-                    'disableSsoField' => __('Disable SSO', 'rrze-appointment'),
-                    'disableSsoHelp' => __('If enabled, booking works without SSO login.', 'rrze-appointment'),
+                    'requireMessageField' => __('Require a message', 'rrze-appointment'),
+                    'requireMessageHelp' => __('People must enter a message when requesting an appointment.', 'rrze-appointment'),
                     'hideWeekendsField' => __('Hide weekends', 'rrze-appointment'),
-                    'hideWeekendsHelp' => __('If enabled, weekend columns are not shown in the calendar.', 'rrze-appointment'),
+                    'hideWeekendsHelp' => __('Only show Monday through Friday in the calendar.', 'rrze-appointment'),
                 ],
             ]);
         }
         wp_add_inline_script('rrze-appointment-editor-script', 'window.rrze_appointment = ' . $data . ';', 'before');
     }
 
-    public function handleGetPersons(): void
+    public function handleGetPersons()
     {
-        check_ajax_referer('rrze_appointment_persons', 'nonce');
-        wp_send_json($this->getFAUdirPersons());
+        return rest_ensure_response($this->getFAUdirPersons());
     }
 
 
@@ -860,13 +869,7 @@ class Main
             $bookerName = $meta['booker_name'] ?? '';
             $tplId = (int) ($meta['tpl_id'] ?? 0);
 
-            $pName = '';
-            if ($personId > 0) {
-                $pTitle = (string) get_post_meta($personId, 'person_honorificPrefix', true);
-                $pGiven = (string) get_post_meta($personId, 'person_givenName', true);
-                $pFamily = (string) get_post_meta($personId, 'person_familyName', true);
-                $pName = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
-            }
+            $pName = trim((string) ($meta['person_name'] ?? ''));
 
             $vars = [
                 '[title]' => $meta['title'] ?? '',

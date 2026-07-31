@@ -82,7 +82,7 @@ class Reminder
                 '[date]'         => date_i18n(get_option('date_format'), strtotime($datePart)),
                 '[time]'         => $startTime . ' – ' . $endTime,
                 '[location]'     => $location ?: '–',
-                '[person_name]'  => '',
+                '[person_name]'  => trim((string) ($meta['person_name'] ?? '')),
                 '[name]'         => $bookerName ?: '–',
                 '[email]'        => $bookerEmail ?: '–',
                 '[cancel_link]'  => TokenManager::getCancelUrlForSlot($slot),
@@ -90,7 +90,7 @@ class Reminder
                 '[post_link]'    => esc_url_raw($meta['post_link'] ?? home_url('/')),
             ];
 
-            if ($personId > 0) {
+            if ($vars['[person_name]'] === '' && $personId > 0) {
                 $pTitle  = (string) get_post_meta($personId, 'person_honorificPrefix', true);
                 $pGiven  = (string) get_post_meta($personId, 'person_givenName', true);
                 $pFamily = (string) get_post_meta($personId, 'person_familyName', true);
