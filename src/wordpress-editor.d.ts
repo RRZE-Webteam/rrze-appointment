@@ -40,10 +40,16 @@ declare module '@wordpress/components' {
 		disabled?: boolean;
 		icon?: string;
 		isDestructive?: boolean;
+		isPressed?: boolean;
 		label?: string;
 		variant?: 'primary' | 'secondary' | 'tertiary' | 'link';
 		isSmall?: boolean;
 		onClick?: () => void;
+	}
+
+	interface ButtonGroupProps {
+		children?: ReactNode;
+		className?: string;
 	}
 
 	interface CardProps {
@@ -151,6 +157,7 @@ declare module '@wordpress/components' {
 	}
 
 	export const Button: ComponentType< ButtonProps >;
+	export const ButtonGroup: ComponentType< ButtonGroupProps >;
 	export const Card: ComponentType< CardProps >;
 	export const CardBody: ComponentType< CardProps >;
 	export const CardFooter: ComponentType< CardProps >;

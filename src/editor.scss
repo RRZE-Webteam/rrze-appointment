@@ -15,6 +15,30 @@
 		}
 	}
 
+	&__navigation {
+		margin-bottom: 1.5rem;
+	}
+
+	&__status {
+		display: inline-flex;
+		align-items: center;
+		min-height: 24px;
+		padding: 2px 8px;
+		border-radius: 999px;
+		font-size: 12px;
+		font-weight: 600;
+
+		&.is-available {
+			background: #edfaef;
+			color: #116329;
+		}
+
+		&.is-excluded {
+			background: #f0f0f0;
+			color: #50575e;
+		}
+	}
+
 	&__recurrence {
 		display: flex;
 		flex-direction: column;

@@ -147,6 +147,36 @@ describe( 'availability editor model', () => {
 		expect( slotValues ).toContain( '2026-08-04 13:00-14:00' );
 	} );
 
+	it( 'can include an excluded appointment for exception management', () => {
+		const excludedValue = '2026-08-10 09:00-09:30';
+		const attributes = createAttributes( {
+			availabilities: [
+				createEntry( 'weekly', {
+					recurrence: {
+						freq: 'weekly',
+						until: '2026-08-17',
+					},
+				} ),
+			],
+			dateOverrides: {
+				'2026-08-10': {
+					removedSlots: [ excludedValue ],
+				},
+			},
+		} );
+
+		expect(
+			generateTimeSlots( attributes ).some(
+				( slot ) => slot.value === excludedValue
+			)
+		).toBe( false );
+		expect(
+			generateTimeSlots( attributes, { includeExcluded: true } ).find(
+				( slot ) => slot.value === excludedValue
+			)?.isExcluded
+		).toBe( true );
+	} );
+
 	it( 'detects overlapping dates between recurring entries', () => {
 		const weeklyEntry = createEntry( 'weekly', {
 			recurrence: {

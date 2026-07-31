@@ -172,6 +172,9 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 
 	const calendarDates = getCalendarDates( attributes );
 	const slots = generateTimeSlots( attributes );
+	const appointmentSlots = generateTimeSlots( attributes, {
+		includeExcluded: true,
+	} );
 	const availabilityEntries = getAvailabilityEntries( attributes );
 	const [ activeDate, setActiveDate ] = useState( calendarDates[ 0 ] || '' );
 	const [ addSlotDate, setAddSlotDate ] = useState< string | null >( null );
@@ -335,6 +338,37 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 		setAttributes( { dateOverrides: overridesNext } );
 	};
 
+	const handleToggleException = ( slot: TimeSlot ) => {
+		const overridesNext = { ...activeOverrides };
+		const currentOverride = overridesNext[ slot.date ] || {};
+		const removedSlots = new Set(
+			Array.isArray( currentOverride.removedSlots )
+				? currentOverride.removedSlots
+				: []
+		);
+
+		if ( slot.isExcluded ) {
+			removedSlots.delete( slot.value );
+		} else {
+			removedSlots.add( slot.value );
+		}
+
+		const nextOverride = { ...currentOverride };
+		if ( removedSlots.size > 0 ) {
+			nextOverride.removedSlots = Array.from( removedSlots );
+		} else {
+			delete nextOverride.removedSlots;
+		}
+
+		if ( Object.keys( nextOverride ).length === 0 ) {
+			delete overridesNext[ slot.date ];
+		} else {
+			overridesNext[ slot.date ] = nextOverride;
+		}
+
+		setAttributes( { dateOverrides: overridesNext } );
+	};
+
 	const handleOpenAddSlot = ( date: string ) => {
 		setAddSlotDate( date );
 		setAddSlotTime( '' );
@@ -410,7 +444,7 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 					<ToolbarButton
 						icon="list-view"
 						label={ __(
-							'Manage availabilities',
+							'Manage appointment times',
 							'rrze-appointment'
 						) }
 						isPressed={ showAvailabilityManager }
@@ -494,6 +528,7 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 							{ showAvailabilityManager && (
 								<AvailabilityManagerDialog
 									entries={ availabilityEntries }
+									slots={ appointmentSlots }
 									onAdd={ () =>
 										handleAddAvailability( true )
 									}
@@ -504,6 +539,7 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 									onEdit={ ( entry ) =>
 										handleEditAvailability( entry, true )
 									}
+									onToggleException={ handleToggleException }
 								/>
 							) }
 							{ availabilityDraft && (

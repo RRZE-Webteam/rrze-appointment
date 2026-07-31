@@ -42,14 +42,14 @@ interface AvailabilityDialogProps {
 }
 
 const DURATION_OPTIONS = [ 15, 30, 45, 60, 75, 90, 120 ].map( ( minutes ) => ( {
-	label: `${ minutes } Minuten`,
+	label: `${ minutes } min`,
 	value: String( minutes ),
 } ) );
 
 const BREAK_OPTIONS = Array.from( { length: 12 }, ( _, index ) => {
 	const minutes = index * 5;
 	return {
-		label: `${ minutes } Minuten`,
+		label: `${ minutes } min`,
 		value: String( minutes ),
 	};
 } );
@@ -179,7 +179,7 @@ export function AvailabilityDialog( {
 		if ( getAvailabilitySlotCount( normalizedDraft ) === 0 ) {
 			setError(
 				__(
-					'The selected pattern does not create a complete slot.',
+					'The selected time range is too short for one complete appointment.',
 					'rrze-appointment'
 				)
 			);
@@ -203,7 +203,7 @@ export function AvailabilityDialog( {
 		) {
 			setError(
 				__(
-					'The recurrence end must not be before the start date.',
+					'The last date must not be before the first date.',
 					'rrze-appointment'
 				)
 			);
@@ -212,7 +212,7 @@ export function AvailabilityDialog( {
 		if ( hasAvailabilityConflict( entries, normalizedDraft, originalId ) ) {
 			setError(
 				__(
-					'Another availability has an overlapping time slot on at least one of these dates.',
+					'These appointment times overlap with an existing schedule on at least one date.',
 					'rrze-appointment'
 				)
 			);
@@ -228,8 +228,8 @@ export function AvailabilityDialog( {
 		draft.date
 	);
 	const title = originalId
-		? __( 'Edit availability', 'rrze-appointment' )
-		: __( 'Add availability', 'rrze-appointment' );
+		? __( 'Edit appointment times', 'rrze-appointment' )
+		: __( 'Add appointment times', 'rrze-appointment' );
 
 	return (
 		<Modal
@@ -292,7 +292,7 @@ export function AvailabilityDialog( {
 								onClick={ enablePattern }
 							>
 								{ __(
-									'Fill consultation hours from pattern',
+									'Split time range into appointments',
 									'rrze-appointment'
 								) }
 							</Button>
@@ -307,7 +307,7 @@ export function AvailabilityDialog( {
 								<FlexBlock>
 									<strong>
 										{ __(
-											'Consultation hours pattern',
+											'Appointment pattern',
 											'rrze-appointment'
 										) }
 									</strong>
@@ -318,7 +318,7 @@ export function AvailabilityDialog( {
 										onClick={ disablePattern }
 									>
 										{ __(
-											'Use individual appointment',
+											'Use one appointment',
 											'rrze-appointment'
 										) }
 									</Button>
@@ -331,7 +331,7 @@ export function AvailabilityDialog( {
 									<FlexBlock>
 										<TextControl
 											label={ __(
-												'From',
+												'Available from',
 												'rrze-appointment'
 											) }
 											type="time"
@@ -349,7 +349,7 @@ export function AvailabilityDialog( {
 									<FlexBlock>
 										<TextControl
 											label={ __(
-												'To',
+												'Available until',
 												'rrze-appointment'
 											) }
 											type="time"
@@ -369,7 +369,7 @@ export function AvailabilityDialog( {
 									<FlexBlock>
 										<SelectControl
 											label={ __(
-												'Slot duration',
+												'Appointment duration',
 												'rrze-appointment'
 											) }
 											value={ String( draft.duration ) }
@@ -386,7 +386,7 @@ export function AvailabilityDialog( {
 									<FlexBlock>
 										<SelectControl
 											label={ __(
-												'Break between slots',
+												'Break between appointments',
 												'rrze-appointment'
 											) }
 											value={ String(
@@ -405,7 +405,10 @@ export function AvailabilityDialog( {
 								</Flex>
 								<Notice status="info" isDismissible={ false }>
 									{ getAvailabilitySlotCount( draft ) }{ ' ' }
-									{ __( 'Slots', 'rrze-appointment' ) }
+									{ __(
+										'bookable appointments per date',
+										'rrze-appointment'
+									) }
 								</Notice>
 							</Flex>
 						</CardBody>
@@ -414,7 +417,10 @@ export function AvailabilityDialog( {
 
 				<FlexItem>
 					<ToggleControl
-						label={ __( 'Repeat', 'rrze-appointment' ) }
+						label={ __(
+							'Repeat appointment times',
+							'rrze-appointment'
+						) }
 						checked={ isRepeating }
 						onChange={ ( repeats ) =>
 							setDraft( {
@@ -436,7 +442,7 @@ export function AvailabilityDialog( {
 					<Flex gap={ 4 } align="flex-start" wrap>
 						<FlexBlock>
 							<SelectControl
-								label={ __( 'Recurrence', 'rrze-appointment' ) }
+								label={ __( 'Frequency', 'rrze-appointment' ) }
 								value={ draft.recurrence.freq || 'weekly' }
 								options={ [
 									{
@@ -486,15 +492,12 @@ export function AvailabilityDialog( {
 						</FlexBlock>
 						<FlexBlock>
 							<TextControl
-								label={ __( 'Ends on', 'rrze-appointment' ) }
+								label={ __( 'Last date', 'rrze-appointment' ) }
 								type="date"
 								value={ draft.recurrence.until || '' }
 								help={ `${
 									getAvailabilityDates( draft ).length
-								} ${ __(
-									'Occurrences',
-									'rrze-appointment'
-								) }` }
+								} ${ __( 'dates', 'rrze-appointment' ) }` }
 								onChange={ ( until ) =>
 									setDraft( {
 										...draft,
@@ -567,7 +570,10 @@ export function AvailabilityDialog( {
 					</FlexItem>
 					<FlexItem>
 						<Button variant="primary" onClick={ handleSave }>
-							{ __( 'Save', 'rrze-appointment' ) }
+							{ __(
+								'Save appointment times',
+								'rrze-appointment'
+							) }
 						</Button>
 					</FlexItem>
 				</Flex>

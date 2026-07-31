@@ -1152,5 +1152,151 @@ msgid "Repetition"
 msgstr ""
 
 #: src/components/availability-manager-dialog.tsx src/edit.tsx
-msgid "Manage availabilities"
+msgid "Manage appointment times"
+msgstr ""
+
+#: src/components/appointment-data-view.tsx
+msgid "Exception"
+msgstr ""
+
+#: src/components/appointment-data-view.tsx
+msgid "Bookable"
+msgstr ""
+
+#: src/components/appointment-data-view.tsx
+msgid "Appointment time"
+msgstr ""
+
+#: src/components/appointment-data-view.tsx
+msgid "Status"
+msgstr ""
+
+#: src/components/appointment-data-view.tsx
+msgid "Add exception"
+msgstr ""
+
+#: src/components/appointment-data-view.tsx
+msgid "Remove exception"
+msgstr ""
+
+#: src/components/appointment-data-view.tsx
+msgid "No upcoming appointments have been created yet."
+msgstr ""
+
+#: src/components/availability-manager-dialog.tsx
+msgid "Schedules"
+msgstr ""
+
+#: src/components/availability-manager-dialog.tsx
+msgid "All appointments"
+msgstr ""
+
+#: src/components/availability-manager-dialog.tsx
+msgid ""
+"Set up one-time or recurring appointment times. A time range can be split "
+"into several bookable appointments."
+msgstr ""
+
+#: src/components/availability-manager-dialog.tsx
+msgid ""
+"Review every upcoming appointment. Add an exception when you are unavailable "
+"for a single appointment in a series."
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+#: src/components/availability-manager-dialog.tsx
+msgid "Add appointment times"
+msgstr ""
+
+#: src/components/availability-data-view.tsx
+msgid "First date"
+msgstr ""
+
+#: src/components/availability-data-view.tsx
+msgid "Time range"
+msgstr ""
+
+#: src/components/availability-data-view.tsx
+msgid "No appointment times have been set up yet."
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid ""
+"These appointment times overlap with an existing schedule on at least one "
+"date."
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Edit appointment times"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Split time range into appointments"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Appointment pattern"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Use one appointment"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Available from"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Available until"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Appointment duration"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Break between appointments"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "bookable appointments per date"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Repeat appointment times"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Frequency"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Last date"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "dates"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Save appointment times"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid ""
+"The selected time range is too short for one complete appointment."
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "The last date must not be before the first date."
+msgstr ""
+
+#: src/components/delete-availability-dialog.tsx
+msgid "Delete appointment times"
+msgstr ""
+
+#. translators: %s: first date of the appointment schedule.
+#: src/components/delete-availability-dialog.tsx
+#, php-format
+msgid "Delete the appointment times starting on %s?"
 msgstr ""

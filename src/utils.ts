@@ -313,25 +313,36 @@ function getAvailabilityWindows(
 	} );
 }
 
+interface GenerateTimeSlotsOptions {
+	includeExcluded?: boolean;
+}
+
 export function generateTimeSlots(
-	attributes: AppointmentAttributes
+	attributes: AppointmentAttributes,
+	options: GenerateTimeSlotsOptions = {}
 ): TimeSlot[] {
 	const windows = getAvailabilityWindows( attributes );
 	const now = new Date();
 	const slots: TimeSlot[] = [];
 	const slotMap = new Map< string, TimeSlot >();
 	const processedExtraDates = new Set< string >();
+	const includeExcluded = !! options.includeExcluded;
 
 	const addSlot = ( slot: TimeSlot, removedSlots: Set< string > ) => {
 		const slotStart = new Date( `${ slot.date }T${ slot.startTime }:00` );
 		if ( ! Number.isNaN( slotStart.getTime() ) && slotStart <= now ) {
 			return;
 		}
-		if ( removedSlots.has( slot.value ) || slotMap.has( slot.value ) ) {
+		const isExcluded = removedSlots.has( slot.value );
+		if (
+			( isExcluded && ! includeExcluded ) ||
+			slotMap.has( slot.value )
+		) {
 			return;
 		}
-		slotMap.set( slot.value, slot );
-		slots.push( slot );
+		const nextSlot = { ...slot, isExcluded };
+		slotMap.set( slot.value, nextSlot );
+		slots.push( nextSlot );
 	};
 
 	for ( const window of windows ) {

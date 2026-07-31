@@ -74,6 +74,7 @@ export interface TimeSlot {
 	value: string;
 	label: string;
 	isExtra: boolean;
+	isExcluded?: boolean;
 }
 
 export type WeekdayMonthGridCell =

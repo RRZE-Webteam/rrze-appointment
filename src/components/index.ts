@@ -1,4 +1,5 @@
 export { AddSlotDialog } from './add-slot-dialog';
+export { AppointmentDataView } from './appointment-data-view';
 export { AvailabilityDataView } from './availability-data-view';
 export { AvailabilityDialog } from './availability-dialog';
 export { AvailabilityManagerDialog } from './availability-manager-dialog';

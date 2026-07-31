@@ -192,7 +192,7 @@ export function AvailabilityDataView( {
 	const fields: Field< AvailabilityEntry >[] = [
 		{
 			id: 'date',
-			label: __( 'Date', 'rrze-appointment' ),
+			label: __( 'First date', 'rrze-appointment' ),
 			enableHiding: false,
 			enableSorting: true,
 			getValue: ( { item } ) => item.date,
@@ -200,14 +200,14 @@ export function AvailabilityDataView( {
 		},
 		{
 			id: 'time',
-			label: __( 'Time', 'rrze-appointment' ),
+			label: __( 'Time range', 'rrze-appointment' ),
 			enableSorting: true,
 			getValue: ( { item } ) => item.startTime,
 			render: TimeField,
 		},
 		{
 			id: 'slotPattern',
-			label: __( 'Slot pattern', 'rrze-appointment' ),
+			label: __( 'Appointments', 'rrze-appointment' ),
 			enableSorting: false,
 			getValue: ( { item } ) =>
 				`${ item.duration }-${ item.breakDuration }`,
@@ -257,7 +257,7 @@ export function AvailabilityDataView( {
 			empty={
 				<Notice status="info" isDismissible={ false }>
 					{ __(
-						'No availabilities have been configured yet.',
+						'No appointment times have been set up yet.',
 						'rrze-appointment'
 					) }
 				</Notice>

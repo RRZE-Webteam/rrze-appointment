@@ -16,9 +16,9 @@ export function DeleteAvailabilityDialog( {
 	onConfirm,
 }: DeleteAvailabilityDialogProps ) {
 	const occurrenceCount = getAvailabilityDates( entry ).length;
-	/* translators: %s: availability date. */
+	/* translators: %s: first date of the appointment schedule. */
 	const deleteQuestion = __(
-		'Do you really want to delete the availability on %s?',
+		'Delete the appointment times starting on %s?',
 		'rrze-appointment'
 	).replace( '%s', formatDateDisplay( entry.date ) );
 	/* translators: %d: number of occurrences in the recurrence series. */
@@ -29,7 +29,7 @@ export function DeleteAvailabilityDialog( {
 
 	return (
 		<Modal
-			title={ __( 'Delete availability', 'rrze-appointment' ) }
+			title={ __( 'Delete appointment times', 'rrze-appointment' ) }
 			size="small"
 			role="alertdialog"
 			onRequestClose={ onCancel }

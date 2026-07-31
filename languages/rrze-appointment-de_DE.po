@@ -1194,5 +1194,157 @@ msgid "Repetition"
 msgstr "Wiederholung"
 
 #: src/components/availability-manager-dialog.tsx src/edit.tsx
-msgid "Manage availabilities"
-msgstr "Verfügbarkeiten verwalten"
+msgid "Manage appointment times"
+msgstr "Terminzeiten verwalten"
+
+#: src/components/appointment-data-view.tsx
+msgid "Exception"
+msgstr "Ausnahme"
+
+#: src/components/appointment-data-view.tsx
+msgid "Bookable"
+msgstr "Buchbar"
+
+#: src/components/appointment-data-view.tsx
+msgid "Appointment time"
+msgstr "Terminzeit"
+
+#: src/components/appointment-data-view.tsx
+msgid "Status"
+msgstr "Status"
+
+#: src/components/appointment-data-view.tsx
+msgid "Add exception"
+msgstr "Als Ausnahme hinzufügen"
+
+#: src/components/appointment-data-view.tsx
+msgid "Remove exception"
+msgstr "Ausnahme aufheben"
+
+#: src/components/appointment-data-view.tsx
+msgid "No upcoming appointments have been created yet."
+msgstr "Noch keine zukünftigen Termine vorhanden."
+
+#: src/components/availability-manager-dialog.tsx
+msgid "Schedules"
+msgstr "Zeitpläne"
+
+#: src/components/availability-manager-dialog.tsx
+msgid "All appointments"
+msgstr "Alle Termine"
+
+#: src/components/availability-manager-dialog.tsx
+msgid ""
+"Set up one-time or recurring appointment times. A time range can be split "
+"into several bookable appointments."
+msgstr ""
+"Legen Sie einmalige oder wiederkehrende Terminzeiten fest. Einen Zeitraum "
+"können Sie in mehrere buchbare Termine aufteilen."
+
+#: src/components/availability-manager-dialog.tsx
+msgid ""
+"Review every upcoming appointment. Add an exception when you are unavailable "
+"for a single appointment in a series."
+msgstr ""
+"Prüfen Sie alle anstehenden Termine. Wenn Sie einen einzelnen Termin einer "
+"Serie nicht anbieten können, fügen Sie eine Ausnahme hinzu."
+
+#: src/components/availability-dialog.tsx
+#: src/components/availability-manager-dialog.tsx
+msgid "Add appointment times"
+msgstr "Terminzeiten hinzufügen"
+
+#: src/components/availability-data-view.tsx
+msgid "First date"
+msgstr "Erster Termin"
+
+#: src/components/availability-data-view.tsx
+msgid "Time range"
+msgstr "Zeitraum"
+
+#: src/components/availability-data-view.tsx
+msgid "No appointment times have been set up yet."
+msgstr "Noch keine Terminzeiten eingerichtet."
+
+#: src/components/availability-dialog.tsx
+msgid ""
+"These appointment times overlap with an existing schedule on at least one "
+"date."
+msgstr ""
+"Diese Terminzeiten überschneiden sich an mindestens einem Datum mit einem "
+"bestehenden Zeitplan."
+
+#: src/components/availability-dialog.tsx
+msgid "Edit appointment times"
+msgstr "Terminzeiten bearbeiten"
+
+#: src/components/availability-dialog.tsx
+msgid "Split time range into appointments"
+msgstr "Zeitraum in Termine aufteilen"
+
+#: src/components/availability-dialog.tsx
+msgid "Appointment pattern"
+msgstr "Terminraster"
+
+#: src/components/availability-dialog.tsx
+msgid "Use one appointment"
+msgstr "Einen Termin verwenden"
+
+#: src/components/availability-dialog.tsx
+msgid "Available from"
+msgstr "Zeitraum von"
+
+#: src/components/availability-dialog.tsx
+msgid "Available until"
+msgstr "Zeitraum bis"
+
+#: src/components/availability-dialog.tsx
+msgid "Appointment duration"
+msgstr "Termindauer"
+
+#: src/components/availability-dialog.tsx
+msgid "Break between appointments"
+msgstr "Pause zwischen Terminen"
+
+#: src/components/availability-dialog.tsx
+msgid "bookable appointments per date"
+msgstr "buchbare Termine pro Tag"
+
+#: src/components/availability-dialog.tsx
+msgid "Repeat appointment times"
+msgstr "Terminzeiten wiederholen"
+
+#: src/components/availability-dialog.tsx
+msgid "Frequency"
+msgstr "Rhythmus"
+
+#: src/components/availability-dialog.tsx
+msgid "Last date"
+msgstr "Letzter Termin"
+
+#: src/components/availability-dialog.tsx
+msgid "dates"
+msgstr "Termine"
+
+#: src/components/availability-dialog.tsx
+msgid "Save appointment times"
+msgstr "Terminzeiten speichern"
+
+#: src/components/availability-dialog.tsx
+msgid ""
+"The selected time range is too short for one complete appointment."
+msgstr "Der gewählte Zeitraum ist für einen vollständigen Termin zu kurz."
+
+#: src/components/availability-dialog.tsx
+msgid "The last date must not be before the first date."
+msgstr "Der letzte Termin darf nicht vor dem ersten Termin liegen."
+
+#: src/components/delete-availability-dialog.tsx
+msgid "Delete appointment times"
+msgstr "Terminzeiten löschen"
+
+#. translators: %s: first date of the appointment schedule.
+#: src/components/delete-availability-dialog.tsx
+#, php-format
+msgid "Delete the appointment times starting on %s?"
+msgstr "Terminzeiten ab dem %s löschen?"
