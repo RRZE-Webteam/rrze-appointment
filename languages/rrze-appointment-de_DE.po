@@ -1388,3 +1388,85 @@ msgstr ""
 msgid "Select a date to review or adjust its appointment times."
 msgstr ""
 "Wählen Sie ein Datum aus, um dessen Terminzeiten zu prüfen oder anzupassen."
+
+#: includes/Main.php
+msgid "Request appointment"
+msgstr "Termin anfragen"
+
+#: includes/Main.php
+msgid ""
+"Enter your details to request this appointment. You will receive an email to "
+"confirm it."
+msgstr ""
+"Geben Sie Ihre Daten ein, um diesen Termin anzufragen. Sie erhalten "
+"anschließend eine E-Mail, um ihn zu bestätigen."
+
+#: includes/Main.php
+msgid "Selected appointment"
+msgstr "Ausgewählter Termin"
+
+#: includes/Main.php
+msgid "Close dialog"
+msgstr "Dialog schließen"
+
+#: includes/Main.php
+msgid "Check your inbox"
+msgstr "Prüfen Sie Ihren Posteingang"
+
+#: includes/Main.php
+msgid "Notify me if an earlier appointment becomes available."
+msgstr "Benachrichtigen Sie mich, wenn ein früherer Termin verfügbar wird."
+
+#: includes/Main.php
+msgid "Email address"
+msgstr "E-Mail-Adresse"
+
+#: includes/Main.php
+msgid "Name"
+msgstr "Name"
+
+#: includes/Main.php
+msgid "First and last name"
+msgstr "Vor- und Nachname"
+
+#: includes/Main.php
+msgid "Message (optional)"
+msgstr "Nachricht (optional)"
+
+#: includes/Main.php
+msgid "What would you like to discuss?"
+msgstr "Was möchten Sie besprechen?"
+
+#: includes/Main.php
+msgid "Enter your name."
+msgstr "Geben Sie Ihren Namen ein."
+
+#: includes/Main.php
+msgid "Enter a valid email address."
+msgstr "Geben Sie eine gültige E-Mail-Adresse ein."
+
+#: includes/Main.php
+msgid "Enter a message."
+msgstr "Geben Sie eine Nachricht ein."
+
+#: includes/Main.php
+msgid "Sending request…"
+msgstr "Anfrage wird gesendet …"
+
+#: includes/Main.php
+msgid ""
+"Check your inbox to confirm the appointment. We sent a confirmation link to "
+"your email address."
+msgstr ""
+"Wir haben einen Bestätigungslink an Ihre E-Mail-Adresse gesendet. Öffnen Sie "
+"den Link, um den Termin zu bestätigen."
+
+#: includes/Main.php
+msgid "We couldn't request this appointment. Please try again."
+msgstr "Der Termin konnte nicht angefragt werden. Versuchen Sie es erneut."
+
+#: includes/Main.php
+msgid "Connection problem. Check your internet connection and try again."
+msgstr ""
+"Verbindungsproblem. Prüfen Sie Ihre Internetverbindung und versuchen Sie es "
+"erneut."

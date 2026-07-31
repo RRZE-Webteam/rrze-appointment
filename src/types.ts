@@ -129,12 +129,19 @@ export interface FrontendI18n {
 	bookingError?: string;
 	cancel?: string;
 	close?: string;
+	closeDialog?: string;
+	dialogIntro?: string;
+	dialogTitle?: string;
 	emailRequired?: string;
 	message?: string;
 	messageOptional?: string;
+	messagePlaceholder?: string;
 	messageRequired?: string;
+	namePlaceholder?: string;
 	nameRequired?: string;
 	networkError?: string;
+	selectedAppointment?: string;
+	successTitle?: string;
 	waitlist?: string;
 	yourAppointment?: string;
 	yourEmail?: string;
@@ -195,7 +202,11 @@ export interface Booker {
 
 export interface BookingResponse {
 	success: boolean;
-	data?: string;
+	data?:
+		| string
+		| {
+				message?: string;
+		  };
 }
 
 export interface BookerResponse {

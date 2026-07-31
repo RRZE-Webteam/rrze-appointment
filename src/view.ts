@@ -231,27 +231,68 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				selectedSlotValue = value;
 				markHiddenInput( value );
 
+				const i18n = window.rrze_appointment?.i18n || {};
 				const overlay = document.createElement( 'div' );
 				overlay.className = 'rrze-appointment__overlay';
-				overlay.setAttribute( 'role', 'dialog' );
-				overlay.setAttribute( 'aria-modal', 'true' );
-				overlay.setAttribute(
-					'aria-labelledby',
-					'rrze-appt-overlay-title'
-				);
 
 				const box = document.createElement( 'div' );
 				box.className = 'rrze-appointment__overlay-box';
+				box.setAttribute( 'role', 'dialog' );
+				box.setAttribute( 'aria-modal', 'true' );
+				box.setAttribute(
+					'aria-labelledby',
+					'rrze-appt-overlay-title'
+				);
+				box.setAttribute(
+					'aria-describedby',
+					'rrze-appt-overlay-intro'
+				);
 
-				const text = document.createElement( 'p' );
-				text.className = 'rrze-appointment__overlay-text';
-				text.id = 'rrze-appt-overlay-title';
-				const i18n = window.rrze_appointment?.i18n || {};
-				text.textContent = (
-					i18n.yourAppointment || 'Your appointment on %s at %s'
-				)
-					.replace( '%s', formatDateDisplay( parsed.date ) )
-					.replace( '%s', parsed.time );
+				const header = document.createElement( 'div' );
+				header.className = 'rrze-appointment__overlay-header';
+				const heading = document.createElement( 'h2' );
+				heading.className = 'rrze-appointment__overlay-title';
+				heading.id = 'rrze-appt-overlay-title';
+				heading.textContent = i18n.dialogTitle || 'Request appointment';
+				const closeBtn = document.createElement( 'button' );
+				closeBtn.type = 'button';
+				closeBtn.className = 'rrze-appointment__overlay-close';
+				closeBtn.setAttribute(
+					'aria-label',
+					i18n.closeDialog || 'Close dialog'
+				);
+				closeBtn.textContent = '×';
+				header.appendChild( heading );
+				header.appendChild( closeBtn );
+
+				const intro = document.createElement( 'p' );
+				intro.className = 'rrze-appointment__overlay-intro';
+				intro.id = 'rrze-appt-overlay-intro';
+				intro.textContent =
+					i18n.dialogIntro ||
+					'Enter your details to request this appointment. You will receive an email to confirm it.';
+
+				const appointment = document.createElement( 'div' );
+				appointment.className = 'rrze-appointment__overlay-appointment';
+				const appointmentLabel = document.createElement( 'span' );
+				appointmentLabel.className =
+					'rrze-appointment__overlay-appointment-label';
+				appointmentLabel.textContent =
+					i18n.selectedAppointment || 'Selected appointment';
+				const appointmentDate = document.createElement( 'strong' );
+				appointmentDate.className =
+					'rrze-appointment__overlay-appointment-date';
+				appointmentDate.textContent = formatDateDisplay( parsed.date );
+				const appointmentTime = document.createElement( 'span' );
+				appointmentTime.className =
+					'rrze-appointment__overlay-appointment-time';
+				appointmentTime.textContent = parsed.endTime
+					? `${ parsed.time }–${ parsed.endTime }`
+					: parsed.time;
+				appointment.appendChild( appointmentLabel );
+				appointment.appendChild( appointmentDate );
+				appointment.appendChild( appointmentTime );
+				const previousBodyOverflow = document.body.style.overflow;
 
 				// Focus-Trap: alle fokussierbaren Elemente im Dialog
 				function getFocusable(): HTMLElement[] {
@@ -283,37 +324,50 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 					}
 				}
 
-				const emailLabel = document.createElement( 'label' );
-				emailLabel.className = 'rrze-appointment__overlay-label';
-				emailLabel.textContent =
-					i18n.yourEmail || 'Your email address:';
-				const emailInput = document.createElement( 'input' );
-				emailInput.type = 'email';
-				emailInput.className = 'rrze-appointment__overlay-email';
-				emailInput.placeholder = 'name@example.de';
-				emailInput.value = booker.bookerEmail || '';
-				emailInput.readOnly = !! booker.bookerEmail;
-				emailInput.required = true;
-				emailLabel.appendChild( emailInput );
+				const dialogForm = document.createElement( 'form' );
+				dialogForm.className = 'rrze-appointment__overlay-form';
+				dialogForm.noValidate = true;
+				const fields = document.createElement( 'div' );
+				fields.className = 'rrze-appointment__overlay-fields';
 
 				const nameLabel = document.createElement( 'label' );
 				nameLabel.className = 'rrze-appointment__overlay-label';
-				nameLabel.textContent = i18n.yourName || 'Your name:';
+				const nameLabelText = document.createElement( 'span' );
+				nameLabelText.textContent = i18n.yourName || 'Name';
 				const nameInput = document.createElement( 'input' );
 				nameInput.type = 'text';
 				nameInput.className = 'rrze-appointment__overlay-name';
-				nameInput.placeholder = 'Vorname Nachname';
+				nameInput.autocomplete = 'name';
+				nameInput.placeholder =
+					i18n.namePlaceholder || 'First and last name';
 				nameInput.value = booker.bookerName || '';
 				nameInput.readOnly = !! booker.bookerName;
 				nameInput.required = true;
+				nameLabel.appendChild( nameLabelText );
 				nameLabel.appendChild( nameInput );
 
+				const emailLabel = document.createElement( 'label' );
+				emailLabel.className = 'rrze-appointment__overlay-label';
+				const emailLabelText = document.createElement( 'span' );
+				emailLabelText.textContent = i18n.yourEmail || 'Email address';
+				const emailInput = document.createElement( 'input' );
+				emailInput.type = 'email';
+				emailInput.className = 'rrze-appointment__overlay-email';
+				emailInput.autocomplete = 'email';
+				emailInput.placeholder = 'name@example.com';
+				emailInput.value = booker.bookerEmail || '';
+				emailInput.readOnly = !! booker.bookerEmail;
+				emailInput.required = true;
+				emailLabel.appendChild( emailLabelText );
+				emailLabel.appendChild( emailInput );
+
 				const messageLabel = document.createElement( 'label' );
-				messageLabel.className = 'rrze-appointment__overlay-label';
+				messageLabel.className =
+					'rrze-appointment__overlay-label rrze-appointment__overlay-label--message';
 				const optionalMessageLabel =
 					i18n.messageOptional ||
 					i18n.message ||
-					'Message (optional):';
+					'Message (optional)';
 				const requiredMessageLabel = (
 					i18n.message || optionalMessageLabel
 				)
@@ -325,12 +379,16 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 					: optionalMessageLabel;
 				const messageInput = document.createElement( 'textarea' );
 				messageInput.className = 'rrze-appointment__overlay-message';
+				messageInput.placeholder =
+					i18n.messagePlaceholder ||
+					'What would you like to discuss?';
 				messageInput.rows = 4;
 				messageInput.required = requireMessage;
 				messageLabel.appendChild( messageInput );
 
 				const waitlistLabel = document.createElement( 'label' );
-				waitlistLabel.className = 'rrze-appointment__overlay-waitlist';
+				waitlistLabel.className =
+					'rrze-appointment__overlay-waitlist rrze-appointment__overlay-label--wide';
 				const waitlistCheckbox = document.createElement( 'input' );
 				waitlistCheckbox.type = 'checkbox';
 				waitlistCheckbox.className =
@@ -340,33 +398,81 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 					document.createTextNode(
 						' ' +
 							( window.rrze_appointment?.i18n?.waitlist ||
-								'Yes, I would like to be notified if an earlier appointment becomes available.' )
+								'Notify me if an earlier appointment becomes available.' )
 					)
 				);
 
 				const status = document.createElement( 'p' );
-				status.className = 'rrze-appointment__overlay-status';
+				status.className = 'rrze-appointment__overlay-status is-hidden';
+				status.setAttribute( 'aria-live', 'polite' );
 
 				const actions = document.createElement( 'div' );
 				actions.className = 'rrze-appointment__overlay-actions';
 
 				const confirmBtn = document.createElement( 'button' );
-				confirmBtn.type = 'button';
+				confirmBtn.type = 'submit';
 				confirmBtn.className = 'rrze-appointment__overlay-confirm';
-				confirmBtn.textContent = i18n.book || 'Book';
+				confirmBtn.textContent = i18n.book || 'Request appointment';
 
 				const cancelBtn = document.createElement( 'button' );
 				cancelBtn.type = 'button';
 				cancelBtn.className = 'rrze-appointment__overlay-cancel';
 				cancelBtn.textContent = i18n.cancel || 'Cancel';
 
+				let isClosed = false;
+				let isSubmitting = false;
 				function closeOverlay(): void {
+					if ( isClosed || isSubmitting ) {
+						return;
+					}
+					isClosed = true;
+					document.removeEventListener( 'keydown', onKey );
+					document.body.style.overflow = previousBodyOverflow;
 					overlay.remove();
 					if ( triggerButton ) {
 						triggerButton.focus();
 					}
 				}
 
+				function onKey( e: KeyboardEvent ): void {
+					if ( e.key === 'Escape' ) {
+						closeOverlay();
+					}
+				}
+
+				function clearStatus(): void {
+					status.textContent = '';
+					status.className =
+						'rrze-appointment__overlay-status is-hidden';
+				}
+
+				function showStatus(
+					message: string,
+					type: 'error' | 'loading' | 'success'
+				): void {
+					status.textContent = message;
+					status.className = `rrze-appointment__overlay-status is-${ type }`;
+				}
+
+				function showFieldError(
+					input: HTMLInputElement | HTMLTextAreaElement,
+					message: string
+				): void {
+					input.setAttribute( 'aria-invalid', 'true' );
+					showStatus( message, 'error' );
+					input.focus();
+				}
+
+				[ nameInput, emailInput, messageInput ].forEach( ( input ) => {
+					input.addEventListener( 'input', () => {
+						input.removeAttribute( 'aria-invalid' );
+						if ( status.classList.contains( 'is-error' ) ) {
+							clearStatus();
+						}
+					} );
+				} );
+
+				closeBtn.addEventListener( 'click', closeOverlay );
 				cancelBtn.addEventListener( 'click', closeOverlay );
 				overlay.addEventListener( 'click', ( e ) => {
 					if ( e.target === overlay ) {
@@ -374,23 +480,21 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 					}
 				} );
 				overlay.addEventListener( 'keydown', trapFocus );
-				document.addEventListener(
-					'keydown',
-					function onKey( e: KeyboardEvent ) {
-						if ( e.key === 'Escape' ) {
-							closeOverlay();
-							document.removeEventListener( 'keydown', onKey );
-						}
-					}
-				);
+				document.addEventListener( 'keydown', onKey );
 
-				confirmBtn.addEventListener( 'click', () => {
+				dialogForm.addEventListener( 'submit', ( event ) => {
+					event.preventDefault();
+					if ( isSubmitting ) {
+						return;
+					}
+					clearStatus();
 					const nameValue = nameInput.value.trim();
 
 					if ( ! nameValue ) {
-						status.textContent =
-							i18n.nameRequired || 'Please enter your name.';
-						nameInput.focus();
+						showFieldError(
+							nameInput,
+							i18n.nameRequired || 'Enter your name.'
+						);
 						return;
 					}
 
@@ -399,24 +503,27 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 						emailValue
 					);
 					if ( ! emailValue || ! emailIsValid ) {
-						status.textContent =
-							i18n.emailRequired ||
-							'Please enter a valid email address.';
-						emailInput.focus();
+						showFieldError(
+							emailInput,
+							i18n.emailRequired || 'Enter a valid email address.'
+						);
 						return;
 					}
 
 					const messageValue = messageInput.value.trim();
 					if ( requireMessage && ! messageValue ) {
-						status.textContent =
-							i18n.messageRequired || 'Please enter a message.';
-						messageInput.focus();
+						showFieldError(
+							messageInput,
+							i18n.messageRequired || 'Enter a message.'
+						);
 						return;
 					}
 
 					confirmBtn.disabled = true;
 					cancelBtn.disabled = true;
-					status.textContent = i18n.booking || 'Booking…';
+					closeBtn.disabled = true;
+					isSubmitting = true;
+					showStatus( i18n.booking || 'Sending request…', 'loading' );
 
 					const data = new FormData();
 					data.append( 'action', 'rrze_appointment_book' );
@@ -447,44 +554,78 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 						.then( ( res ) => {
 							if ( res.success ) {
 								bookedSlots.add( value );
-								status.textContent =
+								isSubmitting = false;
+								showStatus(
 									i18n.booked ||
-									'Appointment booked! A confirmation has been sent.';
+										'Check your inbox to confirm the appointment. We sent a confirmation link to your email address.',
+									'success'
+								);
+								fields.hidden = true;
+								intro.hidden = true;
+								heading.textContent =
+									i18n.successTitle || 'Check your inbox';
+								heading.tabIndex = -1;
+								box.classList.add( 'is-success' );
 								confirmBtn.remove();
 								cancelBtn.textContent = i18n.close || 'Close';
 								cancelBtn.disabled = false;
+								closeBtn.disabled = false;
 								renderCalendar();
 								renderDaySlots( activeDate );
+								heading.focus();
 							} else {
-								status.textContent =
-									res.data ||
-									i18n.bookingError ||
-									'Error booking appointment.';
+								isSubmitting = false;
+								const responseMessage =
+									typeof res.data === 'string'
+										? res.data
+										: res.data?.message;
+								showStatus(
+									responseMessage ||
+										i18n.bookingError ||
+										"We couldn't request this appointment. Please try again.",
+									'error'
+								);
 								confirmBtn.disabled = false;
 								cancelBtn.disabled = false;
+								closeBtn.disabled = false;
 							}
 						} )
 						.catch( () => {
-							status.textContent =
+							isSubmitting = false;
+							showStatus(
 								i18n.networkError ||
-								'Network error. Please try again.';
+									'Connection problem. Check your internet connection and try again.',
+								'error'
+							);
 							confirmBtn.disabled = false;
 							cancelBtn.disabled = false;
+							closeBtn.disabled = false;
 						} );
 				} );
 
-				actions.appendChild( confirmBtn );
 				actions.appendChild( cancelBtn );
-				box.appendChild( text );
-				box.appendChild( emailLabel );
-				box.appendChild( nameLabel );
-				box.appendChild( messageLabel );
-				box.appendChild( waitlistLabel );
-				box.appendChild( status );
-				box.appendChild( actions );
+				actions.appendChild( confirmBtn );
+				fields.appendChild( nameLabel );
+				fields.appendChild( emailLabel );
+				fields.appendChild( messageLabel );
+				fields.appendChild( waitlistLabel );
+				dialogForm.appendChild( fields );
+				dialogForm.appendChild( status );
+				dialogForm.appendChild( actions );
+				box.appendChild( header );
+				box.appendChild( intro );
+				box.appendChild( appointment );
+				box.appendChild( dialogForm );
 				overlay.appendChild( box );
 				document.body.appendChild( overlay );
-				confirmBtn.focus();
+				document.body.style.overflow = 'hidden';
+				if ( ! nameInput.value ) {
+					nameInput.focus();
+				} else if ( ! emailInput.value ) {
+					emailInput.focus();
+				} else {
+					confirmBtn.focus();
+				}
 			}
 
 			function createSlotButton( slot: FrontendSlot ): HTMLButtonElement {
