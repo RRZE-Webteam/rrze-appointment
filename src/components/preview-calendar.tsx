@@ -4,7 +4,7 @@ import { __ } from '@wordpress/i18n';
 import type { PreviewCalendarProps, TimeSlot } from '../types';
 import {
 	formatDate,
-	formatDateDisplay,
+	formatDateWithWeekdayDisplay,
 	groupSlotsByDate,
 	parseDateString,
 } from '../utils';
@@ -22,54 +22,116 @@ function DaySlots( {
 	onAddSlot,
 	onRemoveSlot,
 }: DaySlotsProps ) {
-	if ( ! activeDate || slots.length === 0 ) {
+	if ( ! activeDate ) {
 		return null;
 	}
 
 	/* translators: %s: appointment date. */
-	const title = __( 'Times on %s', 'rrze-appointment' ).replace(
+	const title = __( 'Appointments on %s', 'rrze-appointment' ).replace(
 		'%s',
-		formatDateDisplay( activeDate )
+		formatDateWithWeekdayDisplay( activeDate )
+	);
+	/* translators: %d: number of appointment times. */
+	const slotCount = __( 'Available times: %d', 'rrze-appointment' ).replace(
+		'%d',
+		String( slots.length )
 	);
 
 	return (
-		<fieldset className="rrze-appointment__day-slots">
-			<p className="rrze-appointment__day-slots-title">{ title }</p>
-			<div className="rrze-appointment__day-slots-list rrze-appointment__slot-grid">
-				{ slots.map( ( slot ) => (
-					<div
-						className="rrze-appointment__slot-item"
-						key={ slot.value }
-					>
-						<Button
-							className="rrze-appointment__slot-button"
-							disabled
-						>
-							{ slot.timeRange }
-						</Button>
-						{ onRemoveSlot && (
-							<Button
-								className="rrze-appointment__slot-delete"
-								label={ __(
-									'Delete time slot',
-									'rrze-appointment'
-								) }
-								icon="no-alt"
-								isDestructive
-								onClick={ () => onRemoveSlot( slot ) }
-							/>
-						) }
-					</div>
-				) ) }
+		<fieldset className="rrze-appointment__day-slots rrze-appointment-editor-slots">
+			<legend className="rrze-appointment-editor-slots__title">
+				{ title }
+			</legend>
+			<div className="rrze-appointment-editor-slots__toolbar">
+				<span className="rrze-appointment-editor-slots__count">
+					{ slotCount }
+				</span>
 				{ onAddSlot && (
 					<Button
-						className="rrze-appointment__slot-add"
-						label={ __( 'Add time slot', 'rrze-appointment' ) }
+						className="rrze-appointment-editor-slots__add"
 						icon="plus-alt2"
+						variant="secondary"
 						onClick={ () => onAddSlot( activeDate ) }
-					/>
+					>
+						{ __( 'Add appointment time', 'rrze-appointment' ) }
+					</Button>
 				) }
 			</div>
+
+			{ slots.length > 0 ? (
+				<ul className="rrze-appointment-editor-slots__list">
+					{ slots.map( ( slot ) => {
+						/* translators: 1: appointment start time, 2: appointment end time. */
+						const removeLabel = __(
+							'Remove appointment from %1$s to %2$s',
+							'rrze-appointment'
+						)
+							.replace( '%1$s', slot.startTime )
+							.replace( '%2$s', slot.endTime );
+
+						return (
+							<li
+								className="rrze-appointment-editor-slots__item"
+								key={ slot.value }
+							>
+								<span
+									aria-hidden="true"
+									className="dashicons dashicons-clock rrze-appointment-editor-slots__icon"
+								/>
+								<span className="rrze-appointment-editor-slots__time">
+									<strong>{ slot.startTime }</strong>
+									<span
+										aria-hidden="true"
+										className="rrze-appointment-editor-slots__separator"
+									>
+										–
+									</span>
+									<strong>{ slot.endTime }</strong>
+								</span>
+								{ slot.isExtra && (
+									<span className="rrze-appointment-editor-slots__badge">
+										{ __(
+											'Added manually',
+											'rrze-appointment'
+										) }
+									</span>
+								) }
+								{ onRemoveSlot && (
+									<Button
+										className="rrze-appointment-editor-slots__remove"
+										label={ removeLabel }
+										icon="trash"
+										isDestructive
+										variant="tertiary"
+										onClick={ () => onRemoveSlot( slot ) }
+									/>
+								) }
+							</li>
+						);
+					} ) }
+				</ul>
+			) : (
+				<div className="rrze-appointment-editor-slots__empty">
+					<span
+						aria-hidden="true"
+						className="dashicons dashicons-clock"
+					/>
+					<div>
+						<strong>
+							{ __(
+								'No appointments on this date',
+								'rrze-appointment'
+							) }
+						</strong>
+						<p>
+							{ __(
+								'Add an appointment time to make this date bookable.',
+								'rrze-appointment'
+							) }
+						</p>
+					</div>
+				</div>
+			) }
 		</fieldset>
 	);
 }

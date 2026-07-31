@@ -499,12 +499,20 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 							) }
 							{ showCalendarPreview && (
 								<div className="rrze-appointment-block__calendar-preview">
-									<h3>
-										{ __(
-											'Calendar preview',
-											'rrze-appointment'
-										) }
-									</h3>
+									<div className="rrze-appointment-block__calendar-preview-header">
+										<h3>
+											{ __(
+												'Calendar preview',
+												'rrze-appointment'
+											) }
+										</h3>
+										<p>
+											{ __(
+												'Select a date to review or adjust its appointment times.',
+												'rrze-appointment'
+											) }
+										</p>
+									</div>
 									<PreviewCalendar
 										slots={ slots }
 										selectedDates={ calendarDates }
@@ -514,15 +522,6 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 										setActiveDate={ setActiveDate }
 										hideWeekends={ !! hideWeekends }
 									/>
-									{ calendarDates.length > 0 &&
-										slots.length === 0 && (
-											<p>
-												{ __(
-													'No time slots available.',
-													'rrze-appointment'
-												) }
-											</p>
-										) }
 								</div>
 							) }
 							{ showAvailabilityManager && (

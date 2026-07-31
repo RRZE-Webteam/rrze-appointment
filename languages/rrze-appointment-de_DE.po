@@ -1348,3 +1348,43 @@ msgstr "Terminzeiten löschen"
 #, php-format
 msgid "Delete the appointment times starting on %s?"
 msgstr "Terminzeiten ab dem %s löschen?"
+
+#. translators: %s: appointment date.
+#: src/components/preview-calendar.tsx
+#, php-format
+msgid "Appointments on %s"
+msgstr "Termine am %s"
+
+#. translators: %d: number of appointment times.
+#: src/components/preview-calendar.tsx
+#, php-format
+msgid "Available times: %d"
+msgstr "Buchbare Termine: %d"
+
+#: src/components/preview-calendar.tsx
+msgid "Add appointment time"
+msgstr "Termin hinzufügen"
+
+#. translators: 1: appointment start time, 2: appointment end time.
+#: src/components/preview-calendar.tsx
+#, php-format
+msgid "Remove appointment from %1$s to %2$s"
+msgstr "Termin von %1$s bis %2$s entfernen"
+
+#: src/components/preview-calendar.tsx
+msgid "Added manually"
+msgstr "Manuell hinzugefügt"
+
+#: src/components/preview-calendar.tsx
+msgid "No appointments on this date"
+msgstr "Keine Termine an diesem Tag"
+
+#: src/components/preview-calendar.tsx
+msgid "Add an appointment time to make this date bookable."
+msgstr ""
+"Fügen Sie eine Terminzeit hinzu, damit dieser Tag buchbar wird."
+
+#: src/edit.tsx
+msgid "Select a date to review or adjust its appointment times."
+msgstr ""
+"Wählen Sie ein Datum aus, um dessen Terminzeiten zu prüfen oder anzupassen."
