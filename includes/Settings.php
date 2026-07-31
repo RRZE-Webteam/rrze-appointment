@@ -135,7 +135,7 @@ class Settings
         if (!current_user_can('manage_options')) return;
         check_admin_referer('rrze_appt_tpl_save', 'rrze_appt_tpl_nonce');
 
-        $action = sanitize_key($_POST['rrze_appt_tpl_action']);
+        $action = sanitize_key(wp_unslash($_POST['rrze_appt_tpl_action']));
 
         if ($action === 'delete') {
             $id    = (int) ($_POST['tpl_id'] ?? 0);
@@ -151,25 +151,22 @@ class Settings
         }
 
         if (in_array($action, ['save', 'new'], true)) {
-            // Check if all required fields are filled
-            $isDraft = false;
-            $title   = sanitize_text_field($_POST['title'] ?? '');
-            if (empty($title)) {
-                $isDraft = true;
-            } else {
-                foreach (['booking_pending', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation', 'waitlist_earlier_slot'] as $key) {
-                    $subject = sanitize_text_field($_POST["{$key}_subject"] ?? '');
-                    $body    = sanitize_textarea_field($_POST["{$key}_body"] ?? '');
-                    if (empty($subject) || empty($body)) {
-                        $isDraft = true;
-                        break;
-                    }
-                }
-            }
+            // Empty content fields intentionally inherit the corresponding
+            // default. Only the title is required to publish a template.
+            $title    = sanitize_text_field(wp_unslash($_POST['title'] ?? ''));
+            $isDraft  = $title === '';
+            $requestedId = (int) ($_POST['id'] ?? 0);
             $result = MailTemplatePost::save($_POST, $isDraft);
-            $id     = is_wp_error($result) ? 0 : $result;
-            $params = ['page' => self::PAGE_SLUG, 'tab' => 'templates', 'edit' => $id];
-            $params[$isDraft ? 'draft' : 'saved'] = '1';
+            $id     = is_wp_error($result) ? $requestedId : $result;
+            $params = ['page' => self::PAGE_SLUG, 'tab' => 'templates'];
+
+            if ($id > 0) {
+                $params['edit'] = $id;
+            } else {
+                $params['new'] = '1';
+            }
+
+            $params[is_wp_error($result) ? 'save_error' : ($isDraft ? 'draft' : 'saved')] = '1';
             wp_redirect(add_query_arg($params, admin_url('options-general.php')));
             exit;
         }
@@ -344,7 +341,8 @@ class Settings
 
         // Notices
         if (!empty($_GET['saved']))   echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Template saved.', 'rrze-appointment') . '</p></div>';
-        if (!empty($_GET['draft']))    echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__('Template saved as draft. Please fill in all fields (title, subject and body for all sections) to publish the template.', 'rrze-appointment') . '</p></div>';
+        if (!empty($_GET['draft']))    echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__('Template saved as a draft. Add a template name to make it available in the editor.', 'rrze-appointment') . '</p></div>';
+        if (!empty($_GET['save_error'])) echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__('The template could not be saved. Please try again.', 'rrze-appointment') . '</p></div>';
         if (!empty($_GET['deleted']))  echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Template deleted.', 'rrze-appointment') . '</p></div>';
         if (!empty($_GET['inuse']))    echo '<div class="notice notice-error is-dismissible"><p>' . sprintf(esc_html__('The template cannot be deleted because it is still in use: %s', 'rrze-appointment'), esc_html(urldecode($_GET['inuse']))) . '</p></div>';
         if (isset($_GET['test_sent'])) {
@@ -425,6 +423,7 @@ class Settings
     {
         $backUrl  = add_query_arg(['page' => self::PAGE_SLUG, 'tab' => 'templates'], admin_url('options-general.php'));
         $title    = '';
+        $isNew    = $id <= 0;
         $sections = ['booking_pending' => [], 'booking_booker' => [], 'booking_host' => [], 'reminder_admin' => [], 'reminder_booker' => [], 'cancellation' => [], 'waitlist_earlier_slot' => []];
 
         if ($id > 0) {
@@ -450,70 +449,145 @@ class Settings
             'cancellation'    => __('Cancellation', 'rrze-appointment'),
             'waitlist_earlier_slot' => __('Earlier appointment available', 'rrze-appointment'),
         ];
+        $sectionDescriptions = [
+            'booking_pending' => __('Sent to the person booking so they can confirm their appointment request.', 'rrze-appointment'),
+            'booking_booker'  => __('Sent to the person booking after the appointment has been confirmed.', 'rrze-appointment'),
+            'booking_host'    => __('Sent to the host after the appointment has been confirmed.', 'rrze-appointment'),
+            'reminder_admin'  => __('Sent to the host before the appointment when reminders are enabled.', 'rrze-appointment'),
+            'reminder_booker' => __('Sent to the person booking before the appointment when reminders are enabled.', 'rrze-appointment'),
+            'cancellation'    => __('Sent when a confirmed appointment is cancelled.', 'rrze-appointment'),
+            'waitlist_earlier_slot' => __('Sent when an earlier appointment becomes available for someone on the waitlist.', 'rrze-appointment'),
+        ];
         ?>
-        <a href="<?php echo esc_url($backUrl); ?>" class="button" style="margin-bottom:1rem;">
-            &larr; <?php esc_html_e('Back to list', 'rrze-appointment'); ?>
+        <a href="<?php echo esc_url($backUrl); ?>" class="rrze-appt-template-back">
+            <span aria-hidden="true">&larr;</span> <?php esc_html_e('Back to mail templates', 'rrze-appointment'); ?>
         </a>
 
-        <form method="post" action="">
+        <div class="rrze-appt-template-heading">
+            <h2><?php echo esc_html($isNew ? __('Create mail template', 'rrze-appointment') : __('Edit mail template', 'rrze-appointment')); ?></h2>
+            <p>
+                <?php esc_html_e('Customize only the content you want to change. Empty fields automatically use the standard content.', 'rrze-appointment'); ?>
+            </p>
+        </div>
+
+        <form method="post" action="" class="rrze-appt-template-form">
             <?php wp_nonce_field('rrze_appt_tpl_save', 'rrze_appt_tpl_nonce'); ?>
             <input type="hidden" name="rrze_appt_tpl_action" value="save">
             <input type="hidden" name="id" value="<?php echo esc_attr($id); ?>">
 
-            <table class="form-table">
-                <tr>
-                    <th><label for="tpl_title"><?php esc_html_e('Template title', 'rrze-appointment'); ?></label></th>
-                    <td><input type="text" id="tpl_title" name="title" value="<?php echo esc_attr($title); ?>" class="large-text" required></td>
-                </tr>
-            </table>
+            <div class="rrze-appt-template-name">
+                <label for="tpl_title">
+                    <?php esc_html_e('Template name', 'rrze-appointment'); ?>
+                    <span class="rrze-appt-required" aria-hidden="true">*</span>
+                </label>
+                <input type="text" id="tpl_title" name="title" value="<?php echo esc_attr($title); ?>"
+                       class="large-text" required aria-describedby="tpl_title_help"
+                       placeholder="<?php esc_attr_e('For example: Consultation hours', 'rrze-appointment'); ?>">
+                <p class="description" id="tpl_title_help">
+                    <?php esc_html_e('Use a name that makes this template easy to recognize in the editor.', 'rrze-appointment'); ?>
+                </p>
+            </div>
 
+            <div class="rrze-appt-template-sections">
+            <?php $sectionIndex = 0; ?>
             <?php foreach ($sectionLabels as $key => $label) :
                 $s       = $sections[$key];
                 $plainId = "tpl_{$key}_body";
                 $htmlId  = "tpl_{$key}_body_html";
+                $defaults = MailTemplatePost::getDefault($key);
+                $hasCustomContent = trim((string) ($s['subject'] ?? '')) !== ''
+                    || trim((string) ($s['body'] ?? '')) !== ''
+                    || trim(wp_strip_all_tags((string) ($s['body_html'] ?? ''))) !== '';
             ?>
-                <h2 style="border-top:1px solid #dcdcde;padding-top:1rem;margin-top:2rem;"><?php echo esc_html($label); ?></h2>
-                <table class="form-table" style="margin-top:0;">
-                    <tr>
-                        <th><label for="tpl_<?php echo esc_attr($key); ?>_subject"><?php esc_html_e('Subject', 'rrze-appointment'); ?></label></th>
-                        <td>
+                <details class="rrze-appt-template-section" data-template-section <?php echo $sectionIndex === 0 ? 'open' : ''; ?>>
+                    <summary>
+                        <span class="rrze-appt-template-section__summary">
+                            <strong><?php echo esc_html($label); ?></strong>
+                            <span class="rrze-appt-template-section__description"><?php echo esc_html($sectionDescriptions[$key]); ?></span>
+                        </span>
+                        <span class="rrze-appt-template-status <?php echo $hasCustomContent ? 'is-customized' : ''; ?>"
+                              data-template-status
+                              data-default-label="<?php esc_attr_e('Uses standard content', 'rrze-appointment'); ?>"
+                              data-custom-label="<?php esc_attr_e('Customized', 'rrze-appointment'); ?>">
+                            <?php echo esc_html($hasCustomContent ? __('Customized', 'rrze-appointment') : __('Uses standard content', 'rrze-appointment')); ?>
+                        </span>
+                    </summary>
+
+                    <div class="rrze-appt-template-section__content">
+                        <div class="rrze-appt-template-field">
+                            <label for="tpl_<?php echo esc_attr($key); ?>_subject"><?php esc_html_e('Subject', 'rrze-appointment'); ?></label>
                             <input type="text" id="tpl_<?php echo esc_attr($key); ?>_subject"
                                    name="<?php echo esc_attr($key); ?>_subject"
-                                   value="<?php echo esc_attr($s['subject'] ?? ''); ?>" class="large-text">
-                            <?php $this->renderInsertButton("tpl_{$key}_subject"); ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th><?php esc_html_e('Mail body', 'rrze-appointment'); ?></th>
-                        <td><?php $this->renderMailTabs($plainId, $htmlId, $key, $s['body'] ?? '', $s['body_html'] ?? ''); ?></td>
-                    </tr>
-                </table>
-            <?php endforeach; ?>
+                                   value="<?php echo esc_attr($s['subject'] ?? ''); ?>" class="large-text"
+                                   placeholder="<?php echo esc_attr($defaults['subject']); ?>">
+                            <div class="rrze-appt-template-field__actions">
+                                <?php $this->renderInsertButton("tpl_{$key}_subject"); ?>
+                                <span class="description"><?php esc_html_e('Leave blank to use the standard subject.', 'rrze-appointment'); ?></span>
+                            </div>
+                        </div>
 
-            <?php submit_button(__('Save template', 'rrze-appointment')); ?>
+                        <fieldset class="rrze-appt-template-field">
+                            <legend><?php esc_html_e('Email content', 'rrze-appointment'); ?></legend>
+                            <?php $this->renderMailTabs(
+                                $plainId,
+                                $htmlId,
+                                $key,
+                                $s['body'] ?? '',
+                                $s['body_html'] ?? '',
+                                $defaults
+                            ); ?>
+                        </fieldset>
+                    </div>
+                </details>
+                <?php $sectionIndex++; ?>
+            <?php endforeach; ?>
+            </div>
+
+            <div class="rrze-appt-template-actions">
+                <a href="<?php echo esc_url($backUrl); ?>" class="button"><?php esc_html_e('Cancel', 'rrze-appointment'); ?></a>
+                <?php submit_button($isNew ? __('Create template', 'rrze-appointment') : __('Save changes', 'rrze-appointment'), 'primary', 'submit', false); ?>
+            </div>
         </form>
         <?php
     }
 
-    private function renderMailTabs(string $plainId, string $htmlId, string $nameKey, string $plainValue, string $htmlValue): void
+    private function renderMailTabs(string $plainId, string $htmlId, string $nameKey, string $plainValue, string $htmlValue, array $defaults): void
     {
+        $plainTabId   = $plainId . '_tab';
+        $htmlTabId    = $htmlId . '_tab';
+        $plainPanelId = $plainId . '_panel';
+        $htmlPanelId  = $htmlId . '_panel';
         ?>
         <div class="rrze-appt-tabs">
-            <div class="rrze-appt-tab-nav" style="display:flex;gap:0;margin-bottom:-1px;">
-                <button type="button" class="rrze-appt-tab-btn button" data-tab="plain" style="border-bottom-color:#fff;z-index:1;">
+            <div class="rrze-appt-tab-nav" role="tablist" aria-label="<?php esc_attr_e('Email format', 'rrze-appointment'); ?>">
+                <button type="button" id="<?php echo esc_attr($plainTabId); ?>" class="rrze-appt-tab-btn"
+                        role="tab" aria-selected="true" aria-controls="<?php echo esc_attr($plainPanelId); ?>"
+                        data-tab="plain">
                     <?php esc_html_e('Plain text', 'rrze-appointment'); ?>
                 </button>
-                <button type="button" class="rrze-appt-tab-btn button" data-tab="html" style="background:#f6f7f7;border-bottom-color:#dcdcde;">
+                <button type="button" id="<?php echo esc_attr($htmlTabId); ?>" class="rrze-appt-tab-btn"
+                        role="tab" aria-selected="false" aria-controls="<?php echo esc_attr($htmlPanelId); ?>"
+                        data-tab="html" tabindex="-1">
                     <?php esc_html_e('HTML', 'rrze-appointment'); ?>
                 </button>
             </div>
-            <div style="border:1px solid #dcdcde;padding:0.75rem;">
-                <div class="rrze-appt-tab-panel" data-panel="plain">
+            <div class="rrze-appt-tab-content">
+                <div id="<?php echo esc_attr($plainPanelId); ?>" class="rrze-appt-tab-panel"
+                     role="tabpanel" aria-labelledby="<?php echo esc_attr($plainTabId); ?>" data-panel="plain">
                     <textarea id="<?php echo esc_attr($plainId); ?>" name="<?php echo esc_attr($nameKey); ?>_body"
                               rows="6" class="large-text"><?php echo esc_textarea($plainValue); ?></textarea>
-                    <?php $this->renderInsertButton($plainId); ?>
+                    <div class="rrze-appt-template-field__actions">
+                        <?php $this->renderInsertButton($plainId); ?>
+                        <span class="description"><?php esc_html_e('Leave blank to use the standard plain-text content.', 'rrze-appointment'); ?></span>
+                    </div>
+                    <details class="rrze-appt-default-preview">
+                        <summary class="rrze-appt-default-preview__toggle"><?php esc_html_e('View standard content', 'rrze-appointment'); ?></summary>
+                        <pre><?php echo esc_html($defaults['body']); ?></pre>
+                    </details>
                 </div>
-                <div class="rrze-appt-tab-panel" data-panel="html" style="display:none;">
+                <div id="<?php echo esc_attr($htmlPanelId); ?>" class="rrze-appt-tab-panel"
+                     role="tabpanel" aria-labelledby="<?php echo esc_attr($htmlTabId); ?>"
+                     data-panel="html" hidden>
                     <?php
                     wp_editor($htmlValue, $htmlId, [
                         'textarea_name' => $nameKey . '_body_html',
@@ -523,8 +597,15 @@ class Settings
                         'tinymce'       => true,
                         'quicktags'     => true,
                     ]);
-                    $this->renderInsertButton($htmlId, true);
                     ?>
+                    <div class="rrze-appt-template-field__actions">
+                        <?php $this->renderInsertButton($htmlId, true); ?>
+                        <span class="description"><?php esc_html_e('Leave blank to use the standard HTML content.', 'rrze-appointment'); ?></span>
+                    </div>
+                    <details class="rrze-appt-default-preview">
+                        <summary class="rrze-appt-default-preview__toggle"><?php esc_html_e('View standard content', 'rrze-appointment'); ?></summary>
+                        <div class="rrze-appt-default-preview__html"><?php echo wp_kses_post($defaults['body_html']); ?></div>
+                    </details>
                 </div>
             </div>
         </div>
@@ -533,18 +614,19 @@ class Settings
 
     private function renderInsertButton(string $targetId, bool $isTinymce = false): void
     {
-        echo '<div style="position:relative;display:inline-block;margin-top:0.4rem;">';
+        echo '<div class="rrze-appt-insert">';
         printf(
-            '<button type="button" class="button rrze-appt-insert-btn" data-target="%s" data-tinymce="%s">%s &#9660;</button>',
+            '<button type="button" class="button rrze-appt-insert-btn" data-target="%s" data-tinymce="%s" aria-expanded="false">%s <span aria-hidden="true">&#9660;</span></button>',
             esc_attr($targetId),
             $isTinymce ? '1' : '0',
             esc_html__('Insert placeholder', 'rrze-appointment')
         );
-        echo '<ul class="rrze-appt-insert-dropdown" style="display:none;position:absolute;z-index:100;background:#fff;border:1px solid #dcdcde;box-shadow:0 2px 6px rgba(0,0,0,.15);margin:0;padding:0;list-style:none;min-width:220px;">';
+        echo '<ul class="rrze-appt-insert-dropdown" hidden>';
         foreach (self::getPlaceholders() as $tag => $desc) {
             printf(
-                '<li><button type="button" class="rrze-appt-insert-tag" data-tag="%s" style="display:block;width:100%%;text-align:left;padding:6px 12px;background:none;border:none;cursor:pointer;font-size:13px;"><code style="white-space: nowrap;">%s</code></button></li>',
+                '<li><button type="button" class="rrze-appt-insert-tag" data-tag="%s"><code>%s</code><span class="rrze-appt-insert-tag__description">%s</span></button></li>',
                 esc_attr($tag),
+                esc_html($tag),
                 esc_html($desc)
             );
         }
@@ -664,29 +746,76 @@ class Settings
             var savedBookmark = null;
             var savedEditorId = null;
 
+            function updateSectionStatus(section) {
+                if (!section) return;
+                var status = section.querySelector('[data-template-status]');
+                if (!status) return;
+                var hasCustomContent = Array.prototype.some.call(
+                    section.querySelectorAll('input[type="text"], textarea'),
+                    function(field) {
+                        if (field.id && typeof tinyMCE !== 'undefined' && tinyMCE.get(field.id)) {
+                            return tinyMCE.get(field.id).getContent({ format: 'text' }).trim() !== '';
+                        }
+                        return field.value.trim() !== '';
+                    }
+                );
+                status.classList.toggle('is-customized', hasCustomContent);
+                status.textContent = hasCustomContent ? status.dataset.customLabel : status.dataset.defaultLabel;
+            }
+
+            document.querySelectorAll('[data-template-section]').forEach(function(section) {
+                section.addEventListener('input', function() {
+                    updateSectionStatus(section);
+                });
+            });
+
+            var templateForm = document.querySelector('.rrze-appt-template-form');
+            if (templateForm) {
+                templateForm.addEventListener('submit', function() {
+                    if (typeof tinyMCE !== 'undefined') {
+                        tinyMCE.triggerSave();
+                    }
+                });
+            }
+
             // --- Plaintext/HTML Tab-Switching ---
             document.querySelectorAll('.rrze-appt-tabs').forEach(function(tabs) {
                 var btns   = tabs.querySelectorAll('.rrze-appt-tab-btn');
                 var panels = tabs.querySelectorAll('.rrze-appt-tab-panel');
+
+                function activateTab(btn, focusTab) {
+                    var target = btn.dataset.tab;
+                    btns.forEach(function(b) {
+                        var active = b === btn;
+                        b.setAttribute('aria-selected', active ? 'true' : 'false');
+                        b.tabIndex = active ? 0 : -1;
+                    });
+                    panels.forEach(function(panel) {
+                        panel.hidden = panel.dataset.panel !== target;
+                    });
+                    if (focusTab) btn.focus();
+                    if (target === 'html' && typeof tinyMCE !== 'undefined') {
+                        setTimeout(function() {
+                            tabs.querySelectorAll('.rrze-appt-tab-panel[data-panel="html"] textarea').forEach(function(ta) {
+                                if (tinyMCE.get(ta.id)) tinyMCE.get(ta.id).show();
+                            });
+                        }, 50);
+                    }
+                }
+
                 btns.forEach(function(btn) {
                     btn.addEventListener('click', function() {
-                        var target = btn.dataset.tab;
-                        btns.forEach(function(b) {
-                            var active = b.dataset.tab === target;
-                            b.style.background        = active ? '#fff' : '#f6f7f7';
-                            b.style.borderBottomColor = active ? '#fff' : '#dcdcde';
-                            b.style.zIndex            = active ? '1' : '0';
-                        });
-                        panels.forEach(function(p) {
-                            p.style.display = p.dataset.panel === target ? '' : 'none';
-                        });
-                        if (target === 'html' && typeof tinyMCE !== 'undefined') {
-                            setTimeout(function() {
-                                tabs.querySelectorAll('.rrze-appt-tab-panel[data-panel="html"] textarea').forEach(function(ta) {
-                                    if (tinyMCE.get(ta.id)) tinyMCE.get(ta.id).show();
-                                });
-                            }, 50);
-                        }
+                        activateTab(btn, false);
+                    });
+                    btn.addEventListener('keydown', function(event) {
+                        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                        event.preventDefault();
+                        var index = Array.prototype.indexOf.call(btns, btn);
+                        if (event.key === 'Home') index = 0;
+                        if (event.key === 'End') index = btns.length - 1;
+                        if (event.key === 'ArrowLeft') index = (index - 1 + btns.length) % btns.length;
+                        if (event.key === 'ArrowRight') index = (index + 1) % btns.length;
+                        activateTab(btns[index], true);
                     });
                 });
             });
@@ -712,31 +841,36 @@ class Settings
                 }
             }, true);
 
+            function closeDropdowns() {
+                document.querySelectorAll('.rrze-appt-insert-dropdown').forEach(function(dropdown) {
+                    dropdown.hidden = true;
+                    var trigger = dropdown.previousElementSibling;
+                    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+                });
+            }
+
             // --- Dropdown öffnen/schließen ---
             document.querySelectorAll('.rrze-appt-insert-btn').forEach(function(btn) {
                 btn.addEventListener('click', function(e) {
                     e.stopPropagation();
                     var dropdown = btn.nextElementSibling;
-                    var isOpen   = dropdown.style.display === 'block';
-                    document.querySelectorAll('.rrze-appt-insert-dropdown').forEach(function(d) { d.style.display = 'none'; });
+                    var isOpen   = !dropdown.hidden;
+                    closeDropdowns();
                     if (!isOpen) {
                         if (btn.dataset.tinymce === '1') {
                             var ed = typeof tinyMCE !== 'undefined' ? tinyMCE.get(btn.dataset.target) : null;
                             if (ed && !savedBookmark) { savedBookmark = ed.selection.getBookmark(2, true); savedEditorId = btn.dataset.target; }
                         }
-                        dropdown.style.display = 'block';
+                        dropdown.hidden = false;
+                        btn.setAttribute('aria-expanded', 'true');
                         dropdown.querySelectorAll('.rrze-appt-insert-tag').forEach(function(t) {
                             t.dataset.insertTarget  = btn.dataset.target;
                             t.dataset.insertTinymce = btn.dataset.tinymce;
                         });
+                        var firstItem = dropdown.querySelector('.rrze-appt-insert-tag');
+                        if (firstItem) firstItem.focus();
                     }
                 });
-            });
-
-            // --- Hover ---
-            document.querySelectorAll('.rrze-appt-insert-tag').forEach(function(t) {
-                t.addEventListener('mouseenter', function() { t.style.background = '#f0f6fc'; });
-                t.addEventListener('mouseleave', function() { t.style.background = 'none'; });
             });
 
             // --- Platzhalter einfügen ---
@@ -745,7 +879,7 @@ class Settings
                     var tag       = tagBtn.dataset.tag;
                     var targetId  = tagBtn.dataset.insertTarget;
                     var isTinymce = tagBtn.dataset.insertTinymce === '1';
-                    document.querySelectorAll('.rrze-appt-insert-dropdown').forEach(function(d) { d.style.display = 'none'; });
+                    closeDropdowns();
 
                     if (isTinymce && targetId && typeof tinyMCE !== 'undefined') {
                         var ed = tinyMCE.get(targetId);
@@ -754,6 +888,7 @@ class Settings
                             if (savedBookmark && savedEditorId === targetId) ed.selection.moveToBookmark(savedBookmark);
                             ed.insertContent(tag);
                             savedBookmark = null; savedEditorId = null;
+                            updateSectionStatus(ed.getElement().closest('[data-template-section]'));
                             return;
                         }
                     }
@@ -767,12 +902,16 @@ class Settings
                     field.focus();
                     field.setSelectionRange(newPos, newPos);
                     lastField = field; lastPos = newPos;
+                    field.dispatchEvent(new Event('input', { bubbles: true }));
                 });
             });
 
             // --- Klick außerhalb ---
             document.addEventListener('click', function() {
-                document.querySelectorAll('.rrze-appt-insert-dropdown').forEach(function(d) { d.style.display = 'none'; });
+                closeDropdowns();
+            });
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') closeDropdowns();
             });
         }());
         </script>

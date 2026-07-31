@@ -1414,3 +1414,116 @@ msgstr ""
 #: includes/Main.php
 msgid "Connection problem. Check your internet connection and try again."
 msgstr ""
+
+#: includes/Settings.php
+msgid ""
+"Template saved as a draft. Add a template name to make it available in the "
+"editor."
+msgstr ""
+
+#: includes/Settings.php
+msgid "The template could not be saved. Please try again."
+msgstr ""
+
+#: includes/Settings.php
+msgid ""
+"Sent to the person booking so they can confirm their appointment request."
+msgstr ""
+
+#: includes/Settings.php
+msgid ""
+"Sent to the person booking after the appointment has been confirmed."
+msgstr ""
+
+#: includes/Settings.php
+msgid "Sent to the host after the appointment has been confirmed."
+msgstr ""
+
+#: includes/Settings.php
+msgid "Sent to the host before the appointment when reminders are enabled."
+msgstr ""
+
+#: includes/Settings.php
+msgid ""
+"Sent to the person booking before the appointment when reminders are enabled."
+msgstr ""
+
+#: includes/Settings.php
+msgid "Sent when a confirmed appointment is cancelled."
+msgstr ""
+
+#: includes/Settings.php
+msgid ""
+"Sent when an earlier appointment becomes available for someone on the "
+"waitlist."
+msgstr ""
+
+#: includes/Settings.php
+msgid "Back to mail templates"
+msgstr ""
+
+#: includes/Settings.php
+msgid "Create mail template"
+msgstr ""
+
+#: includes/Settings.php
+msgid "Edit mail template"
+msgstr ""
+
+#: includes/Settings.php
+msgid ""
+"Customize only the content you want to change. Empty fields automatically "
+"use the standard content."
+msgstr ""
+
+#: includes/Settings.php
+msgid "Template name"
+msgstr ""
+
+#: includes/Settings.php
+msgid "For example: Consultation hours"
+msgstr ""
+
+#: includes/Settings.php
+msgid "Use a name that makes this template easy to recognize in the editor."
+msgstr ""
+
+#: includes/Settings.php
+msgid "Uses standard content"
+msgstr ""
+
+#: includes/Settings.php
+msgid "Customized"
+msgstr ""
+
+#: includes/Settings.php
+msgid "Leave blank to use the standard subject."
+msgstr ""
+
+#: includes/Settings.php
+msgid "Email content"
+msgstr ""
+
+#: includes/Settings.php
+msgid "Create template"
+msgstr ""
+
+#: includes/Settings.php
+msgid "Save changes"
+msgstr ""
+
+#: includes/Settings.php
+msgid "Email format"
+msgstr ""
+
+#: includes/Settings.php
+msgid "Leave blank to use the standard plain-text content."
+msgstr ""
+
+#: includes/Settings.php
+msgid "View standard content"
+msgstr ""
+
+#: includes/Settings.php
+msgid "Leave blank to use the standard HTML content."
+msgstr ""

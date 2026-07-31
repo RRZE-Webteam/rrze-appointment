@@ -1470,3 +1470,131 @@ msgid "Connection problem. Check your internet connection and try again."
 msgstr ""
 "Verbindungsproblem. Prüfen Sie Ihre Internetverbindung und versuchen Sie es "
 "erneut."
+
+#: includes/Settings.php
+msgid ""
+"Template saved as a draft. Add a template name to make it available in the "
+"editor."
+msgstr ""
+"Die Vorlage wurde als Entwurf gespeichert. Vergeben Sie einen Vorlagennamen, "
+"damit sie im Editor verfügbar ist."
+
+#: includes/Settings.php
+msgid "The template could not be saved. Please try again."
+msgstr "Die Vorlage konnte nicht gespeichert werden. Versuchen Sie es erneut."
+
+#: includes/Settings.php
+msgid ""
+"Sent to the person booking so they can confirm their appointment request."
+msgstr ""
+"Wird an die buchende Person gesendet, damit sie ihre Terminanfrage bestätigen "
+"kann."
+
+#: includes/Settings.php
+msgid ""
+"Sent to the person booking after the appointment has been confirmed."
+msgstr ""
+"Wird nach der Bestätigung des Termins an die buchende Person gesendet."
+
+#: includes/Settings.php
+msgid "Sent to the host after the appointment has been confirmed."
+msgstr "Wird nach der Bestätigung des Termins an die einladende Person gesendet."
+
+#: includes/Settings.php
+msgid "Sent to the host before the appointment when reminders are enabled."
+msgstr ""
+"Wird vor dem Termin an die einladende Person gesendet, wenn Erinnerungen "
+"aktiviert sind."
+
+#: includes/Settings.php
+msgid ""
+"Sent to the person booking before the appointment when reminders are enabled."
+msgstr ""
+"Wird vor dem Termin an die buchende Person gesendet, wenn Erinnerungen "
+"aktiviert sind."
+
+#: includes/Settings.php
+msgid "Sent when a confirmed appointment is cancelled."
+msgstr "Wird gesendet, wenn ein bestätigter Termin abgesagt wird."
+
+#: includes/Settings.php
+msgid ""
+"Sent when an earlier appointment becomes available for someone on the "
+"waitlist."
+msgstr ""
+"Wird gesendet, wenn für eine Person auf der Warteliste ein früherer Termin "
+"verfügbar wird."
+
+#: includes/Settings.php
+msgid "Back to mail templates"
+msgstr "Zurück zu den E-Mail-Vorlagen"
+
+#: includes/Settings.php
+msgid "Create mail template"
+msgstr "E-Mail-Vorlage erstellen"
+
+#: includes/Settings.php
+msgid "Edit mail template"
+msgstr "E-Mail-Vorlage bearbeiten"
+
+#: includes/Settings.php
+msgid ""
+"Customize only the content you want to change. Empty fields automatically "
+"use the standard content."
+msgstr ""
+"Passen Sie nur Inhalte an, die vom Standard abweichen sollen. Leere Felder "
+"verwenden automatisch den Standardinhalt."
+
+#: includes/Settings.php
+msgid "Template name"
+msgstr "Vorlagenname"
+
+#: includes/Settings.php
+msgid "For example: Consultation hours"
+msgstr "Zum Beispiel: Sprechstunde"
+
+#: includes/Settings.php
+msgid "Use a name that makes this template easy to recognize in the editor."
+msgstr ""
+"Vergeben Sie einen Namen, unter dem Sie die Vorlage im Editor leicht "
+"wiedererkennen."
+
+#: includes/Settings.php
+msgid "Uses standard content"
+msgstr "Verwendet Standardinhalt"
+
+#: includes/Settings.php
+msgid "Customized"
+msgstr "Angepasst"
+
+#: includes/Settings.php
+msgid "Leave blank to use the standard subject."
+msgstr "Leer lassen, um den Standardbetreff zu verwenden."
+
+#: includes/Settings.php
+msgid "Email content"
+msgstr "E-Mail-Inhalt"
+
+#: includes/Settings.php
+msgid "Create template"
+msgstr "Vorlage erstellen"
+
+#: includes/Settings.php
+msgid "Save changes"
+msgstr "Änderungen speichern"
+
+#: includes/Settings.php
+msgid "Email format"
+msgstr "E-Mail-Format"
+
+#: includes/Settings.php
+msgid "Leave blank to use the standard plain-text content."
+msgstr "Leer lassen, um den Standard-Textinhalt zu verwenden."
+
+#: includes/Settings.php
+msgid "View standard content"
+msgstr "Standardinhalt anzeigen"
+
+#: includes/Settings.php
+msgid "Leave blank to use the standard HTML content."
+msgstr "Leer lassen, um den Standard-HTML-Inhalt zu verwenden."

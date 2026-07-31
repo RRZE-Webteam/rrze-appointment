@@ -263,7 +263,7 @@ class MailTemplatePost
     {
         try {
             $postId = (int) ($data['id'] ?? 0);
-            $title  = sanitize_text_field($data['title'] ?? '');
+            $title  = sanitize_text_field(wp_unslash($data['title'] ?? ''));
             $status = $isDraft ? 'draft' : 'publish';
 
             if ($postId > 0) {
@@ -275,9 +275,9 @@ class MailTemplatePost
             if (is_wp_error($result)) return $result;
 
             foreach (self::TEMPLATE_TYPES as $key) {
-                update_post_meta($result, "tpl_{$key}_subject",   sanitize_text_field($data["{$key}_subject"] ?? ''));
-                update_post_meta($result, "tpl_{$key}_body",      sanitize_textarea_field($data["{$key}_body"] ?? ''));
-                update_post_meta($result, "tpl_{$key}_body_html", wp_kses_post($data["{$key}_body_html"] ?? ''));
+                update_post_meta($result, "tpl_{$key}_subject", sanitize_text_field(wp_unslash($data["{$key}_subject"] ?? '')));
+                update_post_meta($result, "tpl_{$key}_body", sanitize_textarea_field(wp_unslash($data["{$key}_body"] ?? '')));
+                update_post_meta($result, "tpl_{$key}_body_html", wp_kses_post(wp_unslash($data["{$key}_body_html"] ?? '')));
             }
 
             return $result;
