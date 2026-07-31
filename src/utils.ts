@@ -453,13 +453,29 @@ export function generateTimeSlots(
 
 /**
  * Expands a recurrence into date strings starting from startDate.
- * recurrence: { freq: 'daily'|'weekly'|'monthly', until: 'YYYY-MM-DD' }
+ * recurrence: { freq: 'daily'|'weekly'|'monthly', until: 'YYYY-MM-DD', count: number }
  * @param recurrence
  * @param startDate
  */
-export function expandRecurrence(
+export const MAX_RECURRENCE_DATES = 730;
+const DEFAULT_LEGACY_RECURRENCE_DATES = 52;
+
+function getLegacyRecurrenceLimit(): number {
+	const configuredLimit = Number(
+		typeof window !== 'undefined'
+			? window.rrze_appointment?.recurrenceLimit
+			: DEFAULT_LEGACY_RECURRENCE_DATES
+	);
+
+	return Number.isInteger( configuredLimit ) && configuredLimit > 0
+		? Math.min( configuredLimit, MAX_RECURRENCE_DATES )
+		: DEFAULT_LEGACY_RECURRENCE_DATES;
+}
+
+function expandRecurrenceWithLimit(
 	recurrence: Recurrence,
-	startDate: string
+	startDate: string,
+	maxDates: number
 ): string[] {
 	if ( ! recurrence || ! recurrence.freq || ! startDate ) {
 		return [];
@@ -473,10 +489,14 @@ export function expandRecurrence(
 
 	const untilDate = until ? parseDateString( until ) : null;
 	const results: string[] = [];
-	const limit =
-		( typeof window !== 'undefined' &&
-			window.rrze_appointment?.recurrenceLimit ) ||
-		52;
+	const requestedCount = Number( recurrence.count );
+	let occurrenceLimit = maxDates;
+	if ( ! untilDate ) {
+		occurrenceLimit =
+			Number.isInteger( requestedCount ) && requestedCount > 0
+				? Math.min( requestedCount, maxDates )
+				: Math.min( getLegacyRecurrenceLimit(), maxDates );
+	}
 
 	const weekdays =
 		freq === 'weekly' && Array.isArray( recurrence.weekdays )
@@ -491,15 +511,14 @@ export function expandRecurrence(
 			: null;
 	if ( weekdays && weekdays.size > 0 ) {
 		const current = new Date( anchor );
-		while ( results.length < 730 ) {
+		while ( results.length < occurrenceLimit ) {
 			if ( untilDate && current > untilDate ) {
 				break;
 			}
-			if ( weekdays.has( current.getDay() ) ) {
+			// The anchor is always the first appointment date, even when the
+			// selected weekdays only apply to subsequent repetitions.
+			if ( results.length === 0 || weekdays.has( current.getDay() ) ) {
 				results.push( formatDate( current ) );
-			}
-			if ( ! untilDate && results.length >= limit ) {
-				break;
 			}
 			current.setDate( current.getDate() + 1 );
 		}
@@ -508,7 +527,7 @@ export function expandRecurrence(
 
 	let current = new Date( anchor );
 	let occurrenceIndex = 0;
-	while ( results.length < 730 ) {
+	while ( results.length < occurrenceLimit ) {
 		if ( untilDate && current > untilDate ) {
 			break;
 		}
@@ -539,13 +558,46 @@ export function expandRecurrence(
 		} else {
 			break;
 		}
-
-		if ( ! untilDate && results.length >= limit ) {
-			break;
-		}
 	}
 
 	return results;
+}
+
+export function expandRecurrence(
+	recurrence: Recurrence,
+	startDate: string
+): string[] {
+	return expandRecurrenceWithLimit(
+		recurrence,
+		startDate,
+		MAX_RECURRENCE_DATES
+	);
+}
+
+export function recurrenceExceedsLimit(
+	recurrence: Recurrence,
+	startDate: string
+): boolean {
+	const requestedCount = Number( recurrence.count );
+	if (
+		! recurrence.until &&
+		Number.isInteger( requestedCount ) &&
+		requestedCount > MAX_RECURRENCE_DATES
+	) {
+		return true;
+	}
+
+	if ( ! recurrence.until ) {
+		return false;
+	}
+
+	return (
+		expandRecurrenceWithLimit(
+			recurrence,
+			startDate,
+			MAX_RECURRENCE_DATES + 1
+		).length > MAX_RECURRENCE_DATES
+	);
 }
 
 export function groupSlotsByDate(

@@ -64,10 +64,16 @@ function normalizeRule( anchor: string, rule: Recurrence ): Recurrence | null {
 		rule.freq === 'weekly'
 			? normalizeRecurrenceWeekdays( rule.weekdays )
 			: [];
+	const count = Number( rule.count );
+	const normalizedCount =
+		! rule.until && Number.isInteger( count ) && count > 0
+			? count
+			: undefined;
 	const normalizedRule: Recurrence = {
 		freq: rule.freq,
 		anchor,
 		...( rule.until ? { until: rule.until } : {} ),
+		...( normalizedCount ? { count: normalizedCount } : {} ),
 		...( excludedDates.length > 0 ? { excludedDates } : {} ),
 		...( weekdays.length > 0 ? { weekdays } : {} ),
 	};

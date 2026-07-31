@@ -1527,3 +1527,58 @@ msgstr ""
 #: includes/Settings.php
 msgid "Leave blank to use the standard HTML content."
 msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Choose the date on which the series ends."
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Enter how many appointment dates the series should contain."
+msgstr ""
+
+#. translators: %d: maximum number of dates in a recurrence series.
+#: src/components/availability-dialog.tsx
+#, php-format
+msgid ""
+"A series can contain up to %d appointment dates. Choose an earlier end date "
+"or a smaller number."
+msgstr ""
+
+#. translators: 1: number of appointment dates, 2: last date.
+#: src/components/availability-dialog.tsx
+#, php-format
+msgid "Creates %1$d appointment date through %2$s."
+msgid_plural "Creates %1$d appointment dates through %2$s."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/components/availability-dialog.tsx
+msgid "Series ends"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Choose how this series ends"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "On a date"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "After a number of appointment dates"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+msgid "Number of appointment dates"
+msgstr ""
+
+#. translators: %d: maximum number of dates in a recurrence series.
+#: src/components/availability-dialog.tsx
+#, php-format
+msgid "Enter a number from 1 to %d."
+msgstr ""
+
+#: src/js/setup-tour.js
+msgid ""
+"Open the General tab to configure reminder emails and booking data retention."
+msgstr ""

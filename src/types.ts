@@ -4,6 +4,7 @@ export type RecurrenceWeekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export interface Recurrence {
 	freq?: RecurrenceFrequency;
 	until?: string;
+	count?: number;
 	anchor?: string;
 	dates?: string[];
 	excludedDates?: string[];

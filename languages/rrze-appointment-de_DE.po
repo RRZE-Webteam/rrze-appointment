@@ -1598,3 +1598,62 @@ msgstr "Standardinhalt anzeigen"
 #: includes/Settings.php
 msgid "Leave blank to use the standard HTML content."
 msgstr "Leer lassen, um den Standard-HTML-Inhalt zu verwenden."
+
+#: src/components/availability-dialog.tsx
+msgid "Choose the date on which the series ends."
+msgstr "Wählen Sie das Datum, an dem die Serie endet."
+
+#: src/components/availability-dialog.tsx
+msgid "Enter how many appointment dates the series should contain."
+msgstr "Geben Sie ein, wie viele Termine die Serie enthalten soll."
+
+#. translators: %d: maximum number of dates in a recurrence series.
+#: src/components/availability-dialog.tsx
+#, php-format
+msgid ""
+"A series can contain up to %d appointment dates. Choose an earlier end date "
+"or a smaller number."
+msgstr ""
+"Eine Serie kann bis zu %d Termine enthalten. Wählen Sie ein früheres Enddatum "
+"oder eine kleinere Anzahl."
+
+#. translators: 1: number of appointment dates, 2: last date.
+#: src/components/availability-dialog.tsx
+#, php-format
+msgid "Creates %1$d appointment date through %2$s."
+msgid_plural "Creates %1$d appointment dates through %2$s."
+msgstr[0] "Die Serie umfasst %1$d Termin und endet am %2$s."
+msgstr[1] "Die Serie umfasst %1$d Termine und endet am %2$s."
+
+#: src/components/availability-dialog.tsx
+msgid "Series ends"
+msgstr "Serienende"
+
+#: src/components/availability-dialog.tsx
+msgid "Choose how this series ends"
+msgstr "Legen Sie fest, wann diese Serie endet"
+
+#: src/components/availability-dialog.tsx
+msgid "On a date"
+msgstr "An einem Datum"
+
+#: src/components/availability-dialog.tsx
+msgid "After a number of appointment dates"
+msgstr "Nach einer Anzahl von Terminen"
+
+#: src/components/availability-dialog.tsx
+msgid "Number of appointment dates"
+msgstr "Anzahl der Termine"
+
+#. translators: %d: maximum number of dates in a recurrence series.
+#: src/components/availability-dialog.tsx
+#, php-format
+msgid "Enter a number from 1 to %d."
+msgstr "Geben Sie eine Zahl von 1 bis %d ein."
+
+#: src/js/setup-tour.js
+msgid ""
+"Open the General tab to configure reminder emails and booking data retention."
+msgstr ""
+"Öffnen Sie den Tab „Allgemein“, um Erinnerungsmails und die Aufbewahrung von "
+"Buchungsdaten zu konfigurieren."

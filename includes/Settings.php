@@ -113,15 +113,19 @@ class Settings
         );
         add_settings_section('rrze_appointment_general', '', '__return_false', self::PAGE_SLUG);
         add_settings_field('reminder_days', __('Reminder Email', 'rrze-appointment'), [$this, 'renderReminderDaysField'], self::PAGE_SLUG, 'rrze_appointment_general');
-        add_settings_field('recurrence_limit', __('Recurrence limit', 'rrze-appointment'), [$this, 'renderRecurrenceLimitField'], self::PAGE_SLUG, 'rrze_appointment_general');
         add_settings_field('retention_days', __('Booking data retention', 'rrze-appointment'), [$this, 'renderRetentionDaysField'], self::PAGE_SLUG, 'rrze_appointment_general');
     }
 
     public function sanitize(array $input): array
     {
+        $currentOptions = get_option(self::OPTION_NAME, []);
+        $legacyRecurrenceLimit = max(1, (int) ($currentOptions['recurrence_limit'] ?? 52));
+
         return [
             'reminder_days'    => (int) ($input['reminder_days'] ?? 0),
-            'recurrence_limit' => max(1, (int) ($input['recurrence_limit'] ?? 52)),
+            // Retained as an internal fallback for existing series that do
+            // not yet have an explicit end date or occurrence count.
+            'recurrence_limit' => $legacyRecurrenceLimit,
             'retention_days'   => min(3650, max(0, (int) ($input['retention_days'] ?? 30))),
         ];
     }
@@ -261,17 +265,6 @@ class Settings
             printf('<option value="%d"%s>%s</option>', $val, selected($value, $val, false), esc_html($label));
         }
         echo '</select> ' . esc_html__('days before the appointment.', 'rrze-appointment');
-    }
-
-    public function renderRecurrenceLimitField(): void
-    {
-        $value = (int) self::get('recurrence_limit');
-        printf(
-            '<input type="number" name="%s[recurrence_limit]" value="%d" min="1" max="730" step="1" class="small-text" data-rrze-tour="recurrence-limit"> %s',
-            esc_attr(self::OPTION_NAME),
-            $value,
-            esc_html__('Maximum number of recurrences (default: 52).', 'rrze-appointment')
-        );
     }
 
     public function renderRetentionDaysField(): void

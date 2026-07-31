@@ -6,7 +6,11 @@ import {
 	toggleRecurrenceDate,
 } from '../src/recurrence';
 import type { AppointmentAttributes, RecurrenceRules } from '../src/types';
-import { expandRecurrence } from '../src/utils';
+import {
+	expandRecurrence,
+	MAX_RECURRENCE_DATES,
+	recurrenceExceedsLimit,
+} from '../src/utils';
 
 declare function describe( name: string, callback: () => void ): void;
 declare function it( name: string, callback: () => void ): void;
@@ -193,5 +197,62 @@ describe( 'monthly recurrence', () => {
 				'2026-01-31'
 			)
 		).toEqual( [ '2026-01-31', '2026-02-28', '2026-03-31', '2026-04-30' ] );
+	} );
+} );
+
+describe( 'recurrence endings', () => {
+	it( 'ends after the selected number of appointment dates', () => {
+		expect(
+			expandRecurrence(
+				{
+					freq: 'weekly',
+					count: 5,
+					weekdays: [ 1, 3 ],
+				},
+				'2026-08-03'
+			)
+		).toEqual( [
+			'2026-08-03',
+			'2026-08-05',
+			'2026-08-10',
+			'2026-08-12',
+			'2026-08-17',
+		] );
+	} );
+
+	it( 'preserves a count when normalizing a recurrence rule', () => {
+		expect(
+			createRecurrenceRule( '2026-08-03', {
+				freq: 'daily',
+				count: 3,
+			} )?.count
+		).toEqual( 3 );
+	} );
+
+	it( 'counts the anchor when later weekly dates use another weekday', () => {
+		expect(
+			expandRecurrence(
+				{
+					freq: 'weekly',
+					count: 3,
+					weekdays: [ 3 ],
+				},
+				'2026-08-03'
+			)
+		).toEqual( [ '2026-08-03', '2026-08-05', '2026-08-12' ] );
+	} );
+
+	it( 'detects and caps series above the technical limit', () => {
+		const recurrence = {
+			freq: 'daily' as const,
+			until: '2030-12-31',
+		};
+
+		expect( recurrenceExceedsLimit( recurrence, '2026-08-03' ) ).toEqual(
+			true
+		);
+		expect( expandRecurrence( recurrence, '2026-08-03' ) ).toHaveLength(
+			MAX_RECURRENCE_DATES
+		);
 	} );
 } );

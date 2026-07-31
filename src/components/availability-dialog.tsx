@@ -14,7 +14,7 @@ import {
 	ToggleControl,
 } from '@wordpress/components';
 import { useEffect, useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import {
 	getAvailabilityDates,
 	getAvailabilitySlotCount,
@@ -28,9 +28,12 @@ import type {
 } from '../types';
 import {
 	formatDate,
+	formatDateDisplay,
+	MAX_RECURRENCE_DATES,
 	minutesToTime,
 	parseDateString,
 	parseTimeToMinutes,
+	recurrenceExceedsLimit,
 } from '../utils';
 
 interface AvailabilityDialogProps {
@@ -40,6 +43,8 @@ interface AvailabilityDialogProps {
 	onCancel: () => void;
 	onSave: ( entry: AvailabilityEntry ) => void;
 }
+
+type RecurrenceEndMode = 'date' | 'count';
 
 const DURATION_OPTIONS = [ 15, 30, 45, 60, 75, 90, 120 ].map( ( minutes ) => ( {
 	label: `${ minutes } min`,
@@ -87,6 +92,10 @@ export function AvailabilityDialog( {
 	const [ usePattern, setUsePattern ] = useState(
 		usesConsultationPattern( entry )
 	);
+	const [ recurrenceEndMode, setRecurrenceEndMode ] =
+		useState< RecurrenceEndMode >(
+			entry.recurrence.count !== undefined ? 'count' : 'date'
+		);
 	const originalDate =
 		entries.find( ( currentEntry ) => currentEntry.id === originalId )
 			?.date || '';
@@ -95,6 +104,9 @@ export function AvailabilityDialog( {
 		setDraft( entry );
 		setError( '' );
 		setUsePattern( usesConsultationPattern( entry ) );
+		setRecurrenceEndMode(
+			entry.recurrence.count !== undefined ? 'count' : 'date'
+		);
 	}, [ entry ] );
 
 	const enablePattern = () => {
@@ -197,17 +209,61 @@ export function AvailabilityDialog( {
 			);
 			return;
 		}
-		if (
-			normalizedDraft.recurrence.until &&
-			normalizedDraft.recurrence.until < normalizedDraft.date
-		) {
-			setError(
-				__(
-					'The last date must not be before the first date.',
-					'rrze-appointment'
+		if ( normalizedDraft.recurrence.freq ) {
+			if ( recurrenceEndMode === 'date' ) {
+				if ( ! normalizedDraft.recurrence.until ) {
+					setError(
+						__(
+							'Choose the date on which the series ends.',
+							'rrze-appointment'
+						)
+					);
+					return;
+				}
+				if ( normalizedDraft.recurrence.until < normalizedDraft.date ) {
+					setError(
+						__(
+							'The last date must not be before the first date.',
+							'rrze-appointment'
+						)
+					);
+					return;
+				}
+			} else {
+				const recurrenceCount = Number(
+					normalizedDraft.recurrence.count
+				);
+				if (
+					! Number.isInteger( recurrenceCount ) ||
+					recurrenceCount < 1
+				) {
+					setError(
+						__(
+							'Enter how many appointment dates the series should contain.',
+							'rrze-appointment'
+						)
+					);
+					return;
+				}
+			}
+			if (
+				recurrenceExceedsLimit(
+					normalizedDraft.recurrence,
+					normalizedDraft.date
 				)
-			);
-			return;
+			) {
+				setError(
+					sprintf(
+						/* translators: %d: maximum number of dates in a recurrence series. */
+						__(
+							'A series can contain up to %d appointment dates. Choose an earlier end date or a smaller number.',
+							'rrze-appointment'
+						),
+						MAX_RECURRENCE_DATES
+					)
+				);
+				return;
+			}
 		}
 		if ( hasAvailabilityConflict( entries, normalizedDraft, originalId ) ) {
 			setError(
@@ -227,6 +283,39 @@ export function AvailabilityDialog( {
 		draft.recurrence,
 		draft.date
 	);
+	const recurrenceCount = Number( draft.recurrence.count );
+	const recurrenceEndBeforeStart =
+		recurrenceEndMode === 'date' &&
+		Boolean( draft.recurrence.until ) &&
+		( draft.recurrence.until || '' ) < draft.date;
+	const hasExplicitRecurrenceEnd =
+		recurrenceEndMode === 'date'
+			? Boolean( draft.recurrence.until ) && ! recurrenceEndBeforeStart
+			: Number.isInteger( recurrenceCount ) && recurrenceCount > 0;
+	const recurrenceLimitExceeded =
+		isRepeating &&
+		hasExplicitRecurrenceEnd &&
+		recurrenceExceedsLimit( draft.recurrence, draft.date );
+	const recurrenceDates =
+		isRepeating && hasExplicitRecurrenceEnd && ! recurrenceLimitExceeded
+			? getAvailabilityDates( draft )
+			: [];
+	const lastRecurrenceDate =
+		recurrenceDates[ recurrenceDates.length - 1 ] || '';
+	const recurrenceSummary =
+		recurrenceDates.length > 0 && lastRecurrenceDate
+			? sprintf(
+					/* translators: 1: number of appointment dates, 2: last date. */
+					_n(
+						'Creates %1$d appointment date through %2$s.',
+						'Creates %1$d appointment dates through %2$s.',
+						recurrenceDates.length,
+						'rrze-appointment'
+					),
+					recurrenceDates.length,
+					formatDateDisplay( lastRecurrenceDate )
+			  )
+			: '';
 	const title = originalId
 		? __( 'Edit appointment times', 'rrze-appointment' )
 		: __( 'Add appointment times', 'rrze-appointment' );
@@ -245,7 +334,16 @@ export function AvailabilityDialog( {
 						type="date"
 						value={ draft.date }
 						onChange={ ( date ) => {
-							setDraft( { ...draft, date } );
+							setDraft( {
+								...draft,
+								date,
+								recurrence: draft.recurrence.freq
+									? {
+											...draft.recurrence,
+											anchor: date,
+									  }
+									: draft.recurrence,
+							} );
 							setError( '' );
 						} }
 					/>
@@ -422,7 +520,8 @@ export function AvailabilityDialog( {
 							'rrze-appointment'
 						) }
 						checked={ isRepeating }
-						onChange={ ( repeats ) =>
+						onChange={ ( repeats ) => {
+							setRecurrenceEndMode( 'date' );
 							setDraft( {
 								...draft,
 								recurrence: repeats
@@ -434,13 +533,14 @@ export function AvailabilityDialog( {
 											],
 									  }
 									: {},
-							} )
-						}
+							} );
+							setError( '' );
+						} }
 					/>
 				</FlexItem>
 				{ isRepeating && (
-					<Flex gap={ 4 } align="flex-start" wrap>
-						<FlexBlock>
+					<Flex direction="column" align="stretch" gap={ 4 }>
+						<FlexItem>
 							<SelectControl
 								label={ __( 'Frequency', 'rrze-appointment' ) }
 								value={ draft.recurrence.freq || 'weekly' }
@@ -487,74 +587,241 @@ export function AvailabilityDialog( {
 										delete recurrence.weekdays;
 									}
 									setDraft( { ...draft, recurrence } );
+									setError( '' );
 								} }
 							/>
-						</FlexBlock>
-						<FlexBlock>
-							<TextControl
-								label={ __( 'Last date', 'rrze-appointment' ) }
-								type="date"
-								value={ draft.recurrence.until || '' }
-								help={ `${
-									getAvailabilityDates( draft ).length
-								} ${ __( 'dates', 'rrze-appointment' ) }` }
-								onChange={ ( until ) =>
-									setDraft( {
-										...draft,
-										recurrence: {
-											...draft.recurrence,
-											anchor: draft.date,
-											until,
-										},
-									} )
-								}
-							/>
-						</FlexBlock>
-					</Flex>
-				) }
-				{ isRepeating && draft.recurrence.freq === 'weekly' && (
-					<Card size="small">
-						<CardHeader>
-							<strong>
-								{ __( 'Repeat on', 'rrze-appointment' ) }
-							</strong>
-						</CardHeader>
-						<CardBody>
-							<Flex align="flex-start" gap={ 4 } wrap>
-								{ WEEKDAY_OPTIONS.map( ( weekday ) => (
-									<FlexItem key={ weekday.value }>
-										<CheckboxControl
-											label={ weekday.label }
-											checked={ selectedWeekdays.includes(
-												weekday.value
+						</FlexItem>
+
+						{ draft.recurrence.freq === 'weekly' && (
+							<Card size="small">
+								<CardHeader>
+									<strong>
+										{ __(
+											'Repeat on',
+											'rrze-appointment'
+										) }
+									</strong>
+								</CardHeader>
+								<CardBody>
+									<Flex align="flex-start" gap={ 4 } wrap>
+										{ WEEKDAY_OPTIONS.map( ( weekday ) => (
+											<FlexItem key={ weekday.value }>
+												<CheckboxControl
+													label={ weekday.label }
+													checked={ selectedWeekdays.includes(
+														weekday.value
+													) }
+													onChange={ ( selected ) => {
+														const weekdays =
+															selected
+																? [
+																		...selectedWeekdays,
+																		weekday.value,
+																  ]
+																: selectedWeekdays.filter(
+																		(
+																			value
+																		) =>
+																			value !==
+																			weekday.value
+																  );
+														setDraft( {
+															...draft,
+															recurrence: {
+																...draft.recurrence,
+																anchor: draft.date,
+																weekdays,
+															},
+														} );
+														setError( '' );
+													} }
+												/>
+											</FlexItem>
+										) ) }
+									</Flex>
+								</CardBody>
+							</Card>
+						) }
+
+						<Card size="small">
+							<CardHeader>
+								<strong>
+									{ __( 'Series ends', 'rrze-appointment' ) }
+								</strong>
+							</CardHeader>
+							<CardBody>
+								<Flex
+									direction="column"
+									align="stretch"
+									gap={ 3 }
+								>
+									<SelectControl
+										label={ __(
+											'Choose how this series ends',
+											'rrze-appointment'
+										) }
+										value={ recurrenceEndMode }
+										options={ [
+											{
+												label: __(
+													'On a date',
+													'rrze-appointment'
+												),
+												value: 'date',
+											},
+											{
+												label: __(
+													'After a number of appointment dates',
+													'rrze-appointment'
+												),
+												value: 'count',
+											},
+										] }
+										onChange={ ( value ) => {
+											const nextMode =
+												value as RecurrenceEndMode;
+											const {
+												count,
+												until,
+												...recurrence
+											} = draft.recurrence;
+											setRecurrenceEndMode( nextMode );
+											setDraft( {
+												...draft,
+												recurrence:
+													nextMode === 'count'
+														? {
+																...recurrence,
+																count:
+																	count || 12,
+														  }
+														: {
+																...recurrence,
+																...( until
+																	? {
+																			until,
+																	  }
+																	: {} ),
+														  },
+											} );
+											setError( '' );
+										} }
+									/>
+
+									{ recurrenceEndMode === 'date' ? (
+										<TextControl
+											label={ __(
+												'Last date',
+												'rrze-appointment'
 											) }
-											onChange={ ( selected ) => {
-												const weekdays = selected
-													? [
-															...selectedWeekdays,
-															weekday.value,
-													  ]
-													: selectedWeekdays.filter(
-															( value ) =>
-																value !==
-																weekday.value
-													  );
+											type="date"
+											value={
+												draft.recurrence.until || ''
+											}
+											onChange={ ( until ) => {
+												const { count, ...recurrence } =
+													draft.recurrence;
 												setDraft( {
 													...draft,
 													recurrence: {
-														...draft.recurrence,
+														...recurrence,
 														anchor: draft.date,
-														weekdays,
+														until,
 													},
 												} );
 												setError( '' );
 											} }
 										/>
-									</FlexItem>
-								) ) }
-							</Flex>
-						</CardBody>
-					</Card>
+									) : (
+										<TextControl
+											label={ __(
+												'Number of appointment dates',
+												'rrze-appointment'
+											) }
+											type="number"
+											help={ sprintf(
+												/* translators: %d: maximum number of dates in a recurrence series. */
+												__(
+													'Enter a number from 1 to %d.',
+													'rrze-appointment'
+												),
+												MAX_RECURRENCE_DATES
+											) }
+											value={
+												draft.recurrence.count ===
+												undefined
+													? ''
+													: String(
+															draft.recurrence
+																.count
+													  )
+											}
+											onChange={ ( value ) => {
+												const recurrence = {
+													...draft.recurrence,
+												};
+												delete recurrence.until;
+												delete recurrence.count;
+												const count = Number( value );
+												setDraft( {
+													...draft,
+													recurrence: {
+														...recurrence,
+														anchor: draft.date,
+														...( value !==
+															undefined &&
+														value !== '' &&
+														Number.isFinite( count )
+															? { count }
+															: {} ),
+													},
+												} );
+												setError( '' );
+											} }
+										/>
+									) }
+
+									{ recurrenceEndBeforeStart && (
+										<Notice
+											status="error"
+											isDismissible={ false }
+										>
+											{ __(
+												'The last date must not be before the first date.',
+												'rrze-appointment'
+											) }
+										</Notice>
+									) }
+									{ ! recurrenceEndBeforeStart &&
+										recurrenceLimitExceeded && (
+											<Notice
+												status="error"
+												isDismissible={ false }
+											>
+												{ sprintf(
+													/* translators: %d: maximum number of dates in a recurrence series. */
+													__(
+														'A series can contain up to %d appointment dates. Choose an earlier end date or a smaller number.',
+														'rrze-appointment'
+													),
+													MAX_RECURRENCE_DATES
+												) }
+											</Notice>
+										) }
+									{ ! recurrenceEndBeforeStart &&
+										! recurrenceLimitExceeded &&
+										recurrenceSummary && (
+											<Notice
+												status="info"
+												isDismissible={ false }
+											>
+												{ recurrenceSummary }
+											</Notice>
+										) }
+								</Flex>
+							</CardBody>
+						</Card>
+					</Flex>
 				) }
 
 				{ error && (
