@@ -50,9 +50,15 @@ class Settings
         return str_replace(array_keys($vars), array_values($vars), $template);
     }
 
-    public static function sendMail(string $to, string $subject, string $plain, string $html, array $attachments = []): bool
-    {
-        $GLOBALS['rrze_appointment_html_body'] = MailTemplate::wrap($html, $subject);
+    public static function sendMail(
+        string $to,
+        string $subject,
+        string $plain,
+        string $html,
+        array $attachments = [],
+        string $status = MailTemplate::STATUS_NEUTRAL
+    ): bool {
+        $GLOBALS['rrze_appointment_html_body'] = MailTemplate::wrap($html, $subject, $status);
         add_action('phpmailer_init', [self::class, 'addHtmlPart']);
         $sent = wp_mail($to, $subject, $plain, [], $attachments);
         remove_action('phpmailer_init', [self::class, 'addHtmlPart']);
@@ -214,7 +220,14 @@ class Settings
             $plain   = Settings::renderTemplate(!empty($tpl['body'])    ? $tpl['body']    : $def['body'],    $vars);
             $html    = Settings::renderTemplate(!empty($tpl['body_html']) ? $tpl['body_html'] : $def['body_html'], $vars);
 
-            if (Settings::sendMail($to, '[TEST] ' . $subject, $plain, $html)) $sent++;
+            if (Settings::sendMail(
+                $to,
+                '[TEST] ' . $subject,
+                $plain,
+                $html,
+                [],
+                MailTemplate::statusForType($type)
+            )) $sent++;
         }
 
         $redirect = add_query_arg([

@@ -480,11 +480,11 @@ class Bookings
 
             $toAdmin = sanitize_email((string) ($meta['person_email'] ?? ''));
             if ($toAdmin) {
-                Settings::sendMail($toAdmin, $subject, $plain, $html);
+                Settings::sendMail($toAdmin, $subject, $plain, $html, [], MailTemplate::STATUS_DANGER);
             }
 
             if ($bookerEmail) {
-                Settings::sendMail($bookerEmail, $subject, $plain, $html);
+                Settings::sendMail($bookerEmail, $subject, $plain, $html, [], MailTemplate::STATUS_DANGER);
             }
         } catch (\Exception $e) {
             throw new CustomException($e->getMessage(), $e->getCode(), null);

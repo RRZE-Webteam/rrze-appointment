@@ -1582,3 +1582,19 @@ msgstr ""
 msgid ""
 "Open the General tab to configure reminder emails and booking data retention."
 msgstr ""
+
+#: includes/MailTemplate.php
+msgid "Booking confirmed"
+msgstr ""
+
+#: includes/MailTemplate.php
+msgid "Confirmation required"
+msgstr ""
+
+#: includes/MailTemplate.php
+msgid "Booking cancelled"
+msgstr ""
+
+#: includes/MailTemplate.php
+msgid "Appointment update"
+msgstr ""

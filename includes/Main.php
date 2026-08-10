@@ -746,7 +746,9 @@ class Main
             $recipient,
             $subject,
             $plain,
-            $html
+            $html,
+            [],
+            MailTemplate::STATUS_WARNING
         );
     }
 
@@ -934,7 +936,7 @@ class Main
             $plain = Settings::renderTemplate($bodyTpl, $vars);
             $html = Settings::renderTemplate($bodyHtmlTpl, $vars);
 
-            Settings::sendMail($bookerEmail, $subject, $plain, $html);
+            Settings::sendMail($bookerEmail, $subject, $plain, $html, [], MailTemplate::STATUS_WARNING);
 
             $this->sendQuestionAnswersMail(
                 $personEmail,
@@ -1070,11 +1072,11 @@ class Main
             $tmpFile = tempnam(get_temp_dir(), 'rrze_appt_') . '.ics';
             file_put_contents($tmpFile, $ics);
 
-            Settings::sendMail($bookerEmail, $subjectBooker, $plainBooker, $htmlBooker, [$tmpFile]);
+            Settings::sendMail($bookerEmail, $subjectBooker, $plainBooker, $htmlBooker, [$tmpFile], MailTemplate::STATUS_SUCCESS);
 
             $toAdmin = sanitize_email((string) ($meta['person_email'] ?? ''));
             if ($toAdmin) {
-                Settings::sendMail($toAdmin, $subjectHost, $plainHost, $htmlHost, [$tmpFile]);
+                Settings::sendMail($toAdmin, $subjectHost, $plainHost, $htmlHost, [$tmpFile], MailTemplate::STATUS_SUCCESS);
             }
 
             @unlink($tmpFile);

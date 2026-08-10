@@ -109,9 +109,23 @@
             </div>
 
             <div
-              class="rrze-email-card border border-border border-t-4 border-t-brand bg-white"
+              class="h-1 leading-1"
+              style="background-color: ___RRZE_EMAIL_STATUS_ACCENT___"
+            ></div>
+            <div
+              class="rrze-email-card border border-t-0 border-border bg-white"
             >
               <div class="px-8 pb-3 pt-7 sm:px-5">
+                <div
+                  class="rrze-email-status mb-6 border-l-4 px-4 py-2.5 text-[13px] font-bold leading-5"
+                  style="
+                    border-left-color: ___RRZE_EMAIL_STATUS_ACCENT___;
+                    background-color: ___RRZE_EMAIL_STATUS_SURFACE___;
+                    color: ___RRZE_EMAIL_STATUS_TEXT___;
+                  "
+                >
+                  ___RRZE_EMAIL_STATUS_LABEL___
+                </div>
                 <p
                   class="m-0 mb-2 text-xs font-bold uppercase tracking-[0.08em] text-brand"
                 >
@@ -132,7 +146,8 @@
             </div>
 
             <div
-              class="rrze-email-footer rounded-b-lg border border-t-0 border-border bg-brand-light px-8 py-5 text-xs leading-5 text-muted sm:px-5"
+              class="rrze-email-footer rounded-b-lg border border-t-0 border-border px-8 py-5 text-xs leading-5 text-muted sm:px-5"
+              style="background-color: ___RRZE_EMAIL_STATUS_SURFACE___"
             >
               <p class="m-0 mb-1">
                 <a

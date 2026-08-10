@@ -105,11 +105,11 @@ class Reminder
 
             $toAdmin = sanitize_email((string) ($meta['person_email'] ?? ''));
             if ($toAdmin) {
-                Settings::sendMail($toAdmin, $subject, $body, $bodyHtml);
+                Settings::sendMail($toAdmin, $subject, $body, $bodyHtml, [], MailTemplate::STATUS_SUCCESS);
             }
 
             if ($bookerEmail) {
-                Settings::sendMail($bookerEmail, $subject, $bodyBooker, $bodyBookerHtml);
+                Settings::sendMail($bookerEmail, $subject, $bodyBooker, $bodyBookerHtml, [], MailTemplate::STATUS_SUCCESS);
             }
         } catch (\Exception $e) {
             throw new CustomException($e->getMessage(), $e->getCode(), null);

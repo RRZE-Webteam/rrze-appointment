@@ -1657,3 +1657,19 @@ msgid ""
 msgstr ""
 "Öffnen Sie den Tab „Allgemein“, um Erinnerungsmails und die Aufbewahrung von "
 "Buchungsdaten zu konfigurieren."
+
+#: includes/MailTemplate.php
+msgid "Booking confirmed"
+msgstr "Termin bestätigt"
+
+#: includes/MailTemplate.php
+msgid "Confirmation required"
+msgstr "Bestätigung erforderlich"
+
+#: includes/MailTemplate.php
+msgid "Booking cancelled"
+msgstr "Termin storniert"
+
+#: includes/MailTemplate.php
+msgid "Appointment update"
+msgstr "Termin-Information"

@@ -11,6 +11,10 @@ const markers = [
 	'___RRZE_EMAIL_LOGO___',
 	'___RRZE_EMAIL_CONTENT___',
 	'___RRZE_EMAIL_FOOTER_LINKS___',
+	'___RRZE_EMAIL_STATUS_ACCENT___',
+	'___RRZE_EMAIL_STATUS_SURFACE___',
+	'___RRZE_EMAIL_STATUS_TEXT___',
+	'___RRZE_EMAIL_STATUS_LABEL___',
 ];
 
 const missingMarkers = markers.filter(

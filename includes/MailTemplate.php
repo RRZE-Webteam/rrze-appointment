@@ -7,12 +7,17 @@ defined('ABSPATH') || exit;
 class MailTemplate
 {
     private const LAYOUT_PATH = 'build/email/layout.html';
+    public const STATUS_NEUTRAL = 'neutral';
+    public const STATUS_SUCCESS = 'success';
+    public const STATUS_WARNING = 'warning';
+    public const STATUS_DANGER = 'danger';
 
-    public static function wrap(string $content, string $subject = ''): string
+    public static function wrap(string $content, string $subject = '', string $status = self::STATUS_NEUTRAL): string
     {
         $siteName = (string) get_bloginfo('name');
         $siteUrl = home_url('/');
         $language = str_replace('_', '-', (string) get_bloginfo('language')) ?: 'de';
+        $statusStyle = self::getStatusStyle($status);
 
         $layout = self::getLayout();
 
@@ -25,7 +30,28 @@ class MailTemplate
             '___RRZE_EMAIL_LOGO___' => self::getLogoHtml($siteName),
             '___RRZE_EMAIL_CONTENT___' => $content,
             '___RRZE_EMAIL_FOOTER_LINKS___' => self::getFooterLinksHtml(),
+            '___RRZE_EMAIL_STATUS_ACCENT___' => esc_attr($statusStyle['accent']),
+            '___RRZE_EMAIL_STATUS_SURFACE___' => esc_attr($statusStyle['surface']),
+            '___RRZE_EMAIL_STATUS_TEXT___' => esc_attr($statusStyle['text']),
+            '___RRZE_EMAIL_STATUS_LABEL___' => esc_html($statusStyle['label']),
         ]);
+    }
+
+    public static function statusForType(string $type): string
+    {
+        if ($type === 'booking_pending') {
+            return self::STATUS_WARNING;
+        }
+
+        if (in_array($type, ['booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker'], true)) {
+            return self::STATUS_SUCCESS;
+        }
+
+        if ($type === 'cancellation') {
+            return self::STATUS_DANGER;
+        }
+
+        return self::STATUS_NEUTRAL;
     }
 
     /**
@@ -112,6 +138,43 @@ class MailTemplate
         return implode(' &nbsp;&middot;&nbsp; ', $links);
     }
 
+    /**
+     * Material palette colors paired with high-contrast text colors.
+     *
+     * @return array{accent: string, surface: string, text: string, label: string}
+     */
+    private static function getStatusStyle(string $status): array
+    {
+        $styles = [
+            self::STATUS_SUCCESS => [
+                'accent' => '#2e7d32',
+                'surface' => '#e8f5e9',
+                'text' => '#1b5e20',
+                'label' => __('Booking confirmed', 'rrze-appointment'),
+            ],
+            self::STATUS_WARNING => [
+                'accent' => '#ff8f00',
+                'surface' => '#fff8e1',
+                'text' => '#5d4037',
+                'label' => __('Confirmation required', 'rrze-appointment'),
+            ],
+            self::STATUS_DANGER => [
+                'accent' => '#c62828',
+                'surface' => '#ffebee',
+                'text' => '#b71c1c',
+                'label' => __('Booking cancelled', 'rrze-appointment'),
+            ],
+            self::STATUS_NEUTRAL => [
+                'accent' => '#04316a',
+                'surface' => '#e9f2fb',
+                'text' => '#04316a',
+                'label' => __('Appointment update', 'rrze-appointment'),
+            ],
+        ];
+
+        return $styles[$status] ?? $styles[self::STATUS_NEUTRAL];
+    }
+
     private static function getFallbackLayout(): string
     {
         return '<!DOCTYPE html><html lang="___RRZE_EMAIL_LANG___" dir="___RRZE_EMAIL_DIR___"><head>'
@@ -122,11 +185,13 @@ class MailTemplate
             . '<tr><td align="center" style="padding:32px 16px;"><table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:640px;">'
             . '<tr><td style="padding:28px 32px 24px;border:1px solid #d7dde5;border-bottom:0;background:#ffffff;">'
             . '<a href="___RRZE_EMAIL_SITE_URL___" style="text-decoration:none;">___RRZE_EMAIL_LOGO___</a></td></tr>'
-            . '<tr><td style="padding:28px 32px 32px;border:1px solid #d7dde5;border-top:4px solid #04316a;background:#ffffff;">'
+            . '<tr><td style="padding:28px 32px 32px;border:1px solid #d7dde5;border-top:4px solid ___RRZE_EMAIL_STATUS_ACCENT___;background:#ffffff;">'
+            . '<div style="margin:0 0 24px;padding:10px 14px;border-left:4px solid ___RRZE_EMAIL_STATUS_ACCENT___;background:___RRZE_EMAIL_STATUS_SURFACE___;color:___RRZE_EMAIL_STATUS_TEXT___;font-size:13px;font-weight:700;line-height:20px;">'
+            . '___RRZE_EMAIL_STATUS_LABEL___</div>'
             . '<p style="margin:0 0 8px;color:#04316a;font-size:12px;font-weight:700;text-transform:uppercase;">___RRZE_EMAIL_SITE_NAME___</p>'
             . '<h1 style="margin:0 0 24px;color:#1f2937;font-size:28px;line-height:36px;">___RRZE_EMAIL_SUBJECT___</h1>'
             . '<div style="font-size:15px;line-height:24px;">___RRZE_EMAIL_CONTENT___</div></td></tr>'
-            . '<tr><td style="padding:20px 32px;border:1px solid #d7dde5;border-top:0;background:#e9f2fb;color:#5f6b7a;font-size:12px;line-height:20px;">'
+            . '<tr><td style="padding:20px 32px;border:1px solid #d7dde5;border-top:0;background:___RRZE_EMAIL_STATUS_SURFACE___;color:#5f6b7a;font-size:12px;line-height:20px;">'
             . '<p style="margin:0 0 4px;"><a href="___RRZE_EMAIL_SITE_URL___" style="color:#04316a;font-weight:600;text-decoration:none;">___RRZE_EMAIL_SITE_NAME___</a></p>'
             . '___RRZE_EMAIL_FOOTER_LINKS___</td></tr></table></td></tr></table></body></html>';
     }
