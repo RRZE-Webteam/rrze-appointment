@@ -355,7 +355,7 @@ class Bookings
             $plain   = Settings::renderTemplate($bodyTpl, $vars);
             $html    = Settings::renderTemplate($bodyHtmlTpl, $vars);
 
-            if (!Settings::sendMail($bookerEmail, $subject, $plain, MailTemplate::wrap($html, $subject))) {
+            if (!Settings::sendMail($bookerEmail, $subject, $plain, $html)) {
                 return false;
             }
 

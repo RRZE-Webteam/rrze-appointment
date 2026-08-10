@@ -61,29 +61,34 @@ class MailTemplatePost
         $cancel      = __('Cancel appointment', 'rrze-appointment');
         $legal       = __('Legal notice', 'rrze-appointment');
 
-        $baseTable = '<table>'
-            . "<tr><th>{$appointment}</th><td>[title]</td></tr>"
-            . "<tr><th>{$date}</th><td>[date]</td></tr>"
-            . "<tr><th>{$time}</th><td>[time]</td></tr>"
-            . "<tr><th>{$location}</th><td>[location]</td></tr>"
-            . '</table>';
+        $baseTable = MailTemplate::detailsTable([
+            $appointment => '[title]',
+            $date => '[date]',
+            $time => '[time]',
+            $location => '[location]',
+        ]);
 
-        $hostTable = '<table>'
-            . "<tr><th>{$appointment}</th><td>[title]</td></tr>"
-            . "<tr><th>{$date}</th><td>[date]</td></tr>"
-            . "<tr><th>{$time}</th><td>[time]</td></tr>"
-            . "<tr><th>{$location}</th><td>[location]</td></tr>"
-            . "<tr><th>{$bookedBy}</th><td>[name] ([email])</td></tr>"
-            . "<tr><th>{$message}</th><td>[message]</td></tr>"
-            . '</table>';
+        $hostTable = MailTemplate::detailsTable([
+            $appointment => '[title]',
+            $date => '[date]',
+            $time => '[time]',
+            $location => '[location]',
+            $bookedBy => '[name] ([email])',
+            $message => '<span style="white-space:pre-line;">[message]</span>',
+        ]);
 
-        $reminderHostTable = '<table>'
-            . "<tr><th>{$appointment}</th><td>[title]</td></tr>"
-            . "<tr><th>{$date}</th><td>[date]</td></tr>"
-            . "<tr><th>{$time}</th><td>[time]</td></tr>"
-            . "<tr><th>{$location}</th><td>[location]</td></tr>"
-            . "<tr><th>{$bookedBy}</th><td>[name] ([email])</td></tr>"
-            . '</table>';
+        $reminderHostTable = MailTemplate::detailsTable([
+            $appointment => '[title]',
+            $date => '[date]',
+            $time => '[time]',
+            $location => '[location]',
+            $bookedBy => '[name] ([email])',
+        ]);
+
+        $legalLink = '<p style="margin:24px 0 0;font-size:13px;line-height:20px;">'
+            . '<a href="[imprint_link]" target="_blank" style="color:#04316a;text-decoration:underline;">'
+            . $legal
+            . '</a></p>';
 
         $defaults = [
             'booking_pending' => [
@@ -99,9 +104,9 @@ class MailTemplatePost
                 'body_html'  =>
                     '<p>' . __('Please confirm your appointment request:', 'rrze-appointment') . '</p>'
                     . $baseTable
-                    . '<p><a href="[confirmation_link]">' . $confirm . '</a>'
-                    . ' &nbsp;|&nbsp; <a href="[cancel_link]">' . $cancelReq . '</a></p>'
-                    . '<p><a href="[imprint_link]">' . $legal . '</a></p>',
+                    . MailTemplate::actionButton('[confirmation_link]', $confirm)
+                    . '<p style="margin:0;"><a href="[cancel_link]">' . $cancelReq . '</a></p>'
+                    . $legalLink,
             ],
             'booking_booker' => [
                 'subject'   => __('Booking confirmation: [title] on [date]', 'rrze-appointment'),
@@ -113,8 +118,8 @@ class MailTemplatePost
                 'body_html'  =>
                     '<p>' . __('Your appointment has been confirmed:', 'rrze-appointment') . '</p>'
                     . $baseTable
-                    . '<p><a href="[cancel_link]">' . $cancel . '</a></p>'
-                    . '<p><a href="[imprint_link]">' . $legal . '</a></p>',
+                    . MailTemplate::actionButton('[cancel_link]', $cancel)
+                    . $legalLink,
             ],
             'booking_host' => [
                 'subject'   => __('New booking: [title] on [date]', 'rrze-appointment'),
@@ -126,8 +131,8 @@ class MailTemplatePost
                 'body_html'  =>
                     '<p>' . __('New booking received:', 'rrze-appointment') . '</p>'
                     . $hostTable
-                    . '<p><a href="[cancel_link]">' . $cancel . '</a></p>'
-                    . '<p><a href="[imprint_link]">' . $legal . '</a></p>',
+                    . MailTemplate::actionButton('[cancel_link]', $cancel)
+                    . $legalLink,
             ],
             'reminder_admin' => [
                 'subject'   => __('Reminder: [title] on [date]', 'rrze-appointment'),
@@ -139,8 +144,8 @@ class MailTemplatePost
                 'body_html'  =>
                     '<p>' . __('Reminder for the following appointment:', 'rrze-appointment') . '</p>'
                     . $reminderHostTable
-                    . '<p><a href="[cancel_link]">' . $cancel . '</a></p>'
-                    . '<p><a href="[imprint_link]">' . $legal . '</a></p>',
+                    . MailTemplate::actionButton('[cancel_link]', $cancel)
+                    . $legalLink,
             ],
             'reminder_booker' => [
                 'subject'   => __('Reminder: [title] on [date]', 'rrze-appointment'),
@@ -152,8 +157,8 @@ class MailTemplatePost
                 'body_html'  =>
                     '<p>' . __('Reminder for your appointment:', 'rrze-appointment') . '</p>'
                     . $baseTable
-                    . '<p><a href="[cancel_link]">' . $cancel . '</a></p>'
-                    . '<p><a href="[imprint_link]">' . $legal . '</a></p>',
+                    . MailTemplate::actionButton('[cancel_link]', $cancel)
+                    . $legalLink,
             ],
             'cancellation' => [
                 'subject'   => __('Cancellation: [title] on [date]', 'rrze-appointment'),
@@ -165,7 +170,7 @@ class MailTemplatePost
                 'body_html'  =>
                     '<p>' . __('Your appointment has been cancelled:', 'rrze-appointment') . '</p>'
                     . $baseTable
-                    . '<p><a href="[imprint_link]">' . $legal . '</a></p>',
+                    . $legalLink,
             ],
             'waitlist_earlier_slot' => [
                 'subject'   => __('Earlier appointment available', 'rrze-appointment'),
@@ -189,8 +194,9 @@ class MailTemplatePost
                     . $baseTable
                     . '<p><strong>' . __('Host', 'rrze-appointment') . ':</strong> [person_name]</p>'
                     . '<p>' . sprintf(__('Your current appointment is on %s at %s.', 'rrze-appointment'), '[current_date]', '[current_time]') . '</p>'
-                    . '<p>' . __('Please book the earlier slot directly on the website.', 'rrze-appointment') . ' <a href="[post_link]">[post_link]</a></p>'
-                    . '<p><a href="[imprint_link]">' . $legal . '</a></p>',
+                    . '<p>' . __('Please book the earlier slot directly on the website.', 'rrze-appointment') . '</p>'
+                    . MailTemplate::actionButton('[post_link]', __('View available appointments', 'rrze-appointment'))
+                    . $legalLink,
             ],
         ];
 

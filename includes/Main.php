@@ -706,8 +706,12 @@ class Main
             $label = (string) ($answer['label'] ?? '');
             $value = (string) ($answer['answer'] ?? '');
             $plainAnswers[] = $label . ': ' . $value;
-            $htmlAnswers .= '<dt><strong>' . esc_html($label) . '</strong></dt>'
-                . '<dd>' . nl2br(esc_html($value)) . '</dd>';
+            $htmlAnswers .= '<tr>'
+                . '<th scope="row" style="width:34%;padding:10px 12px;border-bottom:1px solid #e5e9ef;color:#5f6b7a;font-size:13px;font-weight:600;line-height:20px;text-align:left;vertical-align:top;">'
+                . esc_html($label)
+                . '</th><td style="padding:10px 12px;border-bottom:1px solid #e5e9ef;color:#1f2937;font-size:15px;line-height:22px;text-align:left;vertical-align:top;">'
+                . nl2br(esc_html($value))
+                . '</td></tr>';
         }
 
         $plain = sprintf(
@@ -722,15 +726,19 @@ class Main
         );
         $html = '<p>'
             . esc_html__('A new appointment request contains additional information.', 'rrze-appointment')
-            . '</p><dl>'
-            . '<dt><strong>' . esc_html__('Appointment', 'rrze-appointment') . '</strong></dt><dd>' . esc_html($title) . '</dd>'
-            . '<dt><strong>' . esc_html__('Date', 'rrze-appointment') . '</strong></dt><dd>' . esc_html($date) . '</dd>'
-            . '<dt><strong>' . esc_html__('Time', 'rrze-appointment') . '</strong></dt><dd>' . esc_html($time) . '</dd>'
-            . '<dt><strong>' . esc_html__('Name', 'rrze-appointment') . '</strong></dt><dd>' . esc_html($bookerName) . '</dd>'
-            . '<dt><strong>' . esc_html__('Email', 'rrze-appointment') . '</strong></dt><dd>' . esc_html($bookerEmail) . '</dd>'
-            . '</dl><h2>' . esc_html__('Additional information', 'rrze-appointment') . '</h2><dl>'
+            . '</p>'
+            . MailTemplate::detailsTable([
+                __('Appointment', 'rrze-appointment') => esc_html($title),
+                __('Date', 'rrze-appointment') => esc_html($date),
+                __('Time', 'rrze-appointment') => esc_html($time),
+                __('Name', 'rrze-appointment') => esc_html($bookerName),
+                __('Email', 'rrze-appointment') => esc_html($bookerEmail),
+            ])
+            . '<h2 style="margin:28px 0 8px;color:#1f2937;font-size:20px;line-height:28px;">'
+            . esc_html__('Additional information', 'rrze-appointment')
+            . '</h2><table class="rrze-email-details" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:12px 0 20px;border-collapse:collapse;">'
             . $htmlAnswers
-            . '</dl><p>'
+            . '</table><p>'
             . esc_html__('The requester must still confirm the appointment by email.', 'rrze-appointment')
             . '</p>';
 
