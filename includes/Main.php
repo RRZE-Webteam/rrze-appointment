@@ -676,6 +676,72 @@ class Main
         return str_replace(['\\', ';', ',', "\n"], ['\\\\', '\;', '\,', '\n'], $value);
     }
 
+    /**
+     * Sends custom-question answers without adding them to booking metadata.
+     *
+     * The answers only live for the duration of the booking request and are
+     * deliberately sent before the pending request returns to the browser.
+     */
+    private function sendQuestionAnswersMail(
+        string $recipient,
+        string $title,
+        string $date,
+        string $time,
+        string $bookerName,
+        string $bookerEmail,
+        array $answers
+    ): void {
+        if ($recipient === '' || empty($answers)) {
+            return;
+        }
+
+        $subject = sprintf(
+            /* translators: %s: Appointment title. */
+            __('Additional information for appointment request: %s', 'rrze-appointment'),
+            $title
+        );
+        $plainAnswers = [];
+        $htmlAnswers = '';
+        foreach ($answers as $answer) {
+            $label = (string) ($answer['label'] ?? '');
+            $value = (string) ($answer['answer'] ?? '');
+            $plainAnswers[] = $label . ': ' . $value;
+            $htmlAnswers .= '<dt><strong>' . esc_html($label) . '</strong></dt>'
+                . '<dd>' . nl2br(esc_html($value)) . '</dd>';
+        }
+
+        $plain = sprintf(
+            /* translators: 1: Appointment title. 2: Date. 3: Time. 4: Booker name. 5: Booker email. 6: Answers. */
+            __("A new appointment request contains additional information.\n\nAppointment: %1\$s\nDate: %2\$s\nTime: %3\$s\nName: %4\$s\nEmail: %5\$s\n\nAdditional information:\n%6\$s\n\nThe requester must still confirm the appointment by email.", 'rrze-appointment'),
+            $title,
+            $date,
+            $time,
+            $bookerName,
+            $bookerEmail,
+            implode("\n", $plainAnswers)
+        );
+        $html = '<p>'
+            . esc_html__('A new appointment request contains additional information.', 'rrze-appointment')
+            . '</p><dl>'
+            . '<dt><strong>' . esc_html__('Appointment', 'rrze-appointment') . '</strong></dt><dd>' . esc_html($title) . '</dd>'
+            . '<dt><strong>' . esc_html__('Date', 'rrze-appointment') . '</strong></dt><dd>' . esc_html($date) . '</dd>'
+            . '<dt><strong>' . esc_html__('Time', 'rrze-appointment') . '</strong></dt><dd>' . esc_html($time) . '</dd>'
+            . '<dt><strong>' . esc_html__('Name', 'rrze-appointment') . '</strong></dt><dd>' . esc_html($bookerName) . '</dd>'
+            . '<dt><strong>' . esc_html__('Email', 'rrze-appointment') . '</strong></dt><dd>' . esc_html($bookerEmail) . '</dd>'
+            . '</dl><h2>' . esc_html__('Additional information', 'rrze-appointment') . '</h2><dl>'
+            . $htmlAnswers
+            . '</dl><p>'
+            . esc_html__('The requester must still confirm the appointment by email.', 'rrze-appointment')
+            . '</p>';
+
+        Settings::sendMail(
+            $recipient,
+            $subject,
+            $plain,
+            $html
+        );
+    }
+
 
     public function handleBooking(): void
     {
@@ -745,7 +811,7 @@ class Main
             if ($requireMessage && !$bookerMsg)
                 wp_send_json_error(__('Please provide a message.', 'rrze-appointment'));
 
-            $questionAnswers = [];
+            $questionAnswersForMail = [];
             $questionAnswerLines = [];
             foreach ($questions as $question) {
                 $questionId = (string) $question['id'];
@@ -778,20 +844,19 @@ class Main
                     continue;
                 }
 
-                $questionAnswers[] = [
-                    'id' => $questionId,
+                $questionAnswersForMail[] = [
                     'label' => $question['label'],
-                    'type' => $question['type'],
                     'answer' => $answer,
                 ];
                 $questionAnswerLines[] = $question['label'] . ': ' . $answer;
             }
 
+            $messageForMail = $bookerMsg;
             if (!empty($questionAnswerLines)) {
                 $questionSummary = __('Additional information:', 'rrze-appointment')
                     . "\n"
                     . implode("\n", $questionAnswerLines);
-                $bookerMsg = $bookerMsg !== ''
+                $messageForMail = $bookerMsg !== ''
                     ? $bookerMsg . "\n\n" . $questionSummary
                     : $questionSummary;
             }
@@ -809,6 +874,8 @@ class Main
                 wp_send_json_error(__('This appointment is no longer available.', 'rrze-appointment'));
             }
 
+            // Custom-question answers must never be added here. This array is
+            // stored in the database while pending and after confirmation.
             $meta = [
                 'title' => $title,
                 'location' => $location,
@@ -818,7 +885,6 @@ class Main
                 'booker_email' => $bookerEmail,
                 'booker_name' => $bookerName,
                 'booker_message' => $bookerMsg,
-                'question_answers' => $questionAnswers,
                 'booker_waitlist' => $bookerWaitlist,
                 'waitlist_notified_slots' => [],
                 'tpl_id' => $tplId,
@@ -837,7 +903,7 @@ class Main
                 '[person_name]' => $pName ?: '–',
                 '[name]' => $bookerName ?: '–',
                 '[email]' => $bookerEmail ?: '–',
-                '[message]' => $bookerMsg ?: '',
+                '[message]' => $messageForMail,
                 '[confirmation_link]' => $confirmUrl,
                 '[cancel_link]' => TokenManager::cancelUrl(TokenManager::createPendingCancelToken($confirmToken)),
                 '[imprint_link]' => $imprintUrl,
@@ -861,6 +927,16 @@ class Main
             $html = Settings::renderTemplate($bodyHtmlTpl, $vars);
 
             Settings::sendMail($bookerEmail, $subject, $plain, $html);
+
+            $this->sendQuestionAnswersMail(
+                $personEmail,
+                $title,
+                date_i18n(get_option('date_format'), strtotime($datePart)),
+                $startTime . ' – ' . $endTime,
+                $bookerName,
+                $bookerEmail,
+                $questionAnswersForMail
+            );
 
             wp_send_json_success(['message' => __('Please confirm your appointment by email.', 'rrze-appointment')]);
         } catch (CustomException $e) {
