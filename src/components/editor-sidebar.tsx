@@ -23,6 +23,8 @@ interface EditorSidebarProps {
 	mailTemplates: MailTemplateOption[];
 	onImportFromFaudir: () => void;
 	onManageAppointments: () => void;
+	onManageQuestions: () => void;
+	questionCount: number;
 	setAttributes: EditProps[ 'setAttributes' ];
 }
 
@@ -35,6 +37,8 @@ export function EditorSidebar( {
 	mailTemplates,
 	onImportFromFaudir,
 	onManageAppointments,
+	onManageQuestions,
+	questionCount,
 	setAttributes,
 }: EditorSidebarProps ) {
 	const {
@@ -78,6 +82,22 @@ export function EditorSidebar( {
 				<p>{ appointmentSummary }</p>
 				<Button variant="secondary" onClick={ onManageAppointments }>
 					{ __( 'Manage appointment times', 'rrze-appointment' ) }
+				</Button>
+			</PanelBody>
+
+			<PanelBody
+				title={ __( 'Additional questions', 'rrze-appointment' ) }
+				initialOpen={ false }
+			>
+				<p>
+					{ sprintf(
+						/* translators: %d: Number of configured questions. */
+						__( 'Questions: %d', 'rrze-appointment' ),
+						questionCount
+					) }
+				</p>
+				<Button variant="secondary" onClick={ onManageQuestions }>
+					{ __( 'Manage questions', 'rrze-appointment' ) }
 				</Button>
 			</PanelBody>
 

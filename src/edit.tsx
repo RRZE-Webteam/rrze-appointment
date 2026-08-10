@@ -16,6 +16,7 @@ import {
 	EditorSidebar,
 	FaudirImportDialog,
 	PreviewCalendar,
+	QuestionsManagerDialog,
 } from './components';
 import {
 	buildAvailabilityAttributes,
@@ -110,6 +111,7 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 	const [ showCalendarPreview, setShowCalendarPreview ] = useState( false );
 	const [ showAvailabilityManager, setShowAvailabilityManager ] =
 		useState( false );
+	const [ showQuestionsManager, setShowQuestionsManager ] = useState( false );
 	const [ returnToAvailabilityManager, setReturnToAvailabilityManager ] =
 		useState( false );
 	const [ availabilityDraft, setAvailabilityDraft ] =
@@ -117,6 +119,9 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 	const [ editedAvailabilityId, setEditedAvailabilityId ] = useState( '' );
 	const [ availabilityToDelete, setAvailabilityToDelete ] =
 		useState< AvailabilityEntry | null >( null );
+	const questions = Array.isArray( attributes.questions )
+		? attributes.questions
+		: [];
 
 	const handleOpenFaudirImport = () => {
 		setShowFaudirImport( true );
@@ -501,6 +506,12 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 						onClick={ () => setShowAvailabilityManager( true ) }
 					/>
 					<ToolbarButton
+						icon="editor-help"
+						label={ __( 'Manage questions', 'rrze-appointment' ) }
+						isPressed={ showQuestionsManager }
+						onClick={ () => setShowQuestionsManager( true ) }
+					/>
+					<ToolbarButton
 						icon="calendar-alt"
 						label={ __( 'Calendar preview', 'rrze-appointment' ) }
 						isPressed={ showCalendarPreview }
@@ -522,6 +533,8 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 				onManageAppointments={ () =>
 					setShowAvailabilityManager( true )
 				}
+				onManageQuestions={ () => setShowQuestionsManager( true ) }
+				questionCount={ questions.length }
 				setAttributes={ setAttributes }
 			/>
 
@@ -610,6 +623,19 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 										handleEditAvailability( entry, true )
 									}
 									onToggleException={ handleToggleException }
+								/>
+							) }
+							{ showQuestionsManager && (
+								<QuestionsManagerDialog
+									questions={ questions }
+									onChange={ ( nextQuestions ) =>
+										setAttributes( {
+											questions: nextQuestions,
+										} )
+									}
+									onClose={ () =>
+										setShowQuestionsManager( false )
+									}
 								/>
 							) }
 							{ availabilityDraft && (

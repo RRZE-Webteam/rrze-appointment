@@ -7,3 +7,4 @@ export { DeleteAvailabilityDialog } from './delete-availability-dialog';
 export { EditorSidebar } from './editor-sidebar';
 export { FaudirImportDialog } from './faudir-import-dialog';
 export { PreviewCalendar } from './preview-calendar';
+export { QuestionsManagerDialog } from './questions-manager-dialog';

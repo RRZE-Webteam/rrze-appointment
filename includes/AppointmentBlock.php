@@ -9,6 +9,59 @@ final class AppointmentBlock
     private const BLOCK_NAME = 'rrze/appointment';
 
     /**
+     * Return the valid additional questions stored on a block.
+     */
+    public static function getQuestions(array $attributes): array
+    {
+        $rawQuestions = $attributes['questions'] ?? [];
+        if (!is_array($rawQuestions)) {
+            return [];
+        }
+
+        $questions = [];
+        $knownIds = [];
+        foreach ($rawQuestions as $rawQuestion) {
+            if (!is_array($rawQuestion)) {
+                continue;
+            }
+
+            $id = sanitize_key((string) ($rawQuestion['id'] ?? ''));
+            $label = sanitize_text_field((string) ($rawQuestion['label'] ?? ''));
+            $type = ($rawQuestion['type'] ?? '') === 'select' ? 'select' : 'text';
+            if ($id === '' || $label === '' || isset($knownIds[$id])) {
+                continue;
+            }
+
+            $options = [];
+            if ($type === 'select' && is_array($rawQuestion['options'] ?? null)) {
+                foreach ($rawQuestion['options'] as $rawOption) {
+                    if (!is_scalar($rawOption)) {
+                        continue;
+                    }
+                    $option = sanitize_text_field((string) $rawOption);
+                    if ($option !== '' && !in_array($option, $options, true)) {
+                        $options[] = $option;
+                    }
+                }
+            }
+            if ($type === 'select' && empty($options)) {
+                continue;
+            }
+
+            $knownIds[$id] = true;
+            $questions[] = [
+                'id' => $id,
+                'label' => $label,
+                'type' => $type,
+                'required' => !empty($rawQuestion['required']),
+                'options' => $options,
+            ];
+        }
+
+        return $questions;
+    }
+
+    /**
      * Build a stable selector for a published appointment block.
      *
      * The selector is not trusted as booking data. It only identifies the block
@@ -245,6 +298,7 @@ final class AppointmentBlock
             'person_email' => $personEmail,
             'tpl_id' => $templateId,
             'require_message' => !empty($attributes['requireMessage']),
+            'questions' => self::getQuestions($attributes),
             'disable_sso' => !empty($attributes['disableSso']),
             'post_link' => $postLink ? esc_url_raw($postLink) : home_url('/'),
         ];

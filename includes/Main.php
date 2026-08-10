@@ -473,6 +473,8 @@ class Main
                         'nameRequired' => __('Enter your name.', 'rrze-appointment'),
                         'emailRequired' => __('Enter a valid email address.', 'rrze-appointment'),
                         'messageRequired' => __('Enter a message.', 'rrze-appointment'),
+                        'questionRequired' => __('Answer this required question.', 'rrze-appointment'),
+                        'selectOption' => __('Select an option', 'rrze-appointment'),
                         'book' => __('Request appointment', 'rrze-appointment'),
                         'cancel' => __('Cancel', 'rrze-appointment'),
                         'booking' => __('Sending request…', 'rrze-appointment'),
@@ -687,6 +689,14 @@ class Main
             $postedBookerName = sanitize_text_field($_POST['booker_name'] ?? '');
             $bookerMsg = sanitize_textarea_field($_POST['booker_message'] ?? '');
             $bookerWaitlist = !empty($_POST['booker_waitlist']) && $_POST['booker_waitlist'] === '1';
+            $postedQuestionAnswers = [];
+            $postedQuestionAnswersJson = wp_unslash($_POST['question_answers'] ?? '');
+            if (is_string($postedQuestionAnswersJson) && $postedQuestionAnswersJson !== '') {
+                $decodedQuestionAnswers = json_decode($postedQuestionAnswersJson, true);
+                if (is_array($decodedQuestionAnswers)) {
+                    $postedQuestionAnswers = $decodedQuestionAnswers;
+                }
+            }
 
             if (!$slot) {
                 wp_send_json_error(__('No appointment specified.', 'rrze-appointment'));
@@ -708,6 +718,7 @@ class Main
             $pName = $bookingContext['person_name'];
             $tplId = $bookingContext['tpl_id'];
             $requireMessage = $bookingContext['require_message'];
+            $questions = $bookingContext['questions'];
             $disableSso = $bookingContext['disable_sso'];
             $postLink = $bookingContext['post_link'];
 
@@ -734,6 +745,57 @@ class Main
             if ($requireMessage && !$bookerMsg)
                 wp_send_json_error(__('Please provide a message.', 'rrze-appointment'));
 
+            $questionAnswers = [];
+            $questionAnswerLines = [];
+            foreach ($questions as $question) {
+                $questionId = (string) $question['id'];
+                $rawAnswer = $postedQuestionAnswers[$questionId] ?? '';
+                $answer = is_scalar($rawAnswer) ? (string) $rawAnswer : '';
+                $answer = $question['type'] === 'select'
+                    ? sanitize_text_field($answer)
+                    : sanitize_textarea_field($answer);
+                $answer = trim($answer);
+
+                if (!empty($question['required']) && $answer === '') {
+                    wp_send_json_error(sprintf(
+                        /* translators: %s: Question that requires an answer. */
+                        __('Please answer “%s”.', 'rrze-appointment'),
+                        $question['label']
+                    ));
+                }
+                if (
+                    $question['type'] === 'select'
+                    && $answer !== ''
+                    && !in_array($answer, $question['options'], true)
+                ) {
+                    wp_send_json_error(sprintf(
+                        /* translators: %s: Question with an invalid dropdown answer. */
+                        __('Select a valid answer for “%s”.', 'rrze-appointment'),
+                        $question['label']
+                    ));
+                }
+                if ($answer === '') {
+                    continue;
+                }
+
+                $questionAnswers[] = [
+                    'id' => $questionId,
+                    'label' => $question['label'],
+                    'type' => $question['type'],
+                    'answer' => $answer,
+                ];
+                $questionAnswerLines[] = $question['label'] . ': ' . $answer;
+            }
+
+            if (!empty($questionAnswerLines)) {
+                $questionSummary = __('Additional information:', 'rrze-appointment')
+                    . "\n"
+                    . implode("\n", $questionAnswerLines);
+                $bookerMsg = $bookerMsg !== ''
+                    ? $bookerMsg . "\n\n" . $questionSummary
+                    : $questionSummary;
+            }
+
             [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
             [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
 
@@ -756,6 +818,7 @@ class Main
                 'booker_email' => $bookerEmail,
                 'booker_name' => $bookerName,
                 'booker_message' => $bookerMsg,
+                'question_answers' => $questionAnswers,
                 'booker_waitlist' => $bookerWaitlist,
                 'waitlist_notified_slots' => [],
                 'tpl_id' => $tplId,

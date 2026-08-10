@@ -475,7 +475,8 @@
 
         &-email,
         &-name,
-        &-message {
+        &-message,
+        &-question {
             box-sizing: border-box;
             width: 100%;
             min-height: 42px;
@@ -494,15 +495,22 @@
             resize: vertical;
         }
 
+        &-question:is(textarea) {
+            min-height: 84px;
+            resize: vertical;
+        }
+
         &-email:hover,
         &-name:hover,
-        &-message:hover {
+        &-message:hover,
+        &-question:hover {
             border-color: #50575e;
         }
 
         &-email:focus,
         &-name:focus,
-        &-message:focus {
+        &-message:focus,
+        &-question:focus {
             border-color: #0b5ed7;
             box-shadow: 0 0 0 1px #0b5ed7;
             outline: 0;
@@ -510,7 +518,8 @@
 
         &-email[aria-invalid="true"],
         &-name[aria-invalid="true"],
-        &-message[aria-invalid="true"] {
+        &-message[aria-invalid="true"],
+        &-question[aria-invalid="true"] {
             border-color: #b32d2e;
             box-shadow: 0 0 0 1px #b32d2e;
         }

@@ -34,6 +34,16 @@ export interface AvailabilityEntry {
 	recurrence: Recurrence;
 }
 
+export type AppointmentQuestionType = 'text' | 'select';
+
+export interface AppointmentQuestion {
+	id: string;
+	label: string;
+	type: AppointmentQuestionType;
+	required: boolean;
+	options: string[];
+}
+
 export interface AppointmentAttributes {
 	title: string;
 	selectedDates: string[];
@@ -59,6 +69,7 @@ export interface AppointmentAttributes {
 	tplId: number;
 	bookingCutoff: number;
 	requireMessage: boolean;
+	questions: AppointmentQuestion[];
 	disableSso: boolean;
 	hideWeekends: boolean;
 	color?: string;
@@ -143,6 +154,8 @@ export interface FrontendI18n {
 	messageOptional?: string;
 	messagePlaceholder?: string;
 	messageRequired?: string;
+	questionRequired?: string;
+	selectOption?: string;
 	namePlaceholder?: string;
 	nameRequired?: string;
 	networkError?: string;

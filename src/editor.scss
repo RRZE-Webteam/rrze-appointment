@@ -75,6 +75,16 @@
 			background: #f0f0f0;
 			color: #50575e;
 		}
+
+		&.is-required {
+			background: #fcf0f1;
+			color: #8a2424;
+		}
+
+		&.is-optional {
+			background: #f0f0f0;
+			color: #50575e;
+		}
 	}
 
 	&__recurrence {
@@ -116,6 +126,21 @@
 			background: #f0f0f0;
 			color: #757575;
 		}
+	}
+}
+
+.rrze-appointment-question-editor {
+
+	&__modal .components-modal__content > * + * {
+		margin-top: 1rem;
+	}
+
+	&__actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 0.5rem;
+		padding-top: 1rem;
+		border-top: 1px solid #dcdcde;
 	}
 }
 

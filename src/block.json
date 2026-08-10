@@ -105,6 +105,10 @@
       "type": "boolean",
       "default": false
     },
+    "questions": {
+      "type": "array",
+      "default": []
+    },
     "disableSso": {
       "type": "boolean",
       "default": false

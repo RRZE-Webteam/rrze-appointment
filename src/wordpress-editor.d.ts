@@ -145,6 +145,7 @@ declare module '@wordpress/components' {
 
 	interface TextControlProps extends BaseControlProps {
 		min?: string;
+		rows?: number;
 		value: string;
 		type?: string;
 		step?: number;

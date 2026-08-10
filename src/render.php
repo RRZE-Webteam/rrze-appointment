@@ -28,6 +28,7 @@ $location = (string) ($attributes['location'] ?? '');
 $description = (string) ($attributes['description'] ?? '');
 $bookingCutoff = (int) ($attributes['bookingCutoff'] ?? 0);
 $requireMessage = !empty($attributes['requireMessage']);
+$questions = AppointmentBlock::getQuestions($attributes);
 $disableSso = !empty($attributes['disableSso']);
 $hideWeekends = !empty($attributes['hideWeekends']);
 $locationUrl = (string) ($attributes['locationUrl'] ?? '');
@@ -50,6 +51,7 @@ $locationIsUrl = preg_match('#^https?://#i', $location) === 1;
     data-block-id="<?php echo esc_attr($blockFingerprint); ?>"
     data-booking-cutoff="<?php echo esc_attr((string) $bookingCutoff); ?>"
     data-require-message="<?php echo $requireMessage ? '1' : '0'; ?>"
+    data-questions="<?php echo esc_attr((string) wp_json_encode($questions)); ?>"
     data-disable-sso="<?php echo $disableSso ? '1' : '0'; ?>"
     data-hide-weekends="<?php echo $hideWeekends ? '1' : '0'; ?>"
 >
