@@ -204,6 +204,8 @@ class MailTemplatePost
                     . sprintf(__('Your current appointment is on %s at %s.', 'rrze-appointment'), '[current_date]', '[current_time]')
                     . "\n\n"
                     . __('Please book the earlier slot directly on the website.', 'rrze-appointment') . ': [post_link]'
+                    . "\n\n"
+                    . __('Stop earlier appointment notifications', 'rrze-appointment') . ': [waitlist_optout_link]'
                     . "\n\n{$legal}: [imprint_link]",
                 'body_html' =>
                     '<p>' . sprintf(__('Hello %s,', 'rrze-appointment'), '[name]') . '</p>'
@@ -213,6 +215,9 @@ class MailTemplatePost
                     . '<p>' . sprintf(__('Your current appointment is on %s at %s.', 'rrze-appointment'), '[current_date]', '[current_time]') . '</p>'
                     . '<p>' . __('Please book the earlier slot directly on the website.', 'rrze-appointment') . '</p>'
                     . MailTemplate::actionButton('[post_link]', __('View available appointments', 'rrze-appointment'))
+                    . '<p><a href="[waitlist_optout_link]">'
+                    . __('Stop earlier appointment notifications', 'rrze-appointment')
+                    . '</a></p>'
                     . $legalLink,
             ],
         ];

@@ -337,6 +337,7 @@ class Bookings
                 '[questions]'    => '',
                 '[imprint_link]' => TokenManager::imprintUrl(),
                 '[post_link]'    => esc_url_raw($bookedMeta['post_link'] ?? home_url('/')),
+                '[waitlist_optout_link]' => TokenManager::getWaitlistOptOutUrlForSlot($bookedSlot),
             ];
 
             $tpl = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'waitlist_earlier_slot') ?? []) : [];
@@ -351,6 +352,15 @@ class Bookings
             if (strpos($bodyHtmlTpl, '[imprint_link]') === false) {
                 $bodyHtmlTpl .= '<p><a href="[imprint_link]">' . __('Imprint', 'rrze-appointment') . '</a></p>';
             }
+            if (strpos($bodyTpl, '[waitlist_optout_link]') === false) {
+                $bodyTpl .= "\n\n" . __('Stop earlier appointment notifications', 'rrze-appointment')
+                    . ': [waitlist_optout_link]';
+            }
+            if (strpos($bodyHtmlTpl, '[waitlist_optout_link]') === false) {
+                $bodyHtmlTpl .= '<p><a href="[waitlist_optout_link]">'
+                    . __('Stop earlier appointment notifications', 'rrze-appointment')
+                    . '</a></p>';
+            }
 
             $subject = Settings::renderTemplate(!empty($tpl['subject']) ? $tpl['subject'] : $def['subject'], $vars);
             $plain   = Settings::renderTemplate($bodyTpl, $vars);
@@ -364,6 +374,41 @@ class Bookings
             return true;
         } finally {
             delete_option($lockOption);
+        }
+    }
+
+    /**
+     * Disables earlier-slot notifications without changing the booking itself.
+     */
+    public static function disableWaitlistNotifications(string $slot): bool
+    {
+        return self::setWaitlistNotifications($slot, false);
+    }
+
+    /**
+     * Re-enables earlier-slot notifications for an existing booking.
+     */
+    public static function enableWaitlistNotifications(string $slot): bool
+    {
+        return self::setWaitlistNotifications($slot, true);
+    }
+
+    private static function setWaitlistNotifications(string $slot, bool $enabled): bool
+    {
+        try {
+            $allMeta = (array) get_option(self::META_OPTION, []);
+            if (!isset($allMeta[$slot]) || !is_array($allMeta[$slot])) {
+                return false;
+            }
+
+            if (!isset($allMeta[$slot]['booker_waitlist']) || (bool) $allMeta[$slot]['booker_waitlist'] !== $enabled) {
+                $allMeta[$slot]['booker_waitlist'] = $enabled;
+                update_option(self::META_OPTION, $allMeta, false);
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            throw new CustomException($e->getMessage(), $e->getCode(), null);
         }
     }
 

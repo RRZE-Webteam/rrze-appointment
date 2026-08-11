@@ -152,6 +152,7 @@ class Main
         add_action('template_redirect', [$this, 'handleSsoLogin']);
         add_action('template_redirect', [$this, 'handleConfirm']);
         add_action('template_redirect', [$this, 'handleCancel']);
+        add_action('template_redirect', [$this, 'handleWaitlistOptOut']);
         add_action(TokenManager::PENDING_EXPIRY_HOOK, [TokenManager::class, 'expirePending']);
         add_action('post_updated', [$this, 'handlePostUpdated'], 10, 3);
         add_action('rest_api_init', [$this, 'registerRestRoutes']);
@@ -1142,6 +1143,10 @@ class Main
         $siteName = get_bloginfo('name');
         $isQuestionForm = $token !== '' && !empty($questions);
         $isCancellation = false;
+        $isWaitlistOptOut = false;
+        $waitlistNotificationsEnabled = false;
+        $waitlistOptInAction = '';
+        $waitlistOptInNonce = '';
         $illustrationUrl = plugin()->getUrl('src/illustrations')
             . ($isQuestionForm ? 'financial-analyst-31.png' : 'order-confirmed-62.png');
         $formAction = $isQuestionForm ? TokenManager::confirmUrl($token) : '';
@@ -1165,7 +1170,38 @@ class Main
         $siteName = get_bloginfo('name');
         $isQuestionForm = false;
         $isCancellation = true;
+        $isWaitlistOptOut = false;
+        $waitlistNotificationsEnabled = false;
+        $waitlistOptInAction = '';
+        $waitlistOptInNonce = '';
         $illustrationUrl = plugin()->getUrl('src/illustrations') . 'neutral-face-89.png';
+        $questions = [];
+        $submittedAnswers = [];
+        $formError = '';
+        $formAction = '';
+        $formNonce = '';
+
+        require plugin()->getPath('templates') . 'confirmation-page.php';
+        exit;
+    }
+
+    /**
+     * Renders the public success page after earlier-slot notifications are disabled.
+     */
+    private function renderWaitlistOptOutPage(string $token, bool $notificationsEnabled = false): void
+    {
+        status_header(200);
+        nocache_headers();
+
+        $homeUrl = home_url('/');
+        $siteName = get_bloginfo('name');
+        $isQuestionForm = false;
+        $isCancellation = false;
+        $isWaitlistOptOut = true;
+        $waitlistNotificationsEnabled = $notificationsEnabled;
+        $waitlistOptInAction = TokenManager::waitlistOptOutUrl($token);
+        $waitlistOptInNonce = wp_create_nonce('rrze_appointment_waitlist_optin_' . $token);
+        $illustrationUrl = plugin()->getUrl('src/illustrations') . 'reminder-note-28.png';
         $questions = [];
         $submittedAnswers = [];
         $formError = '';
@@ -1200,6 +1236,66 @@ class Main
             wp_die(esc_html($e->getMessage()), '', ['response' => 500]);
         }
     }
+
+    public function handleWaitlistOptOut(): void
+    {
+        try {
+            $rawToken = wp_unslash($_GET['rrze_appt_waitlist_optout'] ?? '');
+            $token = is_string($rawToken) ? sanitize_text_field($rawToken) : '';
+            if ($token === '') {
+                return;
+            }
+
+            $slot = TokenManager::validateWaitlistOptOutToken($token);
+            if ($slot === null) {
+                wp_die(
+                    esc_html__('This notification opt-out link is invalid or has expired.', 'rrze-appointment'),
+                    '',
+                    ['response' => 410]
+                );
+            }
+
+            $requestMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+            $rawAction = wp_unslash($_POST['rrze_appt_waitlist_action'] ?? '');
+            $action = is_string($rawAction) ? sanitize_key($rawAction) : '';
+            $isOptInRequest = $requestMethod === 'POST' && $action === 'optin';
+
+            if ($isOptInRequest) {
+                $rawNonce = wp_unslash($_POST['rrze_appt_waitlist_nonce'] ?? '');
+                $nonce = is_string($rawNonce) ? sanitize_text_field($rawNonce) : '';
+                if (!wp_verify_nonce($nonce, 'rrze_appointment_waitlist_optin_' . $token)) {
+                    wp_die(
+                        esc_html__('The form has expired. Please try again.', 'rrze-appointment'),
+                        '',
+                        ['response' => 403]
+                    );
+                }
+
+                if (!Bookings::enableWaitlistNotifications($slot)) {
+                    wp_die(
+                        esc_html__('This notification opt-out link is invalid or has expired.', 'rrze-appointment'),
+                        '',
+                        ['response' => 410]
+                    );
+                }
+
+                $this->renderWaitlistOptOutPage($token, true);
+            }
+
+            if (!Bookings::disableWaitlistNotifications($slot)) {
+                wp_die(
+                    esc_html__('This notification opt-out link is invalid or has expired.', 'rrze-appointment'),
+                    '',
+                    ['response' => 410]
+                );
+            }
+
+            $this->renderWaitlistOptOutPage($token);
+        } catch (CustomException $e) {
+            wp_die(esc_html($e->getMessage()), '', ['response' => 500]);
+        }
+    }
+
     public function handlePostUpdated(int $postId, \WP_Post $postAfter, \WP_Post $postBefore): void
     {
         if (wp_is_post_revision($postId) || wp_is_post_autosave($postId))

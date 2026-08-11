@@ -25,6 +25,7 @@ class Settings
             '[questions]'         => __('Answers to additional questions', 'rrze-appointment'),
             '[confirmation_link]' => __('Link to booking confirmation', 'rrze-appointment'),
             '[cancel_link]'       => __('Link to cancel', 'rrze-appointment'),
+            '[waitlist_optout_link]' => __('Link to stop earlier appointment notifications', 'rrze-appointment'),
             '[imprint_link]'      => __('Link to imprint', 'rrze-appointment'),
             '[post_link]'         => __('Link to post or page', 'rrze-appointment'),
         ];
@@ -205,6 +206,7 @@ class Settings
             '[questions]'         => '',
             '[confirmation_link]' => home_url('/'),
             '[cancel_link]'       => home_url('/'),
+            '[waitlist_optout_link]' => home_url('/'),
             '[imprint_link]'      => TokenManager::imprintUrl(),
             '[post_link]'         => home_url('/'),
             '[current_date]'      => date_i18n(get_option('date_format'), strtotime('+5 days')),

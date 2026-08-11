@@ -2,6 +2,7 @@
 
 defined('ABSPATH') || exit;
 
+$waitlistNotificationsEnabled = !empty($waitlistNotificationsEnabled);
 $pageTitle = sprintf(
     /* translators: 1: confirmation page title, 2: website name. */
     __('%1$s – %2$s', 'rrze-appointment'),
@@ -9,7 +10,11 @@ $pageTitle = sprintf(
         ? __('Complete appointment request', 'rrze-appointment')
         : ($isCancellation
             ? __('Appointment cancelled', 'rrze-appointment')
-            : __('Appointment confirmed', 'rrze-appointment')),
+            : ($isWaitlistOptOut
+                ? ($waitlistNotificationsEnabled
+                    ? __('Earlier appointment notifications enabled', 'rrze-appointment')
+                    : __('Earlier appointment notifications disabled', 'rrze-appointment'))
+                : __('Appointment confirmed', 'rrze-appointment'))),
     $siteName
 );
 ?>
@@ -96,6 +101,19 @@ $pageTitle = sprintf(
         }
 
         .rrze-appointment-confirmation.is-cancellation .rrze-appointment-confirmation__action:hover {
+            background: #021f46;
+        }
+
+        .rrze-appointment-confirmation.is-waitlist-optout .rrze-appointment-confirmation__status {
+            background: #e3f2fd;
+            color: #0d47a1;
+        }
+
+        .rrze-appointment-confirmation.is-waitlist-optout .rrze-appointment-confirmation__action {
+            background: #04316a;
+        }
+
+        .rrze-appointment-confirmation.is-waitlist-optout .rrze-appointment-confirmation__action:hover {
             background: #021f46;
         }
 
@@ -211,6 +229,35 @@ $pageTitle = sprintf(
             margin-top: 0.5rem;
         }
 
+        .rrze-appointment-confirmation__actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-top: 2rem;
+            gap: 0.75rem;
+        }
+
+        .rrze-appointment-confirmation__actions .rrze-appointment-confirmation__action {
+            margin-top: 0;
+        }
+
+        .rrze-appointment-confirmation__optin-form {
+            margin: 0;
+        }
+
+        .rrze-appointment-confirmation.is-waitlist-optout .rrze-appointment-confirmation__action--secondary {
+            min-height: 2.5rem;
+            padding: 0.55rem 0.9rem;
+            border: 1px solid #04316a;
+            background: transparent;
+            color: #04316a;
+            font-size: 0.875rem;
+        }
+
+        .rrze-appointment-confirmation.is-waitlist-optout .rrze-appointment-confirmation__action--secondary:hover {
+            background: #e3f2fd;
+        }
+
         .rrze-appointment-public-footer {
             display: flex;
             flex-wrap: wrap;
@@ -274,12 +321,18 @@ $pageTitle = sprintf(
             .rrze-appointment-public-footer__links {
                 justify-content: center;
             }
+
+            .rrze-appointment-confirmation__actions {
+                justify-content: center;
+            }
         }
     </style>
 </head>
 <body>
     <main class="rrze-appointment-confirmation<?php
-        echo $isQuestionForm ? ' is-question-form' : ($isCancellation ? ' is-cancellation' : '');
+        echo $isQuestionForm
+            ? ' is-question-form'
+            : ($isCancellation ? ' is-cancellation' : ($isWaitlistOptOut ? ' is-waitlist-optout' : ''));
     ?>">
         <div class="rrze-appointment-confirmation__illustration" aria-hidden="true">
             <img src="<?php echo esc_url($illustrationUrl); ?>" alt="">
@@ -292,7 +345,11 @@ $pageTitle = sprintf(
                         ? __('Confirmation required', 'rrze-appointment')
                         : ($isCancellation
                             ? __('Appointment cancelled', 'rrze-appointment')
-                            : __('Successfully confirmed', 'rrze-appointment'))
+                            : ($isWaitlistOptOut
+                                ? ($waitlistNotificationsEnabled
+                                    ? __('Notifications enabled', 'rrze-appointment')
+                                    : __('Notifications disabled', 'rrze-appointment'))
+                                : __('Successfully confirmed', 'rrze-appointment')))
                 );
                 ?>
             </p>
@@ -303,7 +360,11 @@ $pageTitle = sprintf(
                         ? __('Complete your appointment request', 'rrze-appointment')
                         : ($isCancellation
                             ? __('Your appointment has been cancelled', 'rrze-appointment')
-                            : __('Your appointment is confirmed', 'rrze-appointment'))
+                            : ($isWaitlistOptOut
+                                ? ($waitlistNotificationsEnabled
+                                    ? __('You are subscribed again', 'rrze-appointment')
+                                    : __('You have unsubscribed', 'rrze-appointment'))
+                                : __('Your appointment is confirmed', 'rrze-appointment')))
                 );
                 ?>
             </h1>
@@ -314,7 +375,11 @@ $pageTitle = sprintf(
                         ? __('Please answer the remaining questions below. Your appointment will be confirmed when you submit this form.', 'rrze-appointment')
                         : ($isCancellation
                             ? __('Your appointment request has been cancelled successfully. No further action is required.', 'rrze-appointment')
-                            : __('Thank you for confirming your appointment. We have sent the appointment details and a calendar invitation to your email address.', 'rrze-appointment'))
+                            : ($isWaitlistOptOut
+                                ? ($waitlistNotificationsEnabled
+                                    ? __('You will receive an email again when an earlier appointment becomes available.', 'rrze-appointment')
+                                    : __('Your appointment remains confirmed. You will no longer receive emails when an earlier appointment becomes available.', 'rrze-appointment'))
+                                : __('Thank you for confirming your appointment. We have sent the appointment details and a calendar invitation to your email address.', 'rrze-appointment')))
                 );
                 ?>
             </p>
@@ -384,9 +449,27 @@ $pageTitle = sprintf(
                     </button>
                 </form>
             <?php else : ?>
-                <a class="rrze-appointment-confirmation__action" href="<?php echo esc_url($homeUrl); ?>">
-                    <?php esc_html_e('Back to website', 'rrze-appointment'); ?>
-                </a>
+                <div class="rrze-appointment-confirmation__actions">
+                    <a class="rrze-appointment-confirmation__action" href="<?php echo esc_url($homeUrl); ?>">
+                        <?php esc_html_e('Back to website', 'rrze-appointment'); ?>
+                    </a>
+                    <?php if ($isWaitlistOptOut && !$waitlistNotificationsEnabled) : ?>
+                        <form
+                            class="rrze-appointment-confirmation__optin-form"
+                            method="post"
+                            action="<?php echo esc_url($waitlistOptInAction); ?>"
+                        >
+                            <input type="hidden" name="rrze_appt_waitlist_action" value="optin">
+                            <input type="hidden" name="rrze_appt_waitlist_nonce" value="<?php echo esc_attr($waitlistOptInNonce); ?>">
+                            <button
+                                class="rrze-appointment-confirmation__action rrze-appointment-confirmation__action--secondary"
+                                type="submit"
+                            >
+                                <?php esc_html_e('Enable notifications again', 'rrze-appointment'); ?>
+                            </button>
+                        </form>
+                    <?php endif; ?>
+                </div>
             <?php endif; ?>
         </div>
     </main>

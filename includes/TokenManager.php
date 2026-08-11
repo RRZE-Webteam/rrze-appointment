@@ -285,6 +285,52 @@ class TokenManager
         }
     }
 
+    public static function getWaitlistOptOutUrlForSlot(string $slot): string
+    {
+        try {
+            $allMeta = (array) get_option('rrze_appointment_booked_slots_meta', []);
+            if (!isset($allMeta[$slot]) || !is_array($allMeta[$slot])) {
+                throw new \RuntimeException('Booking not found.');
+            }
+
+            $token = (string) ($allMeta[$slot]['waitlist_optout_token'] ?? '');
+            if ($token === '') {
+                $token = wp_hash($slot . wp_salt('nonce') . microtime(true) . wp_generate_uuid4());
+                $allMeta[$slot]['waitlist_optout_token'] = $token;
+                update_option('rrze_appointment_booked_slots_meta', $allMeta, false);
+            }
+
+            return self::waitlistOptOutUrl($token);
+        } catch (\Exception $e) {
+            throw new CustomException($e->getMessage(), $e->getCode(), null);
+        }
+    }
+
+    public static function validateWaitlistOptOutToken(string $token): ?string
+    {
+        try {
+            if ($token === '') {
+                return null;
+            }
+
+            $allMeta = (array) get_option('rrze_appointment_booked_slots_meta', []);
+            foreach ($allMeta as $slot => $meta) {
+                if (!is_array($meta)) {
+                    continue;
+                }
+
+                $storedToken = (string) ($meta['waitlist_optout_token'] ?? '');
+                if ($storedToken !== '' && hash_equals($storedToken, $token)) {
+                    return (string) $slot;
+                }
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            throw new CustomException($e->getMessage(), $e->getCode(), null);
+        }
+    }
+
     public static function validateCancelToken(string $token): ?array
     {
         try {
@@ -346,6 +392,11 @@ class TokenManager
     public static function cancelUrl(string $token): string
     {
         return add_query_arg('rrze_appt_cancel', $token, home_url('/'));
+    }
+
+    public static function waitlistOptOutUrl(string $token): string
+    {
+        return add_query_arg('rrze_appt_waitlist_optout', $token, home_url('/'));
     }
 
     public static function imprintUrl(): string
