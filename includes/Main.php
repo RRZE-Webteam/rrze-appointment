@@ -1141,12 +1141,36 @@ class Main
         $homeUrl = home_url('/');
         $siteName = get_bloginfo('name');
         $isQuestionForm = $token !== '' && !empty($questions);
+        $isCancellation = false;
         $illustrationUrl = plugin()->getUrl('src/illustrations')
             . ($isQuestionForm ? 'financial-analyst-31.png' : 'order-confirmed-62.png');
         $formAction = $isQuestionForm ? TokenManager::confirmUrl($token) : '';
         $formNonce = $isQuestionForm
             ? wp_create_nonce('rrze_appointment_confirm_questions_' . $token)
             : '';
+
+        require plugin()->getPath('templates') . 'confirmation-page.php';
+        exit;
+    }
+
+    /**
+     * Renders the public success page after a request or booking is cancelled.
+     */
+    private function renderCancellationPage(): void
+    {
+        status_header(200);
+        nocache_headers();
+
+        $homeUrl = home_url('/');
+        $siteName = get_bloginfo('name');
+        $isQuestionForm = false;
+        $isCancellation = true;
+        $illustrationUrl = plugin()->getUrl('src/illustrations') . 'neutral-face-89.png';
+        $questions = [];
+        $submittedAnswers = [];
+        $formError = '';
+        $formAction = '';
+        $formNonce = '';
 
         require plugin()->getPath('templates') . 'confirmation-page.php';
         exit;
@@ -1171,12 +1195,7 @@ class Main
                 Bookings::cancel($entry['slot']);
             }
 
-            wp_die(
-                '<p>' . esc_html__('Your appointment has been cancelled.', 'rrze-appointment') . '</p>' .
-                '<p><a href="' . esc_url(home_url('/')) . '">' . esc_html__('Back to homepage', 'rrze-appointment') . '</a></p>',
-                esc_html__('Appointment cancelled', 'rrze-appointment'),
-                ['response' => 200]
-            );
+            $this->renderCancellationPage();
         } catch (CustomException $e) {
             wp_die(esc_html($e->getMessage()), '', ['response' => 500]);
         }

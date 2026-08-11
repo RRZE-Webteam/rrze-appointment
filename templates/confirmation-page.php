@@ -7,7 +7,9 @@ $pageTitle = sprintf(
     __('%1$s – %2$s', 'rrze-appointment'),
     $isQuestionForm
         ? __('Complete appointment request', 'rrze-appointment')
-        : __('Appointment confirmed', 'rrze-appointment'),
+        : ($isCancellation
+            ? __('Appointment cancelled', 'rrze-appointment')
+            : __('Appointment confirmed', 'rrze-appointment')),
     $siteName
 );
 ?>
@@ -79,6 +81,19 @@ $pageTitle = sprintf(
         .rrze-appointment-confirmation.is-question-form .rrze-appointment-confirmation__status {
             background: #fff8e1;
             color: #5d4037;
+        }
+
+        .rrze-appointment-confirmation.is-cancellation .rrze-appointment-confirmation__status {
+            background: #ffebee;
+            color: #b71c1c;
+        }
+
+        .rrze-appointment-confirmation.is-cancellation .rrze-appointment-confirmation__action {
+            background: #04316a;
+        }
+
+        .rrze-appointment-confirmation.is-cancellation .rrze-appointment-confirmation__action:hover {
+            background: #021f46;
         }
 
         .rrze-appointment-confirmation h1 {
@@ -212,7 +227,9 @@ $pageTitle = sprintf(
     </style>
 </head>
 <body>
-    <main class="rrze-appointment-confirmation<?php echo $isQuestionForm ? ' is-question-form' : ''; ?>">
+    <main class="rrze-appointment-confirmation<?php
+        echo $isQuestionForm ? ' is-question-form' : ($isCancellation ? ' is-cancellation' : '');
+    ?>">
         <div class="rrze-appointment-confirmation__illustration" aria-hidden="true">
             <img src="<?php echo esc_url($illustrationUrl); ?>" alt="">
         </div>
@@ -222,7 +239,9 @@ $pageTitle = sprintf(
                 echo esc_html(
                     $isQuestionForm
                         ? __('Confirmation required', 'rrze-appointment')
-                        : __('Successfully confirmed', 'rrze-appointment')
+                        : ($isCancellation
+                            ? __('Appointment cancelled', 'rrze-appointment')
+                            : __('Successfully confirmed', 'rrze-appointment'))
                 );
                 ?>
             </p>
@@ -231,7 +250,9 @@ $pageTitle = sprintf(
                 echo esc_html(
                     $isQuestionForm
                         ? __('Complete your appointment request', 'rrze-appointment')
-                        : __('Your appointment is confirmed', 'rrze-appointment')
+                        : ($isCancellation
+                            ? __('Your appointment has been cancelled', 'rrze-appointment')
+                            : __('Your appointment is confirmed', 'rrze-appointment'))
                 );
                 ?>
             </h1>
@@ -240,7 +261,9 @@ $pageTitle = sprintf(
                 echo esc_html(
                     $isQuestionForm
                         ? __('Please answer the remaining questions below. Your appointment will be confirmed when you submit this form.', 'rrze-appointment')
-                        : __('Thank you for confirming your appointment. We have sent the appointment details and a calendar invitation to your email address.', 'rrze-appointment')
+                        : ($isCancellation
+                            ? __('Your appointment request has been cancelled successfully. No further action is required.', 'rrze-appointment')
+                            : __('Thank you for confirming your appointment. We have sent the appointment details and a calendar invitation to your email address.', 'rrze-appointment'))
                 );
                 ?>
             </p>
