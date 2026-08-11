@@ -31,13 +31,16 @@ $pageTitle = sprintf(
         }
 
         body {
-            display: grid;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             min-height: 100vh;
             margin: 0;
             padding: clamp(1rem, 4vw, 3rem);
             background: #f6f7f7;
             color: #1e1e1e;
-            place-items: center;
+            gap: 1.5rem;
         }
 
         .rrze-appointment-confirmation {
@@ -208,6 +211,45 @@ $pageTitle = sprintf(
             margin-top: 0.5rem;
         }
 
+        .rrze-appointment-public-footer {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            width: min(70rem, 100%);
+            padding: 0 0.75rem;
+            color: #646970;
+            gap: 0.75rem 1.5rem;
+            font-size: 0.875rem;
+        }
+
+        .rrze-appointment-public-footer__links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem 1.25rem;
+        }
+
+        .rrze-appointment-public-footer a {
+            color: #50575e;
+            text-underline-offset: 0.2em;
+        }
+
+        .rrze-appointment-public-footer a:hover {
+            color: #1e1e1e;
+        }
+
+        .rrze-appointment-public-footer a:focus-visible {
+            border-radius: 0.15rem;
+            outline: 3px solid #ffca28;
+            outline-offset: 3px;
+        }
+
+        .rrze-appointment-public-footer__credit {
+            margin: 0;
+            font-size: 0.8125rem;
+            font-style: italic;
+        }
+
         @media (max-width: 48rem) {
             .rrze-appointment-confirmation {
                 grid-template-columns: 1fr;
@@ -222,6 +264,15 @@ $pageTitle = sprintf(
             .rrze-appointment-confirmation__message {
                 margin-right: auto;
                 margin-left: auto;
+            }
+
+            .rrze-appointment-public-footer {
+                justify-content: center;
+                text-align: center;
+            }
+
+            .rrze-appointment-public-footer__links {
+                justify-content: center;
             }
         }
     </style>
@@ -339,5 +390,6 @@ $pageTitle = sprintf(
             <?php endif; ?>
         </div>
     </main>
+    <?php require __DIR__ . '/public-page-footer.php'; ?>
 </body>
 </html>
