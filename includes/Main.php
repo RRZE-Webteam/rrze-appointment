@@ -1081,15 +1081,26 @@ class Main
 
             @unlink($tmpFile);
 
-            wp_die(
-                '<p>' . esc_html__('Your appointment has been confirmed. A confirmation has been sent by email.', 'rrze-appointment') . '</p>' .
-                '<p><a href="' . esc_url(home_url('/')) . '">' . esc_html__('Back to homepage', 'rrze-appointment') . '</a></p>',
-                esc_html__('Appointment confirmed', 'rrze-appointment'),
-                ['response' => 200]
-            );
+            $this->renderConfirmationPage();
         } catch (CustomException $e) {
             wp_die(esc_html($e->getMessage()), '', ['response' => 500]);
         }
+    }
+
+    /**
+     * Renders the public success page after a booking has been confirmed.
+     */
+    private function renderConfirmationPage(): void
+    {
+        status_header(200);
+        nocache_headers();
+
+        $homeUrl = home_url('/');
+        $illustrationUrl = plugin()->getUrl('src/illustrations') . 'order-confirmed-62.png';
+        $siteName = get_bloginfo('name');
+
+        require plugin()->getPath('templates') . 'confirmation-page.php';
+        exit;
     }
 
     public function handleCancel(): void
