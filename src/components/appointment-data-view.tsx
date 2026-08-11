@@ -5,15 +5,17 @@ import {
 	type Field,
 	type View,
 } from '@wordpress/dataviews/wp';
-import { Notice } from '@wordpress/components';
+import { Button } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { notAllowed, undo } from '@wordpress/icons';
 import { useState } from '@wordpress/element';
+import calendarIllustration from '../illustrations/calendar-31.png';
 import type { TimeSlot } from '../types';
 import { formatDateWithWeekdayDisplay } from '../utils';
 
 interface AppointmentDataViewProps {
 	slots: TimeSlot[];
+	onAdd: () => void;
 	onToggleException: ( slot: TimeSlot ) => void;
 }
 
@@ -65,9 +67,36 @@ function StatusField( { item }: { item: TimeSlot } ) {
 
 export function AppointmentDataView( {
 	slots,
+	onAdd,
 	onToggleException,
 }: AppointmentDataViewProps ) {
 	const [ view, setView ] = useState< View >( INITIAL_VIEW );
+
+	if ( slots.length === 0 ) {
+		return (
+			<div className="rrze-appointment-data-view__empty">
+				<img
+					alt=""
+					className="rrze-appointment-data-view__empty-illustration"
+					src={ calendarIllustration }
+				/>
+				<p className="rrze-appointment-data-view__empty-message">
+					{ __(
+						'No upcoming appointments have been created yet.',
+						'rrze-appointment'
+					) }
+				</p>
+				<Button
+					className="rrze-appointment-data-view__empty-action"
+					variant="primary"
+					onClick={ onAdd }
+				>
+					{ __( 'Add appointment times', 'rrze-appointment' ) }
+				</Button>
+			</div>
+		);
+	}
+
 	const fields: Field< TimeSlot >[] = [
 		{
 			id: 'date',
@@ -130,14 +159,6 @@ export function AppointmentDataView( {
 			actions={ actions }
 			data={ filteredSlots.data }
 			defaultLayouts={ { table: {} } }
-			empty={
-				<Notice status="info" isDismissible={ false }>
-					{ __(
-						'No upcoming appointments have been created yet.',
-						'rrze-appointment'
-					) }
-				</Notice>
-			}
 			fields={ fields }
 			getItemId={ ( item ) => item.value }
 			onChangeView={ setView }

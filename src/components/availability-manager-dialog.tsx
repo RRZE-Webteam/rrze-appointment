@@ -109,6 +109,7 @@ export function AvailabilityManagerDialog( {
 			) : (
 				<AppointmentDataView
 					slots={ slots }
+					onAdd={ onAdd }
 					onToggleException={ onToggleException }
 				/>
 			) }
