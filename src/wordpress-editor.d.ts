@@ -39,6 +39,11 @@ declare module '@wordpress/block-editor' {
 declare module '@wordpress/components' {
 	import type { ComponentType, ReactNode } from 'react';
 
+	type IconType =
+		| string
+		| ComponentType< { size?: number } >
+		| ReactNode;
+
 	interface BaseControlProps {
 		__nextHasNoMarginBottom?: boolean;
 		label?: string;
@@ -49,7 +54,7 @@ declare module '@wordpress/components' {
 		children?: ReactNode;
 		className?: string;
 		disabled?: boolean;
-		icon?: string;
+		icon?: IconType;
 		isDestructive?: boolean;
 		isPressed?: boolean;
 		label?: string;
@@ -128,7 +133,7 @@ declare module '@wordpress/components' {
 		children?: ReactNode;
 		title?: string;
 		name?: string;
-		icon?: string;
+		icon?: IconType;
 		initialOpen?: boolean;
 	}
 
@@ -164,7 +169,7 @@ declare module '@wordpress/components' {
 	interface ToolbarButtonProps {
 		children?: ReactNode;
 		disabled?: boolean;
-		icon?: string;
+		icon?: IconType;
 		isPressed?: boolean;
 		label: string;
 		onClick?: () => void;

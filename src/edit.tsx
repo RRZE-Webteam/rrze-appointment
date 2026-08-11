@@ -45,6 +45,11 @@ import {
 	minutesToTime,
 	parseTimeToMinutes,
 } from './utils';
+import {
+	calendarMonthIcon,
+	questionExchangeIcon,
+	scheduleIcon,
+} from './material-icons';
 
 export default function Edit( { attributes, setAttributes }: EditProps ) {
 	const {
@@ -497,7 +502,7 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 			<BlockControls>
 				<ToolbarGroup>
 					<ToolbarButton
-						icon="list-view"
+						icon={ scheduleIcon }
 						label={ __(
 							'Manage appointment times',
 							'rrze-appointment'
@@ -506,13 +511,13 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 						onClick={ () => setShowAvailabilityManager( true ) }
 					/>
 					<ToolbarButton
-						icon="editor-help"
+						icon={ questionExchangeIcon }
 						label={ __( 'Manage questions', 'rrze-appointment' ) }
 						isPressed={ showQuestionsManager }
 						onClick={ () => setShowQuestionsManager( true ) }
 					/>
 					<ToolbarButton
-						icon="calendar-alt"
+						icon={ calendarMonthIcon }
 						label={ __( 'Calendar preview', 'rrze-appointment' ) }
 						isPressed={ showCalendarPreview }
 						onClick={ () =>

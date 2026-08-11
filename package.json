@@ -26,7 +26,7 @@
     "booking"
   ],
   "scripts": {
-    "build": "npm run build:email && wp-scripts build --webpack-copy-php && npm run increment-version",
+    "build": "wp-scripts build --webpack-copy-php && npm run build:email && npm run increment-version",
     "build:email": "maizzle build --config mail/maizzle.config.ts && node mail/verify-template.mjs",
     "dev:email": "maizzle serve --config mail/maizzle.config.ts",
     "increment-version": "node increment-version.js patch",
