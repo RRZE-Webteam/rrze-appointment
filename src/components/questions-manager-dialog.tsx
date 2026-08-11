@@ -265,19 +265,22 @@ export function QuestionsManagerDialog( {
 						) }
 					</p>
 				</FlexBlock>
-				<FlexItem>
-					<Button
-						icon="plus-alt2"
-						variant="primary"
-						onClick={ () => openEditor() }
-					>
-						{ __( 'Add question', 'rrze-appointment' ) }
-					</Button>
-				</FlexItem>
+				{ questions.length > 0 && (
+					<FlexItem>
+						<Button
+							icon="plus-alt2"
+							variant="primary"
+							onClick={ () => openEditor() }
+						>
+							{ __( 'Add question', 'rrze-appointment' ) }
+						</Button>
+					</FlexItem>
+				) }
 			</Flex>
 
 			<QuestionDataView
 				questions={ questions }
+				onAdd={ () => openEditor() }
 				onDelete={ setQuestionToDelete }
 				onEdit={ openEditor }
 			/>

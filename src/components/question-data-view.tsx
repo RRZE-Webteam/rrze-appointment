@@ -5,6 +5,7 @@ import {
 	type Field,
 	type View,
 } from '@wordpress/dataviews/wp';
+import { Button } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { pencil, trash } from '@wordpress/icons';
 import { useState } from '@wordpress/element';
@@ -13,6 +14,7 @@ import type { AppointmentQuestion } from '../types';
 
 interface QuestionDataViewProps {
 	questions: AppointmentQuestion[];
+	onAdd: () => void;
 	onDelete: ( question: AppointmentQuestion ) => void;
 	onEdit: ( question: AppointmentQuestion ) => void;
 }
@@ -51,6 +53,7 @@ function getRequiredLabel( question: AppointmentQuestion ): string {
 
 export function QuestionDataView( {
 	questions,
+	onAdd,
 	onDelete,
 	onEdit,
 }: QuestionDataViewProps ) {
@@ -70,6 +73,13 @@ export function QuestionDataView( {
 						'rrze-appointment'
 					) }
 				</p>
+				<Button
+					className="rrze-appointment-data-view__empty-action"
+					variant="primary"
+					onClick={ onAdd }
+				>
+					{ __( 'Add question', 'rrze-appointment' ) }
+				</Button>
 			</div>
 		);
 	}

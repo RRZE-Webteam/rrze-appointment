@@ -83,7 +83,7 @@ export function AvailabilityManagerDialog( {
 						</p>
 					) }
 				</FlexBlock>
-				{ activeView === 'schedules' && (
+				{ activeView === 'schedules' && entries.length > 0 && (
 					<FlexItem>
 						<Button
 							icon="plus-alt2"
@@ -102,6 +102,7 @@ export function AvailabilityManagerDialog( {
 			{ activeView === 'schedules' ? (
 				<AvailabilityDataView
 					entries={ entries }
+					onAdd={ onAdd }
 					onDelete={ onDelete }
 					onEdit={ onEdit }
 				/>

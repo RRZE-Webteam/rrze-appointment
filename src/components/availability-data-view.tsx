@@ -5,6 +5,7 @@ import {
 	type Field,
 	type View,
 } from '@wordpress/dataviews/wp';
+import { Button } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
 import { pencil, trash } from '@wordpress/icons';
 import { useState } from '@wordpress/element';
@@ -15,6 +16,7 @@ import { formatDateWithWeekdayDisplay, parseDateString } from '../utils';
 
 interface AvailabilityDataViewProps {
 	entries: AvailabilityEntry[];
+	onAdd: () => void;
 	onDelete: ( entry: AvailabilityEntry ) => void;
 	onEdit: ( entry: AvailabilityEntry ) => void;
 }
@@ -185,6 +187,7 @@ function SlotPatternField( { item }: { item: AvailabilityEntry } ) {
 
 export function AvailabilityDataView( {
 	entries,
+	onAdd,
 	onDelete,
 	onEdit,
 }: AvailabilityDataViewProps ) {
@@ -204,6 +207,13 @@ export function AvailabilityDataView( {
 						'rrze-appointment'
 					) }
 				</p>
+				<Button
+					className="rrze-appointment-data-view__empty-action"
+					variant="primary"
+					onClick={ onAdd }
+				>
+					{ __( 'Add appointment times', 'rrze-appointment' ) }
+				</Button>
 			</div>
 		);
 	}
