@@ -955,7 +955,10 @@ class Main
 
             $pendingEntry = TokenManager::getPending($token);
             if (!$pendingEntry) {
-                wp_die(__('This confirmation link has expired or is invalid.', 'rrze-appointment'), '', ['response' => 410]);
+                $this->renderErrorPage(
+                    __('This confirmation link has expired or is invalid.', 'rrze-appointment'),
+                    410
+                );
             }
 
             $pendingMeta = is_array($pendingEntry['meta'] ?? null) ? $pendingEntry['meta'] : [];
@@ -996,7 +999,10 @@ class Main
 
             $entry = TokenManager::confirmPending($token);
             if (!$entry) {
-                wp_die(__('This confirmation link has expired or is invalid.', 'rrze-appointment'), '', ['response' => 410]);
+                $this->renderErrorPage(
+                    __('This confirmation link has expired or is invalid.', 'rrze-appointment'),
+                    410
+                );
             }
 
             $slot = $entry['slot'];
@@ -1212,6 +1218,23 @@ class Main
         exit;
     }
 
+    /**
+     * Renders public link and form errors without exposing the WordPress error UI.
+     */
+    private function renderErrorPage(string $message, int $statusCode = 410): void
+    {
+        status_header($statusCode);
+        nocache_headers();
+
+        $homeUrl = home_url('/');
+        $siteName = get_bloginfo('name');
+        $illustrationUrl = plugin()->getUrl('src/illustrations') . 'bug-fixing-71.png';
+        $errorMessage = $message;
+
+        require plugin()->getPath('templates') . 'error-page.php';
+        exit;
+    }
+
     public function handleCancel(): void
     {
         try {
@@ -1221,7 +1244,10 @@ class Main
 
             $entry = TokenManager::validateCancelToken($token);
             if (!$entry) {
-                wp_die(__('This cancellation link is invalid or has already been used.', 'rrze-appointment'), '', ['response' => 410]);
+                $this->renderErrorPage(
+                    __('This cancellation link is invalid or has already been used.', 'rrze-appointment'),
+                    410
+                );
             }
 
             if ($entry['type'] === 'pending') {
@@ -1248,10 +1274,9 @@ class Main
 
             $slot = TokenManager::validateWaitlistOptOutToken($token);
             if ($slot === null) {
-                wp_die(
-                    esc_html__('This notification opt-out link is invalid or has expired.', 'rrze-appointment'),
-                    '',
-                    ['response' => 410]
+                $this->renderErrorPage(
+                    __('This notification opt-out link is invalid or has expired.', 'rrze-appointment'),
+                    410
                 );
             }
 
@@ -1264,18 +1289,16 @@ class Main
                 $rawNonce = wp_unslash($_POST['rrze_appt_waitlist_nonce'] ?? '');
                 $nonce = is_string($rawNonce) ? sanitize_text_field($rawNonce) : '';
                 if (!wp_verify_nonce($nonce, 'rrze_appointment_waitlist_optin_' . $token)) {
-                    wp_die(
-                        esc_html__('The form has expired. Please try again.', 'rrze-appointment'),
-                        '',
-                        ['response' => 403]
+                    $this->renderErrorPage(
+                        __('The form has expired. Please try again.', 'rrze-appointment'),
+                        403
                     );
                 }
 
                 if (!Bookings::enableWaitlistNotifications($slot)) {
-                    wp_die(
-                        esc_html__('This notification opt-out link is invalid or has expired.', 'rrze-appointment'),
-                        '',
-                        ['response' => 410]
+                    $this->renderErrorPage(
+                        __('This notification opt-out link is invalid or has expired.', 'rrze-appointment'),
+                        410
                     );
                 }
 
@@ -1283,10 +1306,9 @@ class Main
             }
 
             if (!Bookings::disableWaitlistNotifications($slot)) {
-                wp_die(
-                    esc_html__('This notification opt-out link is invalid or has expired.', 'rrze-appointment'),
-                    '',
-                    ['response' => 410]
+                $this->renderErrorPage(
+                    __('This notification opt-out link is invalid or has expired.', 'rrze-appointment'),
+                    410
                 );
             }
 
