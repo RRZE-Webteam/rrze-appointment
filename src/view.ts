@@ -1,5 +1,4 @@
 import type {
-	AppointmentQuestion,
 	Booker,
 	BookerAjaxResponse,
 	BookerResponse,
@@ -91,58 +90,6 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 			} );
 
 			return map;
-		}
-
-		function parseQuestions(
-			value: string | undefined
-		): AppointmentQuestion[] {
-			if ( ! value ) {
-				return [];
-			}
-
-			try {
-				const parsed: unknown = JSON.parse( value );
-				if ( ! Array.isArray( parsed ) ) {
-					return [];
-				}
-
-				const ids = new Set< string >();
-				return parsed.flatMap( ( rawQuestion ) => {
-					if ( ! rawQuestion || typeof rawQuestion !== 'object' ) {
-						return [];
-					}
-					const source = rawQuestion as Record< string, unknown >;
-					const id = String( source.id || '' ).trim();
-					const label = String( source.label || '' ).trim();
-					const type = source.type === 'select' ? 'select' : 'text';
-					const options = Array.isArray( source.options )
-						? source.options
-								.map( ( option ) => String( option ).trim() )
-								.filter( Boolean )
-						: [];
-					if (
-						! id ||
-						! label ||
-						ids.has( id ) ||
-						( type === 'select' && options.length === 0 )
-					) {
-						return [];
-					}
-					ids.add( id );
-
-					return [
-						{
-							id,
-							label,
-							type,
-							required: !! source.required,
-							options,
-						},
-					];
-				} );
-			} catch {
-				return [];
-			}
 		}
 
 		function initAppointmentForm( form: HTMLFormElement ): void {
@@ -285,7 +232,6 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				markHiddenInput( value );
 
 				const i18n = window.rrze_appointment?.i18n || {};
-				const questions = parseQuestions( form.dataset.questions );
 				const overlay = document.createElement( 'div' );
 				overlay.className = 'rrze-appointment__overlay';
 
@@ -440,50 +386,6 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				messageInput.required = requireMessage;
 				messageLabel.appendChild( messageInput );
 
-				type QuestionInput = HTMLTextAreaElement | HTMLSelectElement;
-				const questionFields: Array< {
-					question: AppointmentQuestion;
-					input: QuestionInput;
-				} > = [];
-				questions.forEach( ( question ) => {
-					const questionLabel = document.createElement( 'label' );
-					questionLabel.className =
-						'rrze-appointment__overlay-label rrze-appointment__overlay-label--wide';
-					const questionLabelText = document.createElement( 'span' );
-					questionLabelText.textContent = `${ question.label }${
-						question.required ? ' *' : ''
-					}`;
-					questionLabel.appendChild( questionLabelText );
-
-					let questionInput: QuestionInput;
-					if ( question.type === 'select' ) {
-						const select = document.createElement( 'select' );
-						const placeholder = document.createElement( 'option' );
-						placeholder.value = '';
-						placeholder.textContent =
-							i18n.selectOption || 'Select an option';
-						select.appendChild( placeholder );
-						question.options.forEach( ( option ) => {
-							const optionElement =
-								document.createElement( 'option' );
-							optionElement.value = option;
-							optionElement.textContent = option;
-							select.appendChild( optionElement );
-						} );
-						questionInput = select;
-					} else {
-						const textarea = document.createElement( 'textarea' );
-						textarea.rows = 3;
-						questionInput = textarea;
-					}
-					questionInput.className =
-						'rrze-appointment__overlay-question';
-					questionInput.required = question.required;
-					questionInput.dataset.questionId = question.id;
-					questionLabel.appendChild( questionInput );
-					questionFields.push( { question, input: questionInput } );
-				} );
-
 				const waitlistLabel = document.createElement( 'label' );
 				waitlistLabel.className =
 					'rrze-appointment__overlay-waitlist rrze-appointment__overlay-label--wide';
@@ -564,12 +466,7 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 					input.focus();
 				}
 
-				[
-					nameInput,
-					emailInput,
-					messageInput,
-					...questionFields.map( ( field ) => field.input ),
-				].forEach( ( input ) => {
+				[ nameInput, emailInput, messageInput ].forEach( ( input ) => {
 					input.addEventListener( 'input', () => {
 						input.removeAttribute( 'aria-invalid' );
 						if ( status.classList.contains( 'is-error' ) ) {
@@ -631,20 +528,6 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 						return;
 					}
 
-					const questionAnswers: Record< string, string > = {};
-					for ( const { question, input } of questionFields ) {
-						const answer = input.value.trim();
-						if ( question.required && ! answer ) {
-							showFieldError(
-								input,
-								i18n.questionRequired ||
-									'Answer this required question.'
-							);
-							return;
-						}
-						questionAnswers[ question.id ] = answer;
-					}
-
 					confirmBtn.disabled = true;
 					cancelBtn.disabled = true;
 					closeBtn.disabled = true;
@@ -663,10 +546,6 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 					data.append( 'booker_email', emailValue );
 					data.append( 'booker_name', nameValue );
 					data.append( 'booker_message', messageValue );
-					data.append(
-						'question_answers',
-						JSON.stringify( questionAnswers )
-					);
 					data.append(
 						'booker_waitlist',
 						waitlistCheckbox.checked ? '1' : '0'
@@ -738,12 +617,6 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				fields.appendChild( nameLabel );
 				fields.appendChild( emailLabel );
 				fields.appendChild( messageLabel );
-				questionFields.forEach( ( { input } ) => {
-					const label = input.closest( 'label' );
-					if ( label ) {
-						fields.appendChild( label );
-					}
-				} );
 				fields.appendChild( waitlistLabel );
 				dialogForm.appendChild( fields );
 				dialogForm.appendChild( status );
@@ -760,15 +633,7 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				} else if ( ! emailInput.value ) {
 					emailInput.focus();
 				} else {
-					const firstRequiredQuestion = questionFields.find(
-						( { question, input } ) =>
-							question.required && ! input.value
-					);
-					if ( firstRequiredQuestion ) {
-						firstRequiredQuestion.input.focus();
-					} else {
-						confirmBtn.focus();
-					}
+					confirmBtn.focus();
 				}
 			}
 

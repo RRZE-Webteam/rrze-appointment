@@ -5,7 +5,9 @@ defined('ABSPATH') || exit;
 $pageTitle = sprintf(
     /* translators: 1: confirmation page title, 2: website name. */
     __('%1$s – %2$s', 'rrze-appointment'),
-    __('Appointment confirmed', 'rrze-appointment'),
+    $isQuestionForm
+        ? __('Complete appointment request', 'rrze-appointment')
+        : __('Appointment confirmed', 'rrze-appointment'),
     $siteName
 );
 ?>
@@ -74,6 +76,11 @@ $pageTitle = sprintf(
             letter-spacing: 0.02em;
         }
 
+        .rrze-appointment-confirmation.is-question-form .rrze-appointment-confirmation__status {
+            background: #fff8e1;
+            color: #5d4037;
+        }
+
         .rrze-appointment-confirmation h1 {
             max-width: 13ch;
             margin: 0;
@@ -106,6 +113,12 @@ $pageTitle = sprintf(
             transition: background-color 0.15s ease;
         }
 
+        button.rrze-appointment-confirmation__action {
+            border: 0;
+            font: inherit;
+            cursor: pointer;
+        }
+
         .rrze-appointment-confirmation__action:hover {
             background: #1b5e20;
         }
@@ -113,6 +126,71 @@ $pageTitle = sprintf(
         .rrze-appointment-confirmation__action:focus-visible {
             outline: 3px solid #ffca28;
             outline-offset: 3px;
+        }
+
+        .rrze-appointment-confirmation__form {
+            display: grid;
+            max-width: 38rem;
+            margin-top: 2rem;
+            gap: 1.25rem;
+            text-align: left;
+        }
+
+        .rrze-appointment-confirmation__field {
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .rrze-appointment-confirmation__field-label {
+            color: #1e1e1e;
+            font-weight: 650;
+            line-height: 1.4;
+        }
+
+        .rrze-appointment-confirmation__requirement {
+            margin-left: 0.35rem;
+            color: #646970;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .rrze-appointment-confirmation__field textarea,
+        .rrze-appointment-confirmation__field select {
+            width: 100%;
+            min-height: 3rem;
+            padding: 0.7rem 0.8rem;
+            border: 1px solid #8c8f94;
+            border-radius: 0.35rem;
+            background: #fff;
+            color: #1e1e1e;
+            font: inherit;
+            line-height: 1.5;
+        }
+
+        .rrze-appointment-confirmation__field textarea {
+            min-height: 8rem;
+            resize: vertical;
+        }
+
+        .rrze-appointment-confirmation__field textarea:focus,
+        .rrze-appointment-confirmation__field select:focus {
+            border-color: #2e7d32;
+            box-shadow: 0 0 0 1px #2e7d32;
+            outline: 2px solid transparent;
+        }
+
+        .rrze-appointment-confirmation__error {
+            margin: 0;
+            padding: 0.85rem 1rem;
+            border-left: 4px solid #c62828;
+            background: #ffebee;
+            color: #b71c1c;
+            line-height: 1.5;
+        }
+
+        .rrze-appointment-confirmation__form .rrze-appointment-confirmation__action {
+            width: fit-content;
+            margin-top: 0.5rem;
         }
 
         @media (max-width: 48rem) {
@@ -134,21 +212,108 @@ $pageTitle = sprintf(
     </style>
 </head>
 <body>
-    <main class="rrze-appointment-confirmation">
+    <main class="rrze-appointment-confirmation<?php echo $isQuestionForm ? ' is-question-form' : ''; ?>">
         <div class="rrze-appointment-confirmation__illustration" aria-hidden="true">
             <img src="<?php echo esc_url($illustrationUrl); ?>" alt="">
         </div>
         <div class="rrze-appointment-confirmation__content">
             <p class="rrze-appointment-confirmation__status">
-                <?php esc_html_e('Successfully confirmed', 'rrze-appointment'); ?>
+                <?php
+                echo esc_html(
+                    $isQuestionForm
+                        ? __('Confirmation required', 'rrze-appointment')
+                        : __('Successfully confirmed', 'rrze-appointment')
+                );
+                ?>
             </p>
-            <h1><?php esc_html_e('Your appointment is confirmed', 'rrze-appointment'); ?></h1>
+            <h1>
+                <?php
+                echo esc_html(
+                    $isQuestionForm
+                        ? __('Complete your appointment request', 'rrze-appointment')
+                        : __('Your appointment is confirmed', 'rrze-appointment')
+                );
+                ?>
+            </h1>
             <p class="rrze-appointment-confirmation__message">
-                <?php esc_html_e('Thank you for confirming your appointment. We have sent the appointment details and a calendar invitation to your email address.', 'rrze-appointment'); ?>
+                <?php
+                echo esc_html(
+                    $isQuestionForm
+                        ? __('Please answer the remaining questions below. Your appointment will be confirmed when you submit this form.', 'rrze-appointment')
+                        : __('Thank you for confirming your appointment. We have sent the appointment details and a calendar invitation to your email address.', 'rrze-appointment')
+                );
+                ?>
             </p>
-            <a class="rrze-appointment-confirmation__action" href="<?php echo esc_url($homeUrl); ?>">
-                <?php esc_html_e('Back to website', 'rrze-appointment'); ?>
-            </a>
+            <?php if ($isQuestionForm) : ?>
+                <form class="rrze-appointment-confirmation__form" method="post" action="<?php echo esc_url($formAction); ?>">
+                    <input type="hidden" name="rrze_appt_questions_nonce" value="<?php echo esc_attr($formNonce); ?>">
+                    <?php if ($formError !== '') : ?>
+                        <p class="rrze-appointment-confirmation__error" role="alert">
+                            <?php echo esc_html($formError); ?>
+                        </p>
+                    <?php endif; ?>
+
+                    <?php foreach ($questions as $question) :
+                        $questionId = sanitize_key((string) ($question['id'] ?? ''));
+                        $questionLabel = sanitize_text_field((string) ($question['label'] ?? ''));
+                        $questionType = ($question['type'] ?? '') === 'select' ? 'select' : 'text';
+                        $questionRequired = !empty($question['required']);
+                        $questionOptions = is_array($question['options'] ?? null) ? $question['options'] : [];
+                        $submittedAnswer = (string) ($submittedAnswers[$questionId] ?? '');
+                        if ($questionId === '' || $questionLabel === '') {
+                            continue;
+                        }
+                        $fieldId = 'rrze-appt-question-' . $questionId;
+                        ?>
+                        <label class="rrze-appointment-confirmation__field" for="<?php echo esc_attr($fieldId); ?>">
+                            <span class="rrze-appointment-confirmation__field-label">
+                                <?php echo esc_html($questionLabel); ?>
+                                <span class="rrze-appointment-confirmation__requirement">
+                                    <?php
+                                    echo esc_html(
+                                        $questionRequired
+                                            ? __('Required', 'rrze-appointment')
+                                            : __('Optional', 'rrze-appointment')
+                                    );
+                                    ?>
+                                </span>
+                            </span>
+                            <?php if ($questionType === 'select') : ?>
+                                <select
+                                    id="<?php echo esc_attr($fieldId); ?>"
+                                    name="question_answers[<?php echo esc_attr($questionId); ?>]"
+                                    <?php echo $questionRequired ? 'required' : ''; ?>
+                                >
+                                    <option value=""><?php esc_html_e('Select an option', 'rrze-appointment'); ?></option>
+                                    <?php foreach ($questionOptions as $option) :
+                                        $option = sanitize_text_field((string) $option);
+                                        ?>
+                                        <option value="<?php echo esc_attr($option); ?>" <?php selected($submittedAnswer, $option); ?>>
+                                            <?php echo esc_html($option); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            <?php else : ?>
+                                <textarea
+                                    id="<?php echo esc_attr($fieldId); ?>"
+                                    name="question_answers[<?php echo esc_attr($questionId); ?>]"
+                                    maxlength="5000"
+                                    rows="5"
+                                    <?php echo $questionRequired ? 'required' : ''; ?>
+                                ><?php echo esc_textarea($submittedAnswer); ?></textarea>
+                            <?php endif; ?>
+                        </label>
+                    <?php endforeach; ?>
+
+                    <button class="rrze-appointment-confirmation__action" type="submit">
+                        <?php esc_html_e('Confirm appointment', 'rrze-appointment'); ?>
+                    </button>
+                </form>
+            <?php else : ?>
+                <a class="rrze-appointment-confirmation__action" href="<?php echo esc_url($homeUrl); ?>">
+                    <?php esc_html_e('Back to website', 'rrze-appointment'); ?>
+                </a>
+            <?php endif; ?>
         </div>
     </main>
 </body>

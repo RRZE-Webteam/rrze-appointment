@@ -473,8 +473,6 @@ class Main
                         'nameRequired' => __('Enter your name.', 'rrze-appointment'),
                         'emailRequired' => __('Enter a valid email address.', 'rrze-appointment'),
                         'messageRequired' => __('Enter a message.', 'rrze-appointment'),
-                        'questionRequired' => __('Answer this required question.', 'rrze-appointment'),
-                        'selectOption' => __('Select an option', 'rrze-appointment'),
                         'book' => __('Request appointment', 'rrze-appointment'),
                         'cancel' => __('Cancel', 'rrze-appointment'),
                         'booking' => __('Sending request…', 'rrze-appointment'),
@@ -676,83 +674,6 @@ class Main
         return str_replace(['\\', ';', ',', "\n"], ['\\\\', '\;', '\,', '\n'], $value);
     }
 
-    /**
-     * Sends custom-question answers without adding them to booking metadata.
-     *
-     * The answers only live for the duration of the booking request and are
-     * deliberately sent before the pending request returns to the browser.
-     */
-    private function sendQuestionAnswersMail(
-        string $recipient,
-        string $title,
-        string $date,
-        string $time,
-        string $bookerName,
-        string $bookerEmail,
-        array $answers
-    ): void {
-        if ($recipient === '' || empty($answers)) {
-            return;
-        }
-
-        $subject = sprintf(
-            /* translators: %s: Appointment title. */
-            __('Additional information for appointment request: %s', 'rrze-appointment'),
-            $title
-        );
-        $plainAnswers = [];
-        $htmlAnswers = '';
-        foreach ($answers as $answer) {
-            $label = (string) ($answer['label'] ?? '');
-            $value = (string) ($answer['answer'] ?? '');
-            $plainAnswers[] = $label . ': ' . $value;
-            $htmlAnswers .= '<tr>'
-                . '<th scope="row" style="width:34%;padding:10px 12px;border-bottom:1px solid #e5e9ef;color:#5f6b7a;font-size:13px;font-weight:600;line-height:20px;text-align:left;vertical-align:top;">'
-                . esc_html($label)
-                . '</th><td style="padding:10px 12px;border-bottom:1px solid #e5e9ef;color:#1f2937;font-size:15px;line-height:22px;text-align:left;vertical-align:top;">'
-                . nl2br(esc_html($value))
-                . '</td></tr>';
-        }
-
-        $plain = sprintf(
-            /* translators: 1: Appointment title. 2: Date. 3: Time. 4: Booker name. 5: Booker email. 6: Answers. */
-            __("A new appointment request contains additional information.\n\nAppointment: %1\$s\nDate: %2\$s\nTime: %3\$s\nName: %4\$s\nEmail: %5\$s\n\nAdditional information:\n%6\$s\n\nThe requester must still confirm the appointment by email.", 'rrze-appointment'),
-            $title,
-            $date,
-            $time,
-            $bookerName,
-            $bookerEmail,
-            implode("\n", $plainAnswers)
-        );
-        $html = '<p>'
-            . esc_html__('A new appointment request contains additional information.', 'rrze-appointment')
-            . '</p>'
-            . MailTemplate::detailsTable([
-                __('Appointment', 'rrze-appointment') => esc_html($title),
-                __('Date', 'rrze-appointment') => esc_html($date),
-                __('Time', 'rrze-appointment') => esc_html($time),
-                __('Name', 'rrze-appointment') => esc_html($bookerName),
-                __('Email', 'rrze-appointment') => esc_html($bookerEmail),
-            ])
-            . '<h2 style="margin:28px 0 8px;color:#1f2937;font-size:20px;line-height:28px;">'
-            . esc_html__('Additional information', 'rrze-appointment')
-            . '</h2><table class="rrze-email-details" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:12px 0 20px;border-collapse:collapse;">'
-            . $htmlAnswers
-            . '</table><p>'
-            . esc_html__('The requester must still confirm the appointment by email.', 'rrze-appointment')
-            . '</p>';
-
-        Settings::sendMail(
-            $recipient,
-            $subject,
-            $plain,
-            $html,
-            [],
-            MailTemplate::STATUS_WARNING
-        );
-    }
-
-
     public function handleBooking(): void
     {
         try {
@@ -765,15 +686,6 @@ class Main
             $postedBookerName = sanitize_text_field($_POST['booker_name'] ?? '');
             $bookerMsg = sanitize_textarea_field($_POST['booker_message'] ?? '');
             $bookerWaitlist = !empty($_POST['booker_waitlist']) && $_POST['booker_waitlist'] === '1';
-            $postedQuestionAnswers = [];
-            $postedQuestionAnswersJson = wp_unslash($_POST['question_answers'] ?? '');
-            if (is_string($postedQuestionAnswersJson) && $postedQuestionAnswersJson !== '') {
-                $decodedQuestionAnswers = json_decode($postedQuestionAnswersJson, true);
-                if (is_array($decodedQuestionAnswers)) {
-                    $postedQuestionAnswers = $decodedQuestionAnswers;
-                }
-            }
-
             if (!$slot) {
                 wp_send_json_error(__('No appointment specified.', 'rrze-appointment'));
             }
@@ -821,56 +733,6 @@ class Main
             if ($requireMessage && !$bookerMsg)
                 wp_send_json_error(__('Please provide a message.', 'rrze-appointment'));
 
-            $questionAnswersForMail = [];
-            $questionAnswerLines = [];
-            foreach ($questions as $question) {
-                $questionId = (string) $question['id'];
-                $rawAnswer = $postedQuestionAnswers[$questionId] ?? '';
-                $answer = is_scalar($rawAnswer) ? (string) $rawAnswer : '';
-                $answer = $question['type'] === 'select'
-                    ? sanitize_text_field($answer)
-                    : sanitize_textarea_field($answer);
-                $answer = trim($answer);
-
-                if (!empty($question['required']) && $answer === '') {
-                    wp_send_json_error(sprintf(
-                        /* translators: %s: Question that requires an answer. */
-                        __('Please answer “%s”.', 'rrze-appointment'),
-                        $question['label']
-                    ));
-                }
-                if (
-                    $question['type'] === 'select'
-                    && $answer !== ''
-                    && !in_array($answer, $question['options'], true)
-                ) {
-                    wp_send_json_error(sprintf(
-                        /* translators: %s: Question with an invalid dropdown answer. */
-                        __('Select a valid answer for “%s”.', 'rrze-appointment'),
-                        $question['label']
-                    ));
-                }
-                if ($answer === '') {
-                    continue;
-                }
-
-                $questionAnswersForMail[] = [
-                    'label' => $question['label'],
-                    'answer' => $answer,
-                ];
-                $questionAnswerLines[] = $question['label'] . ': ' . $answer;
-            }
-
-            $messageForMail = $bookerMsg;
-            if (!empty($questionAnswerLines)) {
-                $questionSummary = __('Additional information:', 'rrze-appointment')
-                    . "\n"
-                    . implode("\n", $questionAnswerLines);
-                $messageForMail = $bookerMsg !== ''
-                    ? $bookerMsg . "\n\n" . $questionSummary
-                    : $questionSummary;
-            }
-
             [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
             [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
 
@@ -899,6 +761,10 @@ class Main
                 'waitlist_notified_slots' => [],
                 'tpl_id' => $tplId,
                 'post_link' => $postLink,
+                // Question definitions are safe to keep with the pending
+                // request. User answers are collected only on confirmation
+                // and must never be added to this stored metadata.
+                'questions' => $questions,
             ];
 
             $confirmToken = TokenManager::createPending($slot, $meta);
@@ -913,15 +779,17 @@ class Main
                 '[person_name]' => $pName ?: '–',
                 '[name]' => $bookerName ?: '–',
                 '[email]' => $bookerEmail ?: '–',
-                '[message]' => $messageForMail,
+                '[message]' => $bookerMsg,
+                '[questions]' => '',
                 '[confirmation_link]' => $confirmUrl,
                 '[cancel_link]' => TokenManager::cancelUrl(TokenManager::createPendingCancelToken($confirmToken)),
                 '[imprint_link]' => $imprintUrl,
                 '[post_link]' => $postLink,
             ];
 
-            $tpl = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, 'booking_pending') ?? []) : [];
-            $def = MailTemplatePost::getDefault('booking_pending');
+            $pendingTemplateType = empty($questions) ? 'booking_pending' : 'booking_pending_questions';
+            $tpl = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, $pendingTemplateType) ?? []) : [];
+            $def = MailTemplatePost::getDefault($pendingTemplateType);
             $subject = Settings::renderTemplate(!empty($tpl['subject']) ? $tpl['subject'] : $def['subject'], $vars);
             $bodyTpl = !empty($tpl['body']) ? $tpl['body'] : $def['body'];
             $bodyHtmlTpl = !empty($tpl['body_html']) ? $tpl['body_html'] : $def['body_html'];
@@ -938,16 +806,6 @@ class Main
 
             Settings::sendMail($bookerEmail, $subject, $plain, $html, [], MailTemplate::STATUS_WARNING);
 
-            $this->sendQuestionAnswersMail(
-                $personEmail,
-                $title,
-                date_i18n(get_option('date_format'), strtotime($datePart)),
-                $startTime . ' – ' . $endTime,
-                $bookerName,
-                $bookerEmail,
-                $questionAnswersForMail
-            );
-
             wp_send_json_success(['message' => __('Please confirm your appointment by email.', 'rrze-appointment')]);
         } catch (CustomException $e) {
             wp_send_json_error($e->getMessage());
@@ -955,14 +813,185 @@ class Main
     }
 
     /**
-     * Bestätigt eine Buchung via Token-Link.
+     * Validates question answers submitted on the confirmation page.
+     *
+     * The returned answers are request-scoped and must never be added to
+     * pending or confirmed booking metadata.
+     *
+     * @return array{answers: array<int, array{label: string, answer: string}>, values: array<string, string>, error: string}
+     */
+    private function validateQuestionAnswers(array $questions, array $postedAnswers): array
+    {
+        $answers = [];
+        $values = [];
+        $error = '';
+
+        foreach ($questions as $question) {
+            if (!is_array($question)) {
+                continue;
+            }
+
+            $questionId = sanitize_key((string) ($question['id'] ?? ''));
+            $label = sanitize_text_field((string) ($question['label'] ?? ''));
+            if ($questionId === '' || $label === '') {
+                continue;
+            }
+
+            $rawAnswer = $postedAnswers[$questionId] ?? '';
+            $answer = is_scalar($rawAnswer) ? (string) $rawAnswer : '';
+            $answer = ($question['type'] ?? '') === 'select'
+                ? sanitize_text_field($answer)
+                : sanitize_textarea_field($answer);
+            $answer = trim(function_exists('mb_substr')
+                ? mb_substr($answer, 0, 5000)
+                : substr($answer, 0, 5000));
+            $values[$questionId] = $answer;
+
+            if (!empty($question['required']) && $answer === '' && $error === '') {
+                $error = sprintf(
+                    /* translators: %s: Question that requires an answer. */
+                    __('Please answer “%s”.', 'rrze-appointment'),
+                    $label
+                );
+            }
+
+            $options = is_array($question['options'] ?? null) ? $question['options'] : [];
+            if (
+                ($question['type'] ?? '') === 'select'
+                && $answer !== ''
+                && !in_array($answer, $options, true)
+                && $error === ''
+            ) {
+                $error = sprintf(
+                    /* translators: %s: Question with an invalid dropdown answer. */
+                    __('Select a valid answer for “%s”.', 'rrze-appointment'),
+                    $label
+                );
+            }
+
+            if ($answer !== '') {
+                $answers[] = [
+                    'label' => $label,
+                    'answer' => $answer,
+                ];
+            }
+        }
+
+        return [
+            'answers' => $answers,
+            'values' => $values,
+            'error' => $error,
+        ];
+    }
+
+    /**
+     * Formats request-scoped answers for the host's plain-text and HTML mail.
+     *
+     * @return array{plain: string, html: string}
+     */
+    private function formatQuestionAnswers(array $answers): array
+    {
+        if (empty($answers)) {
+            return ['plain' => '', 'html' => ''];
+        }
+
+        $plainRows = [];
+        $htmlRows = '';
+        foreach ($answers as $answer) {
+            $label = (string) ($answer['label'] ?? '');
+            $value = (string) ($answer['answer'] ?? '');
+            $plainRows[] = $label . ': ' . $value;
+            $htmlRows .= '<tr>'
+                . '<th scope="row" style="width:34%;padding:10px 12px;border-bottom:1px solid #e5e9ef;color:#5f6b7a;font-size:13px;font-weight:600;line-height:20px;text-align:left;vertical-align:top;">'
+                . esc_html($label)
+                . '</th><td style="padding:10px 12px;border-bottom:1px solid #e5e9ef;color:#1f2937;font-size:15px;line-height:22px;text-align:left;vertical-align:top;">'
+                . nl2br(esc_html($value))
+                . '</td></tr>';
+        }
+
+        return [
+            'plain' => "\n\n" . __('Additional information:', 'rrze-appointment') . "\n" . implode("\n", $plainRows),
+            'html' => '<h2 style="margin:28px 0 8px;color:#1f2937;font-size:20px;line-height:28px;">'
+                . esc_html__('Additional information', 'rrze-appointment')
+                . '</h2><table class="rrze-email-details" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:12px 0 20px;border-collapse:collapse;">'
+                . $htmlRows
+                . '</table>',
+        ];
+    }
+
+    /**
+     * Keeps the confirmed booking metadata deliberately narrow. In
+     * particular, question answers are never eligible for persistence.
+     */
+    private function getPersistableBookingMeta(array $meta): array
+    {
+        return array_intersect_key($meta, array_flip([
+            'title',
+            'location',
+            'person_id',
+            'person_name',
+            'person_email',
+            'booker_email',
+            'booker_name',
+            'booker_message',
+            'booker_waitlist',
+            'waitlist_notified_slots',
+            'tpl_id',
+            'post_link',
+        ]));
+    }
+
+    /**
+     * Confirms a pending booking, collecting configured questions first.
      */
     public function handleConfirm(): void
     {
         try {
-            $token = sanitize_text_field($_GET['rrze_appt_confirm'] ?? '');
+            $rawToken = wp_unslash($_GET['rrze_appt_confirm'] ?? '');
+            $token = is_string($rawToken) ? sanitize_text_field($rawToken) : '';
             if (!$token)
                 return;
+
+            $pendingEntry = TokenManager::getPending($token);
+            if (!$pendingEntry) {
+                wp_die(__('This confirmation link has expired or is invalid.', 'rrze-appointment'), '', ['response' => 410]);
+            }
+
+            $pendingMeta = is_array($pendingEntry['meta'] ?? null) ? $pendingEntry['meta'] : [];
+            $questions = is_array($pendingMeta['questions'] ?? null) ? $pendingMeta['questions'] : [];
+            $questionAnswers = [];
+
+            if (!empty($questions)) {
+                $isPost = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'POST';
+                if (!$isPost) {
+                    $this->renderConfirmationPage($token, $questions);
+                }
+
+                $rawNonce = wp_unslash($_POST['rrze_appt_questions_nonce'] ?? '');
+                $postedNonce = is_string($rawNonce) ? sanitize_text_field($rawNonce) : '';
+                $postedAnswers = wp_unslash($_POST['question_answers'] ?? []);
+                $postedAnswers = is_array($postedAnswers) ? $postedAnswers : [];
+                $validation = $this->validateQuestionAnswers($questions, $postedAnswers);
+
+                if (!wp_verify_nonce($postedNonce, 'rrze_appointment_confirm_questions_' . $token)) {
+                    $this->renderConfirmationPage(
+                        $token,
+                        $questions,
+                        $validation['values'],
+                        __('The form has expired. Please try again.', 'rrze-appointment')
+                    );
+                }
+                if ($validation['error'] !== '') {
+                    $this->renderConfirmationPage(
+                        $token,
+                        $questions,
+                        $validation['values'],
+                        $validation['error']
+                    );
+                }
+
+                $questionAnswers = $validation['answers'];
+            }
 
             $entry = TokenManager::confirmPending($token);
             if (!$entry) {
@@ -970,7 +999,9 @@ class Main
             }
 
             $slot = $entry['slot'];
-            $meta = $entry['meta'];
+            $meta = $this->getPersistableBookingMeta(
+                is_array($entry['meta'] ?? null) ? $entry['meta'] : []
+            );
 
             [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
             [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
@@ -1013,12 +1044,12 @@ class Main
             // Cancel-Token erstellen und URL holen
             $cancelUrl = TokenManager::getCancelUrlForSlot($slot);
             $imprintUrl = TokenManager::imprintUrl();
-            $personId = (int) ($meta['person_id'] ?? 0);
             $bookerEmail = $meta['booker_email'] ?? '';
             $bookerName = $meta['booker_name'] ?? '';
             $tplId = (int) ($meta['tpl_id'] ?? 0);
 
             $pName = trim((string) ($meta['person_name'] ?? ''));
+            $questionSections = $this->formatQuestionAnswers($questionAnswers);
 
             $vars = [
                 '[title]' => $meta['title'] ?? '',
@@ -1029,6 +1060,7 @@ class Main
                 '[name]' => $bookerName ?: '–',
                 '[email]' => $bookerEmail ?: '–',
                 '[message]' => $meta['booker_message'] ?? '',
+                '[questions]' => '',
                 '[confirmation_link]' => '',
                 '[cancel_link]' => $cancelUrl,
                 '[imprint_link]' => $imprintUrl,
@@ -1058,6 +1090,10 @@ class Main
             $subjectHost = Settings::renderTemplate(!empty($tplHost['subject']) ? $tplHost['subject'] : $defHost['subject'], $vars);
             $bodyHost = !empty($tplHost['body']) ? $tplHost['body'] : $defHost['body'];
             $bodyHtmlHost = !empty($tplHost['body_html']) ? $tplHost['body_html'] : $defHost['body_html'];
+            if ($questionSections['plain'] !== '' && strpos($bodyHost, '[questions]') === false)
+                $bodyHost .= '[questions]';
+            if ($questionSections['html'] !== '' && strpos($bodyHtmlHost, '[questions]') === false)
+                $bodyHtmlHost .= '[questions]';
             if (strpos($bodyHost, '[cancel_link]') === false)
                 $bodyHost .= "\n\n" . __('Cancel', 'rrze-appointment') . ": [cancel_link]";
             if (strpos($bodyHost, '[imprint_link]') === false)
@@ -1066,8 +1102,10 @@ class Main
                 $bodyHtmlHost .= '<p><a href="[cancel_link]">' . __('Cancel appointment', 'rrze-appointment') . '</a></p>';
             if (strpos($bodyHtmlHost, '[imprint_link]') === false)
                 $bodyHtmlHost .= '<p><a href="[imprint_link]">' . __('Imprint', 'rrze-appointment') . '</a></p>';
-            $plainHost = Settings::renderTemplate($bodyHost, $vars);
-            $htmlHost = Settings::renderTemplate($bodyHtmlHost, $vars);
+            $plainHostVars = array_merge($vars, ['[questions]' => $questionSections['plain']]);
+            $htmlHostVars = array_merge($vars, ['[questions]' => $questionSections['html']]);
+            $plainHost = Settings::renderTemplate($bodyHost, $plainHostVars);
+            $htmlHost = Settings::renderTemplate($bodyHtmlHost, $htmlHostVars);
 
             $tmpFile = tempnam(get_temp_dir(), 'rrze_appt_') . '.ics';
             file_put_contents($tmpFile, $ics);
@@ -1088,16 +1126,27 @@ class Main
     }
 
     /**
-     * Renders the public success page after a booking has been confirmed.
+     * Renders the public confirmation form or the completed success page.
      */
-    private function renderConfirmationPage(): void
+    private function renderConfirmationPage(
+        string $token = '',
+        array $questions = [],
+        array $submittedAnswers = [],
+        string $formError = ''
+    ): void
     {
         status_header(200);
         nocache_headers();
 
         $homeUrl = home_url('/');
-        $illustrationUrl = plugin()->getUrl('src/illustrations') . 'order-confirmed-62.png';
         $siteName = get_bloginfo('name');
+        $isQuestionForm = $token !== '' && !empty($questions);
+        $illustrationUrl = plugin()->getUrl('src/illustrations')
+            . ($isQuestionForm ? 'financial-analyst-31.png' : 'order-confirmed-62.png');
+        $formAction = $isQuestionForm ? TokenManager::confirmUrl($token) : '';
+        $formNonce = $isQuestionForm
+            ? wp_create_nonce('rrze_appointment_confirm_questions_' . $token)
+            : '';
 
         require plugin()->getPath('templates') . 'confirmation-page.php';
         exit;

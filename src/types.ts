@@ -154,8 +154,6 @@ export interface FrontendI18n {
 	messageOptional?: string;
 	messagePlaceholder?: string;
 	messageRequired?: string;
-	questionRequired?: string;
-	selectOption?: string;
 	namePlaceholder?: string;
 	nameRequired?: string;
 	networkError?: string;

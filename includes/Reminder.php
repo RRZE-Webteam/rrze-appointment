@@ -85,6 +85,7 @@ class Reminder
                 '[person_name]'  => trim((string) ($meta['person_name'] ?? '')),
                 '[name]'         => $bookerName ?: '–',
                 '[email]'        => $bookerEmail ?: '–',
+                '[questions]'    => '',
                 '[cancel_link]'  => TokenManager::getCancelUrlForSlot($slot),
                 '[imprint_link]' => TokenManager::imprintUrl(),
                 '[post_link]'    => esc_url_raw($meta['post_link'] ?? home_url('/')),

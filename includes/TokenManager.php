@@ -121,16 +121,34 @@ class TokenManager
     public static function confirmPending(string $token): ?array
     {
         try {
-            $pending = (array) get_option(self::PENDING_OPTION, []);
-            if (!isset($pending[$token])) return null;
+            if (!self::getPending($token)) {
+                return null;
+            }
 
-            $entry = $pending[$token];
+            return self::deletePending($token);
+        } catch (\Exception $e) {
+            throw new CustomException($e->getMessage(), $e->getCode(), null);
+        }
+    }
+
+    /**
+     * Reads a pending booking without consuming its confirmation token.
+     */
+    public static function getPending(string $token): ?array
+    {
+        try {
+            if ($token === '') {
+                return null;
+            }
+
+            $pending = (array) get_option(self::PENDING_OPTION, []);
+            $entry = $pending[$token] ?? null;
             if (!is_array($entry) || time() > (int) ($entry['expires'] ?? 0)) {
                 self::deletePending($token);
                 return null;
             }
 
-            return self::deletePending($token);
+            return $entry;
         } catch (\Exception $e) {
             throw new CustomException($e->getMessage(), $e->getCode(), null);
         }

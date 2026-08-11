@@ -39,7 +39,7 @@ class MailTemplate
 
     public static function statusForType(string $type): string
     {
-        if ($type === 'booking_pending') {
+        if (in_array($type, ['booking_pending', 'booking_pending_questions'], true)) {
             return self::STATUS_WARNING;
         }
 

@@ -11,7 +11,7 @@ class MailTemplatePost
     const POST_TYPE = 'rrze_appt_mail_tpl';
     private const EDITABLE_DEFAULT_META_KEY = '_rrze_appt_editable_default_template';
     private const EDITABLE_DEFAULT_CREATED_OPTION = 'rrze_appt_editable_default_template_created';
-    private const TEMPLATE_TYPES = ['booking_pending', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation', 'waitlist_earlier_slot'];
+    private const TEMPLATE_TYPES = ['booking_pending', 'booking_pending_questions', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation', 'waitlist_earlier_slot'];
 
     public static function register(): void
     {
@@ -27,19 +27,15 @@ class MailTemplatePost
                 'map_meta_cap'    => true,
             ]);
 
-            foreach (['booking_pending_subject', 'booking_pending_body', 'booking_pending_body_html',
-                      'booking_booker_subject', 'booking_booker_body', 'booking_booker_body_html',
-                      'booking_host_subject', 'booking_host_body', 'booking_host_body_html',
-                      'reminder_admin_subject', 'reminder_admin_body', 'reminder_admin_body_html',
-                      'reminder_booker_subject', 'reminder_booker_body', 'reminder_booker_body_html',
-                      'cancellation_subject', 'cancellation_body', 'cancellation_body_html',
-                      'waitlist_earlier_slot_subject', 'waitlist_earlier_slot_body', 'waitlist_earlier_slot_body_html'] as $field) {
-                register_post_meta(self::POST_TYPE, 'tpl_' . $field, [
-                    'show_in_rest'  => true,
-                    'single'        => true,
-                    'type'          => 'string',
-                    'auth_callback' => fn() => current_user_can('edit_posts'),
-                ]);
+            foreach (self::TEMPLATE_TYPES as $type) {
+                foreach (['subject', 'body', 'body_html'] as $field) {
+                    register_post_meta(self::POST_TYPE, "tpl_{$type}_{$field}", [
+                        'show_in_rest'  => true,
+                        'single'        => true,
+                        'type'          => 'string',
+                        'auth_callback' => fn() => current_user_can('edit_posts'),
+                    ]);
+                }
             }
         } catch (CustomException $e) {
             return;
@@ -57,6 +53,7 @@ class MailTemplatePost
         $bookedBy    = __('Booked by', 'rrze-appointment');
         $message     = __('Message', 'rrze-appointment');
         $confirm     = __('Confirm appointment', 'rrze-appointment');
+        $confirmQuestions = __('Confirm appointment and answer questions', 'rrze-appointment');
         $cancelReq   = __('Cancel request', 'rrze-appointment');
         $cancel      = __('Cancel appointment', 'rrze-appointment');
         $legal       = __('Legal notice', 'rrze-appointment');
@@ -108,6 +105,25 @@ class MailTemplatePost
                     . '<p style="margin:0;"><a href="[cancel_link]">' . $cancelReq . '</a></p>'
                     . $legalLink,
             ],
+            'booking_pending_questions' => [
+                'subject'   => __('Confirm appointment and answer questions: [title] on [date]', 'rrze-appointment'),
+                'body'      => sprintf(
+                    __("%s\n\n%s: [title]\n%s: [date]\n%s: [time]\n%s: [location]\n\n%s\n\n%s: [confirmation_link]\n%s: [cancel_link]\n\n%s: [imprint_link]", 'rrze-appointment'),
+                    __('Please confirm your appointment request and answer the remaining questions:', 'rrze-appointment'),
+                    $appointment, $date, $time, $location,
+                    __('The appointment is booked only after you submit the confirmation form.', 'rrze-appointment'),
+                    __('Continue', 'rrze-appointment'),
+                    __('Cancel', 'rrze-appointment'),
+                    $legal
+                ),
+                'body_html'  =>
+                    '<p>' . __('Please confirm your appointment request and answer the remaining questions:', 'rrze-appointment') . '</p>'
+                    . $baseTable
+                    . '<p>' . __('The appointment is booked only after you submit the confirmation form.', 'rrze-appointment') . '</p>'
+                    . MailTemplate::actionButton('[confirmation_link]', $confirmQuestions)
+                    . '<p style="margin:0;"><a href="[cancel_link]">' . $cancelReq . '</a></p>'
+                    . $legalLink,
+            ],
             'booking_booker' => [
                 'subject'   => __('Booking confirmation: [title] on [date]', 'rrze-appointment'),
                 'body'      => sprintf(
@@ -124,13 +140,14 @@ class MailTemplatePost
             'booking_host' => [
                 'subject'   => __('New booking: [title] on [date]', 'rrze-appointment'),
                 'body'      => sprintf(
-                    __("%s\n\n%s: [title]\n%s: [date]\n%s: [time]\n%s: [location]\n%s: [name] ([email])\n%s: [message]\n\n%s: [cancel_link]\n\n%s: [imprint_link]", 'rrze-appointment'),
+                    __("%s\n\n%s: [title]\n%s: [date]\n%s: [time]\n%s: [location]\n%s: [name] ([email])\n%s: [message]\n[questions]\n\n%s: [cancel_link]\n\n%s: [imprint_link]", 'rrze-appointment'),
                     __('New booking received:', 'rrze-appointment'),
                     $appointment, $date, $time, $location, $bookedBy, $message, $cancel, $legal
                 ),
                 'body_html'  =>
                     '<p>' . __('New booking received:', 'rrze-appointment') . '</p>'
                     . $hostTable
+                    . '[questions]'
                     . MailTemplate::actionButton('[cancel_link]', $cancel)
                     . $legalLink,
             ],

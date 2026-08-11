@@ -334,6 +334,7 @@ class Bookings
                 '[person_name]'  => $pName ?: '–',
                 '[name]'         => $bookerName ?: __('there', 'rrze-appointment'),
                 '[email]'        => $bookerEmail ?: '–',
+                '[questions]'    => '',
                 '[imprint_link]' => TokenManager::imprintUrl(),
                 '[post_link]'    => esc_url_raw($bookedMeta['post_link'] ?? home_url('/')),
             ];
@@ -460,6 +461,7 @@ class Bookings
                 '[person_name]'       => $pName ?: '–',
                 '[name]'              => $bookerName ?: '–',
                 '[email]'             => $bookerEmail ?: '–',
+                '[questions]'         => '',
                 '[cancel_link]'       => '',
                 '[imprint_link]'      => TokenManager::imprintUrl(),
                 '[post_link]'         => esc_url_raw($meta['post_link'] ?? home_url('/')),
