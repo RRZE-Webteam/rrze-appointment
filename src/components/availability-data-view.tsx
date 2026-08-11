@@ -5,11 +5,11 @@ import {
 	type Field,
 	type View,
 } from '@wordpress/dataviews/wp';
-import { Notice } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
 import { pencil, trash } from '@wordpress/icons';
 import { useState } from '@wordpress/element';
 import { getAvailabilityDates } from '../availability';
+import relaxingIllustration from '../illustrations/relaxing-55-3.png';
 import type { AvailabilityEntry, RecurrenceWeekday } from '../types';
 import { formatDateWithWeekdayDisplay, parseDateString } from '../utils';
 
@@ -189,6 +189,25 @@ export function AvailabilityDataView( {
 	onEdit,
 }: AvailabilityDataViewProps ) {
 	const [ view, setView ] = useState< View >( INITIAL_VIEW );
+
+	if ( entries.length === 0 ) {
+		return (
+			<div className="rrze-appointment-data-view__empty">
+				<img
+					alt=""
+					className="rrze-appointment-data-view__empty-illustration"
+					src={ relaxingIllustration }
+				/>
+				<p className="rrze-appointment-data-view__empty-message">
+					{ __(
+						'No appointment times have been set up yet.',
+						'rrze-appointment'
+					) }
+				</p>
+			</div>
+		);
+	}
+
 	const fields: Field< AvailabilityEntry >[] = [
 		{
 			id: 'date',
@@ -254,14 +273,6 @@ export function AvailabilityDataView( {
 			actions={ actions }
 			data={ filteredEntries.data }
 			defaultLayouts={ { table: {} } }
-			empty={
-				<Notice status="info" isDismissible={ false }>
-					{ __(
-						'No appointment times have been set up yet.',
-						'rrze-appointment'
-					) }
-				</Notice>
-			}
 			fields={ fields }
 			getItemId={ ( item ) => item.id }
 			onChangeView={ setView }

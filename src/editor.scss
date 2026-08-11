@@ -57,6 +57,42 @@
 		margin-bottom: 1.5rem;
 	}
 
+	&__empty {
+		display: flex;
+		align-items: center;
+		flex: 1;
+		flex-direction: column;
+		justify-content: center;
+		box-sizing: border-box;
+		min-height: 480px;
+		padding: 1rem;
+		background: transparent;
+		text-align: center;
+
+		&::before {
+			display: none;
+			content: none;
+		}
+	}
+
+	&__empty-illustration {
+		display: block;
+		width: min(440px, 90%);
+		height: auto;
+		max-height: 420px;
+		margin: 0 auto 2rem;
+		object-fit: contain;
+	}
+
+	&__empty-message {
+		max-width: 36rem;
+		margin: 0;
+		color: #1e1e1e;
+		font-size: 1.25rem;
+		font-weight: 600;
+		line-height: 1.4;
+	}
+
 	&__status {
 		display: inline-flex;
 		align-items: center;

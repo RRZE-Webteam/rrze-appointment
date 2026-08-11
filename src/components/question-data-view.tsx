@@ -5,10 +5,10 @@ import {
 	type Field,
 	type View,
 } from '@wordpress/dataviews/wp';
-import { Notice } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { pencil, trash } from '@wordpress/icons';
 import { useState } from '@wordpress/element';
+import questionsIllustration from '../illustrations/financial-analyst-31.png';
 import type { AppointmentQuestion } from '../types';
 
 interface QuestionDataViewProps {
@@ -55,6 +55,25 @@ export function QuestionDataView( {
 	onEdit,
 }: QuestionDataViewProps ) {
 	const [ view, setView ] = useState< View >( INITIAL_VIEW );
+
+	if ( questions.length === 0 ) {
+		return (
+			<div className="rrze-appointment-data-view__empty">
+				<img
+					alt=""
+					className="rrze-appointment-data-view__empty-illustration"
+					src={ questionsIllustration }
+				/>
+				<p className="rrze-appointment-data-view__empty-message">
+					{ __(
+						'No additional questions have been added yet.',
+						'rrze-appointment'
+					) }
+				</p>
+			</div>
+		);
+	}
+
 	const fields: Field< AppointmentQuestion >[] = [
 		{
 			id: 'label',
@@ -119,14 +138,6 @@ export function QuestionDataView( {
 			actions={ actions }
 			data={ filteredQuestions.data }
 			defaultLayouts={ { table: {} } }
-			empty={
-				<Notice status="info" isDismissible={ false }>
-					{ __(
-						'No additional questions have been added yet.',
-						'rrze-appointment'
-					) }
-				</Notice>
-			}
 			fields={ fields }
 			getItemId={ ( item ) => item.id }
 			onChangeView={ setView }
