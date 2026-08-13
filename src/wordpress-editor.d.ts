@@ -137,6 +137,16 @@ declare module '@wordpress/components' {
 		initialOpen?: boolean;
 	}
 
+	interface PlaceholderProps {
+		children?: ReactNode;
+		className?: string;
+		icon?: IconType;
+		instructions?: string;
+		isColumnLayout?: boolean;
+		label?: string;
+		preview?: ReactNode;
+	}
+
 	interface SelectOption {
 		label: string;
 		value: string;
@@ -150,6 +160,7 @@ declare module '@wordpress/components' {
 
 	interface TextControlProps extends BaseControlProps {
 		min?: string;
+		placeholder?: string;
 		rows?: number;
 		value: string;
 		type?: string;
@@ -190,6 +201,7 @@ declare module '@wordpress/components' {
 	export const Modal: ComponentType< ModalProps >;
 	export const Notice: ComponentType< NoticeProps >;
 	export const PanelBody: ComponentType< PanelBodyProps >;
+	export const Placeholder: ComponentType< PlaceholderProps >;
 	export const SelectControl: ComponentType< SelectControlProps >;
 	export const Spinner: ComponentType;
 	export const TextControl: ComponentType< TextControlProps >;

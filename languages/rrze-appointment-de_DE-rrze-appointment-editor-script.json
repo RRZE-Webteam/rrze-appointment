@@ -17,7 +17,17 @@
         "Mindestanzahl Minuten vor Terminbeginn, bis zu der noch gebucht werden kann."
       ],
       "End time": ["Endzeit"],
-      "Appointment title": ["Termin-Titel"],
+      "Appointment title": ["Termintitel"],
+      "Set up appointment booking": ["Terminbuchung einrichten"],
+      "Add the basic information, then create your first appointment times.": [
+        "Ergänzen Sie die wichtigsten Angaben und erstellen Sie anschließend Ihre ersten Terminzeiten."
+      ],
+      "Short description": ["Kurzbeschreibung"],
+      "Briefly explain what the appointment is about.": [
+        "Beschreiben Sie kurz, worum es bei dem Termin geht."
+      ],
+      "Add first appointment times": ["Erste Terminzeiten hinzufügen"],
+      "Appointment booking setup": ["Einrichtung der Terminbuchung"],
       "light": ["Hell"],
       "Person": ["Person"],
       "No person data available.": ["Keine Personen-Daten verfügbar."],

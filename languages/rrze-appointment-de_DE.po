@@ -1549,7 +1549,7 @@ msgstr ""
 msgid "Template name"
 msgstr "Vorlagenname"
 
-#: includes/Settings.php
+#: includes/Settings.php src/edit.tsx
 msgid "For example: Consultation hours"
 msgstr "Zum Beispiel: Sprechstunde"
 
@@ -1761,3 +1761,31 @@ msgstr "Bei mindestens einer Zusatzfrage fehlt eine Erklärung zu Zweck und Verw
 #: templates/confirmation-page.php
 msgid "Why we ask:"
 msgstr "Warum wir danach fragen:"
+
+#: src/edit.tsx
+msgid "Set up appointment booking"
+msgstr "Terminbuchung einrichten"
+
+#: src/edit.tsx
+msgid "Add the basic information, then create your first appointment times."
+msgstr "Ergänzen Sie die wichtigsten Angaben und erstellen Sie anschließend Ihre ersten Terminzeiten."
+
+#: src/edit.tsx
+msgid "Appointment title"
+msgstr "Termintitel"
+
+#: src/edit.tsx
+msgid "Short description"
+msgstr "Kurzbeschreibung"
+
+#: src/edit.tsx
+msgid "Briefly explain what the appointment is about."
+msgstr "Beschreiben Sie kurz, worum es bei dem Termin geht."
+
+#: src/edit.tsx
+msgid "Add first appointment times"
+msgstr "Erste Terminzeiten hinzufügen"
+
+#: src/edit.tsx
+msgid "Appointment booking setup"
+msgstr "Einrichtung der Terminbuchung"

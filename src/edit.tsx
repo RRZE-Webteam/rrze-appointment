@@ -4,8 +4,15 @@ import {
 	RichText,
 	useBlockProps,
 } from '@wordpress/block-editor';
-import { ToolbarButton, ToolbarGroup } from '@wordpress/components';
-import { Fragment, useEffect, useState } from '@wordpress/element';
+import {
+	Button,
+	Placeholder,
+	TextareaControl,
+	TextControl,
+	ToolbarButton,
+	ToolbarGroup,
+} from '@wordpress/components';
+import { Fragment, useEffect, useRef, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import type { ReactNode } from 'react';
 import {
@@ -50,6 +57,76 @@ import {
 	questionExchangeIcon,
 	scheduleIcon,
 } from './material-icons';
+import emptyBlockIllustration from './illustrations/dream-3.png';
+
+interface EmptyBlockPlaceholderProps {
+	description: string;
+	onAddTimes: () => void;
+	onDescriptionChange: ( value: string ) => void;
+	onTitleChange: ( value: string ) => void;
+	title: string;
+}
+
+function EmptyBlockPlaceholder( {
+	description,
+	onAddTimes,
+	onDescriptionChange,
+	onTitleChange,
+	title,
+}: EmptyBlockPlaceholderProps ) {
+	return (
+		<Placeholder
+			className="rrze-appointment-block__placeholder"
+			instructions={ __(
+				'Add the basic information, then create your first appointment times.',
+				'rrze-appointment'
+			) }
+			isColumnLayout
+			label={ __( 'Set up appointment booking', 'rrze-appointment' ) }
+			preview={
+				<span className="rrze-appointment-block__placeholder-media">
+					<img
+						alt=""
+						className="rrze-appointment-block__placeholder-illustration"
+						src={ emptyBlockIllustration }
+					/>
+				</span>
+			}
+		>
+			<div className="rrze-appointment-block__placeholder-fields">
+				<TextControl
+					label={ __( 'Appointment title', 'rrze-appointment' ) }
+					placeholder={ __(
+						'For example: Consultation hours',
+						'rrze-appointment'
+					) }
+					value={ title }
+					onChange={ onTitleChange }
+					__nextHasNoMarginBottom
+				/>
+				<TextareaControl
+					label={ __( 'Short description', 'rrze-appointment' ) }
+					placeholder={ __(
+						'Briefly explain what the appointment is about.',
+						'rrze-appointment'
+					) }
+					rows={ 3 }
+					value={ description }
+					onChange={ onDescriptionChange }
+					__nextHasNoMarginBottom
+				/>
+			</div>
+			<Button
+				className="rrze-appointment-block__placeholder-action"
+				icon={ scheduleIcon }
+				variant="primary"
+				onClick={ onAddTimes }
+			>
+				{ __( 'Add first appointment times', 'rrze-appointment' ) }
+			</Button>
+		</Placeholder>
+	);
+}
 
 export default function Edit( { attributes, setAttributes }: EditProps ) {
 	const {
@@ -108,12 +185,25 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 		includeExcluded: true,
 	} );
 	const availabilityEntries = getAvailabilityEntries( attributes );
+	const availabilityCount = availabilityEntries.length;
 	const [ activeDate, setActiveDate ] = useState( calendarDates[ 0 ] || '' );
 	const [ addSlotDate, setAddSlotDate ] = useState< string | null >( null );
 	const [ addSlotTime, setAddSlotTime ] = useState( '' );
 	const [ addSlotEndTime, setAddSlotEndTime ] = useState( '' );
 	const [ addSlotError, setAddSlotError ] = useState( '' );
-	const [ showCalendarPreview, setShowCalendarPreview ] = useState( false );
+	const [ showCalendarPreview, setShowCalendarPreview ] = useState(
+		availabilityCount > 0
+	);
+	const previousAvailabilityCount = useRef( availabilityCount );
+	useEffect( () => {
+		if (
+			previousAvailabilityCount.current === 0 &&
+			availabilityCount > 0
+		) {
+			setShowCalendarPreview( true );
+		}
+		previousAvailabilityCount.current = availabilityCount;
+	}, [ availabilityCount ] );
 	const [ showAvailabilityManager, setShowAvailabilityManager ] =
 		useState( false );
 	const [ showQuestionsManager, setShowQuestionsManager ] = useState( false );
@@ -551,67 +641,102 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 				>
 					<form className="rrze-appointment__form">
 						<fieldset className="rrze-appointment__fieldset">
-							<RichText
-								tagName="legend"
-								className="rrze-appointment__title"
-								value={ title }
-								allowedFormats={ [] }
-								placeholder={ __(
-									'Add appointment title…',
-									'rrze-appointment'
-								) }
-								onChange={ ( value ) =>
-									setAttributes( { title: value } )
-								}
-							/>
-							<RichText
-								tagName="p"
-								className="rrze-appointment-block__description"
-								value={ description }
-								allowedFormats={ [] }
-								placeholder={ __(
-									'Add a short description…',
-									'rrze-appointment'
-								) }
-								onChange={ ( value ) =>
-									setAttributes( { description: value } )
-								}
-							/>
-							{ location && (
-								<p>
-									<strong>
-										{ __( 'Location', 'rrze-appointment' ) }
-										:
-									</strong>{ ' ' }
-									{ locationContent }
-								</p>
-							) }
-							{ showCalendarPreview && (
-								<div className="rrze-appointment-block__calendar-preview">
-									<div className="rrze-appointment-block__calendar-preview-header">
-										<h3>
-											{ __(
-												'Calendar preview',
-												'rrze-appointment'
-											) }
-										</h3>
-										<p>
-											{ __(
-												'Select a date to review or adjust its appointment times.',
-												'rrze-appointment'
-											) }
-										</p>
-									</div>
-									<PreviewCalendar
-										slots={ slots }
-										selectedDates={ calendarDates }
-										onRemoveSlot={ handleRemoveSlot }
-										onAddSlot={ handleOpenAddSlot }
-										activeDate={ activeDate }
-										setActiveDate={ setActiveDate }
-										hideWeekends={ !! hideWeekends }
+							{ availabilityEntries.length === 0 ? (
+								<>
+									<legend className="rrze-appointment__visually-hidden">
+										{ __(
+											'Appointment booking setup',
+											'rrze-appointment'
+										) }
+									</legend>
+									<EmptyBlockPlaceholder
+										description={ description }
+										title={ title }
+										onAddTimes={ () =>
+											handleAddAvailability()
+										}
+										onDescriptionChange={ ( value ) =>
+											setAttributes( {
+												description: value,
+											} )
+										}
+										onTitleChange={ ( value ) =>
+											setAttributes( { title: value } )
+										}
 									/>
-								</div>
+								</>
+							) : (
+								<>
+									<RichText
+										tagName="legend"
+										className="rrze-appointment__title"
+										value={ title }
+										allowedFormats={ [] }
+										placeholder={ __(
+											'Add appointment title…',
+											'rrze-appointment'
+										) }
+										onChange={ ( value ) =>
+											setAttributes( { title: value } )
+										}
+									/>
+									<RichText
+										tagName="p"
+										className="rrze-appointment-block__description"
+										value={ description }
+										allowedFormats={ [] }
+										placeholder={ __(
+											'Add a short description…',
+											'rrze-appointment'
+										) }
+										onChange={ ( value ) =>
+											setAttributes( {
+												description: value,
+											} )
+										}
+									/>
+									{ location && (
+										<p>
+											<strong>
+												{ __(
+													'Location',
+													'rrze-appointment'
+												) }
+												:
+											</strong>{ ' ' }
+											{ locationContent }
+										</p>
+									) }
+									{ showCalendarPreview && (
+										<div className="rrze-appointment-block__calendar-preview">
+											<div className="rrze-appointment-block__calendar-preview-header">
+												<h3>
+													{ __(
+														'Calendar preview',
+														'rrze-appointment'
+													) }
+												</h3>
+												<p>
+													{ __(
+														'Select a date to review or adjust its appointment times.',
+														'rrze-appointment'
+													) }
+												</p>
+											</div>
+											<PreviewCalendar
+												slots={ slots }
+												selectedDates={ calendarDates }
+												onRemoveSlot={
+													handleRemoveSlot
+												}
+												onAddSlot={ handleOpenAddSlot }
+												activeDate={ activeDate }
+												setActiveDate={ setActiveDate }
+												hideWeekends={ !! hideWeekends }
+											/>
+										</div>
+									) }
+								</>
 							) }
 							{ showAvailabilityManager && (
 								<AvailabilityManagerDialog

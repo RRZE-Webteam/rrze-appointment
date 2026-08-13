@@ -18,6 +18,124 @@
 		min-height: 1.5em;
 	}
 
+	&__placeholder.components-placeholder {
+		display: grid;
+		grid-template-columns: minmax(200px, 0.85fr) minmax(280px, 1.15fr);
+		align-items: center;
+		column-gap: clamp(2rem, 6vw, 5rem);
+		row-gap: 0.5rem;
+		box-sizing: border-box;
+		min-height: 520px;
+		padding: clamp(2rem, 5vw, 4.5rem);
+		border: 1px solid #dcdcde;
+		border-radius: 12px;
+		background: #fff;
+		color: #1e1e1e;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+		&::before {
+			background: none;
+			content: none;
+		}
+	}
+
+	&__placeholder .components-placeholder__preview {
+		align-self: center;
+		grid-column: 1;
+		grid-row: 1 / span 3;
+		width: 100%;
+
+		&::before {
+			background: none;
+			content: none;
+		}
+	}
+
+	&__placeholder-illustration {
+		display: block;
+		width: min(100%, 360px);
+		height: auto;
+		margin: 0 auto;
+		object-fit: contain;
+	}
+
+	&__placeholder-media {
+		display: block;
+		width: 100%;
+	}
+
+	&__placeholder .components-placeholder__label,
+	&__placeholder .components-placeholder__instructions,
+	&__placeholder .components-placeholder__fieldset {
+		grid-column: 2;
+		width: 100%;
+		max-width: 34rem;
+	}
+
+	&__placeholder .components-placeholder__label {
+		align-self: end;
+		color: #1e1e1e;
+		font-size: clamp(1.5rem, 3vw, 2rem);
+		font-weight: 600;
+		line-height: 1.25;
+	}
+
+	&__placeholder .components-placeholder__instructions {
+		align-self: start;
+		margin-bottom: 1.25rem;
+		color: #50575e;
+		font-size: 1rem;
+		line-height: 1.5;
+	}
+
+	&__placeholder .components-placeholder__fieldset {
+		align-self: start;
+		align-items: stretch;
+	}
+
+	&__placeholder-fields {
+		display: grid;
+		gap: 1.25rem;
+
+		.components-base-control__label {
+			font-size: 0.8125rem;
+		}
+
+		.components-text-control__input,
+		.components-textarea-control__input {
+			border-color: #8c8f94;
+		}
+	}
+
+	&__placeholder-action.components-button {
+		min-height: 44px;
+		margin-top: 1.75rem;
+		padding-right: 1.25rem;
+		padding-left: 1.25rem;
+	}
+
+	@media (max-width: 700px) {
+
+		&__placeholder.components-placeholder {
+			grid-template-columns: 1fr;
+			gap: 1.5rem;
+			min-height: 0;
+			padding: 1.5rem;
+		}
+
+		&__placeholder .components-placeholder__preview,
+		&__placeholder .components-placeholder__label,
+		&__placeholder .components-placeholder__instructions,
+		&__placeholder .components-placeholder__fieldset {
+			grid-column: 1;
+			grid-row: auto;
+		}
+
+		&__placeholder-illustration {
+			width: min(70%, 240px);
+		}
+	}
+
 	&__faudir-preview {
 		margin: 1.5rem 0;
 		padding-top: 1rem;

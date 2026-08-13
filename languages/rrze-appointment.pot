@@ -1480,7 +1480,7 @@ msgstr ""
 msgid "Template name"
 msgstr ""
 
-#: includes/Settings.php
+#: includes/Settings.php src/edit.tsx
 msgid "For example: Consultation hours"
 msgstr ""
 
@@ -1685,4 +1685,32 @@ msgstr ""
 
 #: templates/confirmation-page.php
 msgid "Why we ask:"
+msgstr ""
+
+#: src/edit.tsx
+msgid "Set up appointment booking"
+msgstr ""
+
+#: src/edit.tsx
+msgid "Add the basic information, then create your first appointment times."
+msgstr ""
+
+#: src/edit.tsx
+msgid "Appointment title"
+msgstr ""
+
+#: src/edit.tsx
+msgid "Short description"
+msgstr ""
+
+#: src/edit.tsx
+msgid "Briefly explain what the appointment is about."
+msgstr ""
+
+#: src/edit.tsx
+msgid "Add first appointment times"
+msgstr ""
+
+#: src/edit.tsx
+msgid "Appointment booking setup"
 msgstr ""
