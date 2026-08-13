@@ -3,18 +3,42 @@
 defined('ABSPATH') || exit;
 
 $waitlistNotificationsEnabled = !empty($waitlistNotificationsEnabled);
+$isCancellationConfirmation = !empty($isCancellationConfirmation);
+$appointmentDetails = is_array($appointmentDetails ?? null) ? $appointmentDetails : [];
+$hasAppointmentDetails = count(array_filter($appointmentDetails, static fn($value): bool => $value !== '')) > 0;
+
+if ($isQuestionForm) {
+    $statusText = __('Confirmation required', 'rrze-appointment');
+    $headingText = __('Complete your appointment request', 'rrze-appointment');
+    $messageText = __('Please answer the remaining questions below. Your appointment will be confirmed when you submit this form.', 'rrze-appointment');
+} elseif ($isCancellationConfirmation) {
+    $statusText = __('Cancellation', 'rrze-appointment');
+    $headingText = __('Cancel this appointment?', 'rrze-appointment');
+    $messageText = __('Please check the appointment details before cancelling. The appointment will only be cancelled after you use the button below.', 'rrze-appointment');
+} elseif ($isCancellation) {
+    $statusText = __('Appointment cancelled', 'rrze-appointment');
+    $headingText = __('Your appointment has been cancelled', 'rrze-appointment');
+    $messageText = __('Your appointment request has been cancelled successfully. No further action is required.', 'rrze-appointment');
+} elseif ($isWaitlistOptOut) {
+    $statusText = $waitlistNotificationsEnabled
+        ? __('Notifications enabled', 'rrze-appointment')
+        : __('Notifications disabled', 'rrze-appointment');
+    $headingText = $waitlistNotificationsEnabled
+        ? __('You are subscribed again', 'rrze-appointment')
+        : __('You have unsubscribed', 'rrze-appointment');
+    $messageText = $waitlistNotificationsEnabled
+        ? __('You will receive an email again when an earlier appointment becomes available.', 'rrze-appointment')
+        : __('Your appointment remains confirmed. You will no longer receive emails when an earlier appointment becomes available.', 'rrze-appointment');
+} else {
+    $statusText = __('Successfully confirmed', 'rrze-appointment');
+    $headingText = __('Your appointment is confirmed', 'rrze-appointment');
+    $messageText = __('Thank you for confirming your appointment. We have sent the appointment details and a calendar invitation to your email address.', 'rrze-appointment');
+}
+
 $pageTitle = sprintf(
     /* translators: 1: confirmation page title, 2: website name. */
     __('%1$s – %2$s', 'rrze-appointment'),
-    $isQuestionForm
-        ? __('Complete appointment request', 'rrze-appointment')
-        : ($isCancellation
-            ? __('Appointment cancelled', 'rrze-appointment')
-            : ($isWaitlistOptOut
-                ? ($waitlistNotificationsEnabled
-                    ? __('Earlier appointment notifications enabled', 'rrze-appointment')
-                    : __('Earlier appointment notifications disabled', 'rrze-appointment'))
-                : __('Appointment confirmed', 'rrze-appointment'))),
+    $headingText,
     $siteName
 );
 ?>
@@ -96,12 +120,25 @@ $pageTitle = sprintf(
             color: #b71c1c;
         }
 
+        .rrze-appointment-confirmation.is-cancellation-confirmation .rrze-appointment-confirmation__status {
+            background: #fff3e0;
+            color: #7a2e00;
+        }
+
         .rrze-appointment-confirmation.is-cancellation .rrze-appointment-confirmation__action {
             background: #04316a;
         }
 
         .rrze-appointment-confirmation.is-cancellation .rrze-appointment-confirmation__action:hover {
             background: #021f46;
+        }
+
+        .rrze-appointment-confirmation.is-cancellation-confirmation .rrze-appointment-confirmation__action--destructive {
+            background: #b32d2e;
+        }
+
+        .rrze-appointment-confirmation.is-cancellation-confirmation .rrze-appointment-confirmation__action--destructive:hover {
+            background: #8a2424;
         }
 
         .rrze-appointment-confirmation.is-waitlist-optout .rrze-appointment-confirmation__status {
@@ -160,8 +197,39 @@ $pageTitle = sprintf(
         }
 
         .rrze-appointment-confirmation__action:focus-visible {
-            outline: 3px solid #ffca28;
+            outline: 3px solid #04316a;
             outline-offset: 3px;
+        }
+
+        .rrze-appointment-confirmation__details {
+            max-width: 38rem;
+            margin-top: 2rem;
+            padding: 1.25rem;
+            border: 1px solid #dcdcde;
+            border-radius: 0.5rem;
+            background: #f6f7f7;
+        }
+
+        .rrze-appointment-confirmation__details h2 {
+            margin: 0 0 1rem;
+            font-size: 1.25rem;
+            line-height: 1.35;
+        }
+
+        .rrze-appointment-confirmation__details dl {
+            display: grid;
+            margin: 0;
+            gap: 0.75rem 1rem;
+            grid-template-columns: minmax(6rem, auto) 1fr;
+        }
+
+        .rrze-appointment-confirmation__details dt {
+            font-weight: 700;
+        }
+
+        .rrze-appointment-confirmation__details dd {
+            min-width: 0;
+            margin: 0;
         }
 
         .rrze-appointment-confirmation__form {
@@ -256,7 +324,7 @@ $pageTitle = sprintf(
             margin: 0;
         }
 
-        .rrze-appointment-confirmation.is-waitlist-optout .rrze-appointment-confirmation__action--secondary {
+        .rrze-appointment-confirmation__action--secondary {
             min-height: 2.5rem;
             padding: 0.55rem 0.9rem;
             border: 1px solid #04316a;
@@ -265,7 +333,7 @@ $pageTitle = sprintf(
             font-size: 0.875rem;
         }
 
-        .rrze-appointment-confirmation.is-waitlist-optout .rrze-appointment-confirmation__action--secondary:hover {
+        .rrze-appointment-confirmation__action--secondary:hover {
             background: #e3f2fd;
         }
 
@@ -298,7 +366,7 @@ $pageTitle = sprintf(
 
         .rrze-appointment-public-footer a:focus-visible {
             border-radius: 0.15rem;
-            outline: 3px solid #ffca28;
+            outline: 3px solid #04316a;
             outline-offset: 3px;
         }
 
@@ -336,6 +404,16 @@ $pageTitle = sprintf(
             .rrze-appointment-confirmation__actions {
                 justify-content: center;
             }
+
+            .rrze-appointment-confirmation__details dl {
+                grid-template-columns: 1fr;
+                gap: 0.2rem;
+                text-align: left;
+            }
+
+            .rrze-appointment-confirmation__details dd + dt {
+                margin-top: 0.65rem;
+            }
         }
     </style>
 </head>
@@ -343,57 +421,46 @@ $pageTitle = sprintf(
     <main class="rrze-appointment-confirmation<?php
         echo $isQuestionForm
             ? ' is-question-form'
-            : ($isCancellation ? ' is-cancellation' : ($isWaitlistOptOut ? ' is-waitlist-optout' : ''));
+            : ($isCancellationConfirmation
+                ? ' is-cancellation-confirmation'
+                : ($isCancellation ? ' is-cancellation' : ($isWaitlistOptOut ? ' is-waitlist-optout' : '')));
     ?>">
         <div class="rrze-appointment-confirmation__illustration" aria-hidden="true">
             <img src="<?php echo esc_url($illustrationUrl); ?>" alt="">
         </div>
         <div class="rrze-appointment-confirmation__content">
             <p class="rrze-appointment-confirmation__status">
-                <?php
-                echo esc_html(
-                    $isQuestionForm
-                        ? __('Confirmation required', 'rrze-appointment')
-                        : ($isCancellation
-                            ? __('Appointment cancelled', 'rrze-appointment')
-                            : ($isWaitlistOptOut
-                                ? ($waitlistNotificationsEnabled
-                                    ? __('Notifications enabled', 'rrze-appointment')
-                                    : __('Notifications disabled', 'rrze-appointment'))
-                                : __('Successfully confirmed', 'rrze-appointment')))
-                );
-                ?>
+                <?php echo esc_html($statusText); ?>
             </p>
-            <h1>
-                <?php
-                echo esc_html(
-                    $isQuestionForm
-                        ? __('Complete your appointment request', 'rrze-appointment')
-                        : ($isCancellation
-                            ? __('Your appointment has been cancelled', 'rrze-appointment')
-                            : ($isWaitlistOptOut
-                                ? ($waitlistNotificationsEnabled
-                                    ? __('You are subscribed again', 'rrze-appointment')
-                                    : __('You have unsubscribed', 'rrze-appointment'))
-                                : __('Your appointment is confirmed', 'rrze-appointment')))
-                );
-                ?>
-            </h1>
+            <h1><?php echo esc_html($headingText); ?></h1>
             <p class="rrze-appointment-confirmation__message">
-                <?php
-                echo esc_html(
-                    $isQuestionForm
-                        ? __('Please answer the remaining questions below. Your appointment will be confirmed when you submit this form.', 'rrze-appointment')
-                        : ($isCancellation
-                            ? __('Your appointment request has been cancelled successfully. No further action is required.', 'rrze-appointment')
-                            : ($isWaitlistOptOut
-                                ? ($waitlistNotificationsEnabled
-                                    ? __('You will receive an email again when an earlier appointment becomes available.', 'rrze-appointment')
-                                    : __('Your appointment remains confirmed. You will no longer receive emails when an earlier appointment becomes available.', 'rrze-appointment'))
-                                : __('Thank you for confirming your appointment. We have sent the appointment details and a calendar invitation to your email address.', 'rrze-appointment')))
-                );
-                ?>
+                <?php echo esc_html($messageText); ?>
             </p>
+
+            <?php if ($hasAppointmentDetails) : ?>
+                <section class="rrze-appointment-confirmation__details" aria-labelledby="rrze-appt-details-title">
+                    <h2 id="rrze-appt-details-title"><?php esc_html_e('Appointment details', 'rrze-appointment'); ?></h2>
+                    <dl>
+                        <?php if (($appointmentDetails['title'] ?? '') !== '') : ?>
+                            <dt><?php esc_html_e('Appointment', 'rrze-appointment'); ?></dt>
+                            <dd><?php echo esc_html($appointmentDetails['title']); ?></dd>
+                        <?php endif; ?>
+                        <?php if (($appointmentDetails['date'] ?? '') !== '') : ?>
+                            <dt><?php esc_html_e('Date', 'rrze-appointment'); ?></dt>
+                            <dd><?php echo esc_html($appointmentDetails['date']); ?></dd>
+                        <?php endif; ?>
+                        <?php if (($appointmentDetails['time'] ?? '') !== '') : ?>
+                            <dt><?php esc_html_e('Time', 'rrze-appointment'); ?></dt>
+                            <dd><?php echo esc_html($appointmentDetails['time']); ?></dd>
+                        <?php endif; ?>
+                        <?php if (($appointmentDetails['location'] ?? '') !== '') : ?>
+                            <dt><?php esc_html_e('Location', 'rrze-appointment'); ?></dt>
+                            <dd><?php echo esc_html($appointmentDetails['location']); ?></dd>
+                        <?php endif; ?>
+                    </dl>
+                </section>
+            <?php endif; ?>
+
             <?php if ($isQuestionForm) : ?>
                 <form class="rrze-appointment-confirmation__form" method="post" action="<?php echo esc_url($formAction); ?>">
                     <input type="hidden" name="rrze_appt_questions_nonce" value="<?php echo esc_attr($formNonce); ?>">
@@ -401,8 +468,8 @@ $pageTitle = sprintf(
                         <p
                             class="rrze-appointment-confirmation__error"
                             id="rrze-appt-form-error"
-                            role="alert"
                             tabindex="-1"
+                            <?php echo $formErrorField === '' ? 'autofocus' : ''; ?>
                         >
                             <?php echo esc_html($formError); ?>
                         </p>
@@ -424,7 +491,10 @@ $pageTitle = sprintf(
                         <label class="rrze-appointment-confirmation__field" for="<?php echo esc_attr($fieldId); ?>">
                             <span class="rrze-appointment-confirmation__field-label">
                                 <?php echo esc_html($questionLabel); ?>
-                                <span class="rrze-appointment-confirmation__requirement">
+                                <span
+                                    class="rrze-appointment-confirmation__requirement"
+                                    <?php echo $questionRequired ? 'aria-hidden="true"' : ''; ?>
+                                >
                                     <?php
                                     echo esc_html(
                                         $questionRequired
@@ -439,7 +509,7 @@ $pageTitle = sprintf(
                                     id="<?php echo esc_attr($fieldId); ?>"
                                     name="question_answers[<?php echo esc_attr($questionId); ?>]"
                                     <?php echo $questionRequired ? 'required' : ''; ?>
-                                    <?php echo $questionHasError ? 'aria-invalid="true" aria-describedby="rrze-appt-form-error" autofocus' : ''; ?>
+                                    <?php echo $questionHasError ? 'aria-invalid="true" aria-describedby="rrze-appt-form-error" aria-errormessage="rrze-appt-form-error" autofocus' : ''; ?>
                                 >
                                     <option value=""><?php esc_html_e('Select an option', 'rrze-appointment'); ?></option>
                                     <?php foreach ($questionOptions as $option) :
@@ -457,7 +527,7 @@ $pageTitle = sprintf(
                                     maxlength="5000"
                                     rows="5"
                                     <?php echo $questionRequired ? 'required' : ''; ?>
-                                    <?php echo $questionHasError ? 'aria-invalid="true" aria-describedby="rrze-appt-form-error" autofocus' : ''; ?>
+                                    <?php echo $questionHasError ? 'aria-invalid="true" aria-describedby="rrze-appt-form-error" aria-errormessage="rrze-appt-form-error" autofocus' : ''; ?>
                                 ><?php echo esc_textarea($submittedAnswer); ?></textarea>
                             <?php endif; ?>
                         </label>
@@ -467,6 +537,25 @@ $pageTitle = sprintf(
                         <?php esc_html_e('Confirm appointment', 'rrze-appointment'); ?>
                     </button>
                 </form>
+            <?php elseif ($isCancellationConfirmation) : ?>
+                <div class="rrze-appointment-confirmation__actions">
+                    <form method="post" action="<?php echo esc_url($cancellationAction); ?>">
+                        <input type="hidden" name="rrze_appt_cancel_action" value="cancel">
+                        <input type="hidden" name="rrze_appt_cancel_nonce" value="<?php echo esc_attr($cancellationNonce); ?>">
+                        <button
+                            class="rrze-appointment-confirmation__action rrze-appointment-confirmation__action--destructive"
+                            type="submit"
+                        >
+                            <?php esc_html_e('Cancel appointment', 'rrze-appointment'); ?>
+                        </button>
+                    </form>
+                    <a
+                        class="rrze-appointment-confirmation__action rrze-appointment-confirmation__action--secondary"
+                        href="<?php echo esc_url($homeUrl); ?>"
+                    >
+                        <?php esc_html_e('Keep appointment and return to website', 'rrze-appointment'); ?>
+                    </a>
+                </div>
             <?php else : ?>
                 <div class="rrze-appointment-confirmation__actions">
                     <a class="rrze-appointment-confirmation__action" href="<?php echo esc_url($homeUrl); ?>">
@@ -493,5 +582,10 @@ $pageTitle = sprintf(
         </div>
     </main>
     <?php require __DIR__ . '/public-page-footer.php'; ?>
+    <?php if ($isQuestionForm && $formError !== '' && $formErrorField === '') : ?>
+        <script>
+            document.getElementById('rrze-appt-form-error').focus();
+        </script>
+    <?php endif; ?>
 </body>
 </html>

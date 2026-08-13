@@ -1713,3 +1713,19 @@ msgstr "Buchungsdaten werden geladen …"
 #: includes/Main.php
 msgid "required"
 msgstr "erforderlich"
+
+#: templates/confirmation-page.php
+msgid "Cancel this appointment?"
+msgstr "Möchten Sie diesen Termin absagen?"
+
+#: templates/confirmation-page.php
+msgid "Please check the appointment details before cancelling. The appointment will only be cancelled after you use the button below."
+msgstr "Bitte prüfen Sie vor der Absage die Termindaten. Der Termin wird erst abgesagt, wenn Sie die Schaltfläche unten betätigen."
+
+#: templates/confirmation-page.php
+msgid "Appointment details"
+msgstr "Termindetails"
+
+#: templates/confirmation-page.php
+msgid "Keep appointment and return to website"
+msgstr "Termin beibehalten und zur Website zurückkehren"

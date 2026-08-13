@@ -116,7 +116,7 @@ $pageTitle = sprintf(
         .rrze-appointment-error__action:focus-visible,
         .rrze-appointment-public-footer a:focus-visible {
             border-radius: 0.15rem;
-            outline: 3px solid #ffca28;
+            outline: 3px solid #04316a;
             outline-offset: 3px;
         }
 

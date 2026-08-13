@@ -979,11 +979,15 @@ class Main
             $pendingMeta = is_array($pendingEntry['meta'] ?? null) ? $pendingEntry['meta'] : [];
             $questions = is_array($pendingMeta['questions'] ?? null) ? $pendingMeta['questions'] : [];
             $questionAnswers = [];
+            $appointmentDetails = $this->getPublicAppointmentDetails(
+                (string) ($pendingEntry['slot'] ?? ''),
+                $pendingMeta
+            );
 
             if (!empty($questions)) {
                 $isPost = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'POST';
                 if (!$isPost) {
-                    $this->renderConfirmationPage($token, $questions);
+                    $this->renderConfirmationPage($token, $questions, [], '', '', $appointmentDetails);
                 }
 
                 $rawNonce = wp_unslash($_POST['rrze_appt_questions_nonce'] ?? '');
@@ -997,7 +1001,9 @@ class Main
                         $token,
                         $questions,
                         $validation['values'],
-                        __('The form has expired. Please try again.', 'rrze-appointment')
+                        __('The form has expired. Please try again.', 'rrze-appointment'),
+                        '',
+                        $appointmentDetails
                     );
                 }
                 if ($validation['error'] !== '') {
@@ -1006,7 +1012,8 @@ class Main
                         $questions,
                         $validation['values'],
                         $validation['error'],
-                        $validation['errorField']
+                        $validation['errorField'],
+                        $appointmentDetails
                     );
                 }
 
@@ -1142,10 +1149,35 @@ class Main
 
             @unlink($tmpFile);
 
-            $this->renderConfirmationPage();
+            $this->renderConfirmationPage('', [], [], '', '', $appointmentDetails);
         } catch (CustomException $e) {
             wp_die(esc_html($e->getMessage()), '', ['response' => 500]);
         }
+    }
+
+    /**
+     * Builds the small, non-personal appointment summary shown on public pages.
+     *
+     * @return array{title: string, date: string, time: string, location: string}
+     */
+    private function getPublicAppointmentDetails(string $slot, array $meta = []): array
+    {
+        [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
+        [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
+        $date = '';
+        $dateObject = \DateTimeImmutable::createFromFormat('!Y-m-d', $datePart, wp_timezone());
+        if ($dateObject && $dateObject->format('Y-m-d') === $datePart) {
+            $date = wp_date(get_option('date_format'), $dateObject->getTimestamp(), wp_timezone());
+        }
+
+        return [
+            'title' => sanitize_text_field((string) ($meta['title'] ?? '')),
+            'date' => $date,
+            'time' => $startTime !== ''
+                ? ($endTime !== '' ? $startTime . ' – ' . $endTime : $startTime)
+                : '',
+            'location' => sanitize_text_field((string) ($meta['location'] ?? '')),
+        ];
     }
 
     /**
@@ -1156,7 +1188,8 @@ class Main
         array $questions = [],
         array $submittedAnswers = [],
         string $formError = '',
-        string $formErrorField = ''
+        string $formErrorField = '',
+        array $appointmentDetails = []
     ): void
     {
         status_header(200);
@@ -1166,10 +1199,13 @@ class Main
         $siteName = get_bloginfo('name');
         $isQuestionForm = $token !== '' && !empty($questions);
         $isCancellation = false;
+        $isCancellationConfirmation = false;
         $isWaitlistOptOut = false;
         $waitlistNotificationsEnabled = false;
         $waitlistOptInAction = '';
         $waitlistOptInNonce = '';
+        $cancellationAction = '';
+        $cancellationNonce = '';
         $illustrationUrl = plugin()->getUrl('src/illustrations')
             . ($isQuestionForm ? 'financial-analyst-31.png' : 'order-confirmed-62.png');
         $formAction = $isQuestionForm ? TokenManager::confirmUrl($token) : '';
@@ -1184,7 +1220,7 @@ class Main
     /**
      * Renders the public success page after a request or booking is cancelled.
      */
-    private function renderCancellationPage(): void
+    private function renderCancellationPage(array $appointmentDetails = []): void
     {
         status_header(200);
         nocache_headers();
@@ -1193,10 +1229,44 @@ class Main
         $siteName = get_bloginfo('name');
         $isQuestionForm = false;
         $isCancellation = true;
+        $isCancellationConfirmation = false;
         $isWaitlistOptOut = false;
         $waitlistNotificationsEnabled = false;
         $waitlistOptInAction = '';
         $waitlistOptInNonce = '';
+        $cancellationAction = '';
+        $cancellationNonce = '';
+        $illustrationUrl = plugin()->getUrl('src/illustrations') . 'neutral-face-89.png';
+        $questions = [];
+        $submittedAnswers = [];
+        $formError = '';
+        $formErrorField = '';
+        $formAction = '';
+        $formNonce = '';
+
+        require plugin()->getPath('templates') . 'confirmation-page.php';
+        exit;
+    }
+
+    /**
+     * Renders the confirmation step before a cancellation changes state.
+     */
+    private function renderCancellationConfirmationPage(string $token, array $appointmentDetails): void
+    {
+        status_header(200);
+        nocache_headers();
+
+        $homeUrl = home_url('/');
+        $siteName = get_bloginfo('name');
+        $isQuestionForm = false;
+        $isCancellation = false;
+        $isCancellationConfirmation = true;
+        $isWaitlistOptOut = false;
+        $waitlistNotificationsEnabled = false;
+        $waitlistOptInAction = '';
+        $waitlistOptInNonce = '';
+        $cancellationAction = TokenManager::cancelUrl($token);
+        $cancellationNonce = wp_create_nonce('rrze_appointment_cancel_' . $token);
         $illustrationUrl = plugin()->getUrl('src/illustrations') . 'neutral-face-89.png';
         $questions = [];
         $submittedAnswers = [];
@@ -1212,7 +1282,11 @@ class Main
     /**
      * Renders the public success page after earlier-slot notifications are disabled.
      */
-    private function renderWaitlistOptOutPage(string $token, bool $notificationsEnabled = false): void
+    private function renderWaitlistOptOutPage(
+        string $token,
+        bool $notificationsEnabled = false,
+        array $appointmentDetails = []
+    ): void
     {
         status_header(200);
         nocache_headers();
@@ -1221,10 +1295,13 @@ class Main
         $siteName = get_bloginfo('name');
         $isQuestionForm = false;
         $isCancellation = false;
+        $isCancellationConfirmation = false;
         $isWaitlistOptOut = true;
         $waitlistNotificationsEnabled = $notificationsEnabled;
         $waitlistOptInAction = TokenManager::waitlistOptOutUrl($token);
         $waitlistOptInNonce = wp_create_nonce('rrze_appointment_waitlist_optin_' . $token);
+        $cancellationAction = '';
+        $cancellationNonce = '';
         $illustrationUrl = plugin()->getUrl('src/illustrations') . 'reminder-note-28.png';
         $questions = [];
         $submittedAnswers = [];
@@ -1269,14 +1346,42 @@ class Main
                 );
             }
 
+            $slot = (string) ($entry['slot'] ?? '');
+            if (($entry['type'] ?? '') === 'pending') {
+                $pendingEntry = TokenManager::getPending((string) ($entry['pending_token'] ?? ''));
+                $appointmentMeta = is_array($pendingEntry['meta'] ?? null)
+                    ? $pendingEntry['meta']
+                    : [];
+            } else {
+                $allMeta = (array) get_option(Bookings::META_OPTION, []);
+                $appointmentMeta = is_array($allMeta[$slot] ?? null) ? $allMeta[$slot] : [];
+            }
+            $appointmentDetails = $this->getPublicAppointmentDetails($slot, $appointmentMeta);
+
+            $requestMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+            $rawAction = wp_unslash($_POST['rrze_appt_cancel_action'] ?? '');
+            $action = is_string($rawAction) ? sanitize_key($rawAction) : '';
+            if ($requestMethod !== 'POST' || $action !== 'cancel') {
+                $this->renderCancellationConfirmationPage($token, $appointmentDetails);
+            }
+
+            $rawNonce = wp_unslash($_POST['rrze_appt_cancel_nonce'] ?? '');
+            $nonce = is_string($rawNonce) ? sanitize_text_field($rawNonce) : '';
+            if (!wp_verify_nonce($nonce, 'rrze_appointment_cancel_' . $token)) {
+                $this->renderErrorPage(
+                    __('The form has expired. Please try again.', 'rrze-appointment'),
+                    403
+                );
+            }
+
             if ($entry['type'] === 'pending') {
                 TokenManager::deletePending((string) ($entry['pending_token'] ?? ''));
             } else {
                 TokenManager::deleteCancelToken($token);
-                Bookings::cancel($entry['slot']);
+                Bookings::cancel($slot);
             }
 
-            $this->renderCancellationPage();
+            $this->renderCancellationPage($appointmentDetails);
         } catch (CustomException $e) {
             wp_die(esc_html($e->getMessage()), '', ['response' => 500]);
         }
@@ -1298,6 +1403,10 @@ class Main
                     410
                 );
             }
+
+            $allMeta = (array) get_option(Bookings::META_OPTION, []);
+            $appointmentMeta = is_array($allMeta[$slot] ?? null) ? $allMeta[$slot] : [];
+            $appointmentDetails = $this->getPublicAppointmentDetails($slot, $appointmentMeta);
 
             $requestMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
             $rawAction = wp_unslash($_POST['rrze_appt_waitlist_action'] ?? '');
@@ -1321,7 +1430,7 @@ class Main
                     );
                 }
 
-                $this->renderWaitlistOptOutPage($token, true);
+                $this->renderWaitlistOptOutPage($token, true, $appointmentDetails);
             }
 
             if (!Bookings::disableWaitlistNotifications($slot)) {
@@ -1331,7 +1440,7 @@ class Main
                 );
             }
 
-            $this->renderWaitlistOptOutPage($token);
+            $this->renderWaitlistOptOutPage($token, false, $appointmentDetails);
         } catch (CustomException $e) {
             wp_die(esc_html($e->getMessage()), '', ['response' => 500]);
         }

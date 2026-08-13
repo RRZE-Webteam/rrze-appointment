@@ -1638,3 +1638,19 @@ msgstr ""
 #: includes/Main.php
 msgid "required"
 msgstr ""
+
+#: templates/confirmation-page.php
+msgid "Cancel this appointment?"
+msgstr ""
+
+#: templates/confirmation-page.php
+msgid "Please check the appointment details before cancelling. The appointment will only be cancelled after you use the button below."
+msgstr ""
+
+#: templates/confirmation-page.php
+msgid "Appointment details"
+msgstr ""
+
+#: templates/confirmation-page.php
+msgid "Keep appointment and return to website"
+msgstr ""
