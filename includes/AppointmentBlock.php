@@ -27,8 +27,12 @@ final class AppointmentBlock
 
             $id = sanitize_key((string) ($rawQuestion['id'] ?? ''));
             $label = sanitize_text_field((string) ($rawQuestion['label'] ?? ''));
+            $dataUse = sanitize_textarea_field((string) ($rawQuestion['dataUse'] ?? ''));
+            $dataUse = trim(function_exists('mb_substr')
+                ? mb_substr($dataUse, 0, 1000)
+                : substr($dataUse, 0, 1000));
             $type = ($rawQuestion['type'] ?? '') === 'select' ? 'select' : 'text';
-            if ($id === '' || $label === '' || isset($knownIds[$id])) {
+            if ($id === '' || $label === '' || $dataUse === '' || isset($knownIds[$id])) {
                 continue;
             }
 
@@ -52,6 +56,7 @@ final class AppointmentBlock
             $questions[] = [
                 'id' => $id,
                 'label' => $label,
+                'dataUse' => $dataUse,
                 'type' => $type,
                 'required' => !empty($rawQuestion['required']),
                 'options' => $options,

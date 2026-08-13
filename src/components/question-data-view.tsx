@@ -28,13 +28,14 @@ const INITIAL_VIEW: View = {
 		direction: 'asc',
 	},
 	titleField: 'label',
-	fields: [ 'type', 'required' ],
+	fields: [ 'type', 'required', 'dataUse' ],
 	layout: {
 		density: 'comfortable',
 		styles: {
 			label: { minWidth: '280px' },
 			type: { minWidth: '140px' },
 			required: { minWidth: '120px' },
+			dataUse: { minWidth: '280px' },
 		},
 	},
 };
@@ -98,6 +99,14 @@ export function QuestionDataView( {
 			label: __( 'Field type', 'rrze-appointment' ),
 			enableSorting: true,
 			getValue: ( { item } ) => getTypeLabel( item ),
+		},
+		{
+			id: 'dataUse',
+			label: __( 'Purpose and data use', 'rrze-appointment' ),
+			enableSorting: false,
+			getValue: ( { item } ) =>
+				item.dataUse ||
+				__( 'Missing legal notice', 'rrze-appointment' ),
 		},
 		{
 			id: 'required',

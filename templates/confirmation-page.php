@@ -258,6 +258,20 @@ $pageTitle = sprintf(
             font-weight: 500;
         }
 
+        .rrze-appointment-confirmation__legal-notice {
+            margin: 0;
+            padding: 0.65rem 0.75rem;
+            border-left: 3px solid #646970;
+            background: #f6f7f7;
+            color: #50575e;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .rrze-appointment-confirmation__legal-notice strong {
+            color: #2c3338;
+        }
+
         .rrze-appointment-confirmation__field textarea,
         .rrze-appointment-confirmation__field select {
             width: 100%;
@@ -478,6 +492,7 @@ $pageTitle = sprintf(
                     <?php foreach ($questions as $question) :
                         $questionId = sanitize_key((string) ($question['id'] ?? ''));
                         $questionLabel = sanitize_text_field((string) ($question['label'] ?? ''));
+                        $questionDataUse = sanitize_textarea_field((string) ($question['dataUse'] ?? ''));
                         $questionType = ($question['type'] ?? '') === 'select' ? 'select' : 'text';
                         $questionRequired = !empty($question['required']);
                         $questionOptions = is_array($question['options'] ?? null) ? $question['options'] : [];
@@ -486,10 +501,19 @@ $pageTitle = sprintf(
                             continue;
                         }
                         $fieldId = 'rrze-appt-question-' . $questionId;
+                        $noticeId = $fieldId . '-data-use';
                         $questionHasError = $formError !== '' && $formErrorField === $questionId;
+                        $describedByIds = [];
+                        if ($questionDataUse !== '') {
+                            $describedByIds[] = $noticeId;
+                        }
+                        if ($questionHasError) {
+                            $describedByIds[] = 'rrze-appt-form-error';
+                        }
+                        $describedBy = implode(' ', $describedByIds);
                         ?>
-                        <label class="rrze-appointment-confirmation__field" for="<?php echo esc_attr($fieldId); ?>">
-                            <span class="rrze-appointment-confirmation__field-label">
+                        <div class="rrze-appointment-confirmation__field">
+                            <label class="rrze-appointment-confirmation__field-label" for="<?php echo esc_attr($fieldId); ?>">
                                 <?php echo esc_html($questionLabel); ?>
                                 <span
                                     class="rrze-appointment-confirmation__requirement"
@@ -503,13 +527,14 @@ $pageTitle = sprintf(
                                     );
                                     ?>
                                 </span>
-                            </span>
+                            </label>
                             <?php if ($questionType === 'select') : ?>
                                 <select
                                     id="<?php echo esc_attr($fieldId); ?>"
                                     name="question_answers[<?php echo esc_attr($questionId); ?>]"
                                     <?php echo $questionRequired ? 'required' : ''; ?>
-                                    <?php echo $questionHasError ? 'aria-invalid="true" aria-describedby="rrze-appt-form-error" aria-errormessage="rrze-appt-form-error" autofocus' : ''; ?>
+                                    <?php echo $describedBy !== '' ? 'aria-describedby="' . esc_attr($describedBy) . '"' : ''; ?>
+                                    <?php echo $questionHasError ? 'aria-invalid="true" aria-errormessage="rrze-appt-form-error" autofocus' : ''; ?>
                                 >
                                     <option value=""><?php esc_html_e('Select an option', 'rrze-appointment'); ?></option>
                                     <?php foreach ($questionOptions as $option) :
@@ -527,10 +552,17 @@ $pageTitle = sprintf(
                                     maxlength="5000"
                                     rows="5"
                                     <?php echo $questionRequired ? 'required' : ''; ?>
-                                    <?php echo $questionHasError ? 'aria-invalid="true" aria-describedby="rrze-appt-form-error" aria-errormessage="rrze-appt-form-error" autofocus' : ''; ?>
+                                    <?php echo $describedBy !== '' ? 'aria-describedby="' . esc_attr($describedBy) . '"' : ''; ?>
+                                    <?php echo $questionHasError ? 'aria-invalid="true" aria-errormessage="rrze-appt-form-error" autofocus' : ''; ?>
                                 ><?php echo esc_textarea($submittedAnswer); ?></textarea>
                             <?php endif; ?>
-                        </label>
+                            <?php if ($questionDataUse !== '') : ?>
+                                <p class="rrze-appointment-confirmation__legal-notice" id="<?php echo esc_attr($noticeId); ?>">
+                                    <strong><?php esc_html_e('Why we ask:', 'rrze-appointment'); ?></strong>
+                                    <?php echo nl2br(esc_html($questionDataUse)); ?>
+                                </p>
+                            <?php endif; ?>
+                        </div>
                     <?php endforeach; ?>
 
                     <button class="rrze-appointment-confirmation__action" type="submit">

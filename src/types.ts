@@ -39,6 +39,7 @@ export type AppointmentQuestionType = 'text' | 'select';
 export interface AppointmentQuestion {
 	id: string;
 	label: string;
+	dataUse: string;
 	type: AppointmentQuestionType;
 	required: boolean;
 	options: string[];

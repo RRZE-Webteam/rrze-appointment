@@ -13,7 +13,7 @@ msgstr ""
 "Last-Translator: RRZE Webteam\n"
 "Language-Team: RRZE Webteam\n"
 "Language: \n"
-"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Domain: rrze-appointment\n"
 "X-Generator: Loco https://localise.biz/"
 
@@ -1653,4 +1653,36 @@ msgstr ""
 
 #: templates/confirmation-page.php
 msgid "Keep appointment and return to website"
+msgstr ""
+
+#: src/components/questions-manager-dialog.tsx src/components/question-data-view.tsx
+msgid "Purpose and data use"
+msgstr ""
+
+#: src/components/questions-manager-dialog.tsx
+msgid "Purpose and data use (required)"
+msgstr ""
+
+#: src/components/questions-manager-dialog.tsx
+msgid "Explain why this information is needed and how it will be used."
+msgstr ""
+
+#: src/components/questions-manager-dialog.tsx
+msgid "Explain why you collect this information and how it will be used."
+msgstr ""
+
+#: src/components/question-data-view.tsx
+msgid "Missing legal notice"
+msgstr ""
+
+#: src/components/questions-manager-dialog.tsx
+msgid "Ask for additional information with free-text fields or dropdown selections. For every question, explain why the information is needed and how it will be used."
+msgstr ""
+
+#: src/pre-publish.js
+msgid "A purpose and data-use explanation is missing for one or more additional questions. The page has been saved as a draft and cannot be published until every question includes this information."
+msgstr ""
+
+#: templates/confirmation-page.php
+msgid "Why we ask:"
 msgstr ""

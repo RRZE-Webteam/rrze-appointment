@@ -1729,3 +1729,35 @@ msgstr "Termindetails"
 #: templates/confirmation-page.php
 msgid "Keep appointment and return to website"
 msgstr "Termin beibehalten und zur Website zurückkehren"
+
+#: src/components/questions-manager-dialog.tsx src/components/question-data-view.tsx
+msgid "Purpose and data use"
+msgstr "Zweck und Verwendung der Daten"
+
+#: src/components/questions-manager-dialog.tsx
+msgid "Purpose and data use (required)"
+msgstr "Zweck und Verwendung der Daten (erforderlich)"
+
+#: src/components/questions-manager-dialog.tsx
+msgid "Explain why this information is needed and how it will be used."
+msgstr "Erläutern Sie, warum diese Information benötigt und wie sie verwendet wird."
+
+#: src/components/questions-manager-dialog.tsx
+msgid "Explain why you collect this information and how it will be used."
+msgstr "Erläutern Sie, warum Sie diese Information erheben und wie sie verwendet wird."
+
+#: src/components/question-data-view.tsx
+msgid "Missing legal notice"
+msgstr "Hinweis zur Datenverarbeitung fehlt"
+
+#: src/components/questions-manager-dialog.tsx
+msgid "Ask for additional information with free-text fields or dropdown selections. For every question, explain why the information is needed and how it will be used."
+msgstr "Fragen Sie mit Freitextfeldern oder Auswahllisten nach zusätzlichen Informationen. Erläutern Sie für jede Frage, warum die Information benötigt und wie sie verwendet wird."
+
+#: src/pre-publish.js
+msgid "A purpose and data-use explanation is missing for one or more additional questions. The page has been saved as a draft and cannot be published until every question includes this information."
+msgstr "Bei mindestens einer Zusatzfrage fehlt eine Erklärung zu Zweck und Verwendung der Daten. Die Seite wurde als Entwurf gespeichert und kann erst veröffentlicht werden, wenn jede Frage diese Information enthält."
+
+#: templates/confirmation-page.php
+msgid "Why we ask:"
+msgstr "Warum wir danach fragen:"

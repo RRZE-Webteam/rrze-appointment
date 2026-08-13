@@ -39,6 +39,7 @@ function createDraft( question?: AppointmentQuestion ): QuestionDraft {
 	return {
 		id: question?.id || createQuestionId(),
 		label: question?.label || '',
+		dataUse: question?.dataUse || '',
 		type: question?.type || 'text',
 		required: !! question?.required,
 		options: question?.options || [],
@@ -71,6 +72,16 @@ export function QuestionsManagerDialog( {
 			setError( __( 'Enter a question.', 'rrze-appointment' ) );
 			return;
 		}
+		const dataUse = draft.dataUse.trim();
+		if ( ! dataUse ) {
+			setError(
+				__(
+					'Explain why you collect this information and how it will be used.',
+					'rrze-appointment'
+				)
+			);
+			return;
+		}
 
 		const options = Array.from(
 			new Set(
@@ -90,6 +101,7 @@ export function QuestionsManagerDialog( {
 		const question: AppointmentQuestion = {
 			id: draft.id,
 			label,
+			dataUse,
 			type: draft.type,
 			required: draft.required,
 			options: draft.type === 'select' ? options : [],
@@ -133,6 +145,26 @@ export function QuestionsManagerDialog( {
 						setDraft( { ...draft, label } );
 						setError( '' );
 					} }
+					__nextHasNoMarginBottom
+				/>
+				<TextareaControl
+					label={ __(
+						'Purpose and data use (required)',
+						'rrze-appointment'
+					) }
+					help={ __(
+						'Explain why this information is needed and how it will be used.',
+						'rrze-appointment'
+					) }
+					value={ draft.dataUse }
+					onChange={ ( dataUse ) => {
+						setDraft( {
+							...draft,
+							dataUse: dataUse.slice( 0, 1000 ),
+						} );
+						setError( '' );
+					} }
+					rows={ 4 }
 					__nextHasNoMarginBottom
 				/>
 				<SelectControl
@@ -260,7 +292,7 @@ export function QuestionsManagerDialog( {
 				<FlexBlock>
 					<p>
 						{ __(
-							'Ask for additional information with free-text fields or dropdown selections.',
+							'Ask for additional information with free-text fields or dropdown selections. For every question, explain why the information is needed and how it will be used.',
 							'rrze-appointment'
 						) }
 					</p>

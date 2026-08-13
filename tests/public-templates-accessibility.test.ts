@@ -64,6 +64,21 @@ describe( 'public confirmation templates accessibility', () => {
 		);
 	} );
 
+	it( 'places the data-use notice below its question and describes the field', () => {
+		expect( confirmationTemplate ).toContain(
+			'$questionDataUse = sanitize_textarea_field'
+		);
+		expect( confirmationTemplate ).toContain(
+			'class="rrze-appointment-confirmation__legal-notice"'
+		);
+		expect( confirmationTemplate ).toContain(
+			'$describedByIds[] = $noticeId'
+		);
+		expect( confirmationTemplate ).toContain(
+			"esc_html_e('Why we ask:', 'rrze-appointment')"
+		);
+	} );
+
 	it( 'uses a high-contrast focus indicator on public links and actions', () => {
 		expect( confirmationTemplate ).toContain(
 			'outline: 3px solid #04316a;'
