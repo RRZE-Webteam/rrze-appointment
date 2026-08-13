@@ -772,6 +772,10 @@
 
     .rrze-appointment__weekday {
         background: none;
+        color: #04316a;
+    }
+
+    &.is-style-dark .rrze-appointment__weekday {
         color: #fff;
     }
 }

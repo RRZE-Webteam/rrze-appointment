@@ -57,6 +57,18 @@ describe( 'frontend calendar accessibility', () => {
 
 	it( 'provides localized control names and preserves meaningful focus', () => {
 		const form = renderAppointment();
+		const weekdayLabels = Array.from(
+			form.querySelectorAll( '.rrze-appointment__weekday' )
+		).map( ( weekday ) => weekday.textContent );
+		expect( weekdayLabels ).toEqual( [
+			'Mon',
+			'Tue',
+			'Wed',
+			'Thu',
+			'Fri',
+			'Sat',
+			'Sun',
+		] );
 		const nextButton = form.querySelector< HTMLButtonElement >(
 			'[data-direction="next"]'
 		) as HTMLButtonElement;
