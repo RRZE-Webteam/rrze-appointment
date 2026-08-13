@@ -1599,7 +1599,7 @@ msgstr ""
 msgid "Appointment update"
 msgstr ""
 
-#: src/render.php src/save.js
+#: src/render.php
 msgid "Appointment booking"
 msgstr ""
 

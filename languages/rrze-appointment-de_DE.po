@@ -1674,7 +1674,7 @@ msgstr "Termin storniert"
 msgid "Appointment update"
 msgstr "Termin-Information"
 
-#: src/render.php src/save.js
+#: src/render.php
 msgid "Appointment booking"
 msgstr "Terminbuchung"
 
