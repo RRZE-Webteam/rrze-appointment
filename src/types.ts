@@ -139,6 +139,7 @@ export interface EditorI18n {
 }
 
 export interface FrontendI18n {
+	available?: string;
 	availableOn?: string;
 	book?: string;
 	booked?: string;
@@ -147,6 +148,7 @@ export interface FrontendI18n {
 	cancel?: string;
 	close?: string;
 	closeDialog?: string;
+	chooseDate?: string;
 	dialogIntro?: string;
 	dialogTitle?: string;
 	emailRequired?: string;
@@ -157,8 +159,16 @@ export interface FrontendI18n {
 	namePlaceholder?: string;
 	nameRequired?: string;
 	networkError?: string;
+	nextMonth?: string;
+	noSlotsAvailable?: string;
+	previousMonth?: string;
+	required?: string;
 	selectedAppointment?: string;
+	selected?: string;
 	successTitle?: string;
+	today?: string;
+	unavailable?: string;
+	bookingDetailsLoading?: string;
 	waitlist?: string;
 	yourAppointment?: string;
 	yourEmail?: string;
@@ -241,6 +251,7 @@ export interface AppointmentWindowConfig {
 		personsPath?: string;
 	};
 	i18n?: FrontendI18n;
+	locale?: string;
 	nonce?: string;
 	recurrenceLimit?: number;
 	restUrl?: string;

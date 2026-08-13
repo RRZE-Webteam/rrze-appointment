@@ -456,8 +456,19 @@ class Main
                     'ajaxUrl' => admin_url('admin-ajax.php'),
                     'restUrl' => rest_url('rrze/v2/appointment/booker'),                    
                     'nonce' => wp_create_nonce('rrze_appointment_book'),
+                    'locale' => str_replace('_', '-', determine_locale()),
                     'bookedSlots' => array_values(array_unique(array_merge($booked, $pending))),
                     'i18n' => [
+                        'chooseDate' => __('Choose an appointment date', 'rrze-appointment'),
+                        'previousMonth' => __('Previous month', 'rrze-appointment'),
+                        'nextMonth' => __('Next month', 'rrze-appointment'),
+                        'available' => __('available appointments', 'rrze-appointment'),
+                        'unavailable' => __('no available appointments', 'rrze-appointment'),
+                        'selected' => __('selected', 'rrze-appointment'),
+                        'today' => __('today', 'rrze-appointment'),
+                        'noSlotsAvailable' => __('No time slots available.', 'rrze-appointment'),
+                        'bookingDetailsLoading' => __('Loading booking details…', 'rrze-appointment'),
+                        'required' => __('required', 'rrze-appointment'),
                         'dialogTitle' => __('Request appointment', 'rrze-appointment'),
                         'dialogIntro' => __('Enter your details to request this appointment. You will receive an email to confirm it.', 'rrze-appointment'),
                         'selectedAppointment' => __('Selected appointment', 'rrze-appointment'),
@@ -819,13 +830,14 @@ class Main
      * The returned answers are request-scoped and must never be added to
      * pending or confirmed booking metadata.
      *
-     * @return array{answers: array<int, array{label: string, answer: string}>, values: array<string, string>, error: string}
+     * @return array{answers: array<int, array{label: string, answer: string}>, values: array<string, string>, error: string, errorField: string}
      */
     private function validateQuestionAnswers(array $questions, array $postedAnswers): array
     {
         $answers = [];
         $values = [];
         $error = '';
+        $errorField = '';
 
         foreach ($questions as $question) {
             if (!is_array($question)) {
@@ -854,6 +866,7 @@ class Main
                     __('Please answer “%s”.', 'rrze-appointment'),
                     $label
                 );
+                $errorField = $questionId;
             }
 
             $options = is_array($question['options'] ?? null) ? $question['options'] : [];
@@ -868,6 +881,7 @@ class Main
                     __('Select a valid answer for “%s”.', 'rrze-appointment'),
                     $label
                 );
+                $errorField = $questionId;
             }
 
             if ($answer !== '') {
@@ -882,6 +896,7 @@ class Main
             'answers' => $answers,
             'values' => $values,
             'error' => $error,
+            'errorField' => $errorField,
         ];
     }
 
@@ -990,7 +1005,8 @@ class Main
                         $token,
                         $questions,
                         $validation['values'],
-                        $validation['error']
+                        $validation['error'],
+                        $validation['errorField']
                     );
                 }
 
@@ -1139,7 +1155,8 @@ class Main
         string $token = '',
         array $questions = [],
         array $submittedAnswers = [],
-        string $formError = ''
+        string $formError = '',
+        string $formErrorField = ''
     ): void
     {
         status_header(200);
@@ -1184,6 +1201,7 @@ class Main
         $questions = [];
         $submittedAnswers = [];
         $formError = '';
+        $formErrorField = '';
         $formAction = '';
         $formNonce = '';
 
@@ -1211,6 +1229,7 @@ class Main
         $questions = [];
         $submittedAnswers = [];
         $formError = '';
+        $formErrorField = '';
         $formAction = '';
         $formNonce = '';
 

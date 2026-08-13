@@ -7,14 +7,40 @@ import type {
 	FrontendSlot,
 	ParsedSlotValue,
 } from './types';
-import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
+import {
+	formatDateDisplay,
+	formatDateLongDisplay,
+	getWeekdayMonthGridCells,
+} from './utils';
 
 ( function () {
 	function run(): void {
-		const WEEKDAYS = [ 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So' ];
+		const i18n = window.rrze_appointment?.i18n || {};
+		const requestedLocale =
+			window.rrze_appointment?.locale ||
+			document.documentElement.lang ||
+			'de-DE';
+		let frontendLocale = requestedLocale;
+		try {
+			new Intl.DateTimeFormat( frontendLocale ).format();
+		} catch ( error ) {
+			frontendLocale = 'de-DE';
+		}
+
+		const weekdays = Array.from( { length: 7 }, ( unused, index ) => {
+			const date = new Date( 2024, 0, index + 1 );
+			return {
+				short: date.toLocaleDateString( frontendLocale, {
+					weekday: 'short',
+				} ),
+				long: date.toLocaleDateString( frontendLocale, {
+					weekday: 'long',
+				} ),
+			};
+		} );
 
 		function formatMonthTitle( dateObj: Date ): string {
-			return dateObj.toLocaleDateString( 'de-DE', {
+			return dateObj.toLocaleDateString( frontendLocale, {
 				month: 'long',
 				year: 'numeric',
 			} );
@@ -92,11 +118,14 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 			return map;
 		}
 
-		function initAppointmentForm( form: HTMLFormElement ): void {
+		function initAppointmentForm(
+			form: HTMLFormElement,
+			instanceId: string
+		): void {
 			const calendar = form.querySelector< HTMLElement >(
 				'.rrze-appointment__calendar'
 			);
-			const daySlotsFieldset = form.querySelector< HTMLElement >(
+			const daySlotsContainer = form.querySelector< HTMLElement >(
 				'.rrze-appointment__day-slots'
 			);
 			const daySlotsList = form.querySelector< HTMLElement >(
@@ -105,10 +134,9 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 			const slotData = form.querySelector< HTMLElement >(
 				'.rrze-appointment__slot-data'
 			);
-
 			if (
 				! calendar ||
-				! daySlotsFieldset ||
+				! daySlotsContainer ||
 				! daySlotsList ||
 				! slotData
 			) {
@@ -116,9 +144,46 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 			}
 
 			const calendarElement = calendar;
-			const daySlotsFieldsetElement = daySlotsFieldset;
+			const daySlotsContainerElement = daySlotsContainer;
 			const daySlotsListElement = daySlotsList;
 			const slotDataElement = slotData;
+			const availabilityStatusElement = form.querySelector< HTMLElement >(
+				'.rrze-appointment__availability-status'
+			);
+			const selectedInfoElement = form.querySelector< HTMLElement >(
+				'.rrze-appointment__selected-info'
+			);
+			daySlotsListElement.id = `${ instanceId }-slots`;
+
+			calendarElement.setAttribute( 'role', 'group' );
+			calendarElement.setAttribute(
+				'aria-label',
+				i18n.chooseDate || 'Choose an appointment date'
+			);
+
+			function showAvailabilityMessage( message: string ): void {
+				if ( ! availabilityStatusElement ) {
+					return;
+				}
+				availabilityStatusElement.textContent = message;
+				availabilityStatusElement.classList.remove( 'is-hidden' );
+			}
+
+			function clearAvailabilityMessage(): void {
+				if ( ! availabilityStatusElement ) {
+					return;
+				}
+				availabilityStatusElement.textContent = '';
+				availabilityStatusElement.classList.add( 'is-hidden' );
+			}
+
+			function setInteractionStatus( message = '' ): void {
+				if ( ! selectedInfoElement ) {
+					return;
+				}
+				selectedInfoElement.textContent = message;
+				selectedInfoElement.classList.toggle( 'is-hidden', ! message );
+			}
 
 			const slotInputs = Array.from(
 				slotDataElement.querySelectorAll< HTMLInputElement >(
@@ -187,6 +252,22 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				);
 			}
 
+			function refreshAvailabilityMessage(): void {
+				const hasAvailableSlot = Array.from( dateMap.values() ).some(
+					( slots ) =>
+						slots.some(
+							( slot ) => ! isSlotUnavailable( slot.value )
+						)
+				);
+				if ( hasAvailableSlot ) {
+					clearAvailabilityMessage();
+					return;
+				}
+				showAvailabilityMessage(
+					i18n.noSlotsAvailable || 'No time slots available.'
+				);
+			}
+
 			dateMap.forEach( ( slots, date ) => {
 				const filtered = slots.filter(
 					( slot ) => ! isSlotUnavailable( slot.value )
@@ -200,9 +281,14 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 
 			availableDates = Array.from( dateMap.keys() ).sort();
 			if ( availableDates.length === 0 ) {
-				daySlotsFieldsetElement.classList.add( 'is-hidden' );
+				calendarElement.innerHTML = '';
+				daySlotsContainerElement.classList.add( 'is-hidden' );
+				showAvailabilityMessage(
+					i18n.noSlotsAvailable || 'No time slots available.'
+				);
 				return;
 			}
+			clearAvailabilityMessage();
 			dateSet = new Set( availableDates );
 			const firstDate = new Date( `${ availableDates[ 0 ] }T00:00:00` );
 			activeDate = availableDates[ 0 ];
@@ -220,6 +306,13 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				booker: Booker = {},
 				triggerButton: HTMLButtonElement | null = null
 			): void {
+				const existingDialog = document.querySelector< HTMLElement >(
+					'.rrze-appointment__overlay-box[role="dialog"]'
+				);
+				if ( existingDialog ) {
+					existingDialog.focus();
+					return;
+				}
 				if ( isSlotUnavailable( value ) ) {
 					return;
 				}
@@ -230,8 +323,17 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 
 				selectedSlotValue = value;
 				markHiddenInput( value );
+				form.querySelectorAll(
+					'.rrze-appointment__slot-button.is-active'
+				).forEach( ( activeButton ) => {
+					activeButton.classList.remove( 'is-active' );
+				} );
+				triggerButton?.classList.add( 'is-active' );
 
-				const i18n = window.rrze_appointment?.i18n || {};
+				const titleId = `${ instanceId }-dialog-title`;
+				const introId = `${ instanceId }-dialog-intro`;
+				const appointmentId = `${ instanceId }-dialog-appointment`;
+				const statusId = `${ instanceId }-dialog-status`;
 				const overlay = document.createElement( 'div' );
 				overlay.className = 'rrze-appointment__overlay';
 
@@ -239,20 +341,18 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				box.className = 'rrze-appointment__overlay-box';
 				box.setAttribute( 'role', 'dialog' );
 				box.setAttribute( 'aria-modal', 'true' );
-				box.setAttribute(
-					'aria-labelledby',
-					'rrze-appt-overlay-title'
-				);
+				box.tabIndex = -1;
+				box.setAttribute( 'aria-labelledby', titleId );
 				box.setAttribute(
 					'aria-describedby',
-					'rrze-appt-overlay-intro'
+					`${ introId } ${ appointmentId }`
 				);
 
 				const header = document.createElement( 'div' );
 				header.className = 'rrze-appointment__overlay-header';
 				const heading = document.createElement( 'h2' );
 				heading.className = 'rrze-appointment__overlay-title';
-				heading.id = 'rrze-appt-overlay-title';
+				heading.id = titleId;
 				heading.textContent = i18n.dialogTitle || 'Request appointment';
 				const closeBtn = document.createElement( 'button' );
 				closeBtn.type = 'button';
@@ -267,13 +367,14 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 
 				const intro = document.createElement( 'p' );
 				intro.className = 'rrze-appointment__overlay-intro';
-				intro.id = 'rrze-appt-overlay-intro';
+				intro.id = introId;
 				intro.textContent =
 					i18n.dialogIntro ||
 					'Enter your details to request this appointment. You will receive an email to confirm it.';
 
 				const appointment = document.createElement( 'div' );
 				appointment.className = 'rrze-appointment__overlay-appointment';
+				appointment.id = appointmentId;
 				const appointmentLabel = document.createElement( 'span' );
 				appointmentLabel.className =
 					'rrze-appointment__overlay-appointment-label';
@@ -282,7 +383,10 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				const appointmentDate = document.createElement( 'strong' );
 				appointmentDate.className =
 					'rrze-appointment__overlay-appointment-date';
-				appointmentDate.textContent = formatDateDisplay( parsed.date );
+				appointmentDate.textContent = formatDateDisplay(
+					parsed.date,
+					frontendLocale
+				);
 				const appointmentTime = document.createElement( 'span' );
 				appointmentTime.className =
 					'rrze-appointment__overlay-appointment-time';
@@ -293,6 +397,26 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				appointment.appendChild( appointmentDate );
 				appointment.appendChild( appointmentTime );
 				const previousBodyOverflow = document.body.style.overflow;
+				const inertedSiblings: HTMLElement[] = [];
+
+				function isolateDialog(): void {
+					Array.from( document.body.children ).forEach( ( child ) => {
+						if (
+							child !== overlay &&
+							child instanceof HTMLElement &&
+							! child.hasAttribute( 'inert' )
+						) {
+							child.setAttribute( 'inert', '' );
+							inertedSiblings.push( child );
+						}
+					} );
+				}
+
+				function restorePage(): void {
+					inertedSiblings.forEach( ( sibling ) => {
+						sibling.removeAttribute( 'inert' );
+					} );
+				}
 
 				// Focus-Trap: alle fokussierbaren Elemente im Dialog
 				function getFocusable(): HTMLElement[] {
@@ -333,9 +457,12 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				const nameLabel = document.createElement( 'label' );
 				nameLabel.className = 'rrze-appointment__overlay-label';
 				const nameLabelText = document.createElement( 'span' );
-				nameLabelText.textContent = i18n.yourName || 'Name';
+				nameLabelText.textContent = `${ i18n.yourName || 'Name' } (${
+					i18n.required || 'required'
+				})`;
 				const nameInput = document.createElement( 'input' );
 				nameInput.type = 'text';
+				nameInput.id = `${ instanceId }-name`;
 				nameInput.className = 'rrze-appointment__overlay-name';
 				nameInput.autocomplete = 'name';
 				nameInput.placeholder =
@@ -349,9 +476,12 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				const emailLabel = document.createElement( 'label' );
 				emailLabel.className = 'rrze-appointment__overlay-label';
 				const emailLabelText = document.createElement( 'span' );
-				emailLabelText.textContent = i18n.yourEmail || 'Email address';
+				emailLabelText.textContent = `${
+					i18n.yourEmail || 'Email address'
+				} (${ i18n.required || 'required' })`;
 				const emailInput = document.createElement( 'input' );
 				emailInput.type = 'email';
+				emailInput.id = `${ instanceId }-email`;
 				emailInput.className = 'rrze-appointment__overlay-email';
 				emailInput.autocomplete = 'email';
 				emailInput.placeholder = 'name@example.com';
@@ -375,9 +505,12 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 					.replace( /\s{2,}/g, ' ' )
 					.trim();
 				messageLabel.textContent = requireMessage
-					? requiredMessageLabel
+					? `${ requiredMessageLabel } (${
+							i18n.required || 'required'
+					  })`
 					: optionalMessageLabel;
 				const messageInput = document.createElement( 'textarea' );
+				messageInput.id = `${ instanceId }-message`;
 				messageInput.className = 'rrze-appointment__overlay-message';
 				messageInput.placeholder =
 					i18n.messagePlaceholder ||
@@ -403,8 +536,11 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				);
 
 				const status = document.createElement( 'p' );
+				status.id = statusId;
 				status.className = 'rrze-appointment__overlay-status is-hidden';
+				status.setAttribute( 'role', 'status' );
 				status.setAttribute( 'aria-live', 'polite' );
+				status.setAttribute( 'aria-atomic', 'true' );
 
 				const actions = document.createElement( 'div' );
 				actions.className = 'rrze-appointment__overlay-actions';
@@ -428,10 +564,33 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 					isClosed = true;
 					document.removeEventListener( 'keydown', onKey );
 					document.body.style.overflow = previousBodyOverflow;
+					restorePage();
 					overlay.remove();
-					if ( triggerButton ) {
+					if (
+						triggerButton?.isConnected &&
+						! triggerButton.disabled
+					) {
 						triggerButton.focus();
+						return;
 					}
+					const slotReplacement = Array.from(
+						form.querySelectorAll< HTMLButtonElement >(
+							'.rrze-appointment__slot-button'
+						)
+					).find(
+						( button ) =>
+							button.dataset.slotValue === value &&
+							! button.disabled
+					);
+					const fallback =
+						slotReplacement ||
+						form.querySelector< HTMLElement >(
+							'.rrze-appointment__day-slots:not(.is-hidden) .rrze-appointment__day-slots-title'
+						) ||
+						form.querySelector< HTMLElement >(
+							'.rrze-appointment__calendar-month-title'
+						);
+					fallback?.focus();
 				}
 
 				function onKey( e: KeyboardEvent ): void {
@@ -444,6 +603,8 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 					status.textContent = '';
 					status.className =
 						'rrze-appointment__overlay-status is-hidden';
+					status.setAttribute( 'role', 'status' );
+					status.setAttribute( 'aria-live', 'polite' );
 				}
 
 				function showStatus(
@@ -452,6 +613,14 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				): void {
 					status.textContent = message;
 					status.className = `rrze-appointment__overlay-status is-${ type }`;
+					status.setAttribute(
+						'role',
+						type === 'error' ? 'alert' : 'status'
+					);
+					status.setAttribute(
+						'aria-live',
+						type === 'error' ? 'assertive' : 'polite'
+					);
 				}
 
 				function showFieldError(
@@ -462,6 +631,8 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 					message: string
 				): void {
 					input.setAttribute( 'aria-invalid', 'true' );
+					input.setAttribute( 'aria-describedby', statusId );
+					input.setAttribute( 'aria-errormessage', statusId );
 					showStatus( message, 'error' );
 					input.focus();
 				}
@@ -469,12 +640,16 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				[ nameInput, emailInput, messageInput ].forEach( ( input ) => {
 					input.addEventListener( 'input', () => {
 						input.removeAttribute( 'aria-invalid' );
+						input.removeAttribute( 'aria-describedby' );
+						input.removeAttribute( 'aria-errormessage' );
 						if ( status.classList.contains( 'is-error' ) ) {
 							clearStatus();
 						}
 					} );
 					input.addEventListener( 'change', () => {
 						input.removeAttribute( 'aria-invalid' );
+						input.removeAttribute( 'aria-describedby' );
+						input.removeAttribute( 'aria-errormessage' );
 						if ( status.classList.contains( 'is-error' ) ) {
 							clearStatus();
 						}
@@ -532,6 +707,7 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 					cancelBtn.disabled = true;
 					closeBtn.disabled = true;
 					isSubmitting = true;
+					dialogForm.setAttribute( 'aria-busy', 'true' );
 					showStatus( i18n.booking || 'Sending request…', 'loading' );
 
 					const data = new FormData();
@@ -564,6 +740,7 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 							if ( res.success ) {
 								bookedSlots.add( value );
 								isSubmitting = false;
+								dialogForm.removeAttribute( 'aria-busy' );
 								showStatus(
 									i18n.booked ||
 										'Check your inbox to confirm the appointment. We sent a confirmation link to your email address.',
@@ -581,9 +758,11 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 								closeBtn.disabled = false;
 								renderCalendar();
 								renderDaySlots( activeDate );
+								refreshAvailabilityMessage();
 								heading.focus();
 							} else {
 								isSubmitting = false;
+								dialogForm.removeAttribute( 'aria-busy' );
 								const responseMessage =
 									typeof res.data === 'string'
 										? res.data
@@ -601,6 +780,7 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 						} )
 						.catch( () => {
 							isSubmitting = false;
+							dialogForm.removeAttribute( 'aria-busy' );
 							showStatus(
 								i18n.networkError ||
 									'Connection problem. Check your internet connection and try again.',
@@ -635,6 +815,7 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				} else {
 					confirmBtn.focus();
 				}
+				isolateDialog();
 			}
 
 			function createSlotButton( slot: FrontendSlot ): HTMLButtonElement {
@@ -644,6 +825,16 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				button.className = 'rrze-appointment__slot-button';
 				button.textContent = slot.label;
 				button.dataset.slotValue = slot.value;
+				const slotDate = parseSlotValue( slot.value ).date;
+				if ( slotDate ) {
+					button.setAttribute(
+						'aria-label',
+						`${ slot.label }, ${ formatDateLongDisplay(
+							slotDate,
+							frontendLocale
+						) }`
+					);
+				}
 
 				if ( isBooked ) {
 					button.classList.add( 'is-booked' );
@@ -658,11 +849,15 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				button.addEventListener( 'click', () => {
 					if ( disableSso ) {
 						openOverlay( slot.value, {}, button );
-						renderDaySlots( activeDate );
 						return;
 					}
 
 					button.disabled = true;
+					button.setAttribute( 'aria-busy', 'true' );
+					form.setAttribute( 'aria-busy', 'true' );
+					setInteractionStatus(
+						i18n.bookingDetailsLoading || 'Loading booking details…'
+					);
 
 					fetch(
 						window.rrze_appointment?.restUrl ||
@@ -703,6 +898,9 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 						} )
 						.then( ( res ) => {
 							button.disabled = false;
+							button.removeAttribute( 'aria-busy' );
+							form.removeAttribute( 'aria-busy' );
+							setInteractionStatus();
 
 							if ( ! res ) {
 								return;
@@ -728,48 +926,59 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 							const booker = res.data || {};
 
 							openOverlay( slot.value, booker, button );
-							renderDaySlots( activeDate );
 						} )
 						.catch( () => {
 							button.disabled = false;
+							button.removeAttribute( 'aria-busy' );
+							form.removeAttribute( 'aria-busy' );
+							setInteractionStatus();
 
 							openOverlay( slot.value, {}, button );
-							renderDaySlots( activeDate );
 						} );
 				} );
 				return button;
 			}
 
-			function renderDaySlots( date: string ): void {
-				const slots = dateMap.get( date ) || [];
+			function renderDaySlots( date: string, focusTitle = false ): void {
+				const slots = ( dateMap.get( date ) || [] ).filter(
+					( slot ) => ! isSlotUnavailable( slot.value )
+				);
 
 				daySlotsListElement.innerHTML = '';
 				daySlotsListElement.className =
 					'rrze-appointment__day-slots-list rrze-appointment__slot-grid';
 
 				if ( slots.length === 0 ) {
-					daySlotsFieldsetElement.classList.add( 'is-hidden' );
+					daySlotsContainerElement.classList.add( 'is-hidden' );
 					return;
 				}
 
-				daySlotsFieldsetElement.classList.remove( 'is-hidden' );
-				const legend =
-					daySlotsFieldsetElement.querySelector( 'legend' ) ||
-					daySlotsFieldsetElement.querySelector(
-						'.rrze-appointment__day-slots-title'
-					);
-				if ( legend ) {
-					legend.textContent = (
+				daySlotsContainerElement.classList.remove( 'is-hidden' );
+				const title = daySlotsContainerElement.querySelector(
+					'.rrze-appointment__day-slots-title'
+				);
+				if ( title ) {
+					title.textContent = (
 						i18n.availableOn || 'Available appointments on %s'
-					).replace( '%s', formatDateDisplay( date ) );
+					).replace(
+						'%s',
+						formatDateDisplay( date, frontendLocale )
+					);
+					( title as HTMLElement ).tabIndex = -1;
 				}
 
 				slots.forEach( ( slot ) => {
 					daySlotsListElement.appendChild( createSlotButton( slot ) );
 				} );
+
+				if ( focusTitle && title instanceof HTMLElement ) {
+					title.focus();
+				}
 			}
 
-			function renderCalendar(): void {
+			function renderCalendar(
+				focusNavigation: 'previous' | 'next' | null = null
+			): void {
 				calendarElement.innerHTML = '';
 
 				const monthDate = new Date( currentYear, currentMonth, 1 );
@@ -781,30 +990,69 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 
 				const titleRow = document.createElement( 'div' );
 				titleRow.className = 'rrze-appointment__calendar-title';
+				const previousMonth = new Date(
+					currentYear,
+					currentMonth - 1,
+					1
+				);
+				const nextMonth = new Date( currentYear, currentMonth + 1, 1 );
+				const firstAvailableMonth = new Date(
+					`${ availableDates[ 0 ] }T00:00:00`
+				);
+				const lastAvailableMonth = new Date(
+					`${ availableDates[ availableDates.length - 1 ] }T00:00:00`
+				);
+				const currentMonthNumber = currentYear * 12 + currentMonth;
+				const firstMonthNumber =
+					firstAvailableMonth.getFullYear() * 12 +
+					firstAvailableMonth.getMonth();
+				const lastMonthNumber =
+					lastAvailableMonth.getFullYear() * 12 +
+					lastAvailableMonth.getMonth();
 
 				const prevBtn = document.createElement( 'button' );
 				prevBtn.type = 'button';
 				prevBtn.textContent = '‹';
 				prevBtn.className = 'rrze-appointment__calendar-nav';
+				prevBtn.dataset.direction = 'previous';
+				prevBtn.disabled = currentMonthNumber <= firstMonthNumber;
+				prevBtn.setAttribute(
+					'aria-label',
+					`${
+						i18n.previousMonth || 'Previous month'
+					}: ${ formatMonthTitle( previousMonth ) }`
+				);
 				prevBtn.addEventListener( 'click', () => {
-					const prev = new Date( currentYear, currentMonth - 1, 1 );
-					currentYear = prev.getFullYear();
-					currentMonth = prev.getMonth();
-					renderCalendar();
+					currentYear = previousMonth.getFullYear();
+					currentMonth = previousMonth.getMonth();
+					renderCalendar( 'previous' );
 				} );
 
 				const nextBtn = document.createElement( 'button' );
 				nextBtn.type = 'button';
 				nextBtn.textContent = '›';
 				nextBtn.className = 'rrze-appointment__calendar-nav';
+				nextBtn.dataset.direction = 'next';
+				nextBtn.disabled = currentMonthNumber >= lastMonthNumber;
+				nextBtn.setAttribute(
+					'aria-label',
+					`${ i18n.nextMonth || 'Next month' }: ${ formatMonthTitle(
+						nextMonth
+					) }`
+				);
 				nextBtn.addEventListener( 'click', () => {
-					const next = new Date( currentYear, currentMonth + 1, 1 );
-					currentYear = next.getFullYear();
-					currentMonth = next.getMonth();
-					renderCalendar();
+					currentYear = nextMonth.getFullYear();
+					currentMonth = nextMonth.getMonth();
+					renderCalendar( 'next' );
 				} );
 
 				const titleText = document.createElement( 'span' );
+				titleText.className = 'rrze-appointment__calendar-month-title';
+				titleText.id = `${ instanceId }-month-title`;
+				titleText.tabIndex = -1;
+				titleText.setAttribute( 'role', 'status' );
+				titleText.setAttribute( 'aria-live', 'polite' );
+				titleText.setAttribute( 'aria-atomic', 'true' );
 				titleText.textContent = formatMonthTitle( monthDate );
 
 				titleRow.appendChild( prevBtn );
@@ -843,6 +1091,7 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 
 					button.type = 'button';
 					button.className = 'rrze-appointment__calendar-day';
+					button.dataset.date = dateString;
 					if ( isWeekend || isPast ) {
 						button.classList.add( 'is-past' );
 					}
@@ -851,8 +1100,10 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 					}
 					if ( isToday ) {
 						button.classList.add( 'is-today' );
+						button.setAttribute( 'aria-current', 'date' );
 					}
 					button.textContent = String( day );
+					let isAvailable = false;
 
 					if ( dateSet.has( dateString ) ) {
 						const dateSlots = dateMap.get( dateString ) || [];
@@ -867,19 +1118,26 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 
 						if ( ! allBooked ) {
 							button.classList.add( 'is-available' );
+							button.setAttribute( 'aria-pressed', 'false' );
+							isAvailable = true;
 						}
 						if ( allBooked ) {
 							button.classList.add( 'is-booked' );
 						}
-						if ( dateString === activeDate ) {
+						if ( dateString === activeDate && ! allBooked ) {
 							button.classList.add( 'is-active' );
+							button.setAttribute( 'aria-pressed', 'true' );
 						}
 
 						if ( ! allBooked ) {
+							button.setAttribute(
+								'aria-controls',
+								daySlotsListElement.id
+							);
 							button.addEventListener( 'click', () => {
 								activeDate = dateString;
 								renderCalendar();
-								renderDaySlots( activeDate );
+								renderDaySlots( activeDate, true );
 							} );
 						} else {
 							button.disabled = true;
@@ -888,14 +1146,31 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 						button.disabled = true;
 					}
 
+					const accessibleName = [
+						formatDateLongDisplay( dateString, frontendLocale ),
+						isToday ? i18n.today || 'today' : '',
+						dateString === activeDate && isAvailable
+							? i18n.selected || 'selected'
+							: '',
+						isAvailable
+							? i18n.available || 'available appointments'
+							: i18n.unavailable || 'no available appointments',
+					].filter( Boolean );
+					button.setAttribute(
+						'aria-label',
+						accessibleName.join( ', ' )
+					);
+
 					grid.appendChild( button );
 				}
 
 				if ( hideWeekends ) {
-					WEEKDAYS.slice( 0, 5 ).forEach( ( weekday ) => {
+					weekdays.slice( 0, 5 ).forEach( ( weekday ) => {
 						const cell = document.createElement( 'div' );
 						cell.className = 'rrze-appointment__weekday';
-						cell.textContent = weekday;
+						cell.textContent = weekday.short;
+						cell.setAttribute( 'aria-hidden', 'true' );
+						cell.title = weekday.long;
 						grid.appendChild( cell );
 					} );
 
@@ -912,10 +1187,12 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 						}
 					);
 				} else {
-					WEEKDAYS.forEach( ( weekday ) => {
+					weekdays.forEach( ( weekday ) => {
 						const cell = document.createElement( 'div' );
 						cell.className = 'rrze-appointment__weekday';
-						cell.textContent = weekday;
+						cell.textContent = weekday.short;
+						cell.setAttribute( 'aria-hidden', 'true' );
+						cell.title = weekday.long;
 						grid.appendChild( cell );
 					} );
 
@@ -945,9 +1222,11 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 
 				monthWrapper.appendChild( grid );
 				calendarElement.appendChild( monthWrapper );
-			}
 
-			const i18n = window.rrze_appointment?.i18n || {};
+				if ( focusNavigation ) {
+					titleText.focus();
+				}
+			}
 
 			renderCalendar();
 			renderDaySlots( activeDate );
@@ -962,27 +1241,50 @@ import { formatDateDisplay, getWeekdayMonthGridCells } from './utils';
 				sessionStorage.removeItem( 'rrze_appt_slot' );
 				sessionStorage.removeItem( 'rrze_appt_page' );
 
+				const autoSlotDate = parseSlotValue( autoSlot ).date;
+				if ( autoSlotDate && dateMap.has( autoSlotDate ) ) {
+					const autoDate = new Date( `${ autoSlotDate }T00:00:00` );
+					activeDate = autoSlotDate;
+					currentYear = autoDate.getFullYear();
+					currentMonth = autoDate.getMonth();
+					renderCalendar();
+					renderDaySlots( activeDate );
+				}
+
+				form.setAttribute( 'aria-busy', 'true' );
+				setInteractionStatus(
+					i18n.bookingDetailsLoading || 'Loading booking details…'
+				);
 				// Booker-Daten holen und Overlay öffnen
 				const data = new FormData();
 				data.append( 'action', 'rrze_appointment_get_booker' );
 				fetch(
 					window.rrze_appointment?.ajaxUrl ||
 						'/wp-admin/admin-ajax.php',
-					{ method: 'POST', body: data }
+					{
+						method: 'POST',
+						body: data,
+					}
 				)
 					.then( ( r ) => r.json() as Promise< BookerAjaxResponse > )
 					.then( ( res ) => {
+						form.removeAttribute( 'aria-busy' );
+						setInteractionStatus();
 						const booker = res.success ? res.data || {} : {};
 						openOverlay( autoSlot, booker );
 					} )
-					.catch( () => openOverlay( autoSlot, {} ) );
+					.catch( () => {
+						form.removeAttribute( 'aria-busy' );
+						setInteractionStatus();
+						openOverlay( autoSlot, {} );
+					} );
 			}
 		}
 
 		document
 			.querySelectorAll< HTMLFormElement >( 'form.rrze-appointment' )
-			.forEach( ( form ) => {
-				initAppointmentForm( form );
+			.forEach( ( form, index ) => {
+				initAppointmentForm( form, `rrze-appt-${ index + 1 }` );
 			} );
 	}
 

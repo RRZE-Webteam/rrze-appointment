@@ -1598,3 +1598,43 @@ msgstr ""
 #: includes/MailTemplate.php
 msgid "Appointment update"
 msgstr ""
+
+#: src/render.php src/save.js
+msgid "Appointment booking"
+msgstr ""
+
+#: includes/Main.php
+msgid "Choose an appointment date"
+msgstr ""
+
+#: includes/Main.php
+msgid "Previous month"
+msgstr ""
+
+#: includes/Main.php
+msgid "Next month"
+msgstr ""
+
+#: includes/Main.php
+msgid "available appointments"
+msgstr ""
+
+#: includes/Main.php
+msgid "no available appointments"
+msgstr ""
+
+#: includes/Main.php
+msgid "selected"
+msgstr ""
+
+#: includes/Main.php
+msgid "today"
+msgstr ""
+
+#: includes/Main.php
+msgid "Loading booking details…"
+msgstr ""
+
+#: includes/Main.php
+msgid "required"
+msgstr ""

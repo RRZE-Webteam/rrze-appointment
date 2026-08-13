@@ -5,6 +5,18 @@
     $hover-text: #fff;
     $hover-border: #0D6EFD;
 
+    &__visually-hidden {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        margin: -1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+        border: 0 !important;
+    }
+
     fieldset {
         border: none;
         padding: 0;
@@ -115,6 +127,16 @@
                 background-color: $cal-bg-active !important;
                 color: #fff !important;
                 border-color: $cal-bg-active;
+
+                &::before {
+                    content: "✓";
+                    position: absolute;
+                    top: 1px;
+                    right: 4px;
+                    font-size: 0.7rem;
+                    font-weight: 700;
+                    line-height: 1;
+                }
             }
 
             &.is-booked {
@@ -127,6 +149,12 @@
             &.is-today {
                 outline: 4px solid $cal-today-outline;
                 outline-offset: -4px;
+            }
+
+            &:focus-visible {
+                z-index: 2;
+                outline: 3px solid #04316a;
+                outline-offset: 2px;
             }
         }
 
@@ -145,9 +173,19 @@
             text-align: center;
             // padding: 2px 8px;
             padding: 0;
+
+            &:focus-visible {
+                outline: 3px solid #04316a;
+                outline-offset: 2px;
+            }
+
+            &:disabled {
+                opacity: 0.45;
+                cursor: not-allowed;
+            }
         }
 
-        button.rrze-appointment__calendar-nav:hover{
+        button.rrze-appointment__calendar-nav:hover:not(:disabled){
             background: $hover-bg;
             color: $hover-text;
             border-color: $hover-border;
@@ -188,6 +226,25 @@
         letter-spacing: 2%;
         color: #04316a;
         margin-top: 2rem;
+
+        &:focus-visible {
+            outline: 3px solid #04316a;
+            outline-offset: 3px;
+        }
+    }
+
+    &__availability-status,
+    &__selected-info {
+        margin: 1rem 0;
+        padding: 0.75rem 0.875rem;
+        border-left: 4px solid #0b5ed7;
+        background: #f0f6fc;
+        color: #04316a;
+        line-height: 1.45;
+
+        &.is-hidden {
+            display: none;
+        }
     }
 
     &__slot-item {
@@ -246,6 +303,11 @@
             border-color: $hover-border;
             background: $hover-bg;
             color: $hover-text !important;
+        }
+
+        &:focus-visible {
+            outline: 3px solid #04316a;
+            outline-offset: 2px;
         }
 
         &.is-active {

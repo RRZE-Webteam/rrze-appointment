@@ -215,6 +215,12 @@ $pageTitle = sprintf(
             outline: 2px solid transparent;
         }
 
+        .rrze-appointment-confirmation__field textarea[aria-invalid="true"],
+        .rrze-appointment-confirmation__field select[aria-invalid="true"] {
+            border-color: #c62828;
+            box-shadow: 0 0 0 1px #c62828;
+        }
+
         .rrze-appointment-confirmation__error {
             margin: 0;
             padding: 0.85rem 1rem;
@@ -222,6 +228,11 @@ $pageTitle = sprintf(
             background: #ffebee;
             color: #b71c1c;
             line-height: 1.5;
+        }
+
+        .rrze-appointment-confirmation__error:focus {
+            outline: 3px solid #c62828;
+            outline-offset: 3px;
         }
 
         .rrze-appointment-confirmation__form .rrze-appointment-confirmation__action {
@@ -387,7 +398,12 @@ $pageTitle = sprintf(
                 <form class="rrze-appointment-confirmation__form" method="post" action="<?php echo esc_url($formAction); ?>">
                     <input type="hidden" name="rrze_appt_questions_nonce" value="<?php echo esc_attr($formNonce); ?>">
                     <?php if ($formError !== '') : ?>
-                        <p class="rrze-appointment-confirmation__error" role="alert">
+                        <p
+                            class="rrze-appointment-confirmation__error"
+                            id="rrze-appt-form-error"
+                            role="alert"
+                            tabindex="-1"
+                        >
                             <?php echo esc_html($formError); ?>
                         </p>
                     <?php endif; ?>
@@ -403,6 +419,7 @@ $pageTitle = sprintf(
                             continue;
                         }
                         $fieldId = 'rrze-appt-question-' . $questionId;
+                        $questionHasError = $formError !== '' && $formErrorField === $questionId;
                         ?>
                         <label class="rrze-appointment-confirmation__field" for="<?php echo esc_attr($fieldId); ?>">
                             <span class="rrze-appointment-confirmation__field-label">
@@ -422,6 +439,7 @@ $pageTitle = sprintf(
                                     id="<?php echo esc_attr($fieldId); ?>"
                                     name="question_answers[<?php echo esc_attr($questionId); ?>]"
                                     <?php echo $questionRequired ? 'required' : ''; ?>
+                                    <?php echo $questionHasError ? 'aria-invalid="true" aria-describedby="rrze-appt-form-error" autofocus' : ''; ?>
                                 >
                                     <option value=""><?php esc_html_e('Select an option', 'rrze-appointment'); ?></option>
                                     <?php foreach ($questionOptions as $option) :
@@ -439,6 +457,7 @@ $pageTitle = sprintf(
                                     maxlength="5000"
                                     rows="5"
                                     <?php echo $questionRequired ? 'required' : ''; ?>
+                                    <?php echo $questionHasError ? 'aria-invalid="true" aria-describedby="rrze-appt-form-error" autofocus' : ''; ?>
                                 ><?php echo esc_textarea($submittedAnswer); ?></textarea>
                             <?php endif; ?>
                         </label>

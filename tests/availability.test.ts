@@ -66,6 +66,15 @@ function createEntry(
 }
 
 describe( 'availability editor model', () => {
+	beforeAll( () => {
+		jest.useFakeTimers();
+		jest.setSystemTime( new Date( '2026-08-01T12:00:00' ) );
+	} );
+
+	afterAll( () => {
+		jest.useRealTimers();
+	} );
+
 	it( 'adapts legacy recurrence attributes to one editable entry', () => {
 		const attributes = createAttributes( {
 			selectedDates: [ '2026-08-03', '2026-08-10', '2026-08-17' ],

@@ -54,9 +54,9 @@ $locationIsUrl = preg_match('#^https?://#i', $location) === 1;
     data-hide-weekends="<?php echo $hideWeekends ? '1' : '0'; ?>"
 >
     <fieldset class="rrze-appointment__fieldset">
-        <?php if ($title !== '') : ?>
-            <legend class="rrze-appointment__title"><?php echo esc_html($title); ?></legend>
-        <?php endif; ?>
+        <legend class="<?php echo $title !== '' ? 'rrze-appointment__title' : 'rrze-appointment__visually-hidden'; ?>">
+            <?php echo esc_html($title !== '' ? $title : __('Appointment booking', 'rrze-appointment')); ?>
+        </legend>
 
         <?php if ($description !== '') : ?>
             <p class="rrze-appointment__description"><?php echo esc_html($description); ?></p>
@@ -78,8 +78,10 @@ $locationIsUrl = preg_match('#^https?://#i', $location) === 1;
         <?php if (!empty($slots)) : ?>
             <div class="rrze-appointment__calendar"></div>
 
+            <p class="rrze-appointment__availability-status is-hidden" role="status" aria-live="polite"></p>
+
             <div class="rrze-appointment__day-slots is-hidden">
-                <p class="rrze-appointment__day-slots-title"><?php echo esc_html__('Times on selected day', 'rrze-appointment'); ?></p>
+                <h3 class="rrze-appointment__day-slots-title"><?php echo esc_html__('Times on selected day', 'rrze-appointment'); ?></h3>
                 <div class="rrze-appointment__day-slots-list"></div>
             </div>
 
@@ -100,7 +102,7 @@ $locationIsUrl = preg_match('#^https?://#i', $location) === 1;
                 <?php endforeach; ?>
             </div>
 
-            <div class="rrze-appointment__selected-info is-hidden" aria-live="polite"></div>
+            <p class="rrze-appointment__selected-info is-hidden" role="status" aria-live="polite"></p>
         <?php else : ?>
             <p class="rrze-appointment__missing-slot"><?php echo esc_html__('No time slots available.', 'rrze-appointment'); ?></p>
         <?php endif; ?>

@@ -99,27 +99,49 @@ export function parseDateString( value?: unknown ): Date | null {
 	return new Date( year, month - 1, day );
 }
 
-export function formatDateDisplay( dateString: string ): string {
+export function formatDateDisplay(
+	dateString: string,
+	locale = 'de-DE'
+): string {
 	const dateObj = parseDateString( dateString );
 	if ( ! dateObj ) {
 		return dateString;
 	}
-	return dateObj.toLocaleDateString( 'de-DE', {
+	return dateObj.toLocaleDateString( locale, {
 		day: '2-digit',
 		month: '2-digit',
 		year: 'numeric',
 	} );
 }
 
-export function formatDateWithWeekdayDisplay( dateString: string ): string {
+export function formatDateWithWeekdayDisplay(
+	dateString: string,
+	locale = 'de-DE'
+): string {
 	const dateObj = parseDateString( dateString );
 	if ( ! dateObj ) {
 		return dateString;
 	}
-	return dateObj.toLocaleDateString( 'de-DE', {
+	return dateObj.toLocaleDateString( locale, {
 		weekday: 'long',
 		day: '2-digit',
 		month: '2-digit',
+		year: 'numeric',
+	} );
+}
+
+export function formatDateLongDisplay(
+	dateString: string,
+	locale = 'de-DE'
+): string {
+	const dateObj = parseDateString( dateString );
+	if ( ! dateObj ) {
+		return dateString;
+	}
+	return dateObj.toLocaleDateString( locale, {
+		weekday: 'long',
+		day: 'numeric',
+		month: 'long',
 		year: 'numeric',
 	} );
 }

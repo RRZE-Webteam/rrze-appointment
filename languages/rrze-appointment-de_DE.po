@@ -478,7 +478,7 @@ msgstr "Keine authentifizierte E-Mail-Adresse gefunden."
 
 #: build/render.php:142 src/render.php:142
 msgid "No time slots available."
-msgstr "Keine Timeslots verfügbar."
+msgstr "Keine Termine verfügbar."
 
 #: includes/Settings.php:559 includes/Settings.php:581
 msgid "Person"
@@ -1673,3 +1673,43 @@ msgstr "Termin storniert"
 #: includes/MailTemplate.php
 msgid "Appointment update"
 msgstr "Termin-Information"
+
+#: src/render.php src/save.js
+msgid "Appointment booking"
+msgstr "Terminbuchung"
+
+#: includes/Main.php
+msgid "Choose an appointment date"
+msgstr "Wählen Sie ein Termindatum"
+
+#: includes/Main.php
+msgid "Previous month"
+msgstr "Vorheriger Monat"
+
+#: includes/Main.php
+msgid "Next month"
+msgstr "Nächster Monat"
+
+#: includes/Main.php
+msgid "available appointments"
+msgstr "verfügbare Termine"
+
+#: includes/Main.php
+msgid "no available appointments"
+msgstr "keine verfügbaren Termine"
+
+#: includes/Main.php
+msgid "selected"
+msgstr "ausgewählt"
+
+#: includes/Main.php
+msgid "today"
+msgstr "heute"
+
+#: includes/Main.php
+msgid "Loading booking details…"
+msgstr "Buchungsdaten werden geladen …"
+
+#: includes/Main.php
+msgid "required"
+msgstr "erforderlich"
