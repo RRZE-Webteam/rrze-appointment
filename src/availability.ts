@@ -163,7 +163,7 @@ export function getAvailabilityDates( entry: AvailabilityEntry ): string[] {
 	}
 
 	const rule = createRecurrenceRule( entry.date, entry.recurrence );
-	return normalizeDateList( [ entry.date, ...( rule?.dates || [] ) ] );
+	return normalizeDateList( rule?.dates );
 }
 
 export function getAvailabilitySlotIntervals(
@@ -194,6 +194,14 @@ export function getAvailabilitySlotIntervals(
 
 export function getAvailabilitySlotCount( entry: AvailabilityEntry ): number {
 	return getAvailabilitySlotIntervals( entry ).length;
+}
+
+export function getAvailabilityAppointmentCount(
+	entry: AvailabilityEntry
+): number {
+	return (
+		getAvailabilityDates( entry ).length * getAvailabilitySlotCount( entry )
+	);
 }
 
 export function setDateSlotsExcluded(

@@ -119,13 +119,13 @@ class SlotGenerator
                     : [];
                 $dates = [$date];
                 if (!empty($recurrence['freq']) && is_array($recurrence['dates'] ?? null)) {
-                    $dates = array_merge($dates, $recurrence['dates']);
+                    $dates = $recurrence['dates'];
                 }
                 $dates = self::normalizeDates($dates);
                 $excludedDates = array_flip(self::normalizeDates($recurrence['excludedDates'] ?? []));
 
                 foreach ($dates as $occurrenceDate) {
-                    if ($occurrenceDate !== $date && isset($excludedDates[$occurrenceDate])) {
+                    if (isset($excludedDates[$occurrenceDate])) {
                         continue;
                     }
                     $override = is_array($dateOverrides[$occurrenceDate] ?? null)

@@ -1,4 +1,5 @@
 import {
+	getAvailabilityAppointmentCount,
 	buildAvailabilityAttributes,
 	getAvailabilityDates,
 	getAvailabilityEntries,
@@ -320,7 +321,7 @@ describe( 'availability editor model', () => {
 		expect( slotValues ).toContain( '2026-08-10 09:00-09:30' );
 	} );
 
-	it( 'keeps the initial availability when its weekday is not repeated', () => {
+	it( 'only returns dates on explicitly selected recurrence weekdays', () => {
 		expect(
 			getAvailabilityDates(
 				createEntry( 'mixed-weekdays', {
@@ -332,7 +333,52 @@ describe( 'availability editor model', () => {
 					},
 				} )
 			)
-		).toEqual( [ '2026-08-04', '2026-08-05', '2026-08-10', '2026-08-12' ] );
+		).toEqual( [ '2026-08-05', '2026-08-10', '2026-08-12' ] );
+	} );
+
+	it( 'does not generate slots on an unselected anchor weekday', () => {
+		const entry = createEntry( 'mixed-weekdays', {
+			date: '2026-08-04',
+			recurrence: {
+				freq: 'weekly',
+				until: '2026-08-12',
+				weekdays: [ 1, 3 ],
+			},
+		} );
+		const currentAttributes = createAttributes();
+		const attributes = {
+			...currentAttributes,
+			...buildAvailabilityAttributes( currentAttributes, [ entry ] ),
+		};
+
+		expect( attributes.selectedDates ).toEqual( [
+			'2026-08-05',
+			'2026-08-10',
+			'2026-08-12',
+		] );
+
+		expect(
+			Array.from(
+				new Set(
+					generateTimeSlots( attributes ).map( ( slot ) => slot.date )
+				)
+			)
+		).toEqual( [ '2026-08-05', '2026-08-10', '2026-08-12' ] );
+	} );
+
+	it( 'counts every bookable appointment across recurring dates', () => {
+		expect(
+			getAvailabilityAppointmentCount(
+				createEntry( 'split-pattern', {
+					endTime: '11:00',
+					recurrence: {
+						freq: 'weekly',
+						until: '2026-08-07',
+						weekdays: [ 1, 3, 5 ],
+					},
+				} )
+			)
+		).toBe( 12 );
 	} );
 
 	it( 'counts one individual appointment', () => {

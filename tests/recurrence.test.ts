@@ -229,7 +229,7 @@ describe( 'recurrence endings', () => {
 		).toEqual( 3 );
 	} );
 
-	it( 'counts the anchor when later weekly dates use another weekday', () => {
+	it( 'only counts explicitly selected weekdays', () => {
 		expect(
 			expandRecurrence(
 				{
@@ -239,7 +239,32 @@ describe( 'recurrence endings', () => {
 				},
 				'2026-08-03'
 			)
-		).toEqual( [ '2026-08-03', '2026-08-05', '2026-08-12' ] );
+		).toEqual( [ '2026-08-05', '2026-08-12', '2026-08-19' ] );
+	} );
+
+	it( 'creates no weekly dates when the explicit weekday list is empty', () => {
+		expect(
+			expandRecurrence(
+				{
+					freq: 'weekly',
+					until: '2026-08-17',
+					weekdays: [],
+				},
+				'2026-08-03'
+			)
+		).toEqual( [] );
+	} );
+
+	it( 'keeps the anchor weekday for legacy weekly rules', () => {
+		expect(
+			expandRecurrence(
+				{
+					freq: 'weekly',
+					count: 2,
+				},
+				'2026-08-03'
+			)
+		).toEqual( [ '2026-08-03', '2026-08-10' ] );
 	} );
 
 	it( 'detects and caps series above the technical limit', () => {

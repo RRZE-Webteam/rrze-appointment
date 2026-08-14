@@ -1079,6 +1079,10 @@ msgid "The selected pattern does not create a complete slot."
 msgstr "Das gewählte Muster erzeugt keinen vollständigen Slot."
 
 #: src/components/availability-dialog.tsx
+msgid "The selected weekdays do not create an appointment within this date range."
+msgstr "Die ausgewählten Wochentage erzeugen innerhalb dieses Zeitraums keinen Termin."
+
+#: src/components/availability-dialog.tsx
 msgid "Use individual appointment"
 msgstr "Einzeltermin verwenden"
 
@@ -1325,6 +1329,11 @@ msgstr "Pause zwischen Terminen"
 #: src/components/availability-dialog.tsx
 msgid "bookable appointments per date"
 msgstr "buchbare Termine pro Tag"
+
+#: src/components/availability-dialog.tsx
+#, php-format
+msgid "Total bookable appointments: %d"
+msgstr "Buchbare Termine insgesamt: %d"
 
 #: src/components/availability-dialog.tsx
 msgid "Repeat appointment times"

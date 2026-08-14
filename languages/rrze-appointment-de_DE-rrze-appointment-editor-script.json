@@ -151,6 +151,9 @@
       "The selected pattern does not create a complete slot.": [
         "Das gewählte Muster erzeugt keinen vollständigen Slot."
       ],
+      "The selected weekdays do not create an appointment within this date range.": [
+        "Die ausgewählten Wochentage erzeugen innerhalb dieses Zeitraums keinen Termin."
+      ],
       "Use individual appointment": ["Einzeltermin verwenden"],
       "Monday": ["Montag"],
       "Tuesday": ["Dienstag"],
@@ -222,6 +225,9 @@
       "Appointment duration": ["Termindauer"],
       "Break between appointments": ["Pause zwischen Terminen"],
       "bookable appointments per date": ["buchbare Termine pro Tag"],
+      "Total bookable appointments: %d": [
+        "Buchbare Termine insgesamt: %d"
+      ],
       "Repeat appointment times": ["Terminzeiten wiederholen"],
       "Frequency": ["Rhythmus"],
       "Last date": ["Letzter Termin"],

@@ -262,25 +262,18 @@ function getAvailabilityWindows(
 				return [];
 			}
 			const recurrenceDates = entry.recurrence?.freq
-				? normalizeDateList( [
-						entry.date,
-						...( Array.isArray( entry.recurrence.dates )
+				? normalizeDateList(
+						Array.isArray( entry.recurrence.dates )
 							? entry.recurrence.dates
-							: expandRecurrence(
-									entry.recurrence,
-									entry.date
-							  ) ),
-				  ] )
+							: expandRecurrence( entry.recurrence, entry.date )
+				  )
 				: [ entry.date ];
 			const excludedDates = new Set(
 				normalizeDateList( entry.recurrence?.excludedDates )
 			);
 
 			return recurrenceDates
-				.filter(
-					( date ) =>
-						date === entry.date || ! excludedDates.has( date )
-				)
+				.filter( ( date ) => ! excludedDates.has( date ) )
 				.map( ( date ) => {
 					const override = overrides[ date ] || {};
 					return {
@@ -531,15 +524,17 @@ function expandRecurrenceWithLimit(
 					)
 			  )
 			: null;
-	if ( weekdays && weekdays.size > 0 ) {
+	if ( weekdays ) {
+		if ( weekdays.size === 0 ) {
+			return [];
+		}
+
 		const current = new Date( anchor );
 		while ( results.length < occurrenceLimit ) {
 			if ( untilDate && current > untilDate ) {
 				break;
 			}
-			// The anchor is always the first appointment date, even when the
-			// selected weekdays only apply to subsequent repetitions.
-			if ( results.length === 0 || weekdays.has( current.getDay() ) ) {
+			if ( weekdays.has( current.getDay() ) ) {
 				results.push( formatDate( current ) );
 			}
 			current.setDate( current.getDate() + 1 );

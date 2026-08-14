@@ -1037,6 +1037,10 @@ msgid "The selected pattern does not create a complete slot."
 msgstr ""
 
 #: src/components/availability-dialog.tsx
+msgid "The selected weekdays do not create an appointment within this date range."
+msgstr ""
+
+#: src/components/availability-dialog.tsx
 msgid "Use individual appointment"
 msgstr ""
 
@@ -1276,6 +1280,11 @@ msgstr ""
 
 #: src/components/availability-dialog.tsx
 msgid "bookable appointments per date"
+msgstr ""
+
+#: src/components/availability-dialog.tsx
+#, php-format
+msgid "Total bookable appointments: %d"
 msgstr ""
 
 #: src/components/availability-dialog.tsx
