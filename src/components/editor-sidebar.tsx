@@ -1,112 +1,109 @@
-import { InspectorControls } from '@wordpress/block-editor';
+import {InspectorControls} from '@wordpress/block-editor';
 import {
-	Button,
-	Notice,
-	PanelBody,
-	SelectControl,
-	TextControl,
-	ToggleControl,
+  Button,
+  Notice,
+  PanelBody,
+  SelectControl,
+  TextControl,
+  ToggleControl,
 } from '@wordpress/components';
-import { __, sprintf } from '@wordpress/i18n';
+import {__, sprintf} from '@wordpress/i18n';
 import type {
-	AppointmentAttributes,
-	EditProps,
-	MailTemplateOption,
+  AppointmentAttributes,
+  EditProps,
+  MailTemplateOption,
 } from '../types';
 
 interface EditorSidebarProps {
-	appointmentDateCount: number;
-	attributes: AppointmentAttributes;
-	availabilityCount: number;
-	faudirAvailable: boolean;
-	importNotice: string;
-	mailTemplates: MailTemplateOption[];
-	onImportFromFaudir: () => void;
-	onManageAppointments: () => void;
-	onManageQuestions: () => void;
-	questionCount: number;
-	setAttributes: EditProps[ 'setAttributes' ];
+  appointmentDateCount: number;
+  attributes: AppointmentAttributes;
+  availabilityCount: number;
+  faudirAvailable: boolean;
+  importNotice: string;
+  mailTemplates: MailTemplateOption[];
+  onImportFromFaudir: () => void;
+  onManageAppointments: () => void;
+  onManageQuestions: () => void;
+  questionCount: number;
+  setAttributes: EditProps[ 'setAttributes' ];
 }
 
-export function EditorSidebar( {
-	appointmentDateCount,
-	attributes,
-	availabilityCount,
-	faudirAvailable,
-	importNotice,
-	mailTemplates,
-	onImportFromFaudir,
-	onManageAppointments,
-	onManageQuestions,
-	questionCount,
-	setAttributes,
-}: EditorSidebarProps ) {
-	const {
-		bookingCutoff,
-		disableSso,
-		hideWeekends,
-		location,
-		locationUrl,
-		personEmail,
-		personId,
-		personName,
-		requireMessage,
-		tplId,
-	} = attributes;
-	const editorI18n = window.rrze_appointment?.editorI18n || {};
-	const appointmentSummary = sprintf(
-		/* translators: 1: Number of schedules. 2: Number of generated appointment dates. */
-		__( 'Schedules: %1$d · Appointment dates: %2$d', 'rrze-appointment' ),
-		availabilityCount,
-		appointmentDateCount
-	);
-	const hasValidEmail =
-		! personEmail ||
-		/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test( personEmail.trim() );
-	let emailHelp;
-	if ( ! personEmail.trim() ) {
-		emailHelp = __(
-			'Enter the address that receives booking requests.',
-			'rrze-appointment'
-		);
-	} else if ( ! hasValidEmail ) {
-		emailHelp = __( 'Enter a valid email address.', 'rrze-appointment' );
-	}
+export function EditorSidebar({
+  appointmentDateCount,
+  attributes,
+  availabilityCount,
+  faudirAvailable,
+  importNotice,
+  mailTemplates,
+  onImportFromFaudir,
+  onManageAppointments,
+  onManageQuestions,
+  questionCount,
+  setAttributes,
+}: EditorSidebarProps) {
+  const {
+    bookingCutoff,
+    disableSso,
+    hideWeekends,
+    location,
+    locationUrl,
+    personEmail,
+    personId,
+    personName,
+    requireMessage,
+    tplId,
+  } = attributes;
+  const editorI18n = window.rrze_appointment?.editorI18n || {};
+  const appointmentSummary = sprintf(
+    /* translators: 1: Number of schedules. 2: Number of generated appointment dates. */
+    __('Schedules: %1$d · Appointment dates: %2$d', 'rrze-appointment'),
+    availabilityCount,
+    appointmentDateCount
+  );
+  const hasValidEmail =
+    !personEmail ||
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personEmail.trim());
+  let emailHelp;
+  if (!personEmail.trim()) {
+    emailHelp = __(
+      'Enter the address that receives booking requests.',
+      'rrze-appointment'
+    );
+  } else if (!hasValidEmail) {
+    emailHelp = __('Enter a valid email address.', 'rrze-appointment');
+  }
 
-	return (
-		<InspectorControls>
-			<PanelBody
-				title={ __( 'Appointment times', 'rrze-appointment' ) }
-				initialOpen={ true }
-			>
-				<p>{ appointmentSummary }</p>
-				<Button variant="secondary" onClick={ onManageAppointments }>
-					{ __( 'Manage appointment times', 'rrze-appointment' ) }
-				</Button>
-			</PanelBody>
-
-			<PanelBody
-				title={ __( 'Additional questions', 'rrze-appointment' ) }
-				initialOpen={ false }
-			>
-				<p>
-					{ sprintf(
-						/* translators: %d: Number of configured questions. */
-						__( 'Questions: %d', 'rrze-appointment' ),
-						questionCount
-					) }
-				</p>
-				<Button variant="secondary" onClick={ onManageQuestions }>
-					{ __( 'Manage questions', 'rrze-appointment' ) }
-				</Button>
-			</PanelBody>
-
-			<PanelBody
-				title={ __( 'Host and location', 'rrze-appointment' ) }
-				initialOpen={ false }
-			>
-				{ faudirAvailable && (
-					<>
+  return (
+    <InspectorControls>
+      <PanelBody>
+        <p className={"rrze-appointment-pill"}>{appointmentSummary}</p>
+        <Button variant="secondary" onClick={onManageAppointments} className={"rrze-appointment-spacer"}>
+          {__('Manage appointment times', 'rrze-appointment')}
+        </Button>
+        <p className={"rrze-appointment-pill"}>
+          {sprintf(
+            /* translators: %d: Number of configured questions. */
+            __('Questions: %d', 'rrze-appointment'),
+            questionCount
+          )}
+        </p>
+        <Button variant="secondary" onClick={onManageQuestions}>
+          {__('Manage questions', 'rrze-appointment')}
+        </Button>
+      </PanelBody>
+      <PanelBody
+        title={__('Host and location', 'rrze-appointment')}
+        initialOpen={false}
+      >
+        {faudirAvailable && (
+          <>
+            <div className="rrze-appointment-divider">
+						<p className=" components-base-control__help rrze-appointment-gentle-notice">
+							{ __(
+								'Optional: Copy contact details, a location, or weekly hours from FAUdir.',
+								'rrze-appointment'
+							) }
+						</p>
 						<Button
 							variant="secondary"
 							onClick={ onImportFromFaudir }
@@ -121,16 +118,11 @@ export function EditorSidebar( {
 										'rrze-appointment'
 								  ) }
 						</Button>
-						<p className="components-base-control__help">
-							{ __(
-								'Optional: Copy contact details, a location, or weekly hours from FAUdir.',
-								'rrze-appointment'
-							) }
-						</p>
+						</div>
 					</>
 				) }
 				{ importNotice && (
-					<Notice status="success" isDismissible={ false }>
+					<Notice status=" success" isDismissible={ false }>
 						{ importNotice }
 					</Notice>
 				) }
@@ -155,7 +147,7 @@ export function EditorSidebar( {
 						'Host email address (required)',
 						'rrze-appointment'
 					) }
-					type="email"
+					type=" email"
 					help={ emailHelp }
 					value={ personEmail }
 					onChange={ ( value ) =>
@@ -318,7 +310,7 @@ export function EditorSidebar( {
 
 			<PanelBody
 				title={ __( 'Calendar display', 'rrze-appointment' ) }
-				icon="calendar-alt"
+				icon=" calendar-alt"
 				initialOpen={ false }
 			>
 				<ToggleControl

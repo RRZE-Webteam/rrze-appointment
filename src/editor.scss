@@ -1,5 +1,30 @@
 @import "../node_modules/@wordpress/dataviews/build-style/style.css";
 
+.rrze-appointment-spacer{
+	margin-bottom: 1rem;
+}
+
+.rrze-appointment-pill {
+	font-size: 0.9rem;
+	font-style: italic;
+	padding: .25rem.75rem;
+	border: 1px solid #0D47A1;
+	//border-radius: 50px;
+	background: #0D47A1;
+	color: #fff;
+}
+
+.rrze-appointment-gentle-notice {
+	font-size: .9rem;
+	font-style: italic;
+}
+
+.rrze-appointment-divider {
+	border-bottom: 1px solid currentColor;
+	margin-bottom: 1rem;
+	padding-bottom: 1rem;
+}
+
 .rrze-appointment-block {
 
 	.rrze-appointment__title[contenteditable="true"],
