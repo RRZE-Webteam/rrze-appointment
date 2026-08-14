@@ -9,7 +9,9 @@ describe( 'public confirmation templates accessibility', () => {
 		'templates/confirmation-page.php'
 	);
 	const errorTemplate = readProjectFile( 'templates/error-page.php' );
-	const mainHandler = readProjectFile( 'includes/Main.php' );
+	const cancellationController = readProjectFile(
+		'includes/CancellationController.php'
+	);
 
 	it( 'shows appointment details with semantic description markup', () => {
 		expect( confirmationTemplate ).toContain(
@@ -22,12 +24,16 @@ describe( 'public confirmation templates accessibility', () => {
 	} );
 
 	it( 'requires an explicit, nonce-protected POST to cancel', () => {
-		const cancelHandler = mainHandler.slice(
-			mainHandler.indexOf( 'public function handleCancel()' ),
-			mainHandler.indexOf( 'public function handleWaitlistOptOut()' )
+		const cancelHandler = cancellationController.slice(
+			cancellationController.indexOf(
+				'public function handleCancellation()'
+			),
+			cancellationController.indexOf(
+				'public function handleWaitlistPreference()'
+			)
 		);
 		const confirmationPosition = cancelHandler.indexOf(
-			'renderCancellationConfirmationPage'
+			'renderCancellationConfirmation'
 		);
 		const mutationPosition = cancelHandler.indexOf(
 			'TokenManager::deletePending'
