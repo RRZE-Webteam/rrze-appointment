@@ -1,6 +1,7 @@
 import { Button, DateCalendar, DatePicker } from '@wordpress/components';
 import { useEffect, useMemo, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+import { trash } from '@wordpress/icons';
 import type { PreviewCalendarProps, TimeSlot } from '../types';
 import {
 	formatDate,
@@ -100,7 +101,7 @@ function DaySlots( {
 									<Button
 										className="rrze-appointment-editor-slots__remove"
 										label={ removeLabel }
-										icon="trash"
+										icon={ trash }
 										isDestructive
 										variant="tertiary"
 										onClick={ () => onRemoveSlot( slot ) }
