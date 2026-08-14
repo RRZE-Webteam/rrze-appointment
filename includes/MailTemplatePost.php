@@ -33,7 +33,9 @@ class MailTemplatePost
                         'show_in_rest'  => true,
                         'single'        => true,
                         'type'          => 'string',
-                        'auth_callback' => fn() => current_user_can('edit_posts'),
+                        'auth_callback' => $field === 'body_html'
+                            ? fn() => current_user_can('edit_posts') && self::canEditHtml()
+                            : fn() => current_user_can('edit_posts'),
                     ]);
                 }
             }
@@ -42,6 +44,14 @@ class MailTemplatePost
         } catch (\Exception $e) {
             throw new CustomException($e->getMessage(), $e->getCode(), null);
         }
+    }
+
+    /**
+     * HTML templates are restricted to network super admins on multisite.
+     */
+    public static function canEditHtml(): bool
+    {
+        return !is_multisite() || is_super_admin();
     }
 
     public static function getDefault(string $type): array
@@ -287,7 +297,7 @@ class MailTemplatePost
         }
     }
 
-    public static function save(array $data, bool $isDraft = false): int|\WP_Error
+    public static function save(array $data, bool $isDraft = false, bool $canEditHtml = true): int|\WP_Error
     {
         try {
             $postId = (int) ($data['id'] ?? 0);
@@ -305,7 +315,9 @@ class MailTemplatePost
             foreach (self::TEMPLATE_TYPES as $key) {
                 update_post_meta($result, "tpl_{$key}_subject", sanitize_text_field(wp_unslash($data["{$key}_subject"] ?? '')));
                 update_post_meta($result, "tpl_{$key}_body", sanitize_textarea_field(wp_unslash($data["{$key}_body"] ?? '')));
-                update_post_meta($result, "tpl_{$key}_body_html", wp_kses_post(wp_unslash($data["{$key}_body_html"] ?? '')));
+                if ($canEditHtml) {
+                    update_post_meta($result, "tpl_{$key}_body_html", wp_kses_post(wp_unslash($data["{$key}_body_html"] ?? '')));
+                }
             }
 
             return $result;

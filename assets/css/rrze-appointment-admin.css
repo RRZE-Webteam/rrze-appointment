@@ -303,6 +303,14 @@
 	opacity: 1;
 }
 
+.rrze-appt-template-format-label {
+	display: block;
+	margin-bottom: 8px;
+	color: #1d2327;
+	font-size: 13px;
+	font-weight: 600;
+}
+
 .rrze-appt-template-field__actions {
 	display: flex;
 	flex-wrap: wrap;

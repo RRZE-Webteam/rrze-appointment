@@ -168,7 +168,7 @@ class Settings
             $title    = sanitize_text_field(wp_unslash($_POST['title'] ?? ''));
             $isDraft  = $title === '';
             $requestedId = (int) ($_POST['id'] ?? 0);
-            $result = MailTemplatePost::save($_POST, $isDraft);
+            $result = MailTemplatePost::save($_POST, $isDraft, MailTemplatePost::canEditHtml());
             $id     = is_wp_error($result) ? $requestedId : $result;
             $params = ['page' => self::PAGE_SLUG, 'tab' => 'templates'];
 
@@ -577,11 +577,18 @@ class Settings
 
     private function renderMailTabs(string $plainId, string $htmlId, string $nameKey, string $plainValue, string $htmlValue, array $defaults): void
     {
+        $canEditHtml = MailTemplatePost::canEditHtml();
         $plainTabId   = $plainId . '_tab';
         $htmlTabId    = $htmlId . '_tab';
         $plainPanelId = $plainId . '_panel';
         $htmlPanelId  = $htmlId . '_panel';
         ?>
+        <?php if (!$canEditHtml) : ?>
+            <div class="rrze-appt-plain-content">
+                <label class="rrze-appt-template-format-label" for="<?php echo esc_attr($plainId); ?>">
+                    <?php esc_html_e('Plain text', 'rrze-appointment'); ?>
+                </label>
+        <?php else : ?>
         <div class="rrze-appt-tabs">
             <div class="rrze-appt-tab-nav" role="tablist" aria-label="<?php esc_attr_e('Email format', 'rrze-appointment'); ?>">
                 <button type="button" id="<?php echo esc_attr($plainTabId); ?>" class="rrze-appt-tab-btn"
@@ -598,6 +605,7 @@ class Settings
             <div class="rrze-appt-tab-content">
                 <div id="<?php echo esc_attr($plainPanelId); ?>" class="rrze-appt-tab-panel"
                      role="tabpanel" aria-labelledby="<?php echo esc_attr($plainTabId); ?>" data-panel="plain">
+        <?php endif; ?>
                     <textarea id="<?php echo esc_attr($plainId); ?>" name="<?php echo esc_attr($nameKey); ?>_body"
                               rows="6" class="large-text"><?php echo esc_textarea($plainValue); ?></textarea>
                     <div class="rrze-appt-template-field__actions">
@@ -608,6 +616,9 @@ class Settings
                         <summary class="rrze-appt-default-preview__toggle"><?php esc_html_e('View standard content', 'rrze-appointment'); ?></summary>
                         <pre><?php echo esc_html($defaults['body']); ?></pre>
                     </details>
+        <?php if (!$canEditHtml) : ?>
+            </div>
+        <?php else : ?>
                 </div>
                 <div id="<?php echo esc_attr($htmlPanelId); ?>" class="rrze-appt-tab-panel"
                      role="tabpanel" aria-labelledby="<?php echo esc_attr($htmlTabId); ?>"
@@ -633,6 +644,7 @@ class Settings
                 </div>
             </div>
         </div>
+        <?php endif; ?>
         <?php
     }
 
