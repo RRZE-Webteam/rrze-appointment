@@ -122,7 +122,7 @@ export function EditorSidebar({
 					</>
 				) }
 				{ importNotice && (
-					<Notice status=" success" isDismissible={ false }>
+					<Notice status="success" isDismissible={ false }>
 						{ importNotice }
 					</Notice>
 				) }
