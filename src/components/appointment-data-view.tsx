@@ -5,17 +5,18 @@ import {
 	type Field,
 	type View,
 } from '@wordpress/dataviews/wp';
-import { Button } from '@wordpress/components';
+import { Button, DatePicker, Dropdown } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
-import { notAllowed, undo } from '@wordpress/icons';
-import { useState } from '@wordpress/element';
+import { calendar, notAllowed, seen, undo, unseen } from '@wordpress/icons';
+import { useEffect, useMemo, useState } from '@wordpress/element';
 import calendarIllustration from '../illustrations/calendar-31.png';
 import type { TimeSlot } from '../types';
-import { formatDateWithWeekdayDisplay } from '../utils';
+import { formatDate, formatDateWithWeekdayDisplay } from '../utils';
 
 interface AppointmentDataViewProps {
 	slots: TimeSlot[];
 	onAdd: () => void;
+	onSetDateExcluded: ( date: string, excluded: boolean ) => void;
 	onToggleException: ( slot: TimeSlot ) => void;
 }
 
@@ -68,9 +69,27 @@ function StatusField( { item }: { item: TimeSlot } ) {
 export function AppointmentDataView( {
 	slots,
 	onAdd,
+	onSetDateExcluded,
 	onToggleException,
 }: AppointmentDataViewProps ) {
 	const [ view, setView ] = useState< View >( INITIAL_VIEW );
+	const [ selectedDate, setSelectedDate ] = useState( '' );
+	const availableDates = useMemo(
+		() =>
+			Array.from( new Set( slots.map( ( slot ) => slot.date ) ) ).sort(),
+		[ slots ]
+	);
+	const availableDateSet = useMemo(
+		() => new Set( availableDates ),
+		[ availableDates ]
+	);
+
+	useEffect( () => {
+		if ( selectedDate && ! availableDates.includes( selectedDate ) ) {
+			setSelectedDate( '' );
+			setView( ( currentView ) => ( { ...currentView, page: 1 } ) );
+		}
+	}, [ availableDates, selectedDate ] );
 
 	if ( slots.length === 0 ) {
 		return (
@@ -152,19 +171,101 @@ export function AppointmentDataView( {
 			},
 		},
 	];
-	const filteredSlots = filterSortAndPaginate( slots, view, fields );
+	const dateSlots = selectedDate
+		? slots.filter( ( slot ) => slot.date === selectedDate )
+		: slots;
+	const allDateSlotsExcluded =
+		dateSlots.length > 0 && dateSlots.every( ( slot ) => slot.isExcluded );
+	const filteredSlots = filterSortAndPaginate( dateSlots, view, fields );
+	const handleDateChange = ( date: string ) => {
+		setSelectedDate( date );
+		setView( ( currentView ) => ( { ...currentView, page: 1 } ) );
+	};
 
 	return (
-		<DataViews
-			actions={ actions }
-			data={ filteredSlots.data }
-			defaultLayouts={ { table: {} } }
-			fields={ fields }
-			getItemId={ ( item ) => item.value }
-			onChangeView={ setView }
-			paginationInfo={ filteredSlots.paginationInfo }
-			search={ false }
-			view={ view }
-		/>
+		<>
+			<div className="rrze-appointment-data-view__filters">
+				<Dropdown
+					contentClassName="rrze-appointment-data-view__date-picker-popover"
+					popoverProps={ { placement: 'bottom-start' } }
+					renderContent={ ( { onClose } ) => (
+						<div className="rrze-appointment-data-view__date-picker-content">
+							<DatePicker
+								currentDate={
+									selectedDate || availableDates[ 0 ]
+								}
+								isInvalidDate={ ( date ) =>
+									! availableDateSet.has( formatDate( date ) )
+								}
+								onChange={ ( value ) => {
+									handleDateChange( value.slice( 0, 10 ) );
+									onClose();
+								} }
+								startOfWeek={ 1 }
+							/>
+						</div>
+					) }
+					renderToggle={ ( { isOpen, onToggle } ) => (
+						<Button
+							aria-expanded={ isOpen }
+							aria-haspopup="dialog"
+							icon={ calendar }
+							variant="secondary"
+							onClick={ onToggle }
+						>
+							{ selectedDate
+								? formatDateWithWeekdayDisplay( selectedDate )
+								: __(
+										'Select a date to filter by',
+										'rrze-appointment'
+								  ) }
+						</Button>
+					) }
+				/>
+				<div className="rrze-appointment-data-view__filter-actions">
+					{ selectedDate && (
+						<>
+							<Button
+								variant="secondary"
+								onClick={ () => handleDateChange( '' ) }
+							>
+								{ __( 'All dates', 'rrze-appointment' ) }
+							</Button>
+							<Button
+								icon={ allDateSlotsExcluded ? seen : unseen }
+								variant="secondary"
+								onClick={ () =>
+									onSetDateExcluded(
+										selectedDate,
+										! allDateSlotsExcluded
+									)
+								}
+							>
+								{ allDateSlotsExcluded
+									? __(
+											'Show all appointments on this date',
+											'rrze-appointment'
+									  )
+									: __(
+											'Hide all appointments on this date',
+											'rrze-appointment'
+									  ) }
+							</Button>
+						</>
+					) }
+				</div>
+			</div>
+			<DataViews
+				actions={ actions }
+				data={ filteredSlots.data }
+				defaultLayouts={ { table: {} } }
+				fields={ fields }
+				getItemId={ ( item ) => item.value }
+				onChangeView={ setView }
+				paginationInfo={ filteredSlots.paginationInfo }
+				search={ false }
+				view={ view }
+			/>
+		</>
 	);
 }

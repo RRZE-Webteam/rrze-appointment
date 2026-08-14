@@ -10,6 +10,7 @@ import type {
 	DateOverrides,
 	Recurrence,
 	RecurrenceRules,
+	TimeSlot,
 } from './types';
 import {
 	getCalendarDates,
@@ -193,6 +194,45 @@ export function getAvailabilitySlotIntervals(
 
 export function getAvailabilitySlotCount( entry: AvailabilityEntry ): number {
 	return getAvailabilitySlotIntervals( entry ).length;
+}
+
+export function setDateSlotsExcluded(
+	dateOverrides: DateOverrides,
+	slots: TimeSlot[],
+	date: string,
+	excluded: boolean
+): DateOverrides {
+	const nextOverrides = { ...dateOverrides };
+	const currentOverride = nextOverrides[ date ] || {};
+	const nextOverride = { ...currentOverride };
+
+	if ( excluded ) {
+		const removedSlots = new Set(
+			Array.isArray( currentOverride.removedSlots )
+				? currentOverride.removedSlots
+				: []
+		);
+
+		slots.forEach( ( slot ) => {
+			if ( slot.date === date ) {
+				removedSlots.add( slot.value );
+			}
+		} );
+
+		if ( removedSlots.size > 0 ) {
+			nextOverride.removedSlots = Array.from( removedSlots );
+		}
+	} else {
+		delete nextOverride.removedSlots;
+	}
+
+	if ( Object.keys( nextOverride ).length === 0 ) {
+		delete nextOverrides[ date ];
+	} else {
+		nextOverrides[ date ] = nextOverride;
+	}
+
+	return nextOverrides;
 }
 
 export function buildAvailabilityAttributes(

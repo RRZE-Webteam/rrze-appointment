@@ -1183,6 +1183,22 @@ msgstr ""
 msgid "No upcoming appointments have been created yet."
 msgstr ""
 
+#: src/components/appointment-data-view.tsx
+msgid "All dates"
+msgstr ""
+
+#: src/components/appointment-data-view.tsx
+msgid "Select a date to filter by"
+msgstr ""
+
+#: src/components/appointment-data-view.tsx
+msgid "Show all appointments on this date"
+msgstr ""
+
+#: src/components/appointment-data-view.tsx
+msgid "Hide all appointments on this date"
+msgstr ""
+
 #: src/components/availability-manager-dialog.tsx
 msgid "Schedules"
 msgstr ""

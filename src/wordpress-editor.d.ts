@@ -39,10 +39,7 @@ declare module '@wordpress/block-editor' {
 declare module '@wordpress/components' {
 	import type { ComponentType, ReactNode } from 'react';
 
-	type IconType =
-		| string
-		| ComponentType< { size?: number } >
-		| ReactNode;
+	type IconType = string | ComponentType< { size?: number } > | ReactNode;
 
 	interface BaseControlProps {
 		__nextHasNoMarginBottom?: boolean;
@@ -51,6 +48,8 @@ declare module '@wordpress/components' {
 	}
 
 	interface ButtonProps {
+		'aria-expanded'?: boolean;
+		'aria-haspopup'?: 'dialog' | boolean;
 		children?: ReactNode;
 		className?: string;
 		disabled?: boolean;
@@ -98,6 +97,19 @@ declare module '@wordpress/components' {
 		isInvalidDate?: ( date: Date ) => boolean;
 		onChange: ( value: string ) => void;
 		startOfWeek?: number;
+	}
+
+	interface DropdownCallbackProps {
+		isOpen: boolean;
+		onClose: () => void;
+		onToggle: () => void;
+	}
+
+	interface DropdownProps {
+		contentClassName?: string;
+		popoverProps?: { placement?: string };
+		renderContent: ( props: DropdownCallbackProps ) => ReactNode;
+		renderToggle: ( props: DropdownCallbackProps ) => ReactNode;
 	}
 
 	interface FlexProps {
@@ -195,6 +207,7 @@ declare module '@wordpress/components' {
 	export const CheckboxControl: ComponentType< CheckboxControlProps >;
 	export const DateCalendar: ComponentType< DateCalendarProps > | undefined;
 	export const DatePicker: ComponentType< DatePickerProps >;
+	export const Dropdown: ComponentType< DropdownProps >;
 	export const Flex: ComponentType< FlexProps >;
 	export const FlexBlock: ComponentType< FlexProps >;
 	export const FlexItem: ComponentType< FlexProps >;

@@ -29,6 +29,7 @@ import {
 	buildAvailabilityAttributes,
 	createAvailabilityId,
 	getAvailabilityEntries,
+	setDateSlotsExcluded,
 } from './availability';
 import {
 	createFaudirAvailabilityEntries,
@@ -470,6 +471,17 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 		setAttributes( { dateOverrides: overridesNext } );
 	};
 
+	const handleSetDateExcluded = ( date: string, excluded: boolean ) => {
+		setAttributes( {
+			dateOverrides: setDateSlotsExcluded(
+				activeOverrides,
+				appointmentSlots,
+				date,
+				excluded
+			),
+		} );
+	};
+
 	const handleOpenAddSlot = ( date: string ) => {
 		setAddSlotDate( date );
 		setAddSlotTime( '' );
@@ -706,6 +718,7 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 										handleEditAvailability( entry, true )
 									}
 									onToggleException={ handleToggleException }
+									onSetDateExcluded={ handleSetDateExcluded }
 								/>
 							) }
 							{ showQuestionsManager && (

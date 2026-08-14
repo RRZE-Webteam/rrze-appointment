@@ -19,6 +19,7 @@ interface AvailabilityManagerDialogProps {
 	onClose: () => void;
 	onDelete: ( entry: AvailabilityEntry ) => void;
 	onEdit: ( entry: AvailabilityEntry ) => void;
+	onSetDateExcluded: ( date: string, excluded: boolean ) => void;
 	onToggleException: ( slot: TimeSlot ) => void;
 }
 
@@ -29,6 +30,7 @@ export function AvailabilityManagerDialog( {
 	onClose,
 	onDelete,
 	onEdit,
+	onSetDateExcluded,
 	onToggleException,
 }: AvailabilityManagerDialogProps ) {
 	const [ activeView, setActiveView ] = useState<
@@ -110,6 +112,7 @@ export function AvailabilityManagerDialog( {
 				<AppointmentDataView
 					slots={ slots }
 					onAdd={ onAdd }
+					onSetDateExcluded={ onSetDateExcluded }
 					onToggleException={ onToggleException }
 				/>
 			) }

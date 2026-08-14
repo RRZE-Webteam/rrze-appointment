@@ -188,6 +188,14 @@
       "No upcoming appointments have been created yet.": [
         "Noch keine zukünftigen Termine vorhanden."
       ],
+      "All dates": ["Alle Termine"],
+      "Select a date to filter by": ["Datum zum Filtern auswählen"],
+      "Show all appointments on this date": [
+        "Alle Termine an diesem Tag einblenden"
+      ],
+      "Hide all appointments on this date": [
+        "Alle Termine an diesem Tag ausblenden"
+      ],
       "Schedules": ["Zeitpläne"],
       "All appointments": ["Alle Termine"],
       "Set up one-time or recurring appointment times. A time range can be split into several bookable appointments.": [

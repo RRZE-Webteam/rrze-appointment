@@ -4,8 +4,13 @@ import {
 	getAvailabilityEntries,
 	getAvailabilitySlotCount,
 	hasAvailabilityConflict,
+	setDateSlotsExcluded,
 } from '../src/availability';
-import type { AppointmentAttributes, AvailabilityEntry } from '../src/types';
+import type {
+	AppointmentAttributes,
+	AvailabilityEntry,
+	TimeSlot,
+} from '../src/types';
 import { formatDateWithWeekdayDisplay, generateTimeSlots } from '../src/utils';
 
 declare function describe( name: string, callback: () => void ): void;
@@ -62,6 +67,20 @@ function createEntry(
 		breakDuration: 0,
 		recurrence: {},
 		...overrides,
+	};
+}
+
+function createSlot( date: string, time: string ): TimeSlot {
+	return {
+		date,
+		startTime: time,
+		endTime: '09:30',
+		startMinutes: 540,
+		endMinutes: 570,
+		timeRange: `${ time }-09:30`,
+		value: `${ date } ${ time }-09:30`,
+		label: time,
+		isExtra: false,
 	};
 }
 
@@ -341,5 +360,46 @@ describe( 'availability editor model', () => {
 		expect( formatDateWithWeekdayDisplay( '2026-08-03' ) ).toBe(
 			'Montag, 03.08.2026'
 		);
+	} );
+
+	it( 'hides all slots on one date without changing other overrides', () => {
+		const mondaySlot = createSlot( '2026-08-03', '09:00' );
+		const tuesdaySlot = createSlot( '2026-08-04', '09:00' );
+		const overrides = setDateSlotsExcluded(
+			{
+				'2026-08-03': { extraSlots: [ '10:00|10:30' ] },
+				'2026-08-04': { removedSlots: [ tuesdaySlot.value ] },
+			},
+			[ mondaySlot, tuesdaySlot ],
+			'2026-08-03',
+			true
+		);
+
+		expect( overrides ).toEqual( {
+			'2026-08-03': {
+				extraSlots: [ '10:00|10:30' ],
+				removedSlots: [ mondaySlot.value ],
+			},
+			'2026-08-04': { removedSlots: [ tuesdaySlot.value ] },
+		} );
+	} );
+
+	it( 'shows every slot on a date while preserving its other settings', () => {
+		const slot = createSlot( '2026-08-03', '09:00' );
+		const overrides = setDateSlotsExcluded(
+			{
+				'2026-08-03': {
+					extraSlots: [ '10:00|10:30' ],
+					removedSlots: [ slot.value, 'stale-slot' ],
+				},
+			},
+			[ slot ],
+			'2026-08-03',
+			false
+		);
+
+		expect( overrides ).toEqual( {
+			'2026-08-03': { extraSlots: [ '10:00|10:30' ] },
+		} );
 	} );
 } );

@@ -1225,6 +1225,22 @@ msgstr "Ausnahme aufheben"
 msgid "No upcoming appointments have been created yet."
 msgstr "Noch keine zukünftigen Termine vorhanden."
 
+#: src/components/appointment-data-view.tsx
+msgid "All dates"
+msgstr "Alle Termine"
+
+#: src/components/appointment-data-view.tsx
+msgid "Select a date to filter by"
+msgstr "Datum zum Filtern auswählen"
+
+#: src/components/appointment-data-view.tsx
+msgid "Show all appointments on this date"
+msgstr "Alle Termine an diesem Tag einblenden"
+
+#: src/components/appointment-data-view.tsx
+msgid "Hide all appointments on this date"
+msgstr "Alle Termine an diesem Tag ausblenden"
+
 #: src/components/availability-manager-dialog.tsx
 msgid "Schedules"
 msgstr "Zeitpläne"
