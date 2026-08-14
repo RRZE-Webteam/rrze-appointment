@@ -1,7 +1,7 @@
 import { Button, DateCalendar, DatePicker } from '@wordpress/components';
 import { useEffect, useMemo, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { trash } from '@wordpress/icons';
+import { seen, unseen } from '@wordpress/icons';
 import type { PreviewCalendarProps, TimeSlot } from '../types';
 import {
 	formatDate,
@@ -14,14 +14,14 @@ interface DaySlotsProps {
 	activeDate: string;
 	slots: TimeSlot[];
 	onAddSlot?: ( date: string ) => void;
-	onRemoveSlot?: ( slot: TimeSlot ) => void;
+	onToggleSlotVisibility?: ( slot: TimeSlot ) => void;
 }
 
 function DaySlots( {
 	activeDate,
 	slots,
 	onAddSlot,
-	onRemoveSlot,
+	onToggleSlotVisibility,
 }: DaySlotsProps ) {
 	if ( ! activeDate ) {
 		return null;
@@ -35,7 +35,7 @@ function DaySlots( {
 	/* translators: %d: number of appointment times. */
 	const slotCount = __( 'Available times: %d', 'rrze-appointment' ).replace(
 		'%d',
-		String( slots.length )
+		String( slots.filter( ( slot ) => ! slot.isExcluded ).length )
 	);
 
 	return (
@@ -62,17 +62,26 @@ function DaySlots( {
 			{ slots.length > 0 ? (
 				<ul className="rrze-appointment-editor-slots__list">
 					{ slots.map( ( slot ) => {
-						/* translators: 1: appointment start time, 2: appointment end time. */
-						const removeLabel = __(
-							'Remove appointment from %1$s to %2$s',
-							'rrze-appointment'
-						)
+						const visibilityLabelTemplate = slot.isExcluded
+							? /* translators: 1: appointment start time, 2: appointment end time. */
+							  __(
+									'Show appointment from %1$s to %2$s',
+									'rrze-appointment'
+							  )
+							: /* translators: 1: appointment start time, 2: appointment end time. */
+							  __(
+									'Hide appointment from %1$s to %2$s',
+									'rrze-appointment'
+							  );
+						const visibilityLabel = visibilityLabelTemplate
 							.replace( '%1$s', slot.startTime )
 							.replace( '%2$s', slot.endTime );
 
 						return (
 							<li
-								className="rrze-appointment-editor-slots__item"
+								className={ `rrze-appointment-editor-slots__item ${
+									slot.isExcluded ? 'is-excluded' : ''
+								}` }
 								key={ slot.value }
 							>
 								<span
@@ -97,14 +106,23 @@ function DaySlots( {
 										) }
 									</span>
 								) }
-								{ onRemoveSlot && (
+								{ slot.isExcluded && (
+									<span className="rrze-appointment-editor-slots__badge is-excluded">
+										{ __(
+											'Not visible',
+											'rrze-appointment'
+										) }
+									</span>
+								) }
+								{ onToggleSlotVisibility && (
 									<Button
-										className="rrze-appointment-editor-slots__remove"
-										label={ removeLabel }
-										icon={ trash }
-										isDestructive
+										className="rrze-appointment-editor-slots__visibility"
+										label={ visibilityLabel }
+										icon={ slot.isExcluded ? seen : unseen }
 										variant="tertiary"
-										onClick={ () => onRemoveSlot( slot ) }
+										onClick={ () =>
+											onToggleSlotVisibility( slot )
+										}
 									/>
 								) }
 							</li>
@@ -140,7 +158,7 @@ function DaySlots( {
 export function PreviewCalendar( {
 	slots,
 	selectedDates,
-	onRemoveSlot,
+	onToggleSlotVisibility,
 	onAddSlot,
 	activeDate,
 	setActiveDate,
@@ -211,7 +229,7 @@ export function PreviewCalendar( {
 				activeDate={ activeDate }
 				slots={ activeDate ? groupedSlots[ activeDate ] || [] : [] }
 				onAddSlot={ onAddSlot }
-				onRemoveSlot={ onRemoveSlot }
+				onToggleSlotVisibility={ onToggleSlotVisibility }
 			/>
 		</>
 	);

@@ -180,7 +180,6 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 	const [ faudirImportNotice, setFaudirImportNotice ] = useState( '' );
 
 	const calendarDates = getCalendarDates( attributes );
-	const slots = generateTimeSlots( attributes );
 	const appointmentSlots = generateTimeSlots( attributes, {
 		includeExcluded: true,
 	} );
@@ -440,54 +439,6 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 		}
 	};
 
-	const handleRemoveSlot = ( slot: TimeSlot ) => {
-		if ( ! slot || ! slot.date ) {
-			return;
-		}
-		const overridesNext = { ...activeOverrides };
-		const currentOverride = overridesNext[ slot.date ] || {};
-		const removedSlots = new Set(
-			Array.isArray( currentOverride.removedSlots )
-				? currentOverride.removedSlots
-				: []
-		);
-		const currentExtras = Array.isArray( currentOverride.extraSlots )
-			? currentOverride.extraSlots
-			: [];
-		let nextExtras = currentExtras;
-
-		if ( slot.isExtra ) {
-			nextExtras = currentExtras.filter( ( entry ) => {
-				const entryStart = entry.includes( '|' )
-					? entry.split( '|' )[ 0 ]
-					: entry;
-				return entryStart !== slot.startTime;
-			} );
-		} else {
-			removedSlots.add( slot.value );
-		}
-
-		const nextOverride = { ...currentOverride };
-		if ( removedSlots.size > 0 ) {
-			nextOverride.removedSlots = Array.from( removedSlots );
-		} else {
-			delete nextOverride.removedSlots;
-		}
-		if ( nextExtras.length > 0 ) {
-			nextOverride.extraSlots = nextExtras;
-		} else {
-			delete nextOverride.extraSlots;
-		}
-
-		if ( Object.keys( nextOverride ).length === 0 ) {
-			delete overridesNext[ slot.date ];
-		} else {
-			overridesNext[ slot.date ] = nextOverride;
-		}
-
-		setAttributes( { dateOverrides: overridesNext } );
-	};
-
 	const handleToggleException = ( slot: TimeSlot ) => {
 		const overridesNext = { ...activeOverrides };
 		const currentOverride = overridesNext[ slot.date ] || {};
@@ -548,7 +499,9 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 			);
 			return;
 		}
-		const dateSlots = slots.filter( ( s ) => s.date === addSlotDate );
+		const dateSlots = appointmentSlots.filter(
+			( s ) => s.date === addSlotDate
+		);
 		const overlaps = dateSlots.some(
 			( s ) =>
 				newStartMinutes < s.endMinutes && newEndMinutes > s.startMinutes
@@ -724,10 +677,10 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 												</p>
 											</div>
 											<PreviewCalendar
-												slots={ slots }
+												slots={ appointmentSlots }
 												selectedDates={ calendarDates }
-												onRemoveSlot={
-													handleRemoveSlot
+												onToggleSlotVisibility={
+													handleToggleException
 												}
 												onAddSlot={ handleOpenAddSlot }
 												activeDate={ activeDate }

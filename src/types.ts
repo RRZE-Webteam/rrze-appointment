@@ -191,7 +191,7 @@ export interface MailTemplateOption {
 export interface PreviewCalendarProps {
 	slots: TimeSlot[];
 	selectedDates: string[];
-	onRemoveSlot?: ( slot: TimeSlot ) => void;
+	onToggleSlotVisibility?: ( slot: TimeSlot ) => void;
 	onAddSlot?: ( date: string ) => void;
 	activeDate: string;
 	setActiveDate: ( date: string ) => void;

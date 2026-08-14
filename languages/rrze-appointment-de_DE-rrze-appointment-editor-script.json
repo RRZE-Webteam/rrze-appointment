@@ -232,10 +232,14 @@
       "Appointments on %s": ["Termine am %s"],
       "Available times: %d": ["Buchbare Termine: %d"],
       "Add appointment time": ["Termin hinzufügen"],
-      "Remove appointment from %1$s to %2$s": [
-        "Termin von %1$s bis %2$s entfernen"
+      "Show appointment from %1$s to %2$s": [
+        "Termin von %1$s bis %2$s einblenden"
+      ],
+      "Hide appointment from %1$s to %2$s": [
+        "Termin von %1$s bis %2$s ausblenden"
       ],
       "Added manually": ["Manuell hinzugefügt"],
+      "Not visible": ["Nicht sichtbar"],
       "No appointments on this date": ["Keine Termine an diesem Tag"],
       "Add an appointment time to make this date bookable.": [
         "Fügen Sie eine Terminzeit hinzu, damit dieser Tag buchbar wird."

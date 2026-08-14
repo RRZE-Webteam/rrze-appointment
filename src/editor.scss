@@ -413,6 +413,20 @@
 		white-space: nowrap;
 	}
 
+	&__item.is-excluded {
+		border-style: dashed;
+		background: #f6f7f7;
+
+		.rrze-appointment-editor-slots__icon,
+		.rrze-appointment-editor-slots__time {
+			opacity: 0.55;
+		}
+
+		.rrze-appointment-editor-slots__time {
+			text-decoration: line-through;
+		}
+	}
+
 	&__separator {
 		color: #8c8f94;
 	}
@@ -426,18 +440,21 @@
 		font-weight: 600;
 		line-height: 1.4;
 		white-space: nowrap;
+
+		&.is-excluded {
+			background: #dcdcde;
+			color: #3c434a;
+		}
 	}
 
-	&__remove.components-button {
+	&__visibility.components-button {
 		flex: 0 0 auto;
 		margin-left: auto;
-		color: #b32d2e;
-		opacity: 0.7;
+		color: #50575e;
 
 		&:hover,
 		&:focus {
-			color: #b32d2e;
-			opacity: 1;
+			color: var(--wp-admin-theme-color, #3858e9);
 		}
 	}
 

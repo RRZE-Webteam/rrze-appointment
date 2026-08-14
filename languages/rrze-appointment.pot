@@ -1320,11 +1320,21 @@ msgstr ""
 #. translators: 1: appointment start time, 2: appointment end time.
 #: src/components/preview-calendar.tsx
 #, php-format
-msgid "Remove appointment from %1$s to %2$s"
+msgid "Show appointment from %1$s to %2$s"
+msgstr ""
+
+#. translators: 1: appointment start time, 2: appointment end time.
+#: src/components/preview-calendar.tsx
+#, php-format
+msgid "Hide appointment from %1$s to %2$s"
 msgstr ""
 
 #: src/components/preview-calendar.tsx
 msgid "Added manually"
+msgstr ""
+
+#: src/components/preview-calendar.tsx
+msgid "Not visible"
 msgstr ""
 
 #: src/components/preview-calendar.tsx

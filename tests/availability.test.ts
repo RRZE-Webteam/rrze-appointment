@@ -186,6 +186,30 @@ describe( 'availability editor model', () => {
 		).toBe( true );
 	} );
 
+	it( 'keeps an excluded manually added appointment available for restoring', () => {
+		const excludedValue = '2026-08-03 10:00-10:45';
+		const attributes = createAttributes( {
+			availabilities: [ createEntry( 'single' ) ],
+			dateOverrides: {
+				'2026-08-03': {
+					extraSlots: [ '10:00|10:45' ],
+					removedSlots: [ excludedValue ],
+				},
+			},
+		} );
+
+		expect(
+			generateTimeSlots( attributes ).some(
+				( slot ) => slot.value === excludedValue
+			)
+		).toBe( false );
+		const excludedSlot = generateTimeSlots( attributes, {
+			includeExcluded: true,
+		} ).find( ( slot ) => slot.value === excludedValue );
+		expect( excludedSlot?.isExtra ).toBe( true );
+		expect( excludedSlot?.isExcluded ).toBe( true );
+	} );
+
 	it( 'detects overlapping dates between recurring entries', () => {
 		const weeklyEntry = createEntry( 'weekly', {
 			recurrence: {

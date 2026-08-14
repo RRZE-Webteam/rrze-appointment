@@ -1368,12 +1368,22 @@ msgstr "Termin hinzufügen"
 #. translators: 1: appointment start time, 2: appointment end time.
 #: src/components/preview-calendar.tsx
 #, php-format
-msgid "Remove appointment from %1$s to %2$s"
-msgstr "Termin von %1$s bis %2$s entfernen"
+msgid "Show appointment from %1$s to %2$s"
+msgstr "Termin von %1$s bis %2$s einblenden"
+
+#. translators: 1: appointment start time, 2: appointment end time.
+#: src/components/preview-calendar.tsx
+#, php-format
+msgid "Hide appointment from %1$s to %2$s"
+msgstr "Termin von %1$s bis %2$s ausblenden"
 
 #: src/components/preview-calendar.tsx
 msgid "Added manually"
 msgstr "Manuell hinzugefügt"
+
+#: src/components/preview-calendar.tsx
+msgid "Not visible"
+msgstr "Nicht sichtbar"
 
 #: src/components/preview-calendar.tsx
 msgid "No appointments on this date"
