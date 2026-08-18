@@ -9,6 +9,8 @@ class Settings
     const OPTION_NAME = 'rrze_appointment_settings';
     const PAGE_SLUG   = 'rrze-appointment-settings';
 
+    private const ADMIN_MENU_ICON_PATH = 'assets/svg/approval_delegation_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg';
+
     public static function getPlaceholders(): array
     {
         return [
@@ -107,9 +109,29 @@ class Settings
             'manage_options',
             'rrze-appointment-bookings',
             [$this, 'renderBookingsPage'],
-            'dashicons-calendar-alt',
+            self::getAdminMenuIcon(),
             30
         );
+    }
+
+    /**
+     * Returns the bundled SVG as a data URI accepted by add_menu_page().
+     *
+     * A Dashicon keeps the menu usable if the SVG asset cannot be read.
+     */
+    private static function getAdminMenuIcon(): string
+    {
+        $iconPath = plugin()->getPath() . self::ADMIN_MENU_ICON_PATH;
+        if (!is_readable($iconPath)) {
+            return 'dashicons-calendar-alt';
+        }
+
+        $svg = file_get_contents($iconPath);
+        if (!is_string($svg) || $svg === '') {
+            return 'dashicons-calendar-alt';
+        }
+
+        return 'data:image/svg+xml;base64,' . base64_encode($svg);
     }
 
     public function registerSettings(): void
