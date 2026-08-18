@@ -236,7 +236,7 @@ export function AvailabilityDataView( {
 		},
 		{
 			id: 'slotPattern',
-			label: __( 'Appointments', 'rrze-appointment' ),
+			label: __( 'Appointment Duration', 'rrze-appointment' ),
 			enableSorting: false,
 			getValue: ( { item } ) =>
 				`${ item.duration }-${ item.breakDuration }`,
