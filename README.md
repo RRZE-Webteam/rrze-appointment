@@ -11,10 +11,6 @@ WordPress plugin for handling appointments.
 
 * RRZE-Webteam, http://www.rrze.fau.de 
 
-## Copyright
-
-GNU General Public License (GPL) Version 3
-
 ## Documentation
 
 See documenation at https://www.wp.rrze.fau.de
