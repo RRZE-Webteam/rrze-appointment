@@ -4,8 +4,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: RRZE Appointment\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/rrze-appointment\n"
-"POT-Creation-Date: 2026-08-14T11:27:36+00:00\n"
-"PO-Revision-Date: 2026-08-18 13:30+0200\n"
+"POT-Creation-Date: 2026-08-18T14:12:42+00:00\n"
+"PO-Revision-Date: 2026-08-18 16:14+0200\n"
 "Last-Translator: RRZE Webteam\n"
 "Language-Team: Deutsch\n"
 "Language: de_DE\n"
@@ -17,7 +17,7 @@ msgstr ""
 "X-Generator: Poedit 3.9\n"
 
 #. Plugin Name of the plugin
-#: rrze-appointment.php includes/Settings.php:97 includes/Settings.php:98
+#: rrze-appointment.php includes/Settings.php:99 includes/Settings.php:100
 msgid "RRZE Appointment"
 msgstr "RRZE Appointment"
 
@@ -41,19 +41,19 @@ msgstr "RRZE Webteam"
 msgid "https://www.wp.rrze.fau.de/"
 msgstr "https://www.wp.rrze.fau.de/"
 
-#: build/render.php:58
+#: build/render.php:56
 msgid "Appointment booking"
 msgstr "Terminbuchung"
 
-#: build/render.php:67
+#: build/render.php:65
 msgid "Location:"
 msgstr "Ort:"
 
-#: build/render.php:84 includes/Main.php:496
+#: build/render.php:82 includes/AssetManager.php:112
 msgid "Times on selected day"
 msgstr "Uhrzeiten am ausgewählten Tag"
 
-#: build/render.php:107 includes/Main.php:469
+#: build/render.php:105 includes/AssetManager.php:89
 msgid "No time slots available."
 msgstr "Keine Termine verfügbar."
 
@@ -101,27 +101,215 @@ msgstr "Die konfigurierte E-Mail-Vorlage ist ungültig."
 msgid "The configured mail template is not published."
 msgstr "Die konfigurierte E-Mail-Vorlage ist nicht veröffentlicht."
 
-#: includes/AppointmentBlock.php:298 includes/Bookings.php:492
+#: includes/AppointmentBlock.php:298 includes/Bookings.php:586
 #: includes/MailTemplatePost.php:59 includes/Reminder.php:68
 #: templates/confirmation-page.php:459
 msgid "Appointment"
 msgstr "Termin"
 
-#: includes/Bookings.php:335
-msgid "there"
-msgstr "dort"
+#: includes/AssetManager.php:82
+msgid "Choose an appointment date"
+msgstr "Wählen Sie ein Termindatum"
 
-#: includes/Bookings.php:350 includes/Bookings.php:353
-#: includes/Bookings.php:521 includes/Bookings.php:522 includes/Main.php:811
-#: includes/Main.php:815 includes/Main.php:1109 includes/Main.php:1113
-#: includes/Main.php:1130 includes/Main.php:1134
+#: includes/AssetManager.php:83
+msgid "Previous month"
+msgstr "Vorheriger Monat"
+
+#: includes/AssetManager.php:84
+msgid "Next month"
+msgstr "Nächster Monat"
+
+#: includes/AssetManager.php:85
+msgid "available appointments"
+msgstr "verfügbare Termine"
+
+#: includes/AssetManager.php:86
+msgid "no available appointments"
+msgstr "keine verfügbaren Termine"
+
+#: includes/AssetManager.php:87
+msgid "selected"
+msgstr "ausgewählt"
+
+#: includes/AssetManager.php:88
+msgid "today"
+msgstr "heute"
+
+#: includes/AssetManager.php:90
+msgid "Loading booking details…"
+msgstr "Buchungsdaten werden geladen …"
+
+#: includes/AssetManager.php:91
+msgid "required"
+msgstr "erforderlich"
+
+#: includes/AssetManager.php:92 includes/AssetManager.php:104
+msgid "Request appointment"
+msgstr "Termin anfragen"
+
+#: includes/AssetManager.php:93
+msgid ""
+"Enter your details to request this appointment. You will receive an email to "
+"confirm it."
+msgstr ""
+"Geben Sie Ihre Daten ein, um diesen Termin anzufragen. Sie erhalten "
+"anschließend eine E-Mail, um ihn zu bestätigen."
+
+#: includes/AssetManager.php:94
+msgid "Selected appointment"
+msgstr "Ausgewählter Termin"
+
+#: includes/AssetManager.php:95
+msgid "Close dialog"
+msgstr "Dialog schließen"
+
+#: includes/AssetManager.php:96
+msgid "Check your inbox"
+msgstr "Prüfen Sie Ihren Posteingang"
+
+#: includes/AssetManager.php:97
+msgid "Notify me if an earlier appointment becomes available."
+msgstr "Benachrichtigen Sie mich, wenn ein früherer Termin verfügbar wird."
+
+#: includes/AssetManager.php:98
+#, php-format
+msgid "Your appointment on %s at %s"
+msgstr "Ihr Termin am %s um %s"
+
+#: includes/AssetManager.php:99
+msgid "Email address"
+msgstr "E-Mail-Adresse"
+
+#: includes/AssetManager.php:100
+msgid "Name"
+msgstr "Name"
+
+#: includes/AssetManager.php:101
+msgid "First and last name"
+msgstr "Vor- und Nachname"
+
+#: includes/AssetManager.php:102
+msgid "Enter your name."
+msgstr "Geben Sie Ihren Namen ein."
+
+#: includes/AssetManager.php:103 build/index.js:194
+msgid "Enter a valid email address."
+msgstr "Geben Sie eine gültige E-Mail-Adresse ein."
+
+#: includes/AssetManager.php:105 includes/ConfirmationController.php:451
+#: includes/MailTemplatePost.php:106 includes/MailTemplatePost.php:124
+#: includes/Settings.php:588 build/index.js:1 build/index.js:191
+#: build/index.js:193 build/index.js:198 build/index.js:202 build/index.js:203
+msgid "Cancel"
+msgstr "Abbrechen"
+
+#: includes/AssetManager.php:106
+msgid "Sending request…"
+msgstr "Anfrage wird gesendet …"
+
+#: includes/AssetManager.php:107
+msgid ""
+"Check your inbox to confirm the appointment. We sent a confirmation link to "
+"your email address."
+msgstr ""
+"Wir haben einen Bestätigungslink an Ihre E-Mail-Adresse gesendet. Öffnen Sie "
+"den Link, um den Termin zu bestätigen."
+
+#: includes/AssetManager.php:108
+msgid "Close"
+msgstr "Schließen"
+
+#: includes/AssetManager.php:109
+msgid "We couldn't request this appointment. Please try again."
+msgstr "Der Termin konnte nicht angefragt werden. Versuchen Sie es erneut."
+
+#: includes/AssetManager.php:110
+msgid "Connection problem. Check your internet connection and try again."
+msgstr ""
+"Verbindungsproblem. Prüfen Sie Ihre Internetverbindung und versuchen Sie es "
+"erneut."
+
+#: includes/AssetManager.php:111
+#, php-format
+msgid "Available appointments on %s"
+msgstr "Verfügbare Termine am %s"
+
+#: includes/AssetManager.php:124 build/index.js:195
+msgid "Hide weekends"
+msgstr "Wochenenden ausblenden"
+
+#: includes/AssetManager.php:125 build/index.js:195
+msgid "Only show Monday through Friday in the calendar."
+msgstr "Im Kalender nur Montag bis Freitag anzeigen."
+
+#: includes/BookingRequestController.php:24
+msgid "No appointment specified."
+msgstr "Kein Termin angegeben."
+
+#: includes/BookingRequestController.php:53
+msgid "Please confirm your appointment by email."
+msgstr "Bitte bestätigen Sie Ihren Termin per E-Mail."
+
+#: includes/BookingRequestController.php:95
+msgid "No authenticated email address found."
+msgstr "Keine authentifizierte E-Mail-Adresse gefunden."
+
+#: includes/BookingRequestController.php:107
+msgid "Please provide an email address."
+msgstr "Bitte eine E-Mail-Adresse angeben."
+
+#: includes/BookingRequestController.php:110
+msgid "Please provide your name."
+msgstr "Bitte geben Sie Ihren Namen an."
+
+#: includes/BookingRequestController.php:124
+msgid "Invalid appointment format."
+msgstr "Ungültiges Termin-Format."
+
+#: includes/BookingRequestController.php:138
+msgid "This appointment is no longer available."
+msgstr "Dieser Termin ist nicht mehr verfügbar."
+
+#: includes/BookingRequestController.php:217
+msgid "Confirmation"
+msgstr "Bestätigung"
+
+#: includes/BookingRequestController.php:220
+#: includes/BookingRequestController.php:229 includes/Bookings.php:198
+#: includes/Bookings.php:203 includes/Bookings.php:603
+#: includes/Bookings.php:609 includes/ConfirmationController.php:454
+#: includes/ConfirmationController.php:463
 msgid "Imprint"
 msgstr "Impressum"
 
-#: includes/Bookings.php:356 includes/Bookings.php:361
-#: includes/MailTemplatePost.php:218 includes/MailTemplatePost.php:229
+#: includes/BookingRequestController.php:224
+msgid "Confirm appointment now"
+msgstr "Termin jetzt bestätigen"
+
+#: includes/Bookings.php:208 includes/Bookings.php:213
+#: includes/MailTemplatePost.php:221 includes/MailTemplatePost.php:232
 msgid "Stop earlier appointment notifications"
 msgstr "Benachrichtigungen über frühere Termine deaktivieren"
+
+#: includes/Bookings.php:658
+msgid "there"
+msgstr "dort"
+
+#: includes/CancellationController.php:38
+msgid "This cancellation link is invalid or has already been used."
+msgstr "Dieser Storno-Link ist ungültig oder wurde bereits verwendet."
+
+#: includes/CancellationController.php:58
+#: includes/CancellationController.php:155
+#: includes/ConfirmationController.php:122
+msgid "The form has expired. Please try again."
+msgstr "Das Formular ist abgelaufen. Bitte versuche es erneut."
+
+#: includes/CancellationController.php:91
+#: includes/CancellationController.php:167
+msgid "This notification opt-out link is invalid or has expired."
+msgstr ""
+"Dieser Link zum Abmelden von Benachrichtigungen ist ungültig oder abgelaufen."
 
 #: includes/Common/Settings/Settings.php:406
 msgid "Unnamed tab"
@@ -143,6 +331,46 @@ msgstr "Logdatei ist leer."
 #: includes/Common/Settings/templates/settings-page.php:21
 msgid "Settings issues detected."
 msgstr "Probleme bei den Einstellungen festgestellt."
+
+#. translators: %s: Question that requires an answer.
+#: includes/ConfirmationController.php:179
+#, php-format
+msgid "Please answer “%s”."
+msgstr "Bitte beantworte „%s“."
+
+#. translators: %s: Question with an invalid dropdown answer.
+#: includes/ConfirmationController.php:194
+#, php-format
+msgid "Select a valid answer for “%s”."
+msgstr "Wähle eine gültige Antwort für „%s“ aus."
+
+#: includes/ConfirmationController.php:458 includes/MailTemplatePost.php:67
+#: templates/confirmation-page.php:581
+msgid "Cancel appointment"
+msgstr "Termin stornieren"
+
+#: includes/ConfirmationController.php:497 includes/Settings.php:240
+msgid "Additional information:"
+msgstr "Weitere Informationen:"
+
+#: includes/ConfirmationController.php:499 includes/Settings.php:245
+msgid "Additional information"
+msgstr "Weitere Informationen"
+
+#: includes/ConfirmationController.php:512
+msgid "This confirmation link has expired or is invalid."
+msgstr "Dieser Bestätigungslink ist abgelaufen oder ungültig."
+
+#: includes/FaudirPersonProvider.php:32
+msgid ""
+"Tip: Activate the RRZE FAUdir plugin to conveniently import person data."
+msgstr ""
+"Tipp: Aktivieren Sie das RRZE-FAUdir-Plugin, um Personendaten bequem zu "
+"importieren."
+
+#: includes/FaudirPersonProvider.php:40
+msgid "FAUdir classes not available."
+msgstr "FAUdir-Klassen nicht verfügbar."
 
 #: includes/MailTemplate.php:127
 msgid "Privacy Policy"
@@ -168,18 +396,18 @@ msgstr "Termin storniert"
 msgid "Appointment update"
 msgstr "Termin-Information"
 
-#: includes/MailTemplatePost.php:60 includes/Settings.php:716
-#: includes/Settings.php:735 templates/confirmation-page.php:463
+#: includes/MailTemplatePost.php:60 includes/Settings.php:733
+#: includes/Settings.php:752 templates/confirmation-page.php:463
 #: build/index.js:185 build/index.js:188
 msgid "Date"
 msgstr "Datum"
 
-#: includes/MailTemplatePost.php:61 includes/Settings.php:717
-#: includes/Settings.php:736 templates/confirmation-page.php:467
+#: includes/MailTemplatePost.php:61 includes/Settings.php:734
+#: includes/Settings.php:753 templates/confirmation-page.php:467
 msgid "Time"
 msgstr "Zeit"
 
-#: includes/MailTemplatePost.php:62 includes/Settings.php:20
+#: includes/MailTemplatePost.php:62 includes/Settings.php:22
 #: templates/confirmation-page.php:471 build/index.js:195 build/index.js:203
 msgid "Location"
 msgstr "Ort"
@@ -188,36 +416,27 @@ msgstr "Ort"
 msgid "Booked by"
 msgstr "Gebucht von"
 
-#: includes/MailTemplatePost.php:64 includes/Main.php:482
-msgid "Message"
-msgstr "Nachricht"
-
-#: includes/MailTemplatePost.php:65 templates/confirmation-page.php:569
+#: includes/MailTemplatePost.php:64 templates/confirmation-page.php:569
 msgid "Confirm appointment"
 msgstr "Termin bestätigen"
 
-#: includes/MailTemplatePost.php:66
+#: includes/MailTemplatePost.php:65
 msgid "Confirm appointment and answer questions"
 msgstr "Termin bestätigen und Fragen beantworten"
 
-#: includes/MailTemplatePost.php:67
+#: includes/MailTemplatePost.php:66
 msgid "Cancel request"
 msgstr "Anfrage stornieren"
 
-#: includes/MailTemplatePost.php:68 includes/Main.php:1111
-#: includes/Main.php:1132 templates/confirmation-page.php:581
-msgid "Cancel appointment"
-msgstr "Termin stornieren"
-
-#: includes/MailTemplatePost.php:69
+#: includes/MailTemplatePost.php:68
 msgid "Legal notice"
 msgstr "Impressum"
 
-#: includes/MailTemplatePost.php:102
+#: includes/MailTemplatePost.php:100
 msgid "Confirm appointment request: [title] on [date]"
 msgstr "Terminanfrage bestätigen: [title] am [date]"
 
-#: includes/MailTemplatePost.php:104
+#: includes/MailTemplatePost.php:102
 #, php-format
 msgid ""
 "%s\n"
@@ -244,26 +463,19 @@ msgstr ""
 "\n"
 "%s: [imprint_link]"
 
-#: includes/MailTemplatePost.php:105 includes/MailTemplatePost.php:112
+#: includes/MailTemplatePost.php:103 includes/MailTemplatePost.php:110
 msgid "Please confirm your appointment request:"
 msgstr "Bitte bestätigen Sie Ihren Terminwunsch:"
 
-#: includes/MailTemplatePost.php:107
+#: includes/MailTemplatePost.php:105
 msgid "Confirm"
 msgstr "Bestätigen"
 
-#: includes/MailTemplatePost.php:108 includes/MailTemplatePost.php:126
-#: includes/Main.php:489 includes/Main.php:1107 includes/Main.php:1128
-#: includes/Settings.php:571 build/index.js:1 build/index.js:191
-#: build/index.js:193 build/index.js:198 build/index.js:202 build/index.js:203
-msgid "Cancel"
-msgstr "Abbrechen"
-
-#: includes/MailTemplatePost.php:119
+#: includes/MailTemplatePost.php:117
 msgid "Confirm appointment and answer questions: [title] on [date]"
 msgstr "Termin bestätigen und Fragen beantworten: [title] am [date]"
 
-#: includes/MailTemplatePost.php:121
+#: includes/MailTemplatePost.php:119
 #, php-format
 msgid ""
 "%s\n"
@@ -294,27 +506,27 @@ msgstr ""
 "\n"
 "%s: [imprint_link]"
 
-#: includes/MailTemplatePost.php:122 includes/MailTemplatePost.php:130
+#: includes/MailTemplatePost.php:120 includes/MailTemplatePost.php:128
 msgid ""
 "Please confirm your appointment request and answer the remaining questions:"
 msgstr ""
 "Bitte bestätigen Sie Ihre Terminanfrage und beantworten Sie die restlichen "
 "Fragen:"
 
-#: includes/MailTemplatePost.php:124 includes/MailTemplatePost.php:132
+#: includes/MailTemplatePost.php:122 includes/MailTemplatePost.php:130
 msgid "The appointment is booked only after you submit the confirmation form."
 msgstr ""
 "Der Termin wird erst nach dem Absenden des Bestätigungsformulars gebucht."
 
-#: includes/MailTemplatePost.php:125 build/rrze-appointment-guided-tour.js:2
+#: includes/MailTemplatePost.php:123
 msgid "Continue"
 msgstr "Weiter"
 
-#: includes/MailTemplatePost.php:138
+#: includes/MailTemplatePost.php:136
 msgid "Booking confirmation: [title] on [date]"
 msgstr "Buchungsbestätigung: [title] am [date]"
 
-#: includes/MailTemplatePost.php:140 includes/MailTemplatePost.php:180
+#: includes/MailTemplatePost.php:138 includes/MailTemplatePost.php:183
 #, php-format
 msgid ""
 "%s\n"
@@ -339,54 +551,23 @@ msgstr ""
 "\n"
 "%s: [imprint_link]"
 
-#: includes/MailTemplatePost.php:141 includes/MailTemplatePost.php:145
+#: includes/MailTemplatePost.php:139 includes/MailTemplatePost.php:143
 msgid "Your appointment has been confirmed:"
 msgstr "Ihr Termin wurde bestätigt:"
 
-#: includes/MailTemplatePost.php:151
+#: includes/MailTemplatePost.php:149
 msgid "New booking: [title] on [date]"
 msgstr "Neue Buchung: [title] am [date]"
 
-#: includes/MailTemplatePost.php:153
-#, php-format
-msgid ""
-"%s\n"
-"\n"
-"%s: [title]\n"
-"%s: [date]\n"
-"%s: [time]\n"
-"%s: [location]\n"
-"%s: [name] ([email])\n"
-"%s: [message]\n"
-"[questions]\n"
-"\n"
-"%s: [cancel_link]\n"
-"\n"
-"%s: [imprint_link]"
-msgstr ""
-"%s\n"
-"\n"
-"%s: [title]\n"
-"%s: [date]\n"
-"%s: [time]\n"
-"%s: [location]\n"
-"%s: [name] ([email])\n"
-"%s: [message]\n"
-"[questions]\n"
-"\n"
-"%s: [cancel_link]\n"
-"\n"
-"%s: [imprint_link]"
-
-#: includes/MailTemplatePost.php:154 includes/MailTemplatePost.php:158
+#: includes/MailTemplatePost.php:151 includes/MailTemplatePost.php:161
 msgid "New booking received:"
 msgstr "Neue Buchung eingegangen:"
 
-#: includes/MailTemplatePost.php:165 includes/MailTemplatePost.php:178
+#: includes/MailTemplatePost.php:168 includes/MailTemplatePost.php:181
 msgid "Reminder: [title] on [date]"
 msgstr "Erinnerung: [title] am [date]"
 
-#: includes/MailTemplatePost.php:167
+#: includes/MailTemplatePost.php:170
 #, php-format
 msgid ""
 "%s\n"
@@ -413,19 +594,19 @@ msgstr ""
 "\n"
 "%s: [imprint_link]"
 
-#: includes/MailTemplatePost.php:168 includes/MailTemplatePost.php:172
+#: includes/MailTemplatePost.php:171 includes/MailTemplatePost.php:175
 msgid "Reminder for the following appointment:"
 msgstr "Erinnerung an folgenden Termin:"
 
-#: includes/MailTemplatePost.php:181 includes/MailTemplatePost.php:185
+#: includes/MailTemplatePost.php:184 includes/MailTemplatePost.php:188
 msgid "Reminder for your appointment:"
 msgstr "Erinnerung an Ihren Termin:"
 
-#: includes/MailTemplatePost.php:191
+#: includes/MailTemplatePost.php:194
 msgid "Cancellation: [title] on [date]"
 msgstr "Stornierung: [title] am [date]"
 
-#: includes/MailTemplatePost.php:193
+#: includes/MailTemplatePost.php:196
 #, php-format
 msgid ""
 "%s\n"
@@ -446,382 +627,134 @@ msgstr ""
 "\n"
 "%s: [imprint_link]"
 
-#: includes/MailTemplatePost.php:194 includes/MailTemplatePost.php:198
+#: includes/MailTemplatePost.php:197 includes/MailTemplatePost.php:201
 msgid "Your appointment has been cancelled:"
 msgstr "Ihr Termin wurde storniert:"
 
-#: includes/MailTemplatePost.php:203 includes/Settings.php:473
+#: includes/MailTemplatePost.php:206 includes/Settings.php:490
 msgid "Earlier appointment available"
 msgstr "Früherer Termin verfügbar"
 
-#: includes/MailTemplatePost.php:205 includes/MailTemplatePost.php:221
+#: includes/MailTemplatePost.php:208 includes/MailTemplatePost.php:224
 #, php-format
 msgid "Hello %s,"
 msgstr "Hallo %s,"
 
-#: includes/MailTemplatePost.php:207 includes/MailTemplatePost.php:222
+#: includes/MailTemplatePost.php:210 includes/MailTemplatePost.php:225
 msgid "An earlier appointment has become available:"
 msgstr "Ein früherer Termin ist frei geworden:"
 
-#: includes/MailTemplatePost.php:213 includes/MailTemplatePost.php:224
+#: includes/MailTemplatePost.php:216 includes/MailTemplatePost.php:227
 msgid "Host"
 msgstr "Einladende Person"
 
-#: includes/MailTemplatePost.php:214 includes/MailTemplatePost.php:225
+#: includes/MailTemplatePost.php:217 includes/MailTemplatePost.php:228
 #, php-format
 msgid "Your current appointment is on %s at %s."
 msgstr "Ihr aktueller Termin ist am %s um %s."
 
-#: includes/MailTemplatePost.php:216 includes/MailTemplatePost.php:226
+#: includes/MailTemplatePost.php:219 includes/MailTemplatePost.php:229
 msgid "Please book the earlier slot directly on the website."
 msgstr "Bitte buchen Sie den früheren Termin direkt auf der Website."
 
-#: includes/MailTemplatePost.php:227
+#: includes/MailTemplatePost.php:230
 msgid "View available appointments"
 msgstr "Verfügbare Termine anzeigen"
 
-#: includes/MailTemplatePost.php:342 includes/Settings.php:415
+#: includes/MailTemplatePost.php:345 includes/Settings.php:432
 msgid "(no title)"
 msgstr "(kein Titel)"
 
-#: includes/MailTemplatePost.php:387
+#: includes/MailTemplatePost.php:390
 msgid "Standard template (editable)"
 msgstr "Standardvorlage (editierbar)"
 
-#: includes/Main.php:344
-msgid ""
-"Tip: Activate the RRZE FAUdir plugin to conveniently import person data."
-msgstr ""
-"Tipp: Aktivieren Sie das RRZE-FAUdir-Plugin, um Personendaten bequem zu "
-"importieren."
-
-#: includes/Main.php:358
-msgid "FAUdir classes not available."
-msgstr "FAUdir-Klassen nicht verfügbar."
-
-#: includes/Main.php:462
-msgid "Choose an appointment date"
-msgstr "Wählen Sie ein Termindatum"
-
-#: includes/Main.php:463
-msgid "Previous month"
-msgstr "Vorheriger Monat"
-
-#: includes/Main.php:464
-msgid "Next month"
-msgstr "Nächster Monat"
-
-#: includes/Main.php:465
-msgid "available appointments"
-msgstr "verfügbare Termine"
-
-#: includes/Main.php:466
-msgid "no available appointments"
-msgstr "keine verfügbaren Termine"
-
-#: includes/Main.php:467
-msgid "selected"
-msgstr "ausgewählt"
-
-#: includes/Main.php:468
-msgid "today"
-msgstr "heute"
-
-#: includes/Main.php:470
-msgid "Loading booking details…"
-msgstr "Buchungsdaten werden geladen …"
-
-#: includes/Main.php:471
-msgid "required"
-msgstr "erforderlich"
-
-#: includes/Main.php:472 includes/Main.php:488
-msgid "Request appointment"
-msgstr "Termin anfragen"
-
-#: includes/Main.php:473
-msgid ""
-"Enter your details to request this appointment. You will receive an email to "
-"confirm it."
-msgstr ""
-"Geben Sie Ihre Daten ein, um diesen Termin anzufragen. Sie erhalten "
-"anschließend eine E-Mail, um ihn zu bestätigen."
-
-#: includes/Main.php:474
-msgid "Selected appointment"
-msgstr "Ausgewählter Termin"
-
-#: includes/Main.php:475
-msgid "Close dialog"
-msgstr "Dialog schließen"
-
-#: includes/Main.php:476
-msgid "Check your inbox"
-msgstr "Prüfen Sie Ihren Posteingang"
-
-#: includes/Main.php:477
-msgid "Notify me if an earlier appointment becomes available."
-msgstr "Benachrichtigen Sie mich, wenn ein früherer Termin verfügbar wird."
-
-#: includes/Main.php:478
-#, php-format
-msgid "Your appointment on %s at %s"
-msgstr "Ihr Termin am %s um %s"
-
-#: includes/Main.php:479
-msgid "Email address"
-msgstr "E-Mail-Adresse"
-
-#: includes/Main.php:480
-msgid "Name"
-msgstr "Name"
-
-#: includes/Main.php:481
-msgid "First and last name"
-msgstr "Vor- und Nachname"
-
-#: includes/Main.php:483
-msgid "Message (optional)"
-msgstr "Nachricht (optional)"
-
-#: includes/Main.php:484
-msgid "What would you like to discuss?"
-msgstr "Was möchten Sie besprechen?"
-
-#: includes/Main.php:485
-msgid "Enter your name."
-msgstr "Geben Sie Ihren Namen ein."
-
-#: includes/Main.php:486 build/index.js:194
-msgid "Enter a valid email address."
-msgstr "Geben Sie eine gültige E-Mail-Adresse ein."
-
-#: includes/Main.php:487
-msgid "Enter a message."
-msgstr "Geben Sie eine Nachricht ein."
-
-#: includes/Main.php:490
-msgid "Sending request…"
-msgstr "Anfrage wird gesendet …"
-
-#: includes/Main.php:491
-msgid ""
-"Check your inbox to confirm the appointment. We sent a confirmation link to "
-"your email address."
-msgstr ""
-"Wir haben einen Bestätigungslink an Ihre E-Mail-Adresse gesendet. Öffnen Sie "
-"den Link, um den Termin zu bestätigen."
-
-#: includes/Main.php:492
-msgid "Close"
-msgstr "Schließen"
-
-#: includes/Main.php:493
-msgid "We couldn't request this appointment. Please try again."
-msgstr "Der Termin konnte nicht angefragt werden. Versuchen Sie es erneut."
-
-#: includes/Main.php:494
-msgid "Connection problem. Check your internet connection and try again."
-msgstr ""
-"Verbindungsproblem. Prüfen Sie Ihre Internetverbindung und versuchen Sie es "
-"erneut."
-
-#: includes/Main.php:495
-#, php-format
-msgid "Available appointments on %s"
-msgstr "Verfügbare Termine am %s"
-
-#: includes/Main.php:517 includes/Main.php:531 build/index.js:195
-msgid "Require a message"
-msgstr "Nachricht erforderlich"
-
-#: includes/Main.php:518 includes/Main.php:532 build/index.js:195
-msgid "People must enter a message when requesting an appointment."
-msgstr "Bei der Terminanfrage muss eine Nachricht eingegeben werden."
-
-#: includes/Main.php:519 includes/Main.php:533 build/index.js:195
-msgid "Hide weekends"
-msgstr "Wochenenden ausblenden"
-
-#: includes/Main.php:520 includes/Main.php:534 build/index.js:195
-msgid "Only show Monday through Friday in the calendar."
-msgstr "Im Kalender nur Montag bis Freitag anzeigen."
-
-#: includes/Main.php:615 includes/Main.php:681
-msgid "SSO login failed."
-msgstr "SSO Login fehlgeschlagen."
-
-#: includes/Main.php:636 includes/Main.php:679
-msgid "SSO is not available."
-msgstr "SSO ist nicht verfügbar."
-
-#: includes/Main.php:702
-msgid "No appointment specified."
-msgstr "Kein Termin angegeben."
-
-#: includes/Main.php:736
-msgid "No authenticated email address found."
-msgstr "Keine authentifizierte E-Mail-Adresse gefunden."
-
-#: includes/Main.php:742
-msgid "Please provide an email address."
-msgstr "Bitte eine E-Mail-Adresse angeben."
-
-#: includes/Main.php:744
-msgid "Please provide your name."
-msgstr "Bitte geben Sie Ihren Namen an."
-
-#: includes/Main.php:746
-msgid "Please provide a message."
-msgstr "Bitte geben Sie eine Nachricht ein."
-
-#: includes/Main.php:752
-msgid "Invalid appointment format."
-msgstr "Ungültiges Termin-Format."
-
-#: includes/Main.php:758
-msgid "This appointment is no longer available."
-msgstr "Dieser Termin ist nicht mehr verfügbar."
-
-#: includes/Main.php:809
-msgid "Confirmation"
-msgstr "Bestätigung"
-
-#: includes/Main.php:813
-msgid "Confirm appointment now"
-msgstr "Termin jetzt bestätigen"
-
-#: includes/Main.php:821
-msgid "Please confirm your appointment by email."
-msgstr "Bitte bestätigen Sie Ihren Termin per E-Mail."
-
-#. translators: %s: Question that requires an answer.
-#: includes/Main.php:866
-#, php-format
-msgid "Please answer “%s”."
-msgstr "Bitte beantworte „%s“."
-
-#. translators: %s: Question with an invalid dropdown answer.
-#: includes/Main.php:881
-#, php-format
-msgid "Select a valid answer for “%s”."
-msgstr "Wähle eine gültige Antwort für „%s“ aus."
-
-#: includes/Main.php:929 includes/Settings.php:219
-msgid "Additional information:"
-msgstr "Weitere Informationen:"
-
-#: includes/Main.php:931 includes/Settings.php:224
-msgid "Additional information"
-msgstr "Weitere Informationen"
-
-#: includes/Main.php:974 includes/Main.php:1026
-msgid "This confirmation link has expired or is invalid."
-msgstr "Dieser Bestätigungslink ist abgelaufen oder ungültig."
-
-#: includes/Main.php:1004 includes/Main.php:1372 includes/Main.php:1421
-msgid "The form has expired. Please try again."
-msgstr "Das Formular ist abgelaufen. Bitte versuche es erneut."
-
-#: includes/Main.php:1344
-msgid "This cancellation link is invalid or has already been used."
-msgstr "Dieser Storno-Link ist ungültig oder wurde bereits verwendet."
-
-#: includes/Main.php:1402 includes/Main.php:1428 includes/Main.php:1438
-msgid "This notification opt-out link is invalid or has expired."
-msgstr ""
-"Dieser Link zum Abmelden von Benachrichtigungen ist ungültig oder abgelaufen."
-
-#: includes/Settings.php:15
+#: includes/Settings.php:17
 msgid "Title of the appointment"
 msgstr "Titel des Termins"
 
-#: includes/Settings.php:16
+#: includes/Settings.php:18
 msgid "Date of the appointment"
 msgstr "Datum des Termins"
 
-#: includes/Settings.php:17
+#: includes/Settings.php:19
 msgid "Time (from – to)"
 msgstr "Uhrzeit (von – bis)"
 
-#: includes/Settings.php:18
+#: includes/Settings.php:20
 msgid "Date of current appointment"
 msgstr "Datum des aktuellen Termins"
 
-#: includes/Settings.php:19
+#: includes/Settings.php:21
 msgid "Time of current appointment"
 msgstr "Uhrzeit des aktuellen Termins"
 
-#: includes/Settings.php:21
+#: includes/Settings.php:23
 msgid "Inviting person"
 msgstr "Einladende Person"
 
-#: includes/Settings.php:22
+#: includes/Settings.php:24
 msgid "Booking person (name)"
 msgstr "Buchende Person (Name)"
 
-#: includes/Settings.php:23
+#: includes/Settings.php:25
 msgid "Booking person (email)"
 msgstr "Buchende Person (E-Mail)"
 
-#: includes/Settings.php:24
-msgid "Booking person (message)"
-msgstr "Buchende Person (Nachricht)"
-
-#: includes/Settings.php:25
+#: includes/Settings.php:26
 msgid "Answers to additional questions"
 msgstr "Antworten auf weitere Fragen"
 
-#: includes/Settings.php:26
+#: includes/Settings.php:27
 msgid "Link to booking confirmation"
 msgstr "Link zur Buchungsbestätigung"
 
-#: includes/Settings.php:27
+#: includes/Settings.php:28
 msgid "Link to cancel"
 msgstr "Link zum Stornieren"
 
-#: includes/Settings.php:28
+#: includes/Settings.php:29
 msgid "Link to stop earlier appointment notifications"
 msgstr "Link zum Deaktivieren von Benachrichtigungen über frühere Termine"
 
-#: includes/Settings.php:29
+#: includes/Settings.php:30
 msgid "Link to imprint"
 msgstr "Link zum Impressum"
 
-#: includes/Settings.php:30
+#: includes/Settings.php:31
 msgid "Link to post or page"
 msgstr "Link zum Beitrag oder zur Seite"
 
-#: includes/Settings.php:105 includes/Settings.php:106
-#: includes/Settings.php:276 build/index.js:187
+#: includes/Settings.php:107 includes/Settings.php:108
+#: includes/Settings.php:297
 msgid "Appointments"
 msgstr "Appointments"
 
-#: includes/Settings.php:123
+#: includes/Settings.php:145
 msgid "Reminder Email"
 msgstr "Erinnerungsmail"
 
-#: includes/Settings.php:124
+#: includes/Settings.php:146
 msgid "Booking data retention"
 msgstr "Aufbewahrung von Buchungsdaten"
 
-#: includes/Settings.php:220 includes/Settings.php:227
+#: includes/Settings.php:241 includes/Settings.php:248
 msgid "Preferred format"
 msgstr "Bevorzugtes Format"
 
-#: includes/Settings.php:220 includes/Settings.php:227
+#: includes/Settings.php:241 includes/Settings.php:248
 msgid "Video call"
 msgstr "Videoanruf"
 
-#: includes/Settings.php:288
+#: includes/Settings.php:307
 msgid "Disabled"
 msgstr "Deaktiviert"
 
-#: includes/Settings.php:296
+#: includes/Settings.php:315
 msgid "days before the appointment."
 msgstr "Tage vor dem Termin versenden."
 
-#: includes/Settings.php:306
+#: includes/Settings.php:325
 msgid ""
 "Completed bookings are permanently deleted this many days after the "
 "appointment ends (default: 30)."
@@ -829,19 +762,19 @@ msgstr ""
 "Abgeschlossene Buchungen werden so viele Tage nach Ende des Termins "
 "dauerhaft gelöscht (Standard: 30)."
 
-#: includes/Settings.php:317
+#: includes/Settings.php:336
 msgid "General"
 msgstr "Allgemein"
 
-#: includes/Settings.php:318
+#: includes/Settings.php:337
 msgid "Mail Templates"
 msgstr "Mail-Vorlagen"
 
-#: includes/Settings.php:365
+#: includes/Settings.php:382
 msgid "Template saved."
 msgstr "Vorlage gespeichert."
 
-#: includes/Settings.php:366
+#: includes/Settings.php:383
 msgid ""
 "Template saved as a draft. Add a template name to make it available in the "
 "editor."
@@ -849,103 +782,103 @@ msgstr ""
 "Die Vorlage wurde als Entwurf gespeichert. Vergeben Sie einen Vorlagennamen, "
 "damit sie im Editor verfügbar ist."
 
-#: includes/Settings.php:367
+#: includes/Settings.php:384
 msgid "The template could not be saved. Please try again."
 msgstr "Die Vorlage konnte nicht gespeichert werden. Versuchen Sie es erneut."
 
-#: includes/Settings.php:368
+#: includes/Settings.php:385
 msgid "Template deleted."
 msgstr "Vorlage gelöscht."
 
-#: includes/Settings.php:369
+#: includes/Settings.php:386
 #, php-format
 msgid "The template cannot be deleted because it is still in use: %s"
 msgstr ""
 "Die Vorlage kann nicht gelöscht werden, da sie noch verwendet wird in: %s"
 
-#: includes/Settings.php:372
+#: includes/Settings.php:389
 #, php-format
 msgid "%d test email(s) sent to %s."
 msgstr "%d Testmail(s) an %s versendet."
 
-#: includes/Settings.php:388
+#: includes/Settings.php:405
 msgid "New Template"
 msgstr "Neue Vorlage"
 
-#: includes/Settings.php:394 includes/Settings.php:718
-#: includes/Settings.php:737
+#: includes/Settings.php:411 includes/Settings.php:735
+#: includes/Settings.php:754
 msgid "Title"
 msgstr "Titel"
 
-#: includes/Settings.php:395
+#: includes/Settings.php:412
 msgid "Actions"
 msgstr "Aktionen"
 
-#: includes/Settings.php:400
+#: includes/Settings.php:417
 msgid "Default"
 msgstr "Standard"
 
-#: includes/Settings.php:400
+#: includes/Settings.php:417
 msgid "(not editable)"
 msgstr "(nicht editierbar)"
 
-#: includes/Settings.php:406 includes/Settings.php:426
+#: includes/Settings.php:423 includes/Settings.php:443
 msgid "Send Test Email"
 msgstr "Testmail senden"
 
-#: includes/Settings.php:417
+#: includes/Settings.php:434
 msgid "Draft"
 msgstr "Entwurf"
 
-#: includes/Settings.php:421 build/index.js:187 build/index.js:202
+#: includes/Settings.php:438 build/index.js:187 build/index.js:202
 msgid "Edit"
 msgstr "Bearbeiten"
 
-#: includes/Settings.php:432
+#: includes/Settings.php:449
 msgid "Really delete this template?"
 msgstr "Vorlage wirklich löschen?"
 
-#: includes/Settings.php:433 build/index.js:187 build/index.js:193
+#: includes/Settings.php:450 build/index.js:187 build/index.js:193
 #: build/index.js:202 build/index.js:203
 msgid "Delete"
 msgstr "Löschen"
 
-#: includes/Settings.php:466
+#: includes/Settings.php:483
 msgid "Appointment request"
 msgstr "Termin-Anfrage"
 
-#: includes/Settings.php:467
+#: includes/Settings.php:484
 msgid "Appointment request with questions"
 msgstr "Terminanfrage mit Fragen"
 
-#: includes/Settings.php:468
+#: includes/Settings.php:485
 msgid "Confirmation to booking person"
 msgstr "Bestätigung an buchende Person"
 
-#: includes/Settings.php:469
+#: includes/Settings.php:486
 msgid "Confirmation to host"
 msgstr "Bestätigung an einladende Person"
 
-#: includes/Settings.php:470
+#: includes/Settings.php:487
 msgid "Reminder to host"
 msgstr "Erinnerung an einladende Person"
 
-#: includes/Settings.php:471
+#: includes/Settings.php:488
 msgid "Reminder to booking person"
 msgstr "Erinnerung an buchende Person"
 
-#: includes/Settings.php:472 templates/confirmation-page.php:15
+#: includes/Settings.php:489 templates/confirmation-page.php:15
 msgid "Cancellation"
 msgstr "Stornierung"
 
-#: includes/Settings.php:476
+#: includes/Settings.php:493
 msgid ""
 "Sent to the person booking so they can confirm their appointment request."
 msgstr ""
 "Wird an die buchende Person gesendet, damit sie ihre Terminanfrage "
 "bestätigen kann."
 
-#: includes/Settings.php:477
+#: includes/Settings.php:494
 msgid ""
 "Sent instead of the regular appointment request when the confirmation page "
 "contains additional questions."
@@ -953,33 +886,33 @@ msgstr ""
 "Wird anstelle der regulären Terminanfrage gesendet, wenn die "
 "Bestätigungsseite zusätzliche Fragen enthält."
 
-#: includes/Settings.php:478
+#: includes/Settings.php:495
 msgid "Sent to the person booking after the appointment has been confirmed."
 msgstr "Wird nach der Bestätigung des Termins an die buchende Person gesendet."
 
-#: includes/Settings.php:479
+#: includes/Settings.php:496
 msgid "Sent to the host after the appointment has been confirmed."
 msgstr ""
 "Wird nach der Bestätigung des Termins an die einladende Person gesendet."
 
-#: includes/Settings.php:480
+#: includes/Settings.php:497
 msgid "Sent to the host before the appointment when reminders are enabled."
 msgstr ""
 "Wird vor dem Termin an die einladende Person gesendet, wenn Erinnerungen "
 "aktiviert sind."
 
-#: includes/Settings.php:481
+#: includes/Settings.php:498
 msgid ""
 "Sent to the person booking before the appointment when reminders are enabled."
 msgstr ""
 "Wird vor dem Termin an die buchende Person gesendet, wenn Erinnerungen "
 "aktiviert sind."
 
-#: includes/Settings.php:482
+#: includes/Settings.php:499
 msgid "Sent when a confirmed appointment is cancelled."
 msgstr "Wird gesendet, wenn ein bestätigter Termin abgesagt wird."
 
-#: includes/Settings.php:483
+#: includes/Settings.php:500
 msgid ""
 "Sent when an earlier appointment becomes available for someone on the "
 "waitlist."
@@ -987,19 +920,19 @@ msgstr ""
 "Wird gesendet, wenn für eine Person auf der Warteliste ein früherer Termin "
 "verfügbar wird."
 
-#: includes/Settings.php:487
+#: includes/Settings.php:504
 msgid "Back to mail templates"
 msgstr "Zurück zu den E-Mail-Vorlagen"
 
-#: includes/Settings.php:491
+#: includes/Settings.php:508
 msgid "Create mail template"
 msgstr "E-Mail-Vorlage erstellen"
 
-#: includes/Settings.php:491
+#: includes/Settings.php:508
 msgid "Edit mail template"
 msgstr "E-Mail-Vorlage bearbeiten"
 
-#: includes/Settings.php:493
+#: includes/Settings.php:510
 msgid ""
 "Customize only the content you want to change. Empty fields automatically "
 "use the standard content."
@@ -1007,132 +940,132 @@ msgstr ""
 "Passen Sie nur Inhalte an, die vom Standard abweichen sollen. Leere Felder "
 "verwenden automatisch den Standardinhalt."
 
-#: includes/Settings.php:504
+#: includes/Settings.php:521
 msgid "Template name"
 msgstr "Vorlagenname"
 
-#: includes/Settings.php:509 build/index.js:203
+#: includes/Settings.php:526 build/index.js:203
 msgid "For example: Consultation hours"
 msgstr "Zum Beispiel: Sprechstunde"
 
-#: includes/Settings.php:511
+#: includes/Settings.php:528
 msgid "Use a name that makes this template easy to recognize in the editor."
 msgstr ""
 "Vergeben Sie einen Namen, unter dem Sie die Vorlage im Editor leicht "
 "wiedererkennen."
 
-#: includes/Settings.php:534 includes/Settings.php:536
+#: includes/Settings.php:551 includes/Settings.php:553
 msgid "Uses standard content"
 msgstr "Verwendet Standardinhalt"
 
-#: includes/Settings.php:535 includes/Settings.php:536
+#: includes/Settings.php:552 includes/Settings.php:553
 msgid "Customized"
 msgstr "Angepasst"
 
-#: includes/Settings.php:542
+#: includes/Settings.php:559
 msgid "Subject"
 msgstr "Betreff"
 
-#: includes/Settings.php:549
+#: includes/Settings.php:566
 msgid "Leave blank to use the standard subject."
 msgstr "Leer lassen, um den Standardbetreff zu verwenden."
 
-#: includes/Settings.php:554
+#: includes/Settings.php:571
 msgid "Email content"
 msgstr "E-Mail-Inhalt"
 
-#: includes/Settings.php:572
+#: includes/Settings.php:589
 msgid "Create template"
 msgstr "Vorlage erstellen"
 
-#: includes/Settings.php:572
+#: includes/Settings.php:589
 msgid "Save changes"
 msgstr "Änderungen speichern"
 
-#: includes/Settings.php:589 includes/Settings.php:597
+#: includes/Settings.php:606 includes/Settings.php:614
 msgid "Plain text"
 msgstr "Plaintext"
 
-#: includes/Settings.php:593
+#: includes/Settings.php:610
 msgid "Email format"
 msgstr "E-Mail-Format"
 
-#: includes/Settings.php:602
+#: includes/Settings.php:619
 msgid "HTML"
 msgstr "HTML"
 
-#: includes/Settings.php:613
+#: includes/Settings.php:630
 msgid "Leave blank to use the standard plain-text content."
 msgstr "Leer lassen, um den Standard-Textinhalt zu verwenden."
 
-#: includes/Settings.php:616 includes/Settings.php:641
+#: includes/Settings.php:633 includes/Settings.php:658
 msgid "View standard content"
 msgstr "Standardinhalt anzeigen"
 
-#: includes/Settings.php:638
+#: includes/Settings.php:655
 msgid "Leave blank to use the standard HTML content."
 msgstr "Leer lassen, um den Standard-HTML-Inhalt zu verwenden."
 
-#: includes/Settings.php:658
+#: includes/Settings.php:675
 msgid "Insert placeholder"
 msgstr "Platzhalter einfügen"
 
-#: includes/Settings.php:675
+#: includes/Settings.php:692
 msgid "Booking cancelled and cancellation emails sent."
 msgstr "Buchung storniert und Storno-Mails versendet."
 
-#: includes/Settings.php:690
+#: includes/Settings.php:707
 msgid "From"
 msgstr "Von"
 
-#: includes/Settings.php:694
+#: includes/Settings.php:711
 msgid "To"
 msgstr "Bis"
 
-#: includes/Settings.php:699 includes/Settings.php:719
-#: includes/Settings.php:738 build/index.js:195
+#: includes/Settings.php:716 includes/Settings.php:736
+#: includes/Settings.php:755 build/index.js:195
 msgid "Person"
 msgstr "Person"
 
-#: includes/Settings.php:701
+#: includes/Settings.php:718
 msgid "All"
 msgstr "Alle"
 
-#: includes/Settings.php:708
+#: includes/Settings.php:725
 msgid "Filter"
 msgstr "Filtern"
 
-#: includes/Settings.php:709
+#: includes/Settings.php:726
 msgid "Reset"
 msgstr "Zurücksetzen"
 
-#: includes/Settings.php:720 includes/Settings.php:739
+#: includes/Settings.php:737 includes/Settings.php:756
 msgid "Booker"
 msgstr "Buchender"
 
-#: includes/Settings.php:721 includes/Settings.php:740
+#: includes/Settings.php:738 includes/Settings.php:757
 msgid "Email"
 msgstr "E-Mail"
 
-#: includes/Settings.php:727
+#: includes/Settings.php:744
 msgid "No appointments found."
 msgstr "Keine Termine gefunden."
 
-#: includes/Settings.php:761
+#: includes/Settings.php:778
 msgid "Really cancel this booking?"
 msgstr "Buchung wirklich stornieren?"
 
-#: includes/Settings.php:762
+#: includes/Settings.php:779
 msgid "Cancel booking"
 msgstr "Stornieren"
 
-#: includes/Settings.php:961
-msgid "About"
-msgstr "Über"
+#: includes/SsoController.php:65 includes/SsoController.php:120
+msgid "SSO login failed."
+msgstr "SSO Login fehlgeschlagen."
 
-#: includes/Settings.php:964
-msgid "Tour"
-msgstr "Tour"
+#: includes/SsoController.php:87 includes/SsoController.php:118
+msgid "SSO is not available."
+msgstr "SSO ist nicht verfügbar."
 
 #: rrze-appointment.php:189
 #, php-format
@@ -1454,6 +1387,10 @@ msgstr "Erster Termin"
 #: build/index.js:187
 msgid "Time range"
 msgstr "Zeitraum"
+
+#: build/index.js:187
+msgid "Appointment Duration"
+msgstr "Termindauer"
 
 #: build/index.js:187
 msgid "Repetition"
@@ -2108,206 +2045,6 @@ msgstr ""
 msgid "FAUdir information imported. %d time ranges added."
 msgstr "FAUdir-Informationen importiert. %d Zeiträume hinzugefügt."
 
-#. translators: 1: current step number, 2: total steps
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Step %1$d of %2$d"
-msgstr "Schritt %1$d von %2$d"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Previous"
-msgstr "Zurück"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Skip tour"
-msgstr "Tour überspringen"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Finish"
-msgstr "Fertig"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "General settings"
-msgstr "Allgemeine Einstellungen"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid ""
-"Open the General tab to configure reminder emails and booking data retention."
-msgstr ""
-"Öffnen Sie den Tab „Allgemein“, um Erinnerungsmails und die Aufbewahrung von "
-"Buchungsdaten zu konfigurieren."
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Reminder email"
-msgstr "Erinnerungsmail"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid ""
-"Choose how many days before an appointment reminder emails are sent to the "
-"host and the person who booked."
-msgstr ""
-"Wählen Sie, wie viele Tage vor dem Termin Erinnerungsmails an die einladende "
-"Person und die buchende Person versendet werden."
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Save settings"
-msgstr "Einstellungen speichern"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Click Save changes to store your general settings."
-msgstr ""
-"Klicken Sie auf Änderungen speichern, um Ihre allgemeinen Einstellungen zu "
-"speichern."
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Mail templates tab"
-msgstr "Tab Mail-Vorlagen"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid ""
-"Switch to Mail Templates to customize confirmation, reminder, and "
-"cancellation emails."
-msgstr ""
-"Wechseln Sie zu Mail-Vorlagen, um Bestätigungs-, Erinnerungs- und Storno-"
-"Mails anzupassen."
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Create a template"
-msgstr "Vorlage erstellen"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid ""
-"Create a custom mail template or use the built-in default. You can send test "
-"emails to verify the content."
-msgstr ""
-"Erstellen Sie eine eigene Mail-Vorlage oder nutzen Sie die eingebaute "
-"Standardvorlage. Sie können Testmails versenden, um den Inhalt zu prüfen."
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Appointments overview"
-msgstr "Terminübersicht"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid ""
-"Open the Appointments menu to view, filter, and cancel bookings from the "
-"frontend."
-msgstr ""
-"Öffnen Sie das Menü Termine, um Buchungen aus dem Frontend einzusehen, zu "
-"filtern und zu stornieren."
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Filter appointments"
-msgstr "Termine filtern"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid ""
-"Filter bookings by date range or person to quickly find specific "
-"appointments."
-msgstr ""
-"Filtern Sie Buchungen nach Datumsbereich oder Person, um bestimmte Termine "
-"schnell zu finden."
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Manage bookings"
-msgstr "Buchungen verwalten"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid ""
-"Each row shows date, time, title, host, and booker. Use Cancel booking to "
-"release a slot and notify participants."
-msgstr ""
-"Jede Zeile zeigt Datum, Uhrzeit, Titel, einladende Person und buchende "
-"Person. Mit Stornieren geben Sie einen Slot frei und benachrichtigen die "
-"Beteiligten."
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Continue to the next section to see the highlighted field."
-msgstr ""
-"Wechseln Sie zum nächsten Bereich, um das hervorgehobene Feld zu sehen."
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Next"
-msgstr "Weiter"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Open"
-msgstr "Öffnen"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Close setup tour"
-msgstr "Setup-Tour schließen"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Welcome to RRZE Appointment"
-msgstr "Willkommen bei RRZE Appointment"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid ""
-"This plugin lets you offer bookable appointment slots on your website — with "
-"calendar view, email confirmations, and optional FAUdir integration."
-msgstr ""
-"Mit diesem Plugin können Sie buchbare Terminslots auf Ihrer Website anbieten "
-"— mit Kalenderansicht, E-Mail-Bestätigungen und optionaler FAUdir-Anbindung."
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Create appointments with the block"
-msgstr "Termine mit dem Block anlegen"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid ""
-"Insert the RRZE Appointment block in the editor, select dates and times, "
-"assign a host, and publish the page."
-msgstr ""
-"Fügen Sie den RRZE-Appointment-Block im Editor ein, wählen Sie Datum und "
-"Uhrzeit, weisen Sie eine Person zu und veröffentlichen Sie die Seite."
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Customize mail templates"
-msgstr "Mail-Vorlagen anpassen"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid ""
-"Under Settings → RRZE Appointment → Mail Templates you can adapt "
-"confirmation, reminder, and cancellation emails using placeholders."
-msgstr ""
-"Unter Einstellungen → RRZE Appointment → Mail-Vorlagen können Sie "
-"Bestätigungs-, Erinnerungs- und Storno-Mails mit Platzhaltern anpassen."
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid ""
-"Use the Appointments menu to review all bookings, filter by date or person, "
-"and cancel appointments when needed."
-msgstr ""
-"Nutzen Sie das Menü Termine, um alle Buchungen einzusehen, nach Datum oder "
-"Person zu filtern und Termine bei Bedarf zu stornieren."
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Feedback and open source"
-msgstr "Feedback und Open Source"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid ""
-"We welcome your feedback. Everyone who wants to contribute is invited to "
-"take part."
-msgstr ""
-"Wir freuen uns über Ihr Feedback. Wer mitarbeiten möchte, ist herzlich "
-"eingeladen."
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "RRZE Appointment is open source on"
-msgstr "RRZE Appointment ist Open Source auf"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Documentation"
-msgstr "Dokumentation"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "About RRZE Appointment"
-msgstr "Über RRZE Appointment"
-
-#: build/rrze-appointment-guided-tour.js:2
-msgid "Get started"
-msgstr "Loslegen"
-
 #: build/block.json
 msgctxt "block title"
 msgid "RRZE-Appointment"
@@ -2317,6 +2054,230 @@ msgstr "RRZE-Appointment"
 msgctxt "block description"
 msgid "block to create an appointment"
 msgstr "Block zum Buchen und Verwalten von Sprechstunden und Terminen"
+
+#~ msgid "Message"
+#~ msgstr "Nachricht"
+
+#, php-format
+#~ msgid ""
+#~ "%s\n"
+#~ "\n"
+#~ "%s: [title]\n"
+#~ "%s: [date]\n"
+#~ "%s: [time]\n"
+#~ "%s: [location]\n"
+#~ "%s: [name] ([email])\n"
+#~ "%s: [message]\n"
+#~ "[questions]\n"
+#~ "\n"
+#~ "%s: [cancel_link]\n"
+#~ "\n"
+#~ "%s: [imprint_link]"
+#~ msgstr ""
+#~ "%s\n"
+#~ "\n"
+#~ "%s: [title]\n"
+#~ "%s: [date]\n"
+#~ "%s: [time]\n"
+#~ "%s: [location]\n"
+#~ "%s: [name] ([email])\n"
+#~ "%s: [message]\n"
+#~ "[questions]\n"
+#~ "\n"
+#~ "%s: [cancel_link]\n"
+#~ "\n"
+#~ "%s: [imprint_link]"
+
+#~ msgid "Message (optional)"
+#~ msgstr "Nachricht (optional)"
+
+#~ msgid "What would you like to discuss?"
+#~ msgstr "Was möchten Sie besprechen?"
+
+#~ msgid "Enter a message."
+#~ msgstr "Geben Sie eine Nachricht ein."
+
+#~ msgid "Require a message"
+#~ msgstr "Nachricht erforderlich"
+
+#~ msgid "People must enter a message when requesting an appointment."
+#~ msgstr "Bei der Terminanfrage muss eine Nachricht eingegeben werden."
+
+#~ msgid "Please provide a message."
+#~ msgstr "Bitte geben Sie eine Nachricht ein."
+
+#~ msgid "Booking person (message)"
+#~ msgstr "Buchende Person (Nachricht)"
+
+#~ msgid "About"
+#~ msgstr "Über"
+
+#~ msgid "Tour"
+#~ msgstr "Tour"
+
+#~ msgid "Step %1$d of %2$d"
+#~ msgstr "Schritt %1$d von %2$d"
+
+#~ msgid "Previous"
+#~ msgstr "Zurück"
+
+#~ msgid "Skip tour"
+#~ msgstr "Tour überspringen"
+
+#~ msgid "Finish"
+#~ msgstr "Fertig"
+
+#~ msgid "General settings"
+#~ msgstr "Allgemeine Einstellungen"
+
+#~ msgid ""
+#~ "Open the General tab to configure reminder emails and booking data "
+#~ "retention."
+#~ msgstr ""
+#~ "Öffnen Sie den Tab „Allgemein“, um Erinnerungsmails und die Aufbewahrung "
+#~ "von Buchungsdaten zu konfigurieren."
+
+#~ msgid "Reminder email"
+#~ msgstr "Erinnerungsmail"
+
+#~ msgid ""
+#~ "Choose how many days before an appointment reminder emails are sent to "
+#~ "the host and the person who booked."
+#~ msgstr ""
+#~ "Wählen Sie, wie viele Tage vor dem Termin Erinnerungsmails an die "
+#~ "einladende Person und die buchende Person versendet werden."
+
+#~ msgid "Save settings"
+#~ msgstr "Einstellungen speichern"
+
+#~ msgid "Click Save changes to store your general settings."
+#~ msgstr ""
+#~ "Klicken Sie auf Änderungen speichern, um Ihre allgemeinen Einstellungen "
+#~ "zu speichern."
+
+#~ msgid "Mail templates tab"
+#~ msgstr "Tab Mail-Vorlagen"
+
+#~ msgid ""
+#~ "Switch to Mail Templates to customize confirmation, reminder, and "
+#~ "cancellation emails."
+#~ msgstr ""
+#~ "Wechseln Sie zu Mail-Vorlagen, um Bestätigungs-, Erinnerungs- und Storno-"
+#~ "Mails anzupassen."
+
+#~ msgid "Create a template"
+#~ msgstr "Vorlage erstellen"
+
+#~ msgid ""
+#~ "Create a custom mail template or use the built-in default. You can send "
+#~ "test emails to verify the content."
+#~ msgstr ""
+#~ "Erstellen Sie eine eigene Mail-Vorlage oder nutzen Sie die eingebaute "
+#~ "Standardvorlage. Sie können Testmails versenden, um den Inhalt zu prüfen."
+
+#~ msgid "Appointments overview"
+#~ msgstr "Terminübersicht"
+
+#~ msgid ""
+#~ "Open the Appointments menu to view, filter, and cancel bookings from the "
+#~ "frontend."
+#~ msgstr ""
+#~ "Öffnen Sie das Menü Termine, um Buchungen aus dem Frontend einzusehen, zu "
+#~ "filtern und zu stornieren."
+
+#~ msgid "Filter appointments"
+#~ msgstr "Termine filtern"
+
+#~ msgid ""
+#~ "Filter bookings by date range or person to quickly find specific "
+#~ "appointments."
+#~ msgstr ""
+#~ "Filtern Sie Buchungen nach Datumsbereich oder Person, um bestimmte "
+#~ "Termine schnell zu finden."
+
+#~ msgid "Manage bookings"
+#~ msgstr "Buchungen verwalten"
+
+#~ msgid ""
+#~ "Each row shows date, time, title, host, and booker. Use Cancel booking to "
+#~ "release a slot and notify participants."
+#~ msgstr ""
+#~ "Jede Zeile zeigt Datum, Uhrzeit, Titel, einladende Person und buchende "
+#~ "Person. Mit Stornieren geben Sie einen Slot frei und benachrichtigen die "
+#~ "Beteiligten."
+
+#~ msgid "Continue to the next section to see the highlighted field."
+#~ msgstr ""
+#~ "Wechseln Sie zum nächsten Bereich, um das hervorgehobene Feld zu sehen."
+
+#~ msgid "Next"
+#~ msgstr "Weiter"
+
+#~ msgid "Open"
+#~ msgstr "Öffnen"
+
+#~ msgid "Close setup tour"
+#~ msgstr "Setup-Tour schließen"
+
+#~ msgid "Welcome to RRZE Appointment"
+#~ msgstr "Willkommen bei RRZE Appointment"
+
+#~ msgid ""
+#~ "This plugin lets you offer bookable appointment slots on your website — "
+#~ "with calendar view, email confirmations, and optional FAUdir integration."
+#~ msgstr ""
+#~ "Mit diesem Plugin können Sie buchbare Terminslots auf Ihrer Website "
+#~ "anbieten — mit Kalenderansicht, E-Mail-Bestätigungen und optionaler "
+#~ "FAUdir-Anbindung."
+
+#~ msgid "Create appointments with the block"
+#~ msgstr "Termine mit dem Block anlegen"
+
+#~ msgid ""
+#~ "Insert the RRZE Appointment block in the editor, select dates and times, "
+#~ "assign a host, and publish the page."
+#~ msgstr ""
+#~ "Fügen Sie den RRZE-Appointment-Block im Editor ein, wählen Sie Datum und "
+#~ "Uhrzeit, weisen Sie eine Person zu und veröffentlichen Sie die Seite."
+
+#~ msgid "Customize mail templates"
+#~ msgstr "Mail-Vorlagen anpassen"
+
+#~ msgid ""
+#~ "Under Settings → RRZE Appointment → Mail Templates you can adapt "
+#~ "confirmation, reminder, and cancellation emails using placeholders."
+#~ msgstr ""
+#~ "Unter Einstellungen → RRZE Appointment → Mail-Vorlagen können Sie "
+#~ "Bestätigungs-, Erinnerungs- und Storno-Mails mit Platzhaltern anpassen."
+
+#~ msgid ""
+#~ "Use the Appointments menu to review all bookings, filter by date or "
+#~ "person, and cancel appointments when needed."
+#~ msgstr ""
+#~ "Nutzen Sie das Menü Termine, um alle Buchungen einzusehen, nach Datum "
+#~ "oder Person zu filtern und Termine bei Bedarf zu stornieren."
+
+#~ msgid "Feedback and open source"
+#~ msgstr "Feedback und Open Source"
+
+#~ msgid ""
+#~ "We welcome your feedback. Everyone who wants to contribute is invited to "
+#~ "take part."
+#~ msgstr ""
+#~ "Wir freuen uns über Ihr Feedback. Wer mitarbeiten möchte, ist herzlich "
+#~ "eingeladen."
+
+#~ msgid "RRZE Appointment is open source on"
+#~ msgstr "RRZE Appointment ist Open Source auf"
+
+#~ msgid "Documentation"
+#~ msgstr "Dokumentation"
+
+#~ msgid "About RRZE Appointment"
+#~ msgstr "Über RRZE Appointment"
+
+#~ msgid "Get started"
+#~ msgstr "Loslegen"
 
 #~ msgid "Appointment booked! A confirmation has been sent."
 #~ msgstr "Termin gebucht! Eine Bestätigung wurde versendet."
