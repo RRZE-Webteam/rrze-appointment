@@ -22,7 +22,7 @@ function getSetupSteps() {
 			target: '[data-rrze-tour="tab-general"]',
 			title: __( 'General settings', 'rrze-appointment' ),
 			text: __(
-				'Open the General tab to configure reminder emails and the recurrence limit for repeating appointments.',
+				'Open the General tab to configure reminder emails and booking data retention.',
 				'rrze-appointment'
 			),
 		},
@@ -39,20 +39,8 @@ function getSetupSteps() {
 			),
 		},
 		{
-			id: 'recurrence-limit',
-			number: 3,
-			tab: 'general',
-			screen: 'settings',
-			target: '[data-rrze-tour="recurrence-limit"]',
-			title: __( 'Recurrence limit', 'rrze-appointment' ),
-			text: __(
-				'Set the maximum number of recurring appointment dates generated from a single block.',
-				'rrze-appointment'
-			),
-		},
-		{
 			id: 'save-general',
-			number: 4,
+			number: 3,
 			tab: 'general',
 			screen: 'settings',
 			target: '[data-rrze-tour="save-settings"]',
@@ -64,7 +52,7 @@ function getSetupSteps() {
 		},
 		{
 			id: 'tab-templates',
-			number: 5,
+			number: 4,
 			tab: 'templates',
 			screen: 'settings',
 			target: '[data-rrze-tour="tab-templates"]',
@@ -76,7 +64,7 @@ function getSetupSteps() {
 		},
 		{
 			id: 'new-template',
-			number: 6,
+			number: 5,
 			tab: 'templates',
 			screen: 'settings',
 			target: '[data-rrze-tour="new-template"]',
@@ -88,7 +76,7 @@ function getSetupSteps() {
 		},
 		{
 			id: 'bookings-intro',
-			number: 7,
+			number: 6,
 			tab: '',
 			screen: 'bookings',
 			target: '[data-rrze-tour="bookings-page"]',
@@ -100,7 +88,7 @@ function getSetupSteps() {
 		},
 		{
 			id: 'bookings-filter',
-			number: 8,
+			number: 7,
 			tab: '',
 			screen: 'bookings',
 			target: '[data-rrze-tour="bookings-filter"]',
@@ -112,7 +100,7 @@ function getSetupSteps() {
 		},
 		{
 			id: 'bookings-table',
-			number: 9,
+			number: 8,
 			tab: '',
 			screen: 'bookings',
 			target: '[data-rrze-tour="bookings-table"]',
@@ -125,7 +113,7 @@ function getSetupSteps() {
 	];
 }
 
-const TOUR_STEP_COUNT = 9;
+const TOUR_STEP_COUNT = 8;
 
 function isTransitionStep( step ) {
 	return isTabStep( step );

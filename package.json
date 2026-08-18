@@ -1,6 +1,6 @@
 {
   "name": "rrze-appointment",
-  "version": "1.4.8",
+  "version": "2.0.0",
   "description": "Plugin for creating and maintaining appointments. Usable as a block.",
   "author": {
     "name": "RRZE Webteam",
@@ -26,7 +26,9 @@
     "booking"
   ],
   "scripts": {
-    "build": "wp-scripts build --webpack-copy-php && npm run increment-version",
+    "build": "wp-scripts build --webpack-copy-php && npm run build:email && npm run increment-version",
+    "build:email": "maizzle build --config mail/maizzle.config.ts && node mail/verify-template.mjs",
+    "dev:email": "maizzle serve --config mail/maizzle.config.ts",
     "increment-version": "node increment-version.js patch",
     "format": "wp-scripts format",
     "lint:css": "wp-scripts lint-style",
@@ -34,9 +36,14 @@
     "packages-update": "wp-scripts packages-update",
     "plugin-zip": "wp-scripts plugin-zip",
     "start": "wp-scripts start --webpack-copy-php",
-    "build:readme": "node build-readme.js"
+    "build:readme": "node build-readme.js",
+    "test:unit": "wp-scripts test-unit-js"
   },
   "devDependencies": {
+    "@maizzle/framework": "^6.0.13",
+    "@types/wordpress__blocks": "^15.17.0",
+    "@wordpress/dataviews": "^17.3.0",
+    "@wordpress/icons": "^15.3.0",
     "@wordpress/scripts": "^30.11.0"
   }
 }

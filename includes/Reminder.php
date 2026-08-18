@@ -82,15 +82,16 @@ class Reminder
                 '[date]'         => date_i18n(get_option('date_format'), strtotime($datePart)),
                 '[time]'         => $startTime . ' – ' . $endTime,
                 '[location]'     => $location ?: '–',
-                '[person_name]'  => '',
+                '[person_name]'  => trim((string) ($meta['person_name'] ?? '')),
                 '[name]'         => $bookerName ?: '–',
                 '[email]'        => $bookerEmail ?: '–',
+                '[questions]'    => '',
                 '[cancel_link]'  => TokenManager::getCancelUrlForSlot($slot),
                 '[imprint_link]' => TokenManager::imprintUrl(),
                 '[post_link]'    => esc_url_raw($meta['post_link'] ?? home_url('/')),
             ];
 
-            if ($personId > 0) {
+            if ($vars['[person_name]'] === '' && $personId > 0) {
                 $pTitle  = (string) get_post_meta($personId, 'person_honorificPrefix', true);
                 $pGiven  = (string) get_post_meta($personId, 'person_givenName', true);
                 $pFamily = (string) get_post_meta($personId, 'person_familyName', true);
@@ -105,11 +106,11 @@ class Reminder
 
             $toAdmin = sanitize_email((string) ($meta['person_email'] ?? ''));
             if ($toAdmin) {
-                Settings::sendMail($toAdmin, $subject, $body, $bodyHtml);
+                Settings::sendMail($toAdmin, $subject, $body, $bodyHtml, [], MailTemplate::STATUS_SUCCESS);
             }
 
             if ($bookerEmail) {
-                Settings::sendMail($bookerEmail, $subject, $bodyBooker, $bodyBookerHtml);
+                Settings::sendMail($bookerEmail, $subject, $bodyBooker, $bodyBookerHtml, [], MailTemplate::STATUS_SUCCESS);
             }
         } catch (\Exception $e) {
             throw new CustomException($e->getMessage(), $e->getCode(), null);
@@ -119,6 +120,8 @@ class Reminder
     public function checkAndSendReminders(): void
     {
         try {
+            Bookings::cleanupExpired((int) Settings::get('retention_days'));
+
             $days = (int) Settings::get('reminder_days');
             if ($days < 1) return;
 

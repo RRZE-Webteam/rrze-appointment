@@ -30,9 +30,9 @@ class Rights
     }
 
     /**
-     * Returns idm, bookerName and bookerEmail.
+     * Returns only the internal authentication marker, name and email.
      * Does NOT trigger SSO login — only reads existing sessions.
-     * If not authenticated, returns empty idm to signal login is needed.
+     * The IdM identifier itself never leaves this method.
      */
     public static function get(): array
     {
@@ -72,10 +72,9 @@ class Rights
 
                         if ($idm) {
                             return [
-                                'idm' => $idm,
+                                'authenticated' => true,
                                 'bookerName' => trim("$first $last"),
                                 'bookerEmail' => $email,
-                                'attributes' => $attrs,
                             ];
                         }
                     }
@@ -85,7 +84,7 @@ class Rights
             }
 
             // Not authenticated
-            return ['idm' => '', 'bookerName' => '', 'bookerEmail' => '', 'attributes' => []];
+            return ['authenticated' => false, 'bookerName' => '', 'bookerEmail' => ''];
         } catch (\Exception $e) {
             throw new CustomException($e->getMessage(), $e->getCode(), null);
         }

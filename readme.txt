@@ -4,7 +4,7 @@ Tags: appointments, calendar, booking
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 1.4.8
+Stable tag: 2.0.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Plugin URI: https://github.com/RRZE-Webteam/rrze-appointment
@@ -27,6 +27,7 @@ RRZE Appointment lets you manage appointments and office hours directly in WordP
 * Quick and easy creation of consultation/office hours
 * One-click booking for users
 * Reminder email sent 1 day before the appointment
+* Configurable automatic deletion of completed booking data
 * Notifications when an earlier slot becomes available
 * Integration of person data from FAUdir
 * User-friendly booking management
@@ -37,6 +38,7 @@ RRZE Appointment lets you manage appointments and office hours directly in WordP
 * Adapted to the layouts of the "FAU Einrichtungen" and "FAU Elemental" themes
 * Supports FAU faculty color schemes
 * Can be inserted as a Gutenberg block in posts and pages for flexible placement
+* Site Editor templates and template parts are not supported
 
 == Dependencies ==
 

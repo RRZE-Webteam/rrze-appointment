@@ -3,7 +3,7 @@
 /*
 Plugin Name:        RRZE Appointment
 Plugin URI:         https://github.com/RRZE-Webteam/rrze-appointment
-Version:            1.4.8
+Version:            2.0.0
 Description:        Appointments the easy way.
 Author:             RRZE Webteam
 Author URI:         https://www.wp.rrze.fau.de/
@@ -107,9 +107,57 @@ function load_textdomain(): void
 
 function register_blocks(): void
 {
+    $editor_style_path = __DIR__ . '/build/index.css';
+    if (file_exists($editor_style_path)) {
+        $editor_style_handle = generate_block_asset_handle('rrze/appointment', 'editorStyle');
+        wp_register_style(
+            $editor_style_handle,
+            plugins_url('build/index.css', __FILE__),
+            ['wp-components'],
+            (string) filemtime($editor_style_path)
+        );
+        if (is_rtl() && file_exists(__DIR__ . '/build/index-rtl.css')) {
+            wp_style_add_data($editor_style_handle, 'rtl', 'replace');
+        }
+    }
+
     register_block_type( __DIR__ . '/build' );
     $script_handle = generate_block_asset_handle( 'rrze/appointment', 'editorScript' );
     wp_set_script_translations( $script_handle, 'rrze-appointment', plugin_dir_path( __FILE__ ) . 'languages' );
+}
+
+/**
+ * Make the appointment block available only in post and page editors.
+ *
+ * The block remains registered so that existing content can still be rendered.
+ *
+ * @param bool|string[]         $allowedBlockTypes Allowed block types.
+ * @param \WP_Block_Editor_Context $editorContext  Current block editor context.
+ * @return bool|string[]
+ */
+function restrict_appointment_block_to_content($allowedBlockTypes, $editorContext)
+{
+    $post = $editorContext->post ?? null;
+    if (
+        $post instanceof \WP_Post
+        && in_array($post->post_type, ['post', 'page'], true)
+    ) {
+        return $allowedBlockTypes;
+    }
+
+    if ($allowedBlockTypes === true) {
+        $allowedBlockTypes = array_keys(
+            \WP_Block_Type_Registry::get_instance()->get_all_registered()
+        );
+    }
+
+    if (!is_array($allowedBlockTypes)) {
+        return $allowedBlockTypes;
+    }
+
+    return array_values(
+        array_diff($allowedBlockTypes, ['rrze/appointment'])
+    );
 }
 
 /**
@@ -168,4 +216,10 @@ function loaded(): void
     main();
 
     add_action('init', __NAMESPACE__ . '\register_blocks');
+    add_filter(
+        'allowed_block_types_all',
+        __NAMESPACE__ . '\restrict_appointment_block_to_content',
+        10,
+        2
+    );
 }
