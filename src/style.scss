@@ -529,7 +529,6 @@
             font-size: 0.875rem;
             font-weight: 600;
 
-            &--message,
             &--wide {
                 grid-column: 1 / -1;
             }
@@ -537,7 +536,6 @@
 
         &-email,
         &-name,
-        &-message,
         &-question {
             box-sizing: border-box;
             width: 100%;
@@ -552,11 +550,6 @@
             font-size: 1rem;
         }
 
-        &-message {
-            min-height: 96px;
-            resize: vertical;
-        }
-
         &-question:is(textarea) {
             min-height: 84px;
             resize: vertical;
@@ -564,14 +557,12 @@
 
         &-email:hover,
         &-name:hover,
-        &-message:hover,
         &-question:hover {
             border-color: #50575e;
         }
 
         &-email:focus,
         &-name:focus,
-        &-message:focus,
         &-question:focus {
             border-color: #0b5ed7;
             box-shadow: 0 0 0 1px #0b5ed7;
@@ -580,15 +571,13 @@
 
         &-email[aria-invalid="true"],
         &-name[aria-invalid="true"],
-        &-message[aria-invalid="true"],
         &-question[aria-invalid="true"] {
             border-color: #b32d2e;
             box-shadow: 0 0 0 1px #b32d2e;
         }
 
         &-email:read-only,
-        &-name:read-only,
-        &-message:read-only {
+        &-name:read-only {
             border-color: #dcdcde;
             background: #f6f7f7;
             color: #50575e;
@@ -740,7 +729,6 @@
                 grid-template-columns: 1fr;
             }
 
-            &-label--message,
             &-label--wide {
                 grid-column: auto;
             }

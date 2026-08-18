@@ -99,12 +99,8 @@ final class AssetManager
             'yourEmail' => __('Email address', 'rrze-appointment'),
             'yourName' => __('Name', 'rrze-appointment'),
             'namePlaceholder' => __('First and last name', 'rrze-appointment'),
-            'message' => __('Message', 'rrze-appointment'),
-            'messageOptional' => __('Message (optional)', 'rrze-appointment'),
-            'messagePlaceholder' => __('What would you like to discuss?', 'rrze-appointment'),
             'nameRequired' => __('Enter your name.', 'rrze-appointment'),
             'emailRequired' => __('Enter a valid email address.', 'rrze-appointment'),
-            'messageRequired' => __('Enter a message.', 'rrze-appointment'),
             'book' => __('Request appointment', 'rrze-appointment'),
             'cancel' => __('Cancel', 'rrze-appointment'),
             'booking' => __('Sending request…', 'rrze-appointment'),
@@ -125,8 +121,6 @@ final class AssetManager
     private function getEditorTranslations(): array
     {
         return [
-            'requireMessageField' => __('Require a message', 'rrze-appointment'),
-            'requireMessageHelp' => __('People must enter a message when requesting an appointment.', 'rrze-appointment'),
             'hideWeekendsField' => __('Hide weekends', 'rrze-appointment'),
             'hideWeekendsHelp' => __('Only show Monday through Friday in the calendar.', 'rrze-appointment'),
         ];

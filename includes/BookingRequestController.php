@@ -34,7 +34,7 @@ final class BookingRequestController
             }
 
             [$bookerEmail, $bookerName] = $this->resolveBooker($request, $context);
-            $this->validateBooker($bookerEmail, $bookerName, $request['message'], !empty($context['require_message']));
+            $this->validateBooker($bookerEmail, $bookerName);
 
             [$datePart, $startTime, $endTime] = $this->parseSlot($request['slot']);
             $this->assertSlotIsAvailable($request['slot']);
@@ -60,7 +60,7 @@ final class BookingRequestController
     /**
      * Sanitizes booking request values from the AJAX payload.
      *
-     * @return array{slot: string, postId: int, blockFingerprint: string, email: string, name: string, message: string, waitlist: bool}
+     * @return array{slot: string, postId: int, blockFingerprint: string, email: string, name: string, waitlist: bool}
      */
     private function getRequestData(): array
     {
@@ -70,7 +70,6 @@ final class BookingRequestController
             'blockFingerprint' => sanitize_text_field($_POST['block_id'] ?? ''),
             'email' => sanitize_email($_POST['booker_email'] ?? ''),
             'name' => sanitize_text_field($_POST['booker_name'] ?? ''),
-            'message' => sanitize_textarea_field($_POST['booker_message'] ?? ''),
             'waitlist' => !empty($_POST['booker_waitlist']) && $_POST['booker_waitlist'] === '1',
         ];
     }
@@ -100,18 +99,15 @@ final class BookingRequestController
     }
 
     /**
-     * Validates required booking identity and message fields.
+     * Validates the required booking identity fields.
      */
-    private function validateBooker(string $email, string $name, string $message, bool $requireMessage): void
+    private function validateBooker(string $email, string $name): void
     {
         if ($email === '') {
             wp_send_json_error(__('Please provide an email address.', 'rrze-appointment'));
         }
         if ($name === '') {
             wp_send_json_error(__('Please provide your name.', 'rrze-appointment'));
-        }
-        if ($requireMessage && $message === '') {
-            wp_send_json_error(__('Please provide a message.', 'rrze-appointment'));
         }
     }
 
@@ -167,7 +163,6 @@ final class BookingRequestController
             'person_email' => $context['person_email'],
             'booker_email' => $bookerEmail,
             'booker_name' => $bookerName,
-            'booker_message' => $request['message'],
             'booker_waitlist' => $request['waitlist'],
             'waitlist_notified_slots' => [],
             'tpl_id' => $context['tpl_id'],
@@ -198,7 +193,6 @@ final class BookingRequestController
             '[person_name]' => $meta['person_name'] ?: '–',
             '[name]' => $meta['booker_name'] ?: '–',
             '[email]' => $meta['booker_email'] ?: '–',
-            '[message]' => $meta['booker_message'],
             '[questions]' => '',
             '[confirmation_link]' => $confirmUrl,
             '[cancel_link]' => TokenManager::cancelUrl(TokenManager::createPendingCancelToken($confirmToken)),

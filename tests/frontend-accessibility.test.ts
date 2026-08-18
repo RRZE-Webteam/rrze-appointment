@@ -149,6 +149,7 @@ describe( 'frontend calendar accessibility', () => {
 		const dialogForm = document.querySelector< HTMLFormElement >(
 			'.rrze-appointment__overlay-form'
 		) as HTMLFormElement;
+		expect( dialogForm.querySelector( 'textarea' ) ).toBeNull();
 		dialogForm.dispatchEvent(
 			new Event( 'submit', { bubbles: true, cancelable: true } )
 		);

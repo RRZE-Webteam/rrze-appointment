@@ -72,11 +72,6 @@ class Reminder
             $bookerName  = $meta['booker_name']  ?? '';
             $tplId       = (int) ($meta['tpl_id'] ?? 0);
 
-            $tplAdmin  = $tplId > 0 ? MailTemplatePost::getTemplateForType($tplId, 'reminder_admin')  : [];
-            $tplBooker = $tplId > 0 ? MailTemplatePost::getTemplateForType($tplId, 'reminder_booker') : [];
-            $defAdmin  = MailTemplatePost::getDefault('reminder_admin');
-            $defBooker = MailTemplatePost::getDefault('reminder_booker');
-
             $vars = [
                 '[title]'        => $title,
                 '[date]'         => date_i18n(get_option('date_format'), strtotime($datePart)),
@@ -98,23 +93,76 @@ class Reminder
                 $vars['[person_name]'] = trim(implode(' ', array_filter([$pTitle, $pGiven, $pFamily])));
             }
 
-            $subject        = Settings::renderTemplate(!empty($tplAdmin['subject'])    ? $tplAdmin['subject']    : $defAdmin['subject'],    $vars);
-            $body           = Settings::renderTemplate(!empty($tplAdmin['body'])       ? $tplAdmin['body']       : $defAdmin['body'],       $vars);
-            $bodyHtml       = Settings::renderTemplate(!empty($tplAdmin['body_html'])  ? $tplAdmin['body_html']  : $defAdmin['body_html'],  $vars);
-            $bodyBooker     = Settings::renderTemplate(!empty($tplBooker['body'])      ? $tplBooker['body']      : $defBooker['body'],      $vars);
-            $bodyBookerHtml = Settings::renderTemplate(!empty($tplBooker['body_html']) ? $tplBooker['body_html'] : $defBooker['body_html'], $vars);
+            $adminMail = $this->renderMail(
+                $this->resolveTemplate($tplId, 'reminder_admin'),
+                $vars
+            );
+            $bookerMail = $this->renderMail(
+                $this->resolveTemplate($tplId, 'reminder_booker'),
+                $vars
+            );
 
             $toAdmin = sanitize_email((string) ($meta['person_email'] ?? ''));
             if ($toAdmin) {
-                Settings::sendMail($toAdmin, $subject, $body, $bodyHtml, [], MailTemplate::STATUS_SUCCESS);
+                Settings::sendMail(
+                    $toAdmin,
+                    $adminMail['subject'],
+                    $adminMail['plain'],
+                    $adminMail['html'],
+                    [],
+                    MailTemplate::statusForType('reminder_admin')
+                );
             }
 
             if ($bookerEmail) {
-                Settings::sendMail($bookerEmail, $subject, $bodyBooker, $bodyBookerHtml, [], MailTemplate::STATUS_SUCCESS);
+                Settings::sendMail(
+                    $bookerEmail,
+                    $bookerMail['subject'],
+                    $bookerMail['plain'],
+                    $bookerMail['html'],
+                    [],
+                    MailTemplate::statusForType('reminder_booker')
+                );
             }
         } catch (\Exception $e) {
             throw new CustomException($e->getMessage(), $e->getCode(), null);
         }
+    }
+
+    /**
+     * Resolves a custom reminder template with per-field default fallbacks.
+     *
+     * @return array{subject: string, body: string, body_html: string}
+     */
+    private function resolveTemplate(int $templateId, string $type): array
+    {
+        $custom = $templateId > 0
+            ? (MailTemplatePost::getTemplateForType($templateId, $type) ?? [])
+            : [];
+        $default = MailTemplatePost::getDefault($type);
+
+        return [
+            'subject' => !empty($custom['subject']) ? $custom['subject'] : $default['subject'],
+            'body' => !empty($custom['body']) ? $custom['body'] : $default['body'],
+            'body_html' => !empty($custom['body_html']) ? $custom['body_html'] : $default['body_html'],
+        ];
+    }
+
+    /**
+     * Renders all parts of a reminder before the HTML is placed in the
+     * compiled Maizzle layout by Settings::sendMail().
+     *
+     * @param array{subject: string, body: string, body_html: string} $template
+     * @param array<string, string>                                  $variables
+     * @return array{subject: string, plain: string, html: string}
+     */
+    private function renderMail(array $template, array $variables): array
+    {
+        return [
+            'subject' => Settings::renderTemplate($template['subject'], $variables),
+            'plain' => Settings::renderTemplate($template['body'], $variables),
+            'html' => Settings::renderTemplate($template['body_html'], $variables),
+        ];
     }
 
     public function checkAndSendReminders(): void

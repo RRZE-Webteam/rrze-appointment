@@ -208,7 +208,6 @@ import {
 				form.dataset.bookingCutoff || '0',
 				10
 			);
-			const requireMessage = form.dataset.requireMessage === '1';
 			const disableSso = form.dataset.disableSso === '1';
 			const hideWeekends = form.dataset.hideWeekends === '1';
 
@@ -491,34 +490,6 @@ import {
 				emailLabel.appendChild( emailLabelText );
 				emailLabel.appendChild( emailInput );
 
-				const messageLabel = document.createElement( 'label' );
-				messageLabel.className =
-					'rrze-appointment__overlay-label rrze-appointment__overlay-label--message';
-				const optionalMessageLabel =
-					i18n.messageOptional ||
-					i18n.message ||
-					'Message (optional)';
-				const requiredMessageLabel = (
-					i18n.message || optionalMessageLabel
-				)
-					.replace( /\s*\(\s*optional\s*\)\s*:?/i, ':' )
-					.replace( /\s{2,}/g, ' ' )
-					.trim();
-				messageLabel.textContent = requireMessage
-					? `${ requiredMessageLabel } (${
-							i18n.required || 'required'
-					  })`
-					: optionalMessageLabel;
-				const messageInput = document.createElement( 'textarea' );
-				messageInput.id = `${ instanceId }-message`;
-				messageInput.className = 'rrze-appointment__overlay-message';
-				messageInput.placeholder =
-					i18n.messagePlaceholder ||
-					'What would you like to discuss?';
-				messageInput.rows = 4;
-				messageInput.required = requireMessage;
-				messageLabel.appendChild( messageInput );
-
 				const waitlistLabel = document.createElement( 'label' );
 				waitlistLabel.className =
 					'rrze-appointment__overlay-waitlist rrze-appointment__overlay-label--wide';
@@ -637,7 +608,7 @@ import {
 					input.focus();
 				}
 
-				[ nameInput, emailInput, messageInput ].forEach( ( input ) => {
+				[ nameInput, emailInput ].forEach( ( input ) => {
 					input.addEventListener( 'input', () => {
 						input.removeAttribute( 'aria-invalid' );
 						input.removeAttribute( 'aria-describedby' );
@@ -694,15 +665,6 @@ import {
 						return;
 					}
 
-					const messageValue = messageInput.value.trim();
-					if ( requireMessage && ! messageValue ) {
-						showFieldError(
-							messageInput,
-							i18n.messageRequired || 'Enter a message.'
-						);
-						return;
-					}
-
 					confirmBtn.disabled = true;
 					cancelBtn.disabled = true;
 					closeBtn.disabled = true;
@@ -721,7 +683,6 @@ import {
 					data.append( 'block_id', form.dataset.blockId || '' );
 					data.append( 'booker_email', emailValue );
 					data.append( 'booker_name', nameValue );
-					data.append( 'booker_message', messageValue );
 					data.append(
 						'booker_waitlist',
 						waitlistCheckbox.checked ? '1' : '0'
@@ -796,7 +757,6 @@ import {
 				actions.appendChild( confirmBtn );
 				fields.appendChild( nameLabel );
 				fields.appendChild( emailLabel );
-				fields.appendChild( messageLabel );
 				fields.appendChild( waitlistLabel );
 				dialogForm.appendChild( fields );
 				dialogForm.appendChild( status );
