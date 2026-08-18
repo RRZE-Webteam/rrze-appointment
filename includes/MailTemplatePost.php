@@ -61,7 +61,6 @@ class MailTemplatePost
         $time        = __('Time', 'rrze-appointment');
         $location    = __('Location', 'rrze-appointment');
         $bookedBy    = __('Booked by', 'rrze-appointment');
-        $message     = __('Message', 'rrze-appointment');
         $confirm     = __('Confirm appointment', 'rrze-appointment');
         $confirmQuestions = __('Confirm appointment and answer questions', 'rrze-appointment');
         $cancelReq   = __('Cancel request', 'rrze-appointment');
@@ -81,7 +80,6 @@ class MailTemplatePost
             $time => '[time]',
             $location => '[location]',
             $bookedBy => '[name] ([email])',
-            $message => '<span style="white-space:pre-line;">[message]</span>',
         ]);
 
         $reminderHostTable = MailTemplate::detailsTable([
@@ -149,11 +147,16 @@ class MailTemplatePost
             ],
             'booking_host' => [
                 'subject'   => __('New booking: [title] on [date]', 'rrze-appointment'),
-                'body'      => sprintf(
-                    __("%s\n\n%s: [title]\n%s: [date]\n%s: [time]\n%s: [location]\n%s: [name] ([email])\n%s: [message]\n[questions]\n\n%s: [cancel_link]\n\n%s: [imprint_link]", 'rrze-appointment'),
-                    __('New booking received:', 'rrze-appointment'),
-                    $appointment, $date, $time, $location, $bookedBy, $message, $cancel, $legal
-                ),
+                'body'      =>
+                    __('New booking received:', 'rrze-appointment') . "\n\n"
+                    . "{$appointment}: [title]\n"
+                    . "{$date}: [date]\n"
+                    . "{$time}: [time]\n"
+                    . "{$location}: [location]\n"
+                    . "{$bookedBy}: [name] ([email])\n"
+                    . "[questions]\n\n"
+                    . "{$cancel}: [cancel_link]\n\n"
+                    . "{$legal}: [imprint_link]",
                 'body_html'  =>
                     '<p>' . __('New booking received:', 'rrze-appointment') . '</p>'
                     . $hostTable

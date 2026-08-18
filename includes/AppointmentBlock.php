@@ -302,7 +302,6 @@ final class AppointmentBlock
             'person_name' => $personName,
             'person_email' => $personEmail,
             'tpl_id' => $templateId,
-            'require_message' => !empty($attributes['requireMessage']),
             'questions' => self::getQuestions($attributes),
             'disable_sso' => !empty($attributes['disableSso']),
             'post_link' => $postLink ? esc_url_raw($postLink) : home_url('/'),

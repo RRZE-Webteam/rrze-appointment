@@ -69,7 +69,6 @@ export interface AppointmentAttributes {
 	useConsultationHours: boolean;
 	tplId: number;
 	bookingCutoff: number;
-	requireMessage: boolean;
 	questions: AppointmentQuestion[];
 	disableSso: boolean;
 	hideWeekends: boolean;
@@ -133,8 +132,6 @@ export interface FaudirImportOptions {
 }
 
 export interface EditorI18n {
-	requireMessageField?: string;
-	requireMessageHelp?: string;
 	hideWeekendsField?: string;
 	hideWeekendsHelp?: string;
 }
@@ -153,10 +150,6 @@ export interface FrontendI18n {
 	dialogIntro?: string;
 	dialogTitle?: string;
 	emailRequired?: string;
-	message?: string;
-	messageOptional?: string;
-	messagePlaceholder?: string;
-	messageRequired?: string;
 	namePlaceholder?: string;
 	nameRequired?: string;
 	networkError?: string;

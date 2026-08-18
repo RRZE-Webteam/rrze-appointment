@@ -50,7 +50,6 @@ export function EditorSidebar({
     personEmail,
     personId,
     personName,
-    requireMessage,
     tplId,
   } = attributes;
   const editorI18n = window.rrze_appointment?.editorI18n || {};
@@ -245,24 +244,6 @@ export function EditorSidebar({
 					onChange={ ( value ) =>
 						setAttributes( { bookingCutoff: Number( value ) } )
 					}
-				/>
-				<ToggleControl
-					label={
-						editorI18n.requireMessageField ||
-						__( 'Require a message', 'rrze-appointment' )
-					}
-					help={
-						editorI18n.requireMessageHelp ||
-						__(
-							'People must enter a message when requesting an appointment.',
-							'rrze-appointment'
-						)
-					}
-					checked={ !! requireMessage }
-					onChange={ ( value ) =>
-						setAttributes( { requireMessage: !! value } )
-					}
-					__nextHasNoMarginBottom
 				/>
 				<ToggleControl
 					label={ __(

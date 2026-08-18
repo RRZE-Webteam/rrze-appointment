@@ -23,7 +23,6 @@ class Settings
             '[person_name]'       => __('Inviting person', 'rrze-appointment'),
             '[name]'              => __('Booking person (name)', 'rrze-appointment'),
             '[email]'             => __('Booking person (email)', 'rrze-appointment'),
-            '[message]'           => __('Booking person (message)', 'rrze-appointment'),
             '[questions]'         => __('Answers to additional questions', 'rrze-appointment'),
             '[confirmation_link]' => __('Link to booking confirmation', 'rrze-appointment'),
             '[cancel_link]'       => __('Link to cancel', 'rrze-appointment'),
@@ -51,6 +50,9 @@ class Settings
 
     public static function renderTemplate(string $template, array $vars): string
     {
+        // Existing custom templates may still contain the removed placeholder.
+        $vars['[message]'] = '';
+
         return str_replace(array_keys($vars), array_values($vars), $template);
     }
 
@@ -222,7 +224,6 @@ class Settings
             '[person_name]'       => 'Prof. Dr. Max Sample',
             '[name]'              => 'Jane Sample',
             '[email]'             => $to,
-            '[message]'           => 'I have a brief question about the topic.',
             '[questions]'         => '',
             '[confirmation_link]' => home_url('/'),
             '[cancel_link]'       => home_url('/'),
