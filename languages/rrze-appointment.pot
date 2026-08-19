@@ -2,14 +2,14 @@
 # This file is distributed under the GNU General Public License Version 3.
 msgid ""
 msgstr ""
-"Project-Id-Version: RRZE Appointment 2.0.2\n"
+"Project-Id-Version: RRZE Appointment 2.0.3\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/rrze-appointment\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-18T14:12:42+00:00\n"
+"POT-Creation-Date: 2026-08-19T14:52:13+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: rrze-appointment\n"
@@ -1390,6 +1390,14 @@ msgid "Appointment duration"
 msgstr ""
 
 #: build/index.js:188
+msgid "Use standard durations"
+msgstr ""
+
+#: build/index.js:188
+msgid "Enter a custom duration"
+msgstr ""
+
+#: build/index.js:188
 msgid "Break between appointments"
 msgstr ""
 
@@ -1471,7 +1479,7 @@ msgid "End time must be after start time."
 msgstr ""
 
 #: build/index.js:191
-msgid "The appointment duration must be divisible by 15 minutes."
+msgid "The appointment duration must be a positive whole number of minutes."
 msgstr ""
 
 #: build/index.js:191

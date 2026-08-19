@@ -47,6 +47,12 @@ interface AvailabilityDialogProps {
 
 type RecurrenceEndMode = 'date' | 'count';
 
+const DURATION_VALUES = [ 15, 30, 45, 60, 75, 90, 120 ];
+const DURATION_OPTIONS = DURATION_VALUES.map( ( minutes ) => ( {
+	label: `${ minutes } min`,
+	value: String( minutes ),
+} ) );
+
 const BREAK_OPTIONS = Array.from( { length: 12 }, ( _, index ) => {
 	const minutes = index * 5;
 	return {
@@ -76,6 +82,10 @@ function usesConsultationPattern( entry: AvailabilityEntry ): boolean {
 	return getAvailabilitySlotCount( entry ) > 1 || entry.breakDuration > 0;
 }
 
+function usesCustomDuration( entry: AvailabilityEntry ): boolean {
+	return ! DURATION_VALUES.includes( entry.duration );
+}
+
 export function AvailabilityDialog( {
 	entries,
 	entry,
@@ -87,6 +97,9 @@ export function AvailabilityDialog( {
 	const [ error, setError ] = useState( '' );
 	const [ usePattern, setUsePattern ] = useState(
 		usesConsultationPattern( entry )
+	);
+	const [ useCustomDuration, setUseCustomDuration ] = useState(
+		usesCustomDuration( entry )
 	);
 	const [ recurrenceEndMode, setRecurrenceEndMode ] =
 		useState< RecurrenceEndMode >(
@@ -100,6 +113,7 @@ export function AvailabilityDialog( {
 		setDraft( entry );
 		setError( '' );
 		setUsePattern( usesConsultationPattern( entry ) );
+		setUseCustomDuration( usesCustomDuration( entry ) );
 		setRecurrenceEndMode(
 			entry.recurrence.count !== undefined ? 'count' : 'date'
 		);
@@ -473,23 +487,77 @@ export function AvailabilityDialog( {
 								</Flex>
 								<Flex gap={ 4 } align="flex-start" wrap>
 									<FlexBlock>
-										<TextControl
-											label={ __(
-												'Appointment duration',
-												'rrze-appointment'
-											) }
-											type="number"
-											min="1"
-											step={ 1 }
-											value={ String( draft.duration ) }
-											onChange={ ( duration ) =>
-												setDraft( {
-													...draft,
-													duration:
-														Number( duration ),
-												} )
-											}
-										/>
+										{ useCustomDuration ? (
+											<TextControl
+												label={ __(
+													'Appointment duration',
+													'rrze-appointment'
+												) }
+												type="number"
+												min="1"
+												step={ 1 }
+												value={ String(
+													draft.duration
+												) }
+												onChange={ ( duration ) => {
+													setDraft( {
+														...draft,
+														duration:
+															Number( duration ),
+													} );
+													setError( '' );
+												} }
+											/>
+										) : (
+											<SelectControl
+												label={ __(
+													'Appointment duration',
+													'rrze-appointment'
+												) }
+												value={ String(
+													draft.duration
+												) }
+												options={ DURATION_OPTIONS }
+												onChange={ ( duration ) => {
+													setDraft( {
+														...draft,
+														duration:
+															Number( duration ),
+													} );
+													setError( '' );
+												} }
+											/>
+										) }
+										<Button
+											variant="link"
+											onClick={ () => {
+												if (
+													useCustomDuration &&
+													! DURATION_VALUES.includes(
+														draft.duration
+													)
+												) {
+													setDraft( {
+														...draft,
+														duration: 30,
+													} );
+												}
+												setUseCustomDuration(
+													! useCustomDuration
+												);
+												setError( '' );
+											} }
+										>
+											{ useCustomDuration
+												? __(
+														'Use standard durations',
+														'rrze-appointment'
+												  )
+												: __(
+														'Enter a custom duration',
+														'rrze-appointment'
+												  ) }
+										</Button>
 									</FlexBlock>
 									<FlexBlock>
 										<SelectControl

@@ -4,8 +4,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: RRZE Appointment\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/rrze-appointment\n"
-"POT-Creation-Date: 2026-08-18T14:12:42+00:00\n"
-"PO-Revision-Date: 2026-08-18 16:14+0200\n"
+"POT-Creation-Date: 2026-08-19T14:52:13+00:00\n"
+"PO-Revision-Date: 2026-08-19 16:55+0200\n"
 "Last-Translator: RRZE Webteam\n"
 "Language-Team: Deutsch (Sie)\n"
 "Language: de\n"
@@ -1434,6 +1434,14 @@ msgid "Appointment duration"
 msgstr "Termindauer"
 
 #: build/index.js:188
+msgid "Use standard durations"
+msgstr "Standarddauer nutzen"
+
+#: build/index.js:188
+msgid "Enter a custom duration"
+msgstr "Benutzerdefinierte Dauer verwenden"
+
+#: build/index.js:188
 msgid "Break between appointments"
 msgstr "Pause zwischen Terminen"
 
@@ -1513,8 +1521,8 @@ msgid "End time must be after start time."
 msgstr "Die Endzeit muss nach der Startzeit liegen."
 
 #: build/index.js:191
-msgid "The appointment duration must be divisible by 15 minutes."
-msgstr "Die Termindauer muss durch 15 Minuten teilbar sein."
+msgid "The appointment duration must be a positive whole number of minutes."
+msgstr "Die Dauer des Termins muss eine positive ganze Zahl in Minuten sein."
 
 #: build/index.js:191
 msgid "Choose the date on which the series ends."
