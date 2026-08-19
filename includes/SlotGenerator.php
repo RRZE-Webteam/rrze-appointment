@@ -34,7 +34,7 @@ class SlotGenerator
             $startMinutes = self::timeToMinutes($window['startTime']);
             $endMinutes = self::timeToMinutes($window['endTime']);
 
-            if ($duration <= 0 || $duration % 15 !== 0) {
+            if ($duration <= 0) {
                 continue;
             }
             if ($breakDuration < 0 || $breakDuration > 55 || $breakDuration % 5 !== 0) {

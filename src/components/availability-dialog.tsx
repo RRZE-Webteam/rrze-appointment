@@ -47,11 +47,6 @@ interface AvailabilityDialogProps {
 
 type RecurrenceEndMode = 'date' | 'count';
 
-const DURATION_OPTIONS = [ 15, 30, 45, 60, 75, 90, 120 ].map( ( minutes ) => ( {
-	label: `${ minutes } min`,
-	value: String( minutes ),
-} ) );
-
 const BREAK_OPTIONS = Array.from( { length: 12 }, ( _, index ) => {
 	const minutes = index * 5;
 	return {
@@ -131,7 +126,7 @@ export function AvailabilityDialog( {
 
 	const disablePattern = () => {
 		const startMinutes = parseTimeToMinutes( draft.startTime ) || 9 * 60;
-		const duration = Math.max( 15, draft.duration || 30 );
+		const duration = Math.max( 1, draft.duration || 30 );
 		setDraft( {
 			...draft,
 			endTime: minutesToTime(
@@ -178,12 +173,12 @@ export function AvailabilityDialog( {
 					breakDuration: 0,
 			  };
 		if (
-			normalizedDraft.duration <= 0 ||
-			normalizedDraft.duration % 15 !== 0
+			! Number.isInteger( normalizedDraft.duration ) ||
+			normalizedDraft.duration <= 0
 		) {
 			setError(
 				__(
-					'The appointment duration must be divisible by 15 minutes.',
+					'The appointment duration must be a positive whole number of minutes.',
 					'rrze-appointment'
 				)
 			);
@@ -478,13 +473,15 @@ export function AvailabilityDialog( {
 								</Flex>
 								<Flex gap={ 4 } align="flex-start" wrap>
 									<FlexBlock>
-										<SelectControl
+										<TextControl
 											label={ __(
 												'Appointment duration',
 												'rrze-appointment'
 											) }
+											type="number"
+											min="1"
+											step={ 1 }
 											value={ String( draft.duration ) }
-											options={ DURATION_OPTIONS }
 											onChange={ ( duration ) =>
 												setDraft( {
 													...draft,
