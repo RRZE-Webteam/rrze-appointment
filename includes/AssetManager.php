@@ -7,34 +7,36 @@ use RRZE\Appointment\Common\CustomException;
 defined('ABSPATH') || exit;
 
 /**
- * Provides runtime data to the frontend and block-editor scripts.
+ * Provides runtime configuration to the public and block-editor scripts.
  */
 final class AssetManager
 {
+    private const FRONTEND_SCRIPT_HANDLE = 'rrze-appointment-view-script';
+    private const EDITOR_SCRIPT_HANDLE = 'rrze-appointment-editor-script';
+    private const CONFIGURATION_OBJECT = 'rrze_appointment';
+    private const PERSONS_REST_PATH = '/rrze/v2/appointment/persons';
+    private const DEFAULT_RECURRENCE_LIMIT = 52;
+
     /**
      * Localizes frontend booking state and translated interface labels.
      */
     public function enqueueFrontendAssets(): void
     {
-        try {
-            $viewHandle = 'rrze-appointment-view-script';
-            if (!wp_script_is($viewHandle, 'registered')) {
-                return;
-            }
+        if (!wp_script_is(self::FRONTEND_SCRIPT_HANDLE, 'registered')) {
+            return;
+        }
 
-            $booked = (array) get_option('rrze_appointment_booked_slots', []);
-            $pending = TokenManager::getPendingSlots();
-            wp_localize_script($viewHandle, 'rrze_appointment', [
-                'ajaxUrl' => admin_url('admin-ajax.php'),
-                'restUrl' => rest_url('rrze/v2/appointment/booker'),
-                'nonce' => wp_create_nonce('rrze_appointment_book'),
-                'locale' => str_replace('_', '-', determine_locale()),
-                'bookedSlots' => array_values(array_unique(array_merge($booked, $pending))),
-                'i18n' => $this->getFrontendTranslations(),
-            ]);
+        try {
+            $configuration = $this->getFrontendConfiguration();
         } catch (CustomException $exception) {
             return;
         }
+
+        wp_localize_script(
+            self::FRONTEND_SCRIPT_HANDLE,
+            self::CONFIGURATION_OBJECT,
+            $configuration
+        );
     }
 
     /**
@@ -42,33 +44,86 @@ final class AssetManager
      */
     public function enqueueEditorAssets(): void
     {
+        if (!wp_script_is(self::EDITOR_SCRIPT_HANDLE, 'registered')) {
+            return;
+        }
+
         try {
-            $data = [
-                'faudir' => [
-                    'available' => post_type_exists('custom_person')
-                        && class_exists('\RRZE\FAUdir\API')
-                        && class_exists('\RRZE\FAUdir\Config'),
-                    'personsPath' => '/rrze/v2/appointment/persons',
-                ],
-                'recurrenceLimit' => (int) Settings::get('recurrence_limit'),
-                'editorI18n' => $this->getEditorTranslations(),
-            ];
+            $configuration = $this->getEditorConfiguration();
         } catch (CustomException $exception) {
-            $data = [
-                'faudir' => [
-                    'available' => false,
-                    'personsPath' => '/rrze/v2/appointment/persons',
-                ],
-                'recurrenceLimit' => 52,
-                'editorI18n' => $this->getEditorTranslations(),
-            ];
+            $configuration = $this->getDefaultEditorConfiguration();
         }
 
         wp_add_inline_script(
-            'rrze-appointment-editor-script',
-            'window.rrze_appointment = ' . wp_json_encode($data) . ';',
+            self::EDITOR_SCRIPT_HANDLE,
+            'window.' . self::CONFIGURATION_OBJECT . ' = ' . wp_json_encode($configuration) . ';',
             'before'
         );
+    }
+
+    /**
+     * Builds configuration consumed by the public booking interface.
+     *
+     * @return array<string, mixed>
+     * @throws CustomException If pending-slot state cannot be loaded.
+     */
+    private function getFrontendConfiguration(): array
+    {
+        $bookedSlots = (array) get_option(Bookings::SLOTS_OPTION, []);
+        $pendingSlots = TokenManager::getPendingSlots();
+
+        return [
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'restUrl' => rest_url('rrze/v2/appointment/booker'),
+            'nonce' => wp_create_nonce('rrze_appointment_book'),
+            'locale' => str_replace('_', '-', determine_locale()),
+            'bookedSlots' => array_values(array_unique(array_merge($bookedSlots, $pendingSlots))),
+            'i18n' => $this->getFrontendTranslations(),
+        ];
+    }
+
+    /**
+     * Builds configuration consumed by the appointment block editor.
+     *
+     * @return array<string, mixed>
+     */
+    private function getEditorConfiguration(): array
+    {
+        return [
+            'faudir' => [
+                'available' => $this->isFaudirAvailable(),
+                'personsPath' => self::PERSONS_REST_PATH,
+            ],
+            'recurrenceLimit' => (int) Settings::get('recurrence_limit'),
+            'editorI18n' => $this->getEditorTranslations(),
+        ];
+    }
+
+    /**
+     * Returns safe editor defaults when optional configuration is unavailable.
+     *
+     * @return array<string, mixed>
+     */
+    private function getDefaultEditorConfiguration(): array
+    {
+        return [
+            'faudir' => [
+                'available' => false,
+                'personsPath' => self::PERSONS_REST_PATH,
+            ],
+            'recurrenceLimit' => self::DEFAULT_RECURRENCE_LIMIT,
+            'editorI18n' => $this->getEditorTranslations(),
+        ];
+    }
+
+    /**
+     * Determines whether the optional FAUdir integration can be used.
+     */
+    private function isFaudirAvailable(): bool
+    {
+        return post_type_exists('custom_person')
+            && class_exists('\RRZE\FAUdir\API')
+            && class_exists('\RRZE\FAUdir\Config');
     }
 
     /**
