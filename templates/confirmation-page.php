@@ -156,11 +156,11 @@ $pageTitle = sprintf(
             color: #6b3a00;
         }
 
-        .rrze-appointment-confirmation.is-waitlist-optout .rrze-appointment-confirmation__action {
+        .rrze-appointment-confirmation.is-waitlist-optout .rrze-appointment-confirmation__action:not(.rrze-appointment-confirmation__action--secondary) {
             background: #04316a;
         }
 
-        .rrze-appointment-confirmation.is-waitlist-optout .rrze-appointment-confirmation__action:hover {
+        .rrze-appointment-confirmation.is-waitlist-optout .rrze-appointment-confirmation__action:not(.rrze-appointment-confirmation__action--secondary):hover {
             background: #021f46;
         }
 
@@ -355,6 +355,10 @@ $pageTitle = sprintf(
             background: transparent;
             color: #04316a;
             font-size: 0.875rem;
+        }
+
+        button.rrze-appointment-confirmation__action--secondary {
+            border: 1px solid #04316a;
         }
 
         .rrze-appointment-confirmation__action--secondary:hover {
