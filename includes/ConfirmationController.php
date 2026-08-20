@@ -11,6 +11,28 @@ defined('ABSPATH') || exit;
  */
 final class ConfirmationController
 {
+    private const CONFIRMATION_QUERY_KEY = 'rrze_appt_confirm';
+    private const QUESTIONS_NONCE_FIELD = 'rrze_appt_questions_nonce';
+    private const QUESTIONS_FIELD = 'question_answers';
+    private const QUESTIONS_NONCE_PREFIX = 'rrze_appointment_confirm_questions_';
+    private const MAX_ANSWER_LENGTH = 5000;
+    private const BOOKER_TEMPLATE_TYPE = 'booking_booker';
+    private const HOST_TEMPLATE_TYPE = 'booking_host';
+    private const CALENDAR_FILE_PREFIX = 'rrze_appt_';
+    private const PERSISTABLE_META_KEYS = [
+        'title',
+        'location',
+        'person_id',
+        'person_name',
+        'person_email',
+        'booker_email',
+        'booker_name',
+        'booker_waitlist',
+        'waitlist_notified_slots',
+        'tpl_id',
+        'post_link',
+    ];
+
     private PublicPageRenderer $renderer;
 
     /**
@@ -27,15 +49,15 @@ final class ConfirmationController
     public function handleConfirmation(): void
     {
         try {
-            $rawToken = wp_unslash($_GET['rrze_appt_confirm'] ?? '');
-            $token = is_string($rawToken) ? sanitize_text_field($rawToken) : '';
+            $token = $this->getConfirmationToken();
             if ($token === '') {
                 return;
             }
 
             $pendingEntry = TokenManager::getPending($token);
-            if (!$pendingEntry) {
+            if (!is_array($pendingEntry)) {
                 $this->renderInvalidConfirmation();
+                return;
             }
 
             $pendingMeta = is_array($pendingEntry['meta'] ?? null) ? $pendingEntry['meta'] : [];
@@ -49,18 +71,21 @@ final class ConfirmationController
                 $questions,
                 $appointmentDetails
             );
+            if ($questionAnswers === null) {
+                return;
+            }
 
             $entry = TokenManager::confirmPending($token);
-            if (!$entry) {
+            if (!is_array($entry)) {
                 $this->renderInvalidConfirmation();
+                return;
             }
 
             $slot = (string) $entry['slot'];
             $meta = $this->getPersistableBookingMeta(
                 is_array($entry['meta'] ?? null) ? $entry['meta'] : []
             );
-            [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
-            [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
+            [$datePart, $startTime, $endTime] = $this->parseSlot($slot);
 
             $this->markSlotAsBooked($slot);
             Reminder::scheduleForSlot($slot, $meta);
@@ -92,29 +117,28 @@ final class ConfirmationController
      *
      * @param array<int, array<string, mixed>> $questions          Configured questions.
      * @param array<string, string>            $appointmentDetails Public appointment details.
-     * @return array<int, array{label: string, answer: string}>
+     * @return array<int, array{label: string, answer: string}>|null Null after rendering a response.
      */
     private function collectQuestionAnswers(
         string $token,
         array $questions,
         array $appointmentDetails
-    ): array {
+    ): ?array {
         if ($questions === []) {
             return [];
         }
 
-        $isPost = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'POST';
-        if (!$isPost) {
+        if ($this->getRequestMethod() !== 'POST') {
             $this->renderer->renderConfirmation($token, $questions, [], '', '', $appointmentDetails);
+            return null;
         }
 
-        $rawNonce = wp_unslash($_POST['rrze_appt_questions_nonce'] ?? '');
-        $nonce = is_string($rawNonce) ? sanitize_text_field($rawNonce) : '';
-        $postedAnswers = wp_unslash($_POST['question_answers'] ?? []);
+        $nonce = $this->getPostText(self::QUESTIONS_NONCE_FIELD);
+        $postedAnswers = wp_unslash($_POST[self::QUESTIONS_FIELD] ?? []);
         $postedAnswers = is_array($postedAnswers) ? $postedAnswers : [];
         $validation = $this->validateQuestionAnswers($questions, $postedAnswers);
 
-        if (!wp_verify_nonce($nonce, 'rrze_appointment_confirm_questions_' . $token)) {
+        if (!wp_verify_nonce($nonce, self::QUESTIONS_NONCE_PREFIX . $token)) {
             $this->renderer->renderConfirmation(
                 $token,
                 $questions,
@@ -123,6 +147,7 @@ final class ConfirmationController
                 '',
                 $appointmentDetails
             );
+            return null;
         }
         if ($validation['error'] !== '') {
             $this->renderer->renderConfirmation(
@@ -133,9 +158,59 @@ final class ConfirmationController
                 $validation['errorField'],
                 $appointmentDetails
             );
+            return null;
         }
 
         return $validation['answers'];
+    }
+
+    /**
+     * Reads the confirmation token from the query string.
+     */
+    private function getConfirmationToken(): string
+    {
+        $token = wp_unslash($_GET[self::CONFIRMATION_QUERY_KEY] ?? '');
+        return is_string($token) ? sanitize_text_field($token) : '';
+    }
+
+    /**
+     * Reads and sanitizes a scalar form value.
+     */
+    private function getPostText(string $key): string
+    {
+        $value = wp_unslash($_POST[$key] ?? '');
+        return is_string($value) ? sanitize_text_field($value) : '';
+    }
+
+    /**
+     * Returns the normalized HTTP request method.
+     */
+    private function getRequestMethod(): string
+    {
+        return strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    }
+
+    /**
+     * Truncates an answer without splitting multibyte characters when possible.
+     */
+    private function truncateAnswer(string $answer): string
+    {
+        return function_exists('mb_substr')
+            ? mb_substr($answer, 0, self::MAX_ANSWER_LENGTH)
+            : substr($answer, 0, self::MAX_ANSWER_LENGTH);
+    }
+
+    /**
+     * Splits a stored slot into its date, start time, and end time.
+     *
+     * @return array{0: string, 1: string, 2: string}
+     */
+    private function parseSlot(string $slot): array
+    {
+        [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
+        [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
+
+        return [$datePart, $startTime, $endTime];
     }
 
     /**
@@ -168,9 +243,7 @@ final class ConfirmationController
             $answer = ($question['type'] ?? '') === 'select'
                 ? sanitize_text_field($answer)
                 : sanitize_textarea_field($answer);
-            $answer = trim(function_exists('mb_substr')
-                ? mb_substr($answer, 0, 5000)
-                : substr($answer, 0, 5000));
+            $answer = trim($this->truncateAnswer($answer));
             $values[$questionId] = $answer;
 
             if (!empty($question['required']) && $answer === '' && $error === '') {
@@ -218,19 +291,7 @@ final class ConfirmationController
      */
     private function getPersistableBookingMeta(array $meta): array
     {
-        return array_intersect_key($meta, array_flip([
-            'title',
-            'location',
-            'person_id',
-            'person_name',
-            'person_email',
-            'booker_email',
-            'booker_name',
-            'booker_waitlist',
-            'waitlist_notified_slots',
-            'tpl_id',
-            'post_link',
-        ]));
+        return array_intersect_key($meta, array_flip(self::PERSISTABLE_META_KEYS));
     }
 
     /**
@@ -238,9 +299,9 @@ final class ConfirmationController
      */
     private function markSlotAsBooked(string $slot): void
     {
-        $booked = (array) get_option('rrze_appointment_booked_slots', []);
+        $booked = (array) get_option(Bookings::SLOTS_OPTION, []);
         $booked[] = $slot;
-        update_option('rrze_appointment_booked_slots', array_unique($booked), false);
+        update_option(Bookings::SLOTS_OPTION, array_unique($booked), false);
     }
 
     /**
@@ -284,11 +345,10 @@ final class ConfirmationController
         array $meta
     ): string {
         $timezone = wp_timezone();
-        $start = new \DateTime($datePart . 'T' . $startTime . ':00', $timezone);
-        $end = new \DateTime($datePart . 'T' . $endTime . ':00', $timezone);
-        $start->setTimezone(new \DateTimeZone('UTC'));
-        $end->setTimezone(new \DateTimeZone('UTC'));
-        $now = new \DateTime('now', new \DateTimeZone('UTC'));
+        $utc = new \DateTimeZone('UTC');
+        $start = new \DateTimeImmutable($datePart . 'T' . $startTime . ':00', $timezone);
+        $end = new \DateTimeImmutable($datePart . 'T' . $endTime . ':00', $timezone);
+        $now = new \DateTimeImmutable('now', $utc);
 
         $lines = [
             'BEGIN:VCALENDAR',
@@ -299,8 +359,8 @@ final class ConfirmationController
             'BEGIN:VEVENT',
             'UID:' . wp_generate_uuid4() . '@' . parse_url(home_url(), PHP_URL_HOST),
             'DTSTAMP:' . $now->format('Ymd\THis\Z'),
-            'DTSTART:' . $start->format('Ymd\THis\Z'),
-            'DTEND:' . $end->format('Ymd\THis\Z'),
+            'DTSTART:' . $start->setTimezone($utc)->format('Ymd\THis\Z'),
+            'DTEND:' . $end->setTimezone($utc)->format('Ymd\THis\Z'),
             'SUMMARY:' . $this->escapeCalendarValue((string) ($meta['title'] ?? '')),
             'LOCATION:' . $this->escapeCalendarValue((string) ($meta['location'] ?? '')),
             'END:VEVENT',
@@ -315,6 +375,7 @@ final class ConfirmationController
      */
     private function escapeCalendarValue(string $value): string
     {
+        $value = str_replace(["\r\n", "\r"], "\n", $value);
         return str_replace(['\\', ';', ',', "\n"], ['\\\\', '\;', '\,', '\n'], $value);
     }
 
@@ -342,31 +403,63 @@ final class ConfirmationController
             $questionAnswers
         );
 
-        $temporaryFile = tempnam(get_temp_dir(), 'rrze_appt_') . '.ics';
-        file_put_contents($temporaryFile, $calendarContent);
-
-        Settings::sendMail(
-            (string) ($meta['booker_email'] ?? ''),
-            $bookerSubject,
-            $bookerPlain,
-            $bookerHtml,
-            [$temporaryFile],
-            MailTemplate::STATUS_SUCCESS
-        );
-
-        $hostEmail = sanitize_email((string) ($meta['person_email'] ?? ''));
-        if ($hostEmail !== '') {
+        $temporaryFile = $this->createTemporaryCalendarFile($calendarContent);
+        try {
             Settings::sendMail(
-                $hostEmail,
-                $hostSubject,
-                $hostPlain,
-                $hostHtml,
+                (string) ($meta['booker_email'] ?? ''),
+                $bookerSubject,
+                $bookerPlain,
+                $bookerHtml,
                 [$temporaryFile],
                 MailTemplate::STATUS_SUCCESS
             );
+
+            $hostEmail = sanitize_email((string) ($meta['person_email'] ?? ''));
+            if ($hostEmail !== '') {
+                Settings::sendMail(
+                    $hostEmail,
+                    $hostSubject,
+                    $hostPlain,
+                    $hostHtml,
+                    [$temporaryFile],
+                    MailTemplate::STATUS_SUCCESS
+                );
+            }
+        } finally {
+            wp_delete_file($temporaryFile);
+        }
+    }
+
+    /**
+     * Writes calendar content to a temporary .ics file.
+     *
+     * @throws CustomException When a temporary attachment cannot be created.
+     */
+    private function createTemporaryCalendarFile(string $calendarContent): string
+    {
+        $temporaryFile = tempnam(get_temp_dir(), self::CALENDAR_FILE_PREFIX);
+        if ($temporaryFile === false) {
+            throw new CustomException(
+                __('The calendar attachment could not be created.', 'rrze-appointment')
+            );
         }
 
-        @unlink($temporaryFile);
+        $calendarFile = $temporaryFile . '.ics';
+        if (!rename($temporaryFile, $calendarFile)) {
+            wp_delete_file($temporaryFile);
+            throw new CustomException(
+                __('The calendar attachment could not be created.', 'rrze-appointment')
+            );
+        }
+
+        if (file_put_contents($calendarFile, $calendarContent, LOCK_EX) === false) {
+            wp_delete_file($calendarFile);
+            throw new CustomException(
+                __('The calendar attachment could not be created.', 'rrze-appointment')
+            );
+        }
+
+        return $calendarFile;
     }
 
     /**
@@ -378,9 +471,9 @@ final class ConfirmationController
     private function renderBookerEmail(int $templateId, array $variables): array
     {
         $template = $templateId > 0
-            ? (MailTemplatePost::getTemplateForType($templateId, 'booking_booker') ?? [])
+            ? (MailTemplatePost::getTemplateForType($templateId, self::BOOKER_TEMPLATE_TYPE) ?? [])
             : [];
-        $default = MailTemplatePost::getDefault('booking_booker');
+        $default = MailTemplatePost::getDefault(self::BOOKER_TEMPLATE_TYPE);
         $subject = Settings::renderTemplate(
             !empty($template['subject']) ? $template['subject'] : $default['subject'],
             $variables
@@ -409,9 +502,9 @@ final class ConfirmationController
         array $questionAnswers
     ): array {
         $template = $templateId > 0
-            ? (MailTemplatePost::getTemplateForType($templateId, 'booking_host') ?? [])
+            ? (MailTemplatePost::getTemplateForType($templateId, self::HOST_TEMPLATE_TYPE) ?? [])
             : [];
-        $default = MailTemplatePost::getDefault('booking_host');
+        $default = MailTemplatePost::getDefault(self::HOST_TEMPLATE_TYPE);
         $subject = Settings::renderTemplate(
             !empty($template['subject']) ? $template['subject'] : $default['subject'],
             $variables
