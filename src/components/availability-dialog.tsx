@@ -20,6 +20,7 @@ import {
 	getAvailabilityDates,
 	getAvailabilitySlotCount,
 	hasAvailabilityConflict,
+	usesConsultationPattern,
 } from '../availability';
 import { getRecurrenceWeekdays } from '../recurrence';
 import type {
@@ -76,10 +77,6 @@ const WEEKDAY_OPTIONS: Array< {
 
 function getAnchorWeekday( date: string ): RecurrenceWeekday {
 	return ( parseDateString( date )?.getDay() || 0 ) as RecurrenceWeekday;
-}
-
-function usesConsultationPattern( entry: AvailabilityEntry ): boolean {
-	return getAvailabilitySlotCount( entry ) > 1 || entry.breakDuration > 0;
 }
 
 function usesCustomDuration( entry: AvailabilityEntry ): boolean {

@@ -29,12 +29,12 @@ class SlotGenerator
 
         foreach ($windows as $window) {
             $date = $window['date'];
-            $duration = (int) $window['duration'];
+            $duration = self::positiveWholeMinutes($window['duration']);
             $breakDuration = (int) $window['breakDuration'];
             $startMinutes = self::timeToMinutes($window['startTime']);
             $endMinutes = self::timeToMinutes($window['endTime']);
 
-            if ($duration <= 0) {
+            if ($duration === null) {
                 continue;
             }
             if ($breakDuration < 0 || $breakDuration > 55 || $breakDuration % 5 !== 0) {
@@ -139,7 +139,7 @@ class SlotGenerator
                         'endTime' => is_string($entry['endTime'] ?? null)
                             ? $entry['endTime']
                             : '17:00',
-                        'duration' => (int) ($entry['duration'] ?? 30),
+                        'duration' => $entry['duration'] ?? 30,
                         'breakDuration' => (int) ($entry['breakDuration'] ?? 0),
                         'removedSlots' => is_array($override['removedSlots'] ?? null)
                             ? $override['removedSlots']
@@ -155,7 +155,7 @@ class SlotGenerator
 
         $startTime = $attrs['startTime'] ?? '09:00';
         $endTime = $attrs['endTime'] ?? '17:00';
-        $duration = (int) ($attrs['duration'] ?? 30);
+        $duration = $attrs['duration'] ?? 30;
         $breakDuration = (int) ($attrs['breakDuration'] ?? 0);
         $windows = [];
 
@@ -174,7 +174,7 @@ class SlotGenerator
                 'startTime' => $override['startTime'] ?? $startTime,
                 'endTime' => $override['endTime'] ?? $endTime,
                 'duration' => isset($override['duration'])
-                    ? (int) $override['duration']
+                    ? $override['duration']
                     : $duration,
                 'breakDuration' => isset($override['breakDuration'])
                     ? (int) $override['breakDuration']
@@ -283,6 +283,21 @@ class SlotGenerator
             return null;
         }
         return $hours * 60 + $minutes;
+    }
+
+    private static function positiveWholeMinutes($value): ?int
+    {
+        if (!is_int($value) && !is_float($value) && !is_string($value)) {
+            return null;
+        }
+
+        $minutes = filter_var(
+            $value,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1]]
+        );
+
+        return $minutes === false ? null : $minutes;
     }
 
     private static function minutesToTime(int $minutes): string
