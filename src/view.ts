@@ -7,6 +7,7 @@ import type {
 	FrontendSlot,
 	ParsedSlotValue,
 } from './types';
+import { isBookingClosed, isBookingNotOpen } from './booking-window';
 import {
 	formatDateDisplay,
 	formatDateLongDisplay,
@@ -208,6 +209,10 @@ import {
 				form.dataset.bookingCutoff || '0',
 				10
 			);
+			const bookingMaxAdvance = parseInt(
+				form.dataset.bookingMaxAdvance || '0',
+				10
+			);
 			const disableSso = form.dataset.disableSso === '1';
 			const hideWeekends = form.dataset.hideWeekends === '1';
 
@@ -231,15 +236,22 @@ import {
 			}
 
 			function isSlotCutoff( slotValue: string ): boolean {
-				if ( ! bookingCutoff ) {
-					return false;
-				}
 				const slotStart = parseSlotStart( slotValue );
 				if ( ! slotStart ) {
 					return false;
 				}
-				return (
-					slotStart.getTime() - Date.now() < bookingCutoff * 60 * 1000
+				return isBookingClosed( slotStart, new Date(), bookingCutoff );
+			}
+
+			function isSlotTooFarInAdvance( slotValue: string ): boolean {
+				const slotStart = parseSlotStart( slotValue );
+				if ( ! slotStart ) {
+					return false;
+				}
+				return isBookingNotOpen(
+					slotStart,
+					new Date(),
+					bookingMaxAdvance
 				);
 			}
 
@@ -247,7 +259,8 @@ import {
 				return (
 					bookedSlots.has( slotValue ) ||
 					isSlotInPast( slotValue ) ||
-					isSlotCutoff( slotValue )
+					isSlotCutoff( slotValue ) ||
+					isSlotTooFarInAdvance( slotValue )
 				);
 			}
 

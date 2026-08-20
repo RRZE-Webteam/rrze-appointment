@@ -69,6 +69,7 @@ export interface AppointmentAttributes {
 	useConsultationHours: boolean;
 	tplId: number;
 	bookingCutoff: number;
+	bookingMaxAdvance: number;
 	questions: AppointmentQuestion[];
 	disableSso: boolean;
 	hideWeekends: boolean;

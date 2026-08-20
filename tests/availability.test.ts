@@ -48,6 +48,7 @@ function createAttributes(
 		useConsultationHours: false,
 		tplId: 0,
 		bookingCutoff: 0,
+		bookingMaxAdvance: 0,
 		disableSso: false,
 		hideWeekends: false,
 		style: 'light',

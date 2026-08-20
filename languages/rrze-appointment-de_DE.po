@@ -4,8 +4,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: RRZE Appointment\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/rrze-appointment\n"
-"POT-Creation-Date: 2026-08-19T14:52:13+00:00\n"
-"PO-Revision-Date: 2026-08-19 16:54+0200\n"
+"POT-Creation-Date: 2026-08-20T07:55:32+00:00\n"
+"PO-Revision-Date: 2026-08-20 09:55+0200\n"
 "Last-Translator: RRZE Webteam\n"
 "Language-Team: Deutsch\n"
 "Language: de_DE\n"
@@ -76,6 +76,10 @@ msgstr "Dieser Termin ist nicht Teil des veröffentlichten Terminblocks."
 #: includes/AppointmentBlock.php:218
 msgid "This appointment can no longer be booked."
 msgstr "Dieser Termin kann nicht mehr gebucht werden."
+
+#: includes/AppointmentBlock.php:225
+msgid "This appointment cannot be booked yet."
+msgstr "Dieser Termin kann noch nicht gebucht werden."
 
 #: includes/AppointmentBlock.php:226
 msgid "The configured host is invalid."
@@ -1669,6 +1673,38 @@ msgstr "Optional. Link zu einem Raum, einer Karte oder einem Video-Meeting."
 #: build/index.js:195
 msgid "Booking rules"
 msgstr "Buchungsbedingungen"
+
+#: build/index.js:195
+msgid "Earliest booking time"
+msgstr "Frühester Buchungszeitpunkt"
+
+#: build/index.js:195
+msgid "How far in advance an appointment can first be booked."
+msgstr "Legt fest, wie lange im Voraus ein Termin erstmals gebucht werden kann."
+
+#: build/index.js:195
+msgid "No advance limit"
+msgstr "Keine Begrenzung"
+
+#: build/index.js:195
+msgid "14 days before"
+msgstr "14 Tage vorher"
+
+#: build/index.js:195
+msgid "7 days before"
+msgstr "7 Tage vorher"
+
+#: build/index.js:195
+msgid "3 days before"
+msgstr "3 Tage vorher"
+
+#: build/index.js:195
+msgid "Custom number of days"
+msgstr "Benutzerdefinierte Anzahl an Tagen"
+
+#: build/index.js:195
+msgid "Days before appointment"
+msgstr "Tage vor dem Termin"
 
 #: build/index.js:195
 msgid "Latest booking time"

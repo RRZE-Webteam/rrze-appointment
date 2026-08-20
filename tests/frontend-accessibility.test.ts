@@ -1,4 +1,7 @@
-function renderAppointment( bookedSlots: string[] = [] ): HTMLFormElement {
+function renderAppointment(
+	bookedSlots: string[] = [],
+	bookingMaxAdvance = 0
+): HTMLFormElement {
 	document.body.innerHTML = `
 		<form
 			class="rrze-appointment"
@@ -6,6 +9,7 @@ function renderAppointment( bookedSlots: string[] = [] ): HTMLFormElement {
 			data-hide-weekends="0"
 			data-post-id="1"
 			data-block-id="test"
+			data-booking-max-advance="${ bookingMaxAdvance }"
 		>
 			<fieldset>
 				<legend>Office hours</legend>
@@ -53,6 +57,7 @@ describe( 'frontend calendar accessibility', () => {
 	afterEach( () => {
 		document.body.innerHTML = '';
 		delete window.rrze_appointment;
+		jest.useRealTimers();
 	} );
 
 	it( 'provides localized control names and preserves meaningful focus', () => {
@@ -125,6 +130,23 @@ describe( 'frontend calendar accessibility', () => {
 
 		expect( status?.textContent ).toBe( 'No time slots available.' );
 		expect( status?.classList.contains( 'is-hidden' ) ).toBe( false );
+	} );
+
+	it( 'only exposes appointments inside the maximum advance window', () => {
+		jest.useFakeTimers();
+		jest.setSystemTime( new Date( '2099-01-10T09:00:00' ) );
+
+		const form = renderAppointment( [], 14 * 24 * 60 );
+		const availableDays = Array.from(
+			form.querySelectorAll< HTMLButtonElement >(
+				'.rrze-appointment__calendar-day.is-available'
+			)
+		);
+
+		expect( availableDays ).toHaveLength( 1 );
+		expect( availableDays[ 0 ].getAttribute( 'aria-label' ) ).toContain(
+			'20 January 2099'
+		);
 	} );
 
 	it( 'isolates the modal, associates errors, and restores focus', () => {

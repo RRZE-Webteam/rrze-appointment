@@ -208,14 +208,22 @@ final class AppointmentBlock
     private static function validateContext(\WP_Post $post, array $attributes, string $slot)
     {
         $bookingCutoff = max(0, (int) ($attributes['bookingCutoff'] ?? 0));
+        $bookingMaxAdvance = max(0, (int) ($attributes['bookingMaxAdvance'] ?? 0));
         $slotStart = self::getSlotStart($slot);
+        $now = current_datetime();
         if (
             !$slotStart
-            || $slotStart->getTimestamp() <= current_datetime()->getTimestamp() + ($bookingCutoff * MINUTE_IN_SECONDS)
+            || BookingWindow::isClosed($slotStart, $now, $bookingCutoff)
         ) {
             return new \WP_Error(
                 'rrze_appointment_booking_cutoff',
                 __('This appointment can no longer be booked.', 'rrze-appointment')
+            );
+        }
+        if (BookingWindow::isNotOpen($slotStart, $now, $bookingMaxAdvance)) {
+            return new \WP_Error(
+                'rrze_appointment_booking_not_open',
+                __('This appointment cannot be booked yet.', 'rrze-appointment')
             );
         }
 

@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-19T14:52:13+00:00\n"
+"POT-Creation-Date: 2026-08-20T07:55:32+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: rrze-appointment\n"
@@ -77,6 +77,10 @@ msgstr ""
 
 #: includes/AppointmentBlock.php:218
 msgid "This appointment can no longer be booked."
+msgstr ""
+
+#: includes/AppointmentBlock.php:225
+msgid "This appointment cannot be booked yet."
 msgstr ""
 
 #: includes/AppointmentBlock.php:226
@@ -1614,6 +1618,38 @@ msgstr ""
 
 #: build/index.js:195
 msgid "Booking rules"
+msgstr ""
+
+#: build/index.js:195
+msgid "Earliest booking time"
+msgstr ""
+
+#: build/index.js:195
+msgid "How far in advance an appointment can first be booked."
+msgstr ""
+
+#: build/index.js:195
+msgid "No advance limit"
+msgstr ""
+
+#: build/index.js:195
+msgid "14 days before"
+msgstr ""
+
+#: build/index.js:195
+msgid "7 days before"
+msgstr ""
+
+#: build/index.js:195
+msgid "3 days before"
+msgstr ""
+
+#: build/index.js:195
+msgid "Custom number of days"
+msgstr ""
+
+#: build/index.js:195
+msgid "Days before appointment"
 msgstr ""
 
 #: build/index.js:195
