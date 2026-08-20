@@ -401,6 +401,25 @@ describe( 'availability editor model', () => {
 		).toBe( 3 );
 	} );
 
+	it( 'generates slots for any positive whole-minute duration', () => {
+		const attributes = createAttributes( {
+			availabilities: [
+				createEntry( 'custom-duration', {
+					endTime: '10:00',
+					duration: 17,
+				} ),
+			],
+		} );
+
+		expect(
+			generateTimeSlots( attributes ).map( ( slot ) => slot.value )
+		).toEqual( [
+			'2026-08-03 09:00-09:17',
+			'2026-08-03 09:17-09:34',
+			'2026-08-03 09:34-09:51',
+		] );
+	} );
+
 	it( 'formats availability dates with their weekday', () => {
 		expect( formatDateWithWeekdayDisplay( '2026-08-03' ) ).toBe(
 			'Montag, 03.08.2026'

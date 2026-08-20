@@ -371,8 +371,8 @@ export function generateTimeSlots(
 		} = window;
 		if (
 			! Number.isFinite( duration ) ||
+			! Number.isInteger( duration ) ||
 			duration <= 0 ||
-			duration % 15 !== 0 ||
 			! Number.isFinite( breakDuration ) ||
 			breakDuration < 0 ||
 			breakDuration > 55 ||
