@@ -4,12 +4,25 @@ namespace RRZE\Appointment;
 
 defined('ABSPATH') || exit;
 
+/**
+ * Resolves trusted appointment data from published block attributes.
+ *
+ * Client-supplied block data is used only to locate a matching published
+ * block. All booking data returned by this class is read from that block and
+ * validated again on the server.
+ */
 final class AppointmentBlock
 {
     private const BLOCK_NAME = 'rrze/appointment';
+    private const FINGERPRINT_PATTERN = '/^[a-f0-9]{64}$/';
+    private const SLOT_PATTERN = '/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})-\d{2}:\d{2}$/';
+    private const QUESTION_DATA_USE_MAX_LENGTH = 1000;
 
     /**
-     * Return the valid additional questions stored on a block.
+     * Returns the valid additional questions stored on a block.
+     *
+     * @param array<string, mixed> $attributes Raw block attributes.
+     * @return array<int, array{id: string, label: string, dataUse: string, type: string, required: bool, options: array<int, string>}>
      */
     public static function getQuestions(array $attributes): array
     {
@@ -25,42 +38,13 @@ final class AppointmentBlock
                 continue;
             }
 
-            $id = sanitize_key((string) ($rawQuestion['id'] ?? ''));
-            $label = sanitize_text_field((string) ($rawQuestion['label'] ?? ''));
-            $dataUse = sanitize_textarea_field((string) ($rawQuestion['dataUse'] ?? ''));
-            $dataUse = trim(function_exists('mb_substr')
-                ? mb_substr($dataUse, 0, 1000)
-                : substr($dataUse, 0, 1000));
-            $type = ($rawQuestion['type'] ?? '') === 'select' ? 'select' : 'text';
-            if ($id === '' || $label === '' || $dataUse === '' || isset($knownIds[$id])) {
+            $question = self::normalizeQuestion($rawQuestion, $knownIds);
+            if ($question === null) {
                 continue;
             }
 
-            $options = [];
-            if ($type === 'select' && is_array($rawQuestion['options'] ?? null)) {
-                foreach ($rawQuestion['options'] as $rawOption) {
-                    if (!is_scalar($rawOption)) {
-                        continue;
-                    }
-                    $option = sanitize_text_field((string) $rawOption);
-                    if ($option !== '' && !in_array($option, $options, true)) {
-                        $options[] = $option;
-                    }
-                }
-            }
-            if ($type === 'select' && empty($options)) {
-                continue;
-            }
-
-            $knownIds[$id] = true;
-            $questions[] = [
-                'id' => $id,
-                'label' => $label,
-                'dataUse' => $dataUse,
-                'type' => $type,
-                'required' => !empty($rawQuestion['required']),
-                'options' => $options,
-            ];
+            $knownIds[$question['id']] = true;
+            $questions[] = $question;
         }
 
         return $questions;
@@ -71,10 +55,13 @@ final class AppointmentBlock
      *
      * The selector is not trusted as booking data. It only identifies the block
      * whose attributes are loaded again from the published post.
+     *
+     * @param array<string, mixed> $attributes Block attributes to fingerprint.
      */
     public static function fingerprint(array $attributes): string
     {
-        $normalized = self::sortRecursively($attributes);
+        $normalized = self::sortAssociativeArraysRecursively($attributes);
+
         return hash_hmac(
             'sha256',
             (string) wp_json_encode($normalized),
@@ -85,7 +72,11 @@ final class AppointmentBlock
     /**
      * Resolve and validate the booking context from a published post.
      *
-     * @return array|\WP_Error
+     * @param int    $postId       Published post containing the appointment block.
+     * @param string $fingerprint  HMAC fingerprint of the raw block attributes.
+     * @param string $slot         Canonical appointment slot identifier.
+     * @param bool   $allowNotOpen Whether to allow a future booking window.
+     * @return array<string, mixed>|\WP_Error Validated booking context or an error.
      */
     public static function resolvePublished(
         int $postId,
@@ -94,7 +85,7 @@ final class AppointmentBlock
         bool $allowNotOpen = false
     )
     {
-        if ($postId <= 0 || !preg_match('/^[a-f0-9]{64}$/', $fingerprint)) {
+        if ($postId <= 0 || !preg_match(self::FINGERPRINT_PATTERN, $fingerprint)) {
             return new \WP_Error(
                 'rrze_appointment_invalid_block_reference',
                 __('The appointment block could not be identified.', 'rrze-appointment')
@@ -145,6 +136,95 @@ final class AppointmentBlock
         );
     }
 
+    /**
+     * Normalizes one additional-question definition.
+     *
+     * @param array<string, mixed> $rawQuestion Raw question attributes.
+     * @param array<string, bool>  $knownIds    Question IDs already accepted.
+     * @return array{id: string, label: string, dataUse: string, type: string, required: bool, options: array<int, string>}|null
+     */
+    private static function normalizeQuestion(array $rawQuestion, array $knownIds): ?array
+    {
+        $id = sanitize_key((string) ($rawQuestion['id'] ?? ''));
+        $label = sanitize_text_field((string) ($rawQuestion['label'] ?? ''));
+        $dataUse = self::normalizeQuestionDataUse($rawQuestion['dataUse'] ?? '');
+        $type = ($rawQuestion['type'] ?? '') === 'select' ? 'select' : 'text';
+
+        if ($id === '' || $label === '' || $dataUse === '' || isset($knownIds[$id])) {
+            return null;
+        }
+
+        $options = $type === 'select'
+            ? self::normalizeQuestionOptions($rawQuestion['options'] ?? [])
+            : [];
+        if ($type === 'select' && $options === []) {
+            return null;
+        }
+
+        return [
+            'id' => $id,
+            'label' => $label,
+            'dataUse' => $dataUse,
+            'type' => $type,
+            'required' => !empty($rawQuestion['required']),
+            'options' => $options,
+        ];
+    }
+
+    /**
+     * Sanitizes and limits a question's data-use explanation.
+     *
+     * @param mixed $dataUse Raw data-use value.
+     */
+    private static function normalizeQuestionDataUse($dataUse): string
+    {
+        $sanitized = sanitize_textarea_field((string) $dataUse);
+        $limited = function_exists('mb_substr')
+            ? mb_substr($sanitized, 0, self::QUESTION_DATA_USE_MAX_LENGTH)
+            : substr($sanitized, 0, self::QUESTION_DATA_USE_MAX_LENGTH);
+
+        return trim($limited);
+    }
+
+    /**
+     * Returns unique, non-empty scalar options in their original order.
+     *
+     * @param mixed $rawOptions Raw option values.
+     * @return array<int, string>
+     */
+    private static function normalizeQuestionOptions($rawOptions): array
+    {
+        if (!is_array($rawOptions)) {
+            return [];
+        }
+
+        $options = [];
+        $knownOptions = [];
+        foreach ($rawOptions as $rawOption) {
+            if (!is_scalar($rawOption)) {
+                continue;
+            }
+
+            $option = sanitize_text_field((string) $rawOption);
+            if ($option === '' || isset($knownOptions[$option])) {
+                continue;
+            }
+
+            $knownOptions[$option] = true;
+            $options[] = $option;
+        }
+
+        return $options;
+    }
+
+    /**
+     * Collects appointment blocks matching a fingerprint, including reusable blocks.
+     *
+     * @param array<int, mixed>                $blocks                Parsed blocks to inspect.
+     * @param string                           $fingerprint           Expected block fingerprint.
+     * @param array<int, array<string, mixed>> $matches               Matching attributes, by reference.
+     * @param array<int, bool>                 $visitedReusableBlocks Reusable block IDs, by reference.
+     */
     private static function collectMatchingBlocks(
         array $blocks,
         string $fingerprint,
@@ -197,6 +277,12 @@ final class AppointmentBlock
         }
     }
 
+    /**
+     * Applies registered block defaults before validating attributes.
+     *
+     * @param array<string, mixed> $attributes Raw block attributes.
+     * @return array<string, mixed>
+     */
     private static function prepareAttributes(array $attributes): array
     {
         $blockType = \WP_Block_Type_Registry::get_instance()->get_registered(self::BLOCK_NAME);
@@ -208,7 +294,13 @@ final class AppointmentBlock
     }
 
     /**
-     * @return array|\WP_Error
+     * Builds a validated booking context from published block attributes.
+     *
+     * @param \WP_Post            $post         Published post containing the block.
+     * @param array<string, mixed> $attributes   Prepared block attributes.
+     * @param string               $slot         Canonical appointment slot identifier.
+     * @param bool                 $allowNotOpen Whether to allow a future booking window.
+     * @return array<string, mixed>|\WP_Error Validated context or an error.
      */
     private static function validateContext(
         \WP_Post $post,
@@ -238,6 +330,47 @@ final class AppointmentBlock
             );
         }
 
+        $host = self::resolveHost($attributes);
+        if (is_wp_error($host)) {
+            return $host;
+        }
+
+        $templateId = self::resolveTemplateId($attributes);
+        if (is_wp_error($templateId)) {
+            return $templateId;
+        }
+
+        $postLink = get_permalink($post);
+
+        return [
+            'title' => sanitize_text_field(
+                (string) ($attributes['title'] ?? __('Appointment', 'rrze-appointment'))
+            ),
+            'location' => sanitize_text_field((string) ($attributes['location'] ?? '')),
+            'person_id' => $host['id'],
+            'person_name' => $host['name'],
+            'person_email' => $host['email'],
+            'tpl_id' => $templateId,
+            'questions' => self::getQuestions($attributes),
+            'disable_sso' => !empty($attributes['disableSso']),
+            'post_link' => $postLink ? esc_url_raw($postLink) : home_url('/'),
+            'booking_not_open' => $bookingNotOpen,
+            'booking_opens_at' => $slotStart->getTimestamp() - ($bookingMaxAdvance * MINUTE_IN_SECONDS),
+            'booking_closes_at' => $slotStart->getTimestamp() - ($bookingCutoff * MINUTE_IN_SECONDS),
+        ];
+    }
+
+    /**
+     * Resolves and validates the configured appointment host.
+     *
+     * FAUdir is an optional import source. Copied contact details remain valid
+     * if the source post is removed after the appointment was published.
+     *
+     * @param array<string, mixed> $attributes Prepared block attributes.
+     * @return array{id: int, name: string, email: string}|\WP_Error
+     */
+    private static function resolveHost(array $attributes)
+    {
         $personId = (int) ($attributes['personId'] ?? 0);
         if ($personId < 0) {
             return new \WP_Error(
@@ -258,20 +391,11 @@ final class AppointmentBlock
 
         if ($personId > 0) {
             $person = get_post($personId);
-            if (
-                $person instanceof \WP_Post
-                && $person->post_type === 'custom_person'
-                && $person->post_status === 'publish'
-                && $personName === ''
-            ) {
-                $personName = self::getPersonName($person);
-            } elseif (
-                !$person instanceof \WP_Post
-                || $person->post_type !== 'custom_person'
-                || $person->post_status !== 'publish'
-            ) {
-                // FAUdir is an optional import source. Keep using the copied
-                // contact details if the source post is later removed.
+            if (self::isPublishedPerson($person)) {
+                if ($personName === '') {
+                    $personName = self::getPersonName($person);
+                }
+            } else {
                 $personId = 0;
             }
         }
@@ -289,6 +413,33 @@ final class AppointmentBlock
             );
         }
 
+        return [
+            'id' => $personId,
+            'name' => $personName,
+            'email' => $personEmail,
+        ];
+    }
+
+    /**
+     * Determines whether a post is a published FAUdir person.
+     *
+     * @param mixed $person Candidate post.
+     */
+    private static function isPublishedPerson($person): bool
+    {
+        return $person instanceof \WP_Post
+            && $person->post_type === 'custom_person'
+            && $person->post_status === 'publish';
+    }
+
+    /**
+     * Resolves and validates the configured mail-template ID.
+     *
+     * @param array<string, mixed> $attributes Prepared block attributes.
+     * @return int|\WP_Error
+     */
+    private static function resolveTemplateId(array $attributes)
+    {
         $templateId = (int) ($attributes['tplId'] ?? 0);
         if ($templateId < 0) {
             return new \WP_Error(
@@ -296,43 +447,31 @@ final class AppointmentBlock
                 __('The configured mail template is invalid.', 'rrze-appointment')
             );
         }
-        if ($templateId > 0) {
-            $template = get_post($templateId);
-            if (
-                !$template instanceof \WP_Post
-                || $template->post_type !== MailTemplatePost::POST_TYPE
-                || $template->post_status !== 'publish'
-            ) {
-                return new \WP_Error(
-                    'rrze_appointment_invalid_template',
-                    __('The configured mail template is not published.', 'rrze-appointment')
-                );
-            }
+        if ($templateId === 0) {
+            return 0;
         }
 
-        $postLink = get_permalink($post);
+        $template = get_post($templateId);
+        if (
+            !$template instanceof \WP_Post
+            || $template->post_type !== MailTemplatePost::POST_TYPE
+            || $template->post_status !== 'publish'
+        ) {
+            return new \WP_Error(
+                'rrze_appointment_invalid_template',
+                __('The configured mail template is not published.', 'rrze-appointment')
+            );
+        }
 
-        return [
-            'title' => sanitize_text_field(
-                (string) ($attributes['title'] ?? __('Appointment', 'rrze-appointment'))
-            ),
-            'location' => sanitize_text_field((string) ($attributes['location'] ?? '')),
-            'person_id' => $personId,
-            'person_name' => $personName,
-            'person_email' => $personEmail,
-            'tpl_id' => $templateId,
-            'questions' => self::getQuestions($attributes),
-            'disable_sso' => !empty($attributes['disableSso']),
-            'post_link' => $postLink ? esc_url_raw($postLink) : home_url('/'),
-            'booking_not_open' => $bookingNotOpen,
-            'booking_opens_at' => $slotStart->getTimestamp() - ($bookingMaxAdvance * MINUTE_IN_SECONDS),
-            'booking_closes_at' => $slotStart->getTimestamp() - ($bookingCutoff * MINUTE_IN_SECONDS),
-        ];
+        return $templateId;
     }
 
+    /**
+     * Parses the starting date and time from a canonical slot identifier.
+     */
     private static function getSlotStart(string $slot): ?\DateTimeImmutable
     {
-        if (!preg_match('/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})-\d{2}:\d{2}$/', $slot, $matches)) {
+        if (!preg_match(self::SLOT_PATTERN, $slot, $matches)) {
             return null;
         }
 
@@ -353,6 +492,9 @@ final class AppointmentBlock
         return $dateTime;
     }
 
+    /**
+     * Builds a display name from a published FAUdir person.
+     */
     private static function getPersonName(\WP_Post $person): string
     {
         $parts = array_filter([
@@ -364,18 +506,42 @@ final class AppointmentBlock
         return sanitize_text_field(trim(implode(' ', $parts)) ?: $person->post_title);
     }
 
-    private static function sortRecursively(array $value): array
+    /**
+     * Sorts associative arrays recursively while preserving list order.
+     *
+     * @param array<mixed> $value Value to normalize for fingerprinting.
+     * @return array<mixed>
+     */
+    private static function sortAssociativeArraysRecursively(array $value): array
     {
         foreach ($value as $key => $entry) {
             if (is_array($entry)) {
-                $value[$key] = self::sortRecursively($entry);
+                $value[$key] = self::sortAssociativeArraysRecursively($entry);
             }
         }
 
-        if (!array_is_list($value)) {
+        if (!self::isList($value)) {
             ksort($value);
         }
 
         return $value;
+    }
+
+    /**
+     * PHP 7.4-compatible equivalent of array_is_list().
+     *
+     * @param array<mixed> $value Array to inspect.
+     */
+    private static function isList(array $value): bool
+    {
+        $expectedKey = 0;
+        foreach ($value as $key => $_entry) {
+            if ($key !== $expectedKey) {
+                return false;
+            }
+            ++$expectedKey;
+        }
+
+        return true;
     }
 }
