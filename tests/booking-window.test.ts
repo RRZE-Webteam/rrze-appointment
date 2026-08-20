@@ -23,6 +23,8 @@ function getPhpResults(): boolean[] {
 			\\RRZE\\Appointment\\BookingWindow::isNotOpen( $atOpening, $now, 20160 ),
 			\\RRZE\\Appointment\\BookingWindow::isNotOpen( $beforeOpening, $now, 20160 ),
 			\\RRZE\\Appointment\\BookingWindow::isNotOpen( $beforeOpening, $now, 0 ),
+			\\RRZE\\Appointment\\BookingWindow::isClosed( $now, $now, -15 ),
+			\\RRZE\\Appointment\\BookingWindow::isNotOpen( $beforeOpening, $now, -15 ),
 		] );
 	`;
 
@@ -48,7 +50,21 @@ describe( 'booking window', () => {
 		).toBe( false );
 	} );
 
+	it( 'normalizes negative limits to zero', () => {
+		expect( isBookingClosed( now, now, -15 ) ).toBe( true );
+		expect( isBookingNotOpen( minutesFromNow( 60 ), now, -15 ) ).toBe(
+			false
+		);
+	} );
+
 	it( 'keeps PHP validation aligned with the browser rules', () => {
-		expect( getPhpResults() ).toEqual( [ true, false, true, false ] );
+		expect( getPhpResults() ).toEqual( [
+			true,
+			false,
+			true,
+			false,
+			true,
+			false,
+		] );
 	} );
 } );
