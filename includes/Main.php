@@ -28,7 +28,6 @@ class Main
      */
     public CommonSettings $settings;
 
-    private AllowedHtml $allowedHtml;
     private AssetManager $assets;
     private BookingOpeningController $bookingOpenings;
     private BookingRequestController $bookingRequests;
@@ -44,7 +43,6 @@ class Main
     public function __construct()
     {
         $renderer = new PublicPageRenderer();
-        $this->allowedHtml = new AllowedHtml();
         $this->assets = new AssetManager();
         $this->bookingOpenings = new BookingOpeningController($renderer);
         $this->bookingRequests = new BookingRequestController();
@@ -56,7 +54,6 @@ class Main
 
         add_action('init', [MailTemplatePost::class, 'register'], 5);
         add_action('init', [$this, 'onInit']);
-        add_filter('wp_kses_allowed_html', [$this->allowedHtml, 'filter'], 10, 2);
     }
 
     /**
