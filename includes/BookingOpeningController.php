@@ -11,8 +11,16 @@ defined('ABSPATH') || exit;
  */
 final class BookingOpeningController
 {
+    private const BOOKING_NONCE_ACTION = 'rrze_appointment_book';
+    private const BOOKING_NONCE_FIELD = 'nonce';
+    private const CLAIM_QUERY_KEY = 'rrze_appt_opening';
+    private const STATUS_QUERY_KEY = 'rrze_appt_opening_registered';
+
     private PublicPageRenderer $renderer;
 
+    /**
+     * @param PublicPageRenderer $renderer Renderer for public status and error pages.
+     */
     public function __construct(PublicPageRenderer $renderer)
     {
         $this->renderer = $renderer;
@@ -24,63 +32,16 @@ final class BookingOpeningController
     public function handleSubscription(): void
     {
         try {
-            check_ajax_referer('rrze_appointment_book', 'nonce');
+            check_ajax_referer(self::BOOKING_NONCE_ACTION, self::BOOKING_NONCE_FIELD);
 
             $request = $this->getRequestData();
-            if ($request['slot'] === '') {
-                wp_send_json_error(__('No appointment specified.', 'rrze-appointment'));
-            }
-
-            $context = AppointmentBlock::resolvePublished(
-                $request['postId'],
-                $request['blockFingerprint'],
-                $request['slot'],
-                true
-            );
-            if (is_wp_error($context)) {
-                wp_send_json_error($context->get_error_message());
-            }
-            if (empty($context['booking_not_open'])) {
-                wp_send_json_error(
-                    __('This appointment is already open for booking.', 'rrze-appointment')
-                );
-            }
-            if ((int) $context['booking_opens_at'] >= (int) $context['booking_closes_at']) {
-                wp_send_json_error(
-                    __('This appointment has no valid booking period.', 'rrze-appointment')
-                );
-            }
+            $context = $this->resolveSubscriptionContext($request);
 
             [$bookerEmail, $bookerName] = $this->resolveBooker($request, $context);
-            if ($bookerEmail === '') {
-                wp_send_json_error(__('Please provide an email address.', 'rrze-appointment'));
-            }
-            if ($bookerName === '') {
-                wp_send_json_error(__('Please provide your name.', 'rrze-appointment'));
-            }
+            $this->validateBooker($bookerEmail, $bookerName);
+            $this->assertSlotIsAvailable($request['slot']);
 
-            if (in_array(
-                $request['slot'],
-                (array) get_option(Bookings::SLOTS_OPTION, []),
-                true
-            )) {
-                wp_send_json_error(__('This appointment is no longer available.', 'rrze-appointment'));
-            }
-
-            $meta = [
-                'title' => $context['title'],
-                'location' => $context['location'],
-                'person_id' => $context['person_id'],
-                'person_name' => $context['person_name'],
-                'person_email' => $context['person_email'],
-                'booker_email' => $bookerEmail,
-                'booker_name' => $bookerName,
-                'booker_waitlist' => false,
-                'waitlist_notified_slots' => [],
-                'tpl_id' => $context['tpl_id'],
-                'post_link' => $context['post_link'],
-                'questions' => $context['questions'],
-            ];
+            $meta = $this->buildSubscriptionMeta($context, $bookerEmail, $bookerName);
             $subscription = BookingOpeningNotifier::subscribe(
                 $request['slot'],
                 $meta,
@@ -105,8 +66,7 @@ final class BookingOpeningController
     public function handleClaim(): void
     {
         try {
-            $rawToken = wp_unslash($_GET['rrze_appt_opening'] ?? '');
-            $token = is_string($rawToken) ? sanitize_text_field($rawToken) : '';
+            $token = $this->getQueryToken(self::CLAIM_QUERY_KEY);
             if ($token === '') {
                 return;
             }
@@ -129,8 +89,7 @@ final class BookingOpeningController
     public function handleRegistrationStatus(): void
     {
         try {
-            $rawToken = wp_unslash($_GET['rrze_appt_opening_registered'] ?? '');
-            $token = is_string($rawToken) ? sanitize_text_field($rawToken) : '';
+            $token = $this->getQueryToken(self::STATUS_QUERY_KEY);
             if ($token === '') {
                 return;
             }
@@ -156,22 +115,59 @@ final class BookingOpeningController
     }
 
     /**
+     * Reads and sanitizes the public subscription request.
+     *
      * @return array{slot: string, postId: int, blockFingerprint: string, email: string, name: string}
      */
     private function getRequestData(): array
     {
         return [
-            'slot' => sanitize_text_field($_POST['slot'] ?? ''),
-            'postId' => absint($_POST['post_id'] ?? 0),
-            'blockFingerprint' => sanitize_text_field($_POST['block_id'] ?? ''),
-            'email' => sanitize_email($_POST['booker_email'] ?? ''),
-            'name' => sanitize_text_field($_POST['booker_name'] ?? ''),
+            'slot' => sanitize_text_field($this->getPostValue('slot')),
+            'postId' => absint($this->getPostValue('post_id')),
+            'blockFingerprint' => sanitize_text_field($this->getPostValue('block_id')),
+            'email' => sanitize_email($this->getPostValue('booker_email')),
+            'name' => sanitize_text_field($this->getPostValue('booker_name')),
         ];
     }
 
     /**
-     * @param array<string, mixed> $request
-     * @param array<string, mixed> $context
+     * Resolves and validates a published appointment for opening notification.
+     *
+     * @param array{slot: string, postId: int, blockFingerprint: string, email: string, name: string} $request
+     * @return array<string, mixed>
+     */
+    private function resolveSubscriptionContext(array $request): array
+    {
+        if ($request['slot'] === '') {
+            wp_send_json_error(__('No appointment specified.', 'rrze-appointment'));
+        }
+
+        $context = AppointmentBlock::resolvePublished(
+            $request['postId'],
+            $request['blockFingerprint'],
+            $request['slot'],
+            true
+        );
+        if (is_wp_error($context)) {
+            wp_send_json_error($context->get_error_message());
+        }
+        if (empty($context['booking_not_open'])) {
+            wp_send_json_error(
+                __('This appointment is already open for booking.', 'rrze-appointment')
+            );
+        }
+        if ((int) $context['booking_opens_at'] >= (int) $context['booking_closes_at']) {
+            wp_send_json_error(
+                __('This appointment has no valid booking period.', 'rrze-appointment')
+            );
+        }
+
+        return $context;
+    }
+
+    /**
+     * @param array<string, mixed> $request Sanitized request data.
+     * @param array<string, mixed> $context Published appointment context.
      * @return array{0: string, 1: string}
      */
     private function resolveBooker(array $request, array $context): array
@@ -188,5 +184,75 @@ final class BookingOpeningController
         }
 
         return [$email, $name];
+    }
+
+    /**
+     * Validates the required subscriber identity fields.
+     */
+    private function validateBooker(string $email, string $name): void
+    {
+        if ($email === '') {
+            wp_send_json_error(__('Please provide an email address.', 'rrze-appointment'));
+        }
+        if ($name === '') {
+            wp_send_json_error(__('Please provide your name.', 'rrze-appointment'));
+        }
+    }
+
+    /**
+     * Rejects slots that have already been booked.
+     */
+    private function assertSlotIsAvailable(string $slot): void
+    {
+        if (in_array($slot, (array) get_option(Bookings::SLOTS_OPTION, []), true)) {
+            wp_send_json_error(__('This appointment is no longer available.', 'rrze-appointment'));
+        }
+    }
+
+    /**
+     * Builds the narrow metadata persisted with an opening subscription.
+     *
+     * @param array<string, mixed> $context Published appointment context.
+     * @return array<string, mixed>
+     */
+    private function buildSubscriptionMeta(
+        array $context,
+        string $bookerEmail,
+        string $bookerName
+    ): array {
+        return [
+            'title' => $context['title'],
+            'location' => $context['location'],
+            'person_id' => $context['person_id'],
+            'person_name' => $context['person_name'],
+            'person_email' => $context['person_email'],
+            'booker_email' => $bookerEmail,
+            'booker_name' => $bookerName,
+            'booker_waitlist' => false,
+            'waitlist_notified_slots' => [],
+            'tpl_id' => $context['tpl_id'],
+            'post_link' => $context['post_link'],
+            'questions' => $context['questions'],
+        ];
+    }
+
+    /**
+     * Reads one scalar POST value and removes WordPress request slashes.
+     */
+    private function getPostValue(string $key): string
+    {
+        $value = wp_unslash($_POST[$key] ?? '');
+
+        return is_string($value) ? $value : '';
+    }
+
+    /**
+     * Reads and sanitizes a token from the query string.
+     */
+    private function getQueryToken(string $key): string
+    {
+        $value = wp_unslash($_GET[$key] ?? '');
+
+        return is_string($value) ? sanitize_text_field($value) : '';
     }
 }
