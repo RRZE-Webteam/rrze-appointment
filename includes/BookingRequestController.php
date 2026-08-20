@@ -11,27 +11,21 @@ defined('ABSPATH') || exit;
  */
 final class BookingRequestController
 {
+    private const BOOKING_NONCE_ACTION = 'rrze_appointment_book';
+    private const BOOKING_NONCE_FIELD = 'nonce';
+    private const PENDING_TEMPLATE_TYPE = 'booking_pending';
+    private const PENDING_QUESTIONS_TEMPLATE_TYPE = 'booking_pending_questions';
+
     /**
      * Handles the public AJAX booking request.
      */
     public function handleRequest(): void
     {
         try {
-            check_ajax_referer('rrze_appointment_book', 'nonce');
+            check_ajax_referer(self::BOOKING_NONCE_ACTION, self::BOOKING_NONCE_FIELD);
 
             $request = $this->getRequestData();
-            if ($request['slot'] === '') {
-                wp_send_json_error(__('No appointment specified.', 'rrze-appointment'));
-            }
-
-            $context = AppointmentBlock::resolvePublished(
-                $request['postId'],
-                $request['blockFingerprint'],
-                $request['slot']
-            );
-            if (is_wp_error($context)) {
-                wp_send_json_error($context->get_error_message());
-            }
+            $context = $this->resolveBookingContext($request);
 
             [$bookerEmail, $bookerName] = $this->resolveBooker($request, $context);
             $this->validateBooker($bookerEmail, $bookerName);
@@ -65,13 +59,37 @@ final class BookingRequestController
     private function getRequestData(): array
     {
         return [
-            'slot' => sanitize_text_field($_POST['slot'] ?? ''),
-            'postId' => absint($_POST['post_id'] ?? 0),
-            'blockFingerprint' => sanitize_text_field($_POST['block_id'] ?? ''),
-            'email' => sanitize_email($_POST['booker_email'] ?? ''),
-            'name' => sanitize_text_field($_POST['booker_name'] ?? ''),
-            'waitlist' => !empty($_POST['booker_waitlist']) && $_POST['booker_waitlist'] === '1',
+            'slot' => sanitize_text_field($this->getPostValue('slot')),
+            'postId' => absint($this->getPostValue('post_id')),
+            'blockFingerprint' => sanitize_text_field($this->getPostValue('block_id')),
+            'email' => sanitize_email($this->getPostValue('booker_email')),
+            'name' => sanitize_text_field($this->getPostValue('booker_name')),
+            'waitlist' => $this->getPostValue('booker_waitlist') === '1',
         ];
+    }
+
+    /**
+     * Resolves the authoritative context from a published appointment block.
+     *
+     * @param array{slot: string, postId: int, blockFingerprint: string, email: string, name: string, waitlist: bool} $request
+     * @return array<string, mixed>
+     */
+    private function resolveBookingContext(array $request): array
+    {
+        if ($request['slot'] === '') {
+            wp_send_json_error(__('No appointment specified.', 'rrze-appointment'));
+        }
+
+        $context = AppointmentBlock::resolvePublished(
+            $request['postId'],
+            $request['blockFingerprint'],
+            $request['slot']
+        );
+        if (is_wp_error($context)) {
+            wp_send_json_error($context->get_error_message());
+        }
+
+        return $context;
     }
 
     /**
@@ -132,11 +150,21 @@ final class BookingRequestController
      */
     private function assertSlotIsAvailable(string $slot): void
     {
-        $booked = (array) get_option('rrze_appointment_booked_slots', []);
+        $booked = (array) get_option(Bookings::SLOTS_OPTION, []);
         $pending = TokenManager::getPendingSlots();
         if (in_array($slot, $booked, true) || in_array($slot, $pending, true)) {
             wp_send_json_error(__('This appointment is no longer available.', 'rrze-appointment'));
         }
+    }
+
+    /**
+     * Reads one scalar POST value and removes WordPress request slashes.
+     */
+    private function getPostValue(string $key): string
+    {
+        $value = wp_unslash($_POST[$key] ?? '');
+
+        return is_string($value) ? $value : '';
     }
 
     /**
@@ -183,60 +211,108 @@ final class BookingRequestController
         string $endTime,
         array $meta
     ): void {
-        $confirmUrl = TokenManager::confirmUrl($confirmToken);
-        $imprintUrl = TokenManager::imprintUrl();
-        $variables = [
-            '[title]' => $meta['title'],
-            '[date]' => date_i18n(get_option('date_format'), strtotime($datePart)),
-            '[time]' => $startTime . ' – ' . $endTime,
-            '[location]' => $meta['location'] ?: '–',
-            '[person_name]' => $meta['person_name'] ?: '–',
-            '[name]' => $meta['booker_name'] ?: '–',
-            '[email]' => $meta['booker_email'] ?: '–',
-            '[questions]' => '',
-            '[confirmation_link]' => $confirmUrl,
-            '[cancel_link]' => TokenManager::cancelUrl(TokenManager::createPendingCancelToken($confirmToken)),
-            '[imprint_link]' => $imprintUrl,
-            '[post_link]' => $meta['post_link'],
-        ];
-
-        $templateType = empty($meta['questions']) ? 'booking_pending' : 'booking_pending_questions';
-        $templateId = (int) ($meta['tpl_id'] ?? 0);
-        $template = $templateId > 0
-            ? (MailTemplatePost::getTemplateForType($templateId, $templateType) ?? [])
-            : [];
-        $default = MailTemplatePost::getDefault($templateType);
+        $variables = $this->getConfirmationVariables(
+            $confirmToken,
+            $datePart,
+            $startTime,
+            $endTime,
+            $meta
+        );
+        $templateType = empty($meta['questions'])
+            ? self::PENDING_TEMPLATE_TYPE
+            : self::PENDING_QUESTIONS_TEMPLATE_TYPE;
+        [$template, $default] = $this->getConfirmationTemplates(
+            (int) ($meta['tpl_id'] ?? 0),
+            $templateType
+        );
         $subject = Settings::renderTemplate(
             !empty($template['subject']) ? $template['subject'] : $default['subject'],
             $variables
         );
-        $plainTemplate = !empty($template['body']) ? $template['body'] : $default['body'];
-        $htmlTemplate = !empty($template['body_html']) ? $template['body_html'] : $default['body_html'];
-
-        if (strpos($plainTemplate, '[confirmation_link]') === false) {
-            $plainTemplate .= "\n\n" . __('Confirmation', 'rrze-appointment') . ': [confirmation_link]';
-        }
-        if (strpos($plainTemplate, '[imprint_link]') === false) {
-            $plainTemplate .= "\n" . __('Imprint', 'rrze-appointment') . ': [imprint_link]';
-        }
-        if (strpos($htmlTemplate, '[confirmation_link]') === false) {
-            $htmlTemplate .= '<p><a href="[confirmation_link]">'
-                . __('Confirm appointment now', 'rrze-appointment')
-                . '</a></p>';
-        }
-        if (strpos($htmlTemplate, '[imprint_link]') === false) {
-            $htmlTemplate .= '<p><a href="[imprint_link]">'
-                . __('Imprint', 'rrze-appointment')
-                . '</a></p>';
-        }
+        $plain = !empty($template['body']) ? $template['body'] : $default['body'];
+        $html = !empty($template['body_html']) ? $template['body_html'] : $default['body_html'];
+        [$plain, $html] = $this->ensureRequiredConfirmationLinks($plain, $html);
 
         Settings::sendMail(
             $meta['booker_email'],
             $subject,
-            Settings::renderTemplate($plainTemplate, $variables),
-            Settings::renderTemplate($htmlTemplate, $variables),
+            Settings::renderTemplate($plain, $variables),
+            Settings::renderTemplate($html, $variables),
             [],
             MailTemplate::STATUS_WARNING
         );
+    }
+
+    /**
+     * Builds placeholder values for the pending-booking email.
+     *
+     * @param array<string, mixed> $meta Pending booking metadata.
+     * @return array<string, string>
+     */
+    private function getConfirmationVariables(
+        string $confirmToken,
+        string $datePart,
+        string $startTime,
+        string $endTime,
+        array $meta
+    ): array {
+        $confirmUrl = TokenManager::confirmUrl($confirmToken);
+        $imprintUrl = TokenManager::imprintUrl();
+
+        return [
+            '[title]' => (string) $meta['title'],
+            '[date]' => date_i18n(get_option('date_format'), strtotime($datePart)),
+            '[time]' => $startTime . ' – ' . $endTime,
+            '[location]' => (string) ($meta['location'] ?: '–'),
+            '[person_name]' => (string) ($meta['person_name'] ?: '–'),
+            '[name]' => (string) ($meta['booker_name'] ?: '–'),
+            '[email]' => (string) ($meta['booker_email'] ?: '–'),
+            '[questions]' => '',
+            '[confirmation_link]' => $confirmUrl,
+            '[cancel_link]' => TokenManager::cancelUrl(TokenManager::createPendingCancelToken($confirmToken)),
+            '[imprint_link]' => $imprintUrl,
+            '[post_link]' => (string) $meta['post_link'],
+        ];
+    }
+
+    /**
+     * Returns the selected custom template and its default fallback.
+     *
+     * @return array{0: array<string, string>, 1: array<string, string>}
+     */
+    private function getConfirmationTemplates(int $templateId, string $templateType): array
+    {
+        $template = $templateId > 0
+            ? (MailTemplatePost::getTemplateForType($templateId, $templateType) ?? [])
+            : [];
+
+        return [$template, MailTemplatePost::getDefault($templateType)];
+    }
+
+    /**
+     * Ensures custom templates retain their required confirmation and imprint links.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function ensureRequiredConfirmationLinks(string $plain, string $html): array
+    {
+        if (strpos($plain, '[confirmation_link]') === false) {
+            $plain .= "\n\n" . __('Confirmation', 'rrze-appointment') . ': [confirmation_link]';
+        }
+        if (strpos($plain, '[imprint_link]') === false) {
+            $plain .= "\n" . __('Imprint', 'rrze-appointment') . ': [imprint_link]';
+        }
+        if (strpos($html, '[confirmation_link]') === false) {
+            $html .= '<p><a href="[confirmation_link]">'
+                . __('Confirm appointment now', 'rrze-appointment')
+                . '</a></p>';
+        }
+        if (strpos($html, '[imprint_link]') === false) {
+            $html .= '<p><a href="[imprint_link]">'
+                . __('Imprint', 'rrze-appointment')
+                . '</a></p>';
+        }
+
+        return [$plain, $html];
     }
 }
