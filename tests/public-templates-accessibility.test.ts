@@ -95,4 +95,16 @@ describe( 'public confirmation templates accessibility', () => {
 		);
 		expect( errorTemplate ).not.toContain( 'outline: 3px solid #ffca28;' );
 	} );
+
+	it( 'keeps the waitlist opt-in action visually secondary', () => {
+		expect( confirmationTemplate ).toContain(
+			'.is-waitlist-optout .rrze-appointment-confirmation__action:not(.rrze-appointment-confirmation__action--secondary)'
+		);
+		expect( confirmationTemplate ).toContain(
+			'button.rrze-appointment-confirmation__action--secondary'
+		);
+		expect( confirmationTemplate ).toContain(
+			'border: 1px solid #04316a;'
+		);
+	} );
 } );

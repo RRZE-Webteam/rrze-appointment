@@ -11,7 +11,7 @@ class MailTemplatePost
     const POST_TYPE = 'rrze_appt_mail_tpl';
     private const EDITABLE_DEFAULT_META_KEY = '_rrze_appt_editable_default_template';
     private const EDITABLE_DEFAULT_CREATED_OPTION = 'rrze_appt_editable_default_template_created';
-    private const TEMPLATE_TYPES = ['booking_pending', 'booking_pending_questions', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation', 'waitlist_earlier_slot'];
+    private const TEMPLATE_TYPES = ['booking_pending', 'booking_pending_questions', 'booking_opening_notification', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation', 'waitlist_earlier_slot'];
 
     public static function register(): void
     {
@@ -63,6 +63,7 @@ class MailTemplatePost
         $bookedBy    = __('Booked by', 'rrze-appointment');
         $confirm     = __('Confirm appointment', 'rrze-appointment');
         $confirmQuestions = __('Confirm appointment and answer questions', 'rrze-appointment');
+        $bookNow      = __('Book appointment now', 'rrze-appointment');
         $cancelReq   = __('Cancel request', 'rrze-appointment');
         $cancel      = __('Cancel appointment', 'rrze-appointment');
         $legal       = __('Legal notice', 'rrze-appointment');
@@ -130,6 +131,28 @@ class MailTemplatePost
                     . '<p>' . __('The appointment is booked only after you submit the confirmation form.', 'rrze-appointment') . '</p>'
                     . MailTemplate::actionButton('[confirmation_link]', $confirmQuestions)
                     . '<p style="margin:0;"><a href="[cancel_link]">' . $cancelReq . '</a></p>'
+                    . $legalLink,
+            ],
+            'booking_opening_notification' => [
+                'subject' => __('Booking is now open: [title] on [date]', 'rrze-appointment'),
+                'body' =>
+                    sprintf(__('Hello %s,', 'rrze-appointment'), '[name]')
+                    . "\n\n"
+                    . __('The appointment you asked about is now open for booking.', 'rrze-appointment')
+                    . "\n\n"
+                    . "{$appointment}: [title]\n"
+                    . "{$date}: [date]\n"
+                    . "{$time}: [time]\n"
+                    . "{$location}: [location]\n\n"
+                    . __('The appointment is not reserved until you complete the booking.', 'rrze-appointment')
+                    . "\n\n{$bookNow}: [booking_link]"
+                    . "\n\n{$legal}: [imprint_link]",
+                'body_html' =>
+                    '<p>' . sprintf(__('Hello %s,', 'rrze-appointment'), '[name]') . '</p>'
+                    . '<p>' . __('The appointment you asked about is now open for booking.', 'rrze-appointment') . '</p>'
+                    . $baseTable
+                    . '<p>' . __('The appointment is not reserved until you complete the booking.', 'rrze-appointment') . '</p>'
+                    . MailTemplate::actionButton('[booking_link]', $bookNow)
                     . $legalLink,
             ],
             'booking_booker' => [

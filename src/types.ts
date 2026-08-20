@@ -69,6 +69,7 @@ export interface AppointmentAttributes {
 	useConsultationHours: boolean;
 	tplId: number;
 	bookingCutoff: number;
+	bookingMaxAdvance: number;
 	questions: AppointmentQuestion[];
 	disableSso: boolean;
 	hideWeekends: boolean;
@@ -139,6 +140,9 @@ export interface EditorI18n {
 export interface FrontendI18n {
 	available?: string;
 	availableOn?: string;
+	appointmentsOn?: string;
+	bookingAdvanceDay?: string;
+	bookingAdvanceDays?: string;
 	book?: string;
 	booked?: string;
 	booking?: string;
@@ -155,6 +159,12 @@ export interface FrontendI18n {
 	networkError?: string;
 	nextMonth?: string;
 	noSlotsAvailable?: string;
+	notifyButton?: string;
+	notifyDialogIntro?: string;
+	notifyDialogTitle?: string;
+	notifySending?: string;
+	notifySuccess?: string;
+	notifySuccessTitle?: string;
 	previousMonth?: string;
 	required?: string;
 	selectedAppointment?: string;
@@ -162,6 +172,7 @@ export interface FrontendI18n {
 	successTitle?: string;
 	today?: string;
 	unavailable?: string;
+	notOpen?: string;
 	bookingDetailsLoading?: string;
 	waitlist?: string;
 	yourAppointment?: string;
@@ -222,6 +233,7 @@ export interface BookingResponse {
 		| string
 		| {
 				message?: string;
+				redirectUrl?: string;
 		  };
 }
 

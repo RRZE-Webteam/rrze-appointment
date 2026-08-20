@@ -4,6 +4,7 @@ defined('ABSPATH') || exit;
 
 $waitlistNotificationsEnabled = !empty($waitlistNotificationsEnabled);
 $isCancellationConfirmation = !empty($isCancellationConfirmation);
+$isOpeningNotification = !empty($isOpeningNotification);
 $appointmentDetails = is_array($appointmentDetails ?? null) ? $appointmentDetails : [];
 $hasAppointmentDetails = count(array_filter($appointmentDetails, static fn($value): bool => $value !== '')) > 0;
 
@@ -29,6 +30,10 @@ if ($isQuestionForm) {
     $messageText = $waitlistNotificationsEnabled
         ? __('You will receive an email again when an earlier appointment becomes available.', 'rrze-appointment')
         : __('Your appointment remains confirmed. You will no longer receive emails when an earlier appointment becomes available.', 'rrze-appointment');
+} elseif ($isOpeningNotification) {
+    $statusText = __('Notification registered', 'rrze-appointment');
+    $headingText = __('We will let you know', 'rrze-appointment');
+    $messageText = __('We will email you as soon as this appointment opens for booking. The appointment is not reserved until you complete the booking from that email.', 'rrze-appointment');
 } else {
     $statusText = __('Successfully confirmed', 'rrze-appointment');
     $headingText = __('Your appointment is confirmed', 'rrze-appointment');
@@ -146,11 +151,16 @@ $pageTitle = sprintf(
             color: #0d47a1;
         }
 
-        .rrze-appointment-confirmation.is-waitlist-optout .rrze-appointment-confirmation__action {
+        .rrze-appointment-confirmation.is-opening-notification .rrze-appointment-confirmation__status {
+            background: #fff4df;
+            color: #6b3a00;
+        }
+
+        .rrze-appointment-confirmation.is-waitlist-optout .rrze-appointment-confirmation__action:not(.rrze-appointment-confirmation__action--secondary) {
             background: #04316a;
         }
 
-        .rrze-appointment-confirmation.is-waitlist-optout .rrze-appointment-confirmation__action:hover {
+        .rrze-appointment-confirmation.is-waitlist-optout .rrze-appointment-confirmation__action:not(.rrze-appointment-confirmation__action--secondary):hover {
             background: #021f46;
         }
 
@@ -347,6 +357,10 @@ $pageTitle = sprintf(
             font-size: 0.875rem;
         }
 
+        button.rrze-appointment-confirmation__action--secondary {
+            border: 1px solid #04316a;
+        }
+
         .rrze-appointment-confirmation__action--secondary:hover {
             background: #e3f2fd;
         }
@@ -437,7 +451,11 @@ $pageTitle = sprintf(
             ? ' is-question-form'
             : ($isCancellationConfirmation
                 ? ' is-cancellation-confirmation'
-                : ($isCancellation ? ' is-cancellation' : ($isWaitlistOptOut ? ' is-waitlist-optout' : '')));
+                : ($isCancellation
+                    ? ' is-cancellation'
+                    : ($isWaitlistOptOut
+                        ? ' is-waitlist-optout'
+                        : ($isOpeningNotification ? ' is-opening-notification' : ''))));
     ?>">
         <div class="rrze-appointment-confirmation__illustration" aria-hidden="true">
             <img src="<?php echo esc_url($illustrationUrl); ?>" alt="">

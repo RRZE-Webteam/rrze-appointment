@@ -6,6 +6,7 @@ import {
 	getAvailabilitySlotCount,
 	hasAvailabilityConflict,
 	setDateSlotsExcluded,
+	usesConsultationPattern,
 } from '../src/availability';
 import type {
 	AppointmentAttributes,
@@ -47,6 +48,7 @@ function createAttributes(
 		useConsultationHours: false,
 		tplId: 0,
 		bookingCutoff: 0,
+		bookingMaxAdvance: 0,
 		disableSso: false,
 		hideWeekends: false,
 		style: 'light',
@@ -399,6 +401,23 @@ describe( 'availability editor model', () => {
 				} )
 			)
 		).toBe( 3 );
+	} );
+
+	it( 'preserves a pattern that has one custom slot and unused time', () => {
+		expect(
+			usesConsultationPattern(
+				createEntry( 'single-custom-slot', {
+					duration: 31,
+				} )
+			)
+		).toBe( true );
+		expect(
+			usesConsultationPattern(
+				createEntry( 'single-full-range-slot', {
+					duration: 60,
+				} )
+			)
+		).toBe( false );
 	} );
 
 	it( 'generates slots for any positive whole-minute duration', () => {

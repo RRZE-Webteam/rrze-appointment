@@ -13,6 +13,7 @@ import type {
   EditProps,
   MailTemplateOption,
 } from '../types';
+import { BookingMaxAdvanceControl } from './booking-max-advance-control';
 
 interface EditorSidebarProps {
   appointmentDateCount: number;
@@ -191,6 +192,12 @@ export function EditorSidebar({
 				title={ __( 'Booking rules', 'rrze-appointment' ) }
 				initialOpen={ false }
 			>
+				<BookingMaxAdvanceControl
+					value={ attributes.bookingMaxAdvance }
+					onChange={ ( bookingMaxAdvance ) =>
+						setAttributes( { bookingMaxAdvance } )
+					}
+				/>
 				<SelectControl
 					label={ __( 'Latest booking time', 'rrze-appointment' ) }
 					help={ __(

@@ -25,6 +25,7 @@ class Settings
             '[email]'             => __('Booking person (email)', 'rrze-appointment'),
             '[questions]'         => __('Answers to additional questions', 'rrze-appointment'),
             '[confirmation_link]' => __('Link to booking confirmation', 'rrze-appointment'),
+            '[booking_link]'      => __('Link to book an appointment when booking opens', 'rrze-appointment'),
             '[cancel_link]'       => __('Link to cancel', 'rrze-appointment'),
             '[waitlist_optout_link]' => __('Link to stop earlier appointment notifications', 'rrze-appointment'),
             '[imprint_link]'      => __('Link to imprint', 'rrze-appointment'),
@@ -226,6 +227,7 @@ class Settings
             '[email]'             => $to,
             '[questions]'         => '',
             '[confirmation_link]' => home_url('/'),
+            '[booking_link]'      => home_url('/'),
             '[cancel_link]'       => home_url('/'),
             '[waitlist_optout_link]' => home_url('/'),
             '[imprint_link]'      => TokenManager::imprintUrl(),
@@ -234,7 +236,7 @@ class Settings
             '[current_time]'      => '12:00 – 12:30',
         ];
 
-        $types = ['booking_pending', 'booking_pending_questions', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation', 'waitlist_earlier_slot'];
+        $types = ['booking_pending', 'booking_pending_questions', 'booking_opening_notification', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation', 'waitlist_earlier_slot'];
         $sent  = 0;
         $plainVars = array_merge($vars, [
             '[questions]' => "\n\n" . __('Additional information:', 'rrze-appointment')
@@ -463,7 +465,7 @@ class Settings
         $backUrl  = add_query_arg(['page' => self::PAGE_SLUG, 'tab' => 'templates'], admin_url('options-general.php'));
         $title    = '';
         $isNew    = $id <= 0;
-        $sections = ['booking_pending' => [], 'booking_pending_questions' => [], 'booking_booker' => [], 'booking_host' => [], 'reminder_admin' => [], 'reminder_booker' => [], 'cancellation' => [], 'waitlist_earlier_slot' => []];
+        $sections = ['booking_pending' => [], 'booking_pending_questions' => [], 'booking_opening_notification' => [], 'booking_booker' => [], 'booking_host' => [], 'reminder_admin' => [], 'reminder_booker' => [], 'cancellation' => [], 'waitlist_earlier_slot' => []];
 
         if ($id > 0) {
             $post = get_post($id);
@@ -482,6 +484,7 @@ class Settings
         $sectionLabels = [
             'booking_pending' => __('Appointment request', 'rrze-appointment'),
             'booking_pending_questions' => __('Appointment request with questions', 'rrze-appointment'),
+            'booking_opening_notification' => __('Booking opening notification', 'rrze-appointment'),
             'booking_booker'  => __('Confirmation to booking person', 'rrze-appointment'),
             'booking_host'    => __('Confirmation to host', 'rrze-appointment'),
             'reminder_admin'  => __('Reminder to host', 'rrze-appointment'),
@@ -492,6 +495,7 @@ class Settings
         $sectionDescriptions = [
             'booking_pending' => __('Sent to the person booking so they can confirm their appointment request.', 'rrze-appointment'),
             'booking_pending_questions' => __('Sent instead of the regular appointment request when the confirmation page contains additional questions.', 'rrze-appointment'),
+            'booking_opening_notification' => __('Sent when a requested appointment opens for booking.', 'rrze-appointment'),
             'booking_booker'  => __('Sent to the person booking after the appointment has been confirmed.', 'rrze-appointment'),
             'booking_host'    => __('Sent to the host after the appointment has been confirmed.', 'rrze-appointment'),
             'reminder_admin'  => __('Sent to the host before the appointment when reminders are enabled.', 'rrze-appointment'),

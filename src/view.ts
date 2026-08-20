@@ -7,6 +7,7 @@ import type {
 	FrontendSlot,
 	ParsedSlotValue,
 } from './types';
+import { isBookingClosed, isBookingNotOpen } from './booking-window';
 import {
 	formatDateDisplay,
 	formatDateLongDisplay,
@@ -208,6 +209,10 @@ import {
 				form.dataset.bookingCutoff || '0',
 				10
 			);
+			const bookingMaxAdvance = parseInt(
+				form.dataset.bookingMaxAdvance || '0',
+				10
+			);
 			const disableSso = form.dataset.disableSso === '1';
 			const hideWeekends = form.dataset.hideWeekends === '1';
 
@@ -231,15 +236,22 @@ import {
 			}
 
 			function isSlotCutoff( slotValue: string ): boolean {
-				if ( ! bookingCutoff ) {
-					return false;
-				}
 				const slotStart = parseSlotStart( slotValue );
 				if ( ! slotStart ) {
 					return false;
 				}
-				return (
-					slotStart.getTime() - Date.now() < bookingCutoff * 60 * 1000
+				return isBookingClosed( slotStart, new Date(), bookingCutoff );
+			}
+
+			function isSlotTooFarInAdvance( slotValue: string ): boolean {
+				const slotStart = parseSlotStart( slotValue );
+				if ( ! slotStart ) {
+					return false;
+				}
+				return isBookingNotOpen(
+					slotStart,
+					new Date(),
+					bookingMaxAdvance
 				);
 			}
 
@@ -249,6 +261,20 @@ import {
 					isSlotInPast( slotValue ) ||
 					isSlotCutoff( slotValue )
 				);
+			}
+
+			function getBookingAdvanceMessage(): string {
+				const days = Math.max(
+					1,
+					Math.ceil( bookingMaxAdvance / ( 24 * 60 ) )
+				);
+				const template =
+					days === 1
+						? i18n.bookingAdvanceDay ||
+						  'These appointments can only be booked %d day in advance.'
+						: i18n.bookingAdvanceDays ||
+						  'These appointments can only be booked %d days in advance.';
+				return template.replace( '%d', String( days ) );
 			}
 
 			function refreshAvailabilityMessage(): void {
@@ -319,6 +345,7 @@ import {
 				if ( ! parsed.date || ! parsed.time ) {
 					return;
 				}
+				const isOpeningNotification = isSlotTooFarInAdvance( value );
 
 				selectedSlotValue = value;
 				markHiddenInput( value );
@@ -352,7 +379,9 @@ import {
 				const heading = document.createElement( 'h2' );
 				heading.className = 'rrze-appointment__overlay-title';
 				heading.id = titleId;
-				heading.textContent = i18n.dialogTitle || 'Request appointment';
+				heading.textContent = isOpeningNotification
+					? i18n.notifyDialogTitle || 'Notify me when booking opens'
+					: i18n.dialogTitle || 'Request appointment';
 				const closeBtn = document.createElement( 'button' );
 				closeBtn.type = 'button';
 				closeBtn.className = 'rrze-appointment__overlay-close';
@@ -367,9 +396,11 @@ import {
 				const intro = document.createElement( 'p' );
 				intro.className = 'rrze-appointment__overlay-intro';
 				intro.id = introId;
-				intro.textContent =
-					i18n.dialogIntro ||
-					'Enter your details to request this appointment. You will receive an email to confirm it.';
+				intro.textContent = isOpeningNotification
+					? i18n.notifyDialogIntro ||
+					  'Enter your details and we will email you as soon as this appointment opens for booking.'
+					: i18n.dialogIntro ||
+					  'Enter your details to request this appointment. You will receive an email to confirm it.';
 
 				const appointment = document.createElement( 'div' );
 				appointment.className = 'rrze-appointment__overlay-appointment';
@@ -519,7 +550,9 @@ import {
 				const confirmBtn = document.createElement( 'button' );
 				confirmBtn.type = 'submit';
 				confirmBtn.className = 'rrze-appointment__overlay-confirm';
-				confirmBtn.textContent = i18n.book || 'Request appointment';
+				confirmBtn.textContent = isOpeningNotification
+					? i18n.notifyButton || 'Notify me'
+					: i18n.book || 'Request appointment';
 
 				const cancelBtn = document.createElement( 'button' );
 				cancelBtn.type = 'button';
@@ -670,10 +703,20 @@ import {
 					closeBtn.disabled = true;
 					isSubmitting = true;
 					dialogForm.setAttribute( 'aria-busy', 'true' );
-					showStatus( i18n.booking || 'Sending request…', 'loading' );
+					showStatus(
+						isOpeningNotification
+							? i18n.notifySending || 'Saving notification…'
+							: i18n.booking || 'Sending request…',
+						'loading'
+					);
 
 					const data = new FormData();
-					data.append( 'action', 'rrze_appointment_book' );
+					data.append(
+						'action',
+						isOpeningNotification
+							? 'rrze_appointment_notify_opening'
+							: 'rrze_appointment_book'
+					);
 					data.append(
 						'nonce',
 						window.rrze_appointment?.nonce || ''
@@ -699,27 +742,49 @@ import {
 						.then( ( r ) => r.json() as Promise< BookingResponse > )
 						.then( ( res ) => {
 							if ( res.success ) {
-								bookedSlots.add( value );
+								const responseData =
+									typeof res.data === 'object'
+										? res.data
+										: null;
+								if (
+									isOpeningNotification &&
+									responseData?.redirectUrl
+								) {
+									window.location.assign(
+										responseData.redirectUrl
+									);
+									return;
+								}
+								if ( ! isOpeningNotification ) {
+									bookedSlots.add( value );
+								}
 								isSubmitting = false;
 								dialogForm.removeAttribute( 'aria-busy' );
 								showStatus(
-									i18n.booked ||
-										'Check your inbox to confirm the appointment. We sent a confirmation link to your email address.',
+									isOpeningNotification
+										? i18n.notifySuccess ||
+												'We will email you when this appointment opens for booking.'
+										: i18n.booked ||
+												'Check your inbox to confirm the appointment. We sent a confirmation link to your email address.',
 									'success'
 								);
 								fields.hidden = true;
 								intro.hidden = true;
-								heading.textContent =
-									i18n.successTitle || 'Check your inbox';
+								heading.textContent = isOpeningNotification
+									? i18n.notifySuccessTitle ||
+									  'Notification registered'
+									: i18n.successTitle || 'Check your inbox';
 								heading.tabIndex = -1;
 								box.classList.add( 'is-success' );
 								confirmBtn.remove();
 								cancelBtn.textContent = i18n.close || 'Close';
 								cancelBtn.disabled = false;
 								closeBtn.disabled = false;
-								renderCalendar();
-								renderDaySlots( activeDate );
-								refreshAvailabilityMessage();
+								if ( ! isOpeningNotification ) {
+									renderCalendar();
+									renderDaySlots( activeDate );
+									refreshAvailabilityMessage();
+								}
 								heading.focus();
 							} else {
 								isSubmitting = false;
@@ -757,7 +822,9 @@ import {
 				actions.appendChild( confirmBtn );
 				fields.appendChild( nameLabel );
 				fields.appendChild( emailLabel );
-				fields.appendChild( waitlistLabel );
+				if ( ! isOpeningNotification ) {
+					fields.appendChild( waitlistLabel );
+				}
 				dialogForm.appendChild( fields );
 				dialogForm.appendChild( status );
 				dialogForm.appendChild( actions );
@@ -800,6 +867,18 @@ import {
 					button.classList.add( 'is-booked' );
 					button.disabled = true;
 					return button;
+				}
+				const isNotOpen = isSlotTooFarInAdvance( slot.value );
+				if ( isNotOpen ) {
+					const bookingAdvanceMessage = getBookingAdvanceMessage();
+					button.classList.add( 'is-not-open' );
+					button.title = bookingAdvanceMessage;
+					button.setAttribute(
+						'aria-label',
+						`${
+							button.getAttribute( 'aria-label' ) || slot.label
+						}, ${ bookingAdvanceMessage }`
+					);
 				}
 
 				if ( selectedSlotValue && slot.value === selectedSlotValue ) {
@@ -903,7 +982,6 @@ import {
 				const slots = ( dateMap.get( date ) || [] ).filter(
 					( slot ) => ! isSlotUnavailable( slot.value )
 				);
-
 				daySlotsListElement.innerHTML = '';
 				daySlotsListElement.className =
 					'rrze-appointment__day-slots-list rrze-appointment__slot-grid';
@@ -912,6 +990,12 @@ import {
 					daySlotsContainerElement.classList.add( 'is-hidden' );
 					return;
 				}
+				const hasNotOpenSlots = slots.some( ( slot ) =>
+					isSlotTooFarInAdvance( slot.value )
+				);
+				const hasBookableSlots = slots.some(
+					( slot ) => ! isSlotTooFarInAdvance( slot.value )
+				);
 
 				daySlotsContainerElement.classList.remove( 'is-hidden' );
 				const title = daySlotsContainerElement.querySelector(
@@ -919,12 +1003,26 @@ import {
 				);
 				if ( title ) {
 					title.textContent = (
-						i18n.availableOn || 'Available appointments on %s'
+						hasBookableSlots
+							? i18n.availableOn || 'Available appointments on %s'
+							: i18n.appointmentsOn || 'Appointments on %s'
 					).replace(
 						'%s',
 						formatDateDisplay( date, frontendLocale )
 					);
 					( title as HTMLElement ).tabIndex = -1;
+				}
+
+				const existingNotice = daySlotsContainerElement.querySelector(
+					'.rrze-appointment__booking-window-notice'
+				);
+				existingNotice?.remove();
+				if ( hasNotOpenSlots ) {
+					const notice = document.createElement( 'p' );
+					notice.className =
+						'rrze-appointment__booking-window-notice';
+					notice.textContent = getBookingAdvanceMessage();
+					daySlotsListElement.before( notice );
 				}
 
 				slots.forEach( ( slot ) => {
@@ -1067,29 +1165,36 @@ import {
 
 					if ( dateSet.has( dateString ) ) {
 						const dateSlots = dateMap.get( dateString ) || [];
-						const allBooked =
-							dateSlots.length > 0 &&
-							dateSlots.every(
-								( s ) =>
-									bookedSlots.has( s.value ) ||
-									isSlotInPast( s.value ) ||
-									isSlotCutoff( s.value )
-							);
+						const hasAvailable = dateSlots.some(
+							( slot ) =>
+								! isSlotUnavailable( slot.value ) &&
+								! isSlotTooFarInAdvance( slot.value )
+						);
+						const hasNotOpen = dateSlots.some(
+							( slot ) =>
+								! isSlotUnavailable( slot.value ) &&
+								isSlotTooFarInAdvance( slot.value )
+						);
+						const isSelectable = hasAvailable || hasNotOpen;
 
-						if ( ! allBooked ) {
+						if ( hasAvailable ) {
 							button.classList.add( 'is-available' );
 							button.setAttribute( 'aria-pressed', 'false' );
 							isAvailable = true;
 						}
-						if ( allBooked ) {
+						if ( hasNotOpen && ! hasAvailable ) {
+							button.classList.add( 'is-not-open' );
+							button.setAttribute( 'aria-pressed', 'false' );
+						}
+						if ( ! isSelectable ) {
 							button.classList.add( 'is-booked' );
 						}
-						if ( dateString === activeDate && ! allBooked ) {
+						if ( dateString === activeDate && isSelectable ) {
 							button.classList.add( 'is-active' );
 							button.setAttribute( 'aria-pressed', 'true' );
 						}
 
-						if ( ! allBooked ) {
+						if ( isSelectable ) {
 							button.setAttribute(
 								'aria-controls',
 								daySlotsListElement.id
@@ -1106,15 +1211,25 @@ import {
 						button.disabled = true;
 					}
 
+					let availabilityLabel =
+						i18n.unavailable || 'no available appointments';
+					if ( isAvailable ) {
+						availabilityLabel =
+							i18n.available || 'available appointments';
+					}
+					if ( button.classList.contains( 'is-not-open' ) ) {
+						availabilityLabel = `${
+							i18n.notOpen || 'appointments not yet bookable'
+						}, ${ getBookingAdvanceMessage() }`;
+					}
+
 					const accessibleName = [
 						formatDateLongDisplay( dateString, frontendLocale ),
 						isToday ? i18n.today || 'today' : '',
 						dateString === activeDate && isAvailable
 							? i18n.selected || 'selected'
 							: '',
-						isAvailable
-							? i18n.available || 'available appointments'
-							: i18n.unavailable || 'no available appointments',
+						availabilityLabel,
 					].filter( Boolean );
 					button.setAttribute(
 						'aria-label',

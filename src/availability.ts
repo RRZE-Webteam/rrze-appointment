@@ -196,6 +196,19 @@ export function getAvailabilitySlotCount( entry: AvailabilityEntry ): number {
 	return getAvailabilitySlotIntervals( entry ).length;
 }
 
+export function usesConsultationPattern( entry: AvailabilityEntry ): boolean {
+	const slotCount = getAvailabilitySlotCount( entry );
+	const startMinutes = parseTimeToMinutes( entry.startTime );
+	const endMinutes = parseTimeToMinutes( entry.endTime );
+	const hasUnusedTime =
+		slotCount === 1 &&
+		startMinutes !== null &&
+		endMinutes !== null &&
+		entry.duration !== endMinutes - startMinutes;
+
+	return slotCount > 1 || entry.breakDuration > 0 || hasUnusedTime;
+}
+
 export function getAvailabilityAppointmentCount(
 	entry: AvailabilityEntry
 ): number {

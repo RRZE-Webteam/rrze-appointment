@@ -30,6 +30,7 @@ class Main
 
     private AllowedHtml $allowedHtml;
     private AssetManager $assets;
+    private BookingOpeningController $bookingOpenings;
     private BookingRequestController $bookingRequests;
     private CancellationController $cancellations;
     private ConfirmationController $confirmations;
@@ -45,6 +46,7 @@ class Main
         $renderer = new PublicPageRenderer();
         $this->allowedHtml = new AllowedHtml();
         $this->assets = new AssetManager();
+        $this->bookingOpenings = new BookingOpeningController($renderer);
         $this->bookingRequests = new BookingRequestController();
         $this->cancellations = new CancellationController($renderer);
         $this->confirmations = new ConfirmationController($renderer);
@@ -65,6 +67,7 @@ class Main
         $this->defaults = new Defaults();
         MailTemplatePost::ensureEditableDefaultTemplateExists();
         TokenManager::cleanupPendingState();
+        BookingOpeningNotifier::cleanup();
 
         (new Settings())->register();
         (new Reminder())->register();
@@ -74,13 +77,18 @@ class Main
         add_action('enqueue_block_editor_assets', [$this->assets, 'enqueueEditorAssets']);
         add_action('wp_ajax_rrze_appointment_book', [$this->bookingRequests, 'handleRequest']);
         add_action('wp_ajax_nopriv_rrze_appointment_book', [$this->bookingRequests, 'handleRequest']);
+        add_action('wp_ajax_rrze_appointment_notify_opening', [$this->bookingOpenings, 'handleSubscription']);
+        add_action('wp_ajax_nopriv_rrze_appointment_notify_opening', [$this->bookingOpenings, 'handleSubscription']);
         add_action('wp_ajax_rrze_appointment_get_booker', [$this->sso, 'handleBookerRequest']);
         add_action('wp_ajax_nopriv_rrze_appointment_get_booker', [$this->sso, 'handleBookerRequest']);
         add_action('template_redirect', [$this->sso, 'handleLogin']);
         add_action('template_redirect', [$this->confirmations, 'handleConfirmation']);
+        add_action('template_redirect', [$this->bookingOpenings, 'handleClaim']);
+        add_action('template_redirect', [$this->bookingOpenings, 'handleRegistrationStatus']);
         add_action('template_redirect', [$this->cancellations, 'handleCancellation']);
         add_action('template_redirect', [$this->cancellations, 'handleWaitlistPreference']);
         add_action(TokenManager::PENDING_EXPIRY_HOOK, [TokenManager::class, 'expirePending']);
+        add_action(BookingOpeningNotifier::CRON_HOOK, [BookingOpeningNotifier::class, 'notify']);
         add_action('post_updated', [$this->waitlistNotifier, 'handlePostUpdated'], 10, 3);
         add_action('rest_api_init', [$this, 'registerRestRoutes']);
     }
