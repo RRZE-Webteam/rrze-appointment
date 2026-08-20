@@ -132,6 +132,20 @@ msgid "no available appointments"
 msgstr "keine verfügbaren Termine"
 
 #: includes/AssetManager.php:87
+msgid "appointments not yet bookable"
+msgstr "noch nicht buchbare Termine"
+
+#: includes/AssetManager.php:88
+#, php-format
+msgid "These appointments can only be booked %d day in advance."
+msgstr "Diese Termine können erst %d Tag im Voraus gebucht werden."
+
+#: includes/AssetManager.php:89
+#, php-format
+msgid "These appointments can only be booked %d days in advance."
+msgstr "Diese Termine können erst %d Tage im Voraus gebucht werden."
+
+#: includes/AssetManager.php:87
 msgid "selected"
 msgstr "ausgewählt"
 
@@ -1841,7 +1855,8 @@ msgid "Import selected information"
 msgstr "Ausgewählte Informationen importieren"
 
 #. translators: %s: appointment date.
-#: build/index.js:199
+#: includes/AssetManager.php:115 build/index.js:199
+#, php-format
 msgid "Appointments on %s"
 msgstr "Termine am %s"
 

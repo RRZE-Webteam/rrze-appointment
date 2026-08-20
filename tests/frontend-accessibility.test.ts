@@ -33,6 +33,11 @@ function renderAppointment(
 		i18n: {
 			available: 'available appointments',
 			availableOn: 'Available appointments on %s',
+			appointmentsOn: 'Appointments on %s',
+			bookingAdvanceDay:
+				'These appointments can only be booked %d day in advance.',
+			bookingAdvanceDays:
+				'These appointments can only be booked %d days in advance.',
 			chooseDate: 'Choose an appointment date',
 			nextMonth: 'Next month',
 			noSlotsAvailable: 'No time slots available.',
@@ -41,6 +46,7 @@ function renderAppointment(
 			selected: 'selected',
 			today: 'today',
 			unavailable: 'no available appointments',
+			notOpen: 'appointments not yet bookable',
 		},
 	};
 
@@ -132,7 +138,7 @@ describe( 'frontend calendar accessibility', () => {
 		expect( status?.classList.contains( 'is-hidden' ) ).toBe( false );
 	} );
 
-	it( 'only exposes appointments inside the maximum advance window', () => {
+	it( 'shows appointments outside the advance window as not yet bookable', () => {
 		jest.useFakeTimers();
 		jest.setSystemTime( new Date( '2099-01-10T09:00:00' ) );
 
@@ -147,6 +153,34 @@ describe( 'frontend calendar accessibility', () => {
 		expect( availableDays[ 0 ].getAttribute( 'aria-label' ) ).toContain(
 			'20 January 2099'
 		);
+
+		form
+			.querySelector< HTMLButtonElement >( '[data-direction="next"]' )
+			?.click();
+		const notOpenDay = form.querySelector< HTMLButtonElement >(
+			'.rrze-appointment__calendar-day.is-not-open'
+		) as HTMLButtonElement;
+		expect( notOpenDay.disabled ).toBe( false );
+		expect( notOpenDay.getAttribute( 'aria-label' ) ).toContain(
+			'appointments not yet bookable'
+		);
+
+		notOpenDay.click();
+		const notOpenSlot = form.querySelector< HTMLButtonElement >(
+			'.rrze-appointment__slot-button.is-not-open'
+		) as HTMLButtonElement;
+		expect( notOpenSlot.disabled ).toBe( true );
+		expect( notOpenSlot.getAttribute( 'aria-label' ) ).toContain(
+			'These appointments can only be booked 14 days in advance.'
+		);
+		expect(
+			form.querySelector( '.rrze-appointment__booking-window-notice' )
+				?.textContent
+		).toBe( 'These appointments can only be booked 14 days in advance.' );
+		expect(
+			form.querySelector( '.rrze-appointment__day-slots-title' )
+				?.textContent
+		).toContain( 'Appointments on' );
 	} );
 
 	it( 'isolates the modal, associates errors, and restores focus', () => {

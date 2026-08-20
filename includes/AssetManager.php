@@ -84,6 +84,9 @@ final class AssetManager
             'nextMonth' => __('Next month', 'rrze-appointment'),
             'available' => __('available appointments', 'rrze-appointment'),
             'unavailable' => __('no available appointments', 'rrze-appointment'),
+            'notOpen' => __('appointments not yet bookable', 'rrze-appointment'),
+            'bookingAdvanceDay' => __('These appointments can only be booked %d day in advance.', 'rrze-appointment'),
+            'bookingAdvanceDays' => __('These appointments can only be booked %d days in advance.', 'rrze-appointment'),
             'selected' => __('selected', 'rrze-appointment'),
             'today' => __('today', 'rrze-appointment'),
             'noSlotsAvailable' => __('No time slots available.', 'rrze-appointment'),
@@ -109,6 +112,7 @@ final class AssetManager
             'bookingError' => __("We couldn't request this appointment. Please try again.", 'rrze-appointment'),
             'networkError' => __('Connection problem. Check your internet connection and try again.', 'rrze-appointment'),
             'availableOn' => __('Available appointments on %s', 'rrze-appointment'),
+            'appointmentsOn' => __('Appointments on %s', 'rrze-appointment'),
             'slotsOnDay' => __('Times on selected day', 'rrze-appointment'),
         ];
     }

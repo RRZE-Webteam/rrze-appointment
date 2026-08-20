@@ -140,6 +140,9 @@ export interface EditorI18n {
 export interface FrontendI18n {
 	available?: string;
 	availableOn?: string;
+	appointmentsOn?: string;
+	bookingAdvanceDay?: string;
+	bookingAdvanceDays?: string;
 	book?: string;
 	booked?: string;
 	booking?: string;
@@ -163,6 +166,7 @@ export interface FrontendI18n {
 	successTitle?: string;
 	today?: string;
 	unavailable?: string;
+	notOpen?: string;
 	bookingDetailsLoading?: string;
 	waitlist?: string;
 	yourAppointment?: string;
