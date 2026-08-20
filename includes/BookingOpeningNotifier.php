@@ -11,12 +11,18 @@ defined('ABSPATH') || exit;
  */
 final class BookingOpeningNotifier
 {
+    /** Option containing subscriptions keyed by their private claim token. */
     public const OPTION = 'rrze_appointment_booking_opening_notifications';
+
+    /** Cron hook used to deliver one opening notification. */
     public const CRON_HOOK = 'rrze_appointment_booking_opened';
 
     private const RETRY_SECONDS = 15 * MINUTE_IN_SECONDS;
     private const CLAIM_LOCK_TTL = 5 * MINUTE_IN_SECONDS;
     private const CLAIM_LOCK_PREFIX = 'rrze_appointment_opening_claim_';
+    private const CLAIM_QUERY_KEY = 'rrze_appt_opening';
+    private const STATUS_QUERY_KEY = 'rrze_appt_opening_registered';
+    private const TEMPLATE_TYPE = 'booking_opening_notification';
 
     /**
      * Registers one email address for a slot and schedules its opening email.
@@ -35,49 +41,98 @@ final class BookingOpeningNotifier
             $entries = self::getEntries();
             $email = sanitize_email((string) ($meta['booker_email'] ?? ''));
 
-            foreach ($entries as $token => $entry) {
-                if (
-                    is_array($entry)
-                    && hash_equals((string) ($entry['slot'] ?? ''), $slot)
-                    && hash_equals((string) ($entry['meta']['booker_email'] ?? ''), $email)
-                ) {
-                    $statusToken = (string) ($entry['status_token'] ?? '');
-                    if ($statusToken === '') {
-                        $statusToken = wp_generate_uuid4();
-                        $entries[$token]['status_token'] = $statusToken;
-                        update_option(self::OPTION, $entries, false);
-                    }
-                    self::schedule((string) $token, (int) ($entry['opens_at'] ?? $opensAt));
-                    return [
-                        'token' => (string) $token,
-                        'statusToken' => $statusToken,
-                        'created' => false,
-                    ];
-                }
+            $existingToken = self::findSubscriptionToken($entries, $slot, $email);
+            if ($existingToken !== null) {
+                return self::reuseSubscription($entries, $existingToken, $opensAt);
             }
 
-            $token = wp_generate_uuid4();
-            $statusToken = wp_generate_uuid4();
-            $entries[$token] = [
-                'slot' => $slot,
-                'meta' => $meta,
-                'status_token' => $statusToken,
-                'opens_at' => $opensAt,
-                'closes_at' => $closesAt,
-                'created_at' => time(),
-                'notified_at' => 0,
-            ];
-            update_option(self::OPTION, $entries, false);
-            self::schedule($token, $opensAt);
-
-            return [
-                'token' => $token,
-                'statusToken' => $statusToken,
-                'created' => true,
-            ];
+            return self::createSubscription($entries, $slot, $meta, $opensAt, $closesAt);
         } catch (\Exception $exception) {
             throw new CustomException($exception->getMessage(), $exception->getCode(), null);
         }
+    }
+
+    /**
+     * Finds an existing subscription for the same slot and email address.
+     *
+     * @param array<string, array<string, mixed>> $entries Stored subscriptions.
+     */
+    private static function findSubscriptionToken(
+        array $entries,
+        string $slot,
+        string $email
+    ): ?string {
+        foreach ($entries as $token => $entry) {
+            if (
+                is_array($entry)
+                && hash_equals((string) ($entry['slot'] ?? ''), $slot)
+                && hash_equals((string) ($entry['meta']['booker_email'] ?? ''), $email)
+            ) {
+                return (string) $token;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Reuses an existing subscription and restores legacy status tokens if needed.
+     *
+     * @param array<string, array<string, mixed>> $entries Stored subscriptions.
+     * @return array{token: string, statusToken: string, created: bool}
+     */
+    private static function reuseSubscription(array $entries, string $token, int $opensAt): array
+    {
+        $entry = $entries[$token];
+        $statusToken = (string) ($entry['status_token'] ?? '');
+        if ($statusToken === '') {
+            $statusToken = wp_generate_uuid4();
+            $entries[$token]['status_token'] = $statusToken;
+            update_option(self::OPTION, $entries, false);
+        }
+
+        self::schedule($token, (int) ($entry['opens_at'] ?? $opensAt));
+
+        return [
+            'token' => $token,
+            'statusToken' => $statusToken,
+            'created' => false,
+        ];
+    }
+
+    /**
+     * Persists and schedules a new opening subscription.
+     *
+     * @param array<string, array<string, mixed>> $entries Stored subscriptions.
+     * @param array<string, mixed>                $meta    Validated booking metadata.
+     * @return array{token: string, statusToken: string, created: bool}
+     */
+    private static function createSubscription(
+        array $entries,
+        string $slot,
+        array $meta,
+        int $opensAt,
+        int $closesAt
+    ): array {
+        $token = wp_generate_uuid4();
+        $statusToken = wp_generate_uuid4();
+        $entries[$token] = [
+            'slot' => $slot,
+            'meta' => $meta,
+            'status_token' => $statusToken,
+            'opens_at' => $opensAt,
+            'closes_at' => $closesAt,
+            'created_at' => time(),
+            'notified_at' => 0,
+        ];
+        update_option(self::OPTION, $entries, false);
+        self::schedule($token, $opensAt);
+
+        return [
+            'token' => $token,
+            'statusToken' => $statusToken,
+            'created' => true,
+        ];
     }
 
     /**
@@ -105,28 +160,62 @@ final class BookingOpeningNotifier
             }
 
             $slot = (string) ($entry['slot'] ?? '');
-            if (in_array($slot, (array) get_option(Bookings::SLOTS_OPTION, []), true)) {
+            if (self::isBooked($slot)) {
                 self::delete($token);
                 return;
             }
-            if (in_array($slot, TokenManager::getPendingSlots(), true)) {
-                self::schedule($token, min($closesAt, $now + self::RETRY_SECONDS));
+            if (self::isPending($slot)) {
+                self::scheduleRetry($token, $now, $closesAt);
                 return;
             }
 
             if (!self::sendOpeningMail($token, $entry)) {
-                self::schedule($token, min($closesAt, $now + self::RETRY_SECONDS));
+                self::scheduleRetry($token, $now, $closesAt);
                 return;
             }
 
-            $entries = self::getEntries();
-            if (isset($entries[$token]) && is_array($entries[$token])) {
-                $entries[$token]['notified_at'] = $now;
-                update_option(self::OPTION, $entries, false);
-            }
+            self::markNotified($token, $now);
         } catch (\Exception $exception) {
             throw new CustomException($exception->getMessage(), $exception->getCode(), null);
         }
+    }
+
+    /**
+     * Determines whether a slot is already booked.
+     */
+    private static function isBooked(string $slot): bool
+    {
+        return in_array($slot, (array) get_option(Bookings::SLOTS_OPTION, []), true);
+    }
+
+    /**
+     * Determines whether a slot is waiting for booking confirmation.
+     */
+    private static function isPending(string $slot): bool
+    {
+        return in_array($slot, TokenManager::getPendingSlots(), true);
+    }
+
+    /**
+     * Schedules another delivery attempt without crossing the booking cutoff.
+     */
+    private static function scheduleRetry(string $token, int $now, int $closesAt): void
+    {
+        self::schedule($token, min($closesAt, $now + self::RETRY_SECONDS));
+    }
+
+    /**
+     * Marks a subscription as successfully notified if it still exists.
+     */
+    private static function markNotified(string $token, int $notifiedAt): void
+    {
+        $entries = self::getEntries();
+        if (!isset($entries[$token]) || !is_array($entries[$token])) {
+            return;
+        }
+
+        $entries[$token]['notified_at'] = $notifiedAt;
+        update_option(self::OPTION, $entries, false);
     }
 
     /**
@@ -163,13 +252,8 @@ final class BookingOpeningNotifier
             }
 
             $slot = (string) ($entry['slot'] ?? '');
-            $lockOption = self::CLAIM_LOCK_PREFIX . md5($slot);
-            $lockCreated = add_option($lockOption, $now, '', false);
-            if (!$lockCreated && (int) get_option($lockOption, 0) < $now - self::CLAIM_LOCK_TTL) {
-                delete_option($lockOption);
-                $lockCreated = add_option($lockOption, $now, '', false);
-            }
-            if (!$lockCreated) {
+            $lockOption = self::getClaimLockOption($slot);
+            if (!self::acquireClaimLock($lockOption, $now)) {
                 return new \WP_Error(
                     'rrze_appointment_opening_busy',
                     __('This appointment is currently being requested. Please try again shortly.', 'rrze-appointment')
@@ -177,10 +261,7 @@ final class BookingOpeningNotifier
             }
 
             try {
-                if (
-                    in_array($slot, (array) get_option(Bookings::SLOTS_OPTION, []), true)
-                    || in_array($slot, TokenManager::getPendingSlots(), true)
-                ) {
+                if (self::isBooked($slot) || self::isPending($slot)) {
                     return new \WP_Error(
                         'rrze_appointment_opening_unavailable',
                         __('This appointment is no longer available.', 'rrze-appointment')
@@ -197,6 +278,31 @@ final class BookingOpeningNotifier
         } catch (\Exception $exception) {
             throw new CustomException($exception->getMessage(), $exception->getCode(), null);
         }
+    }
+
+    /**
+     * Returns the option name used to serialize claims for one slot.
+     */
+    private static function getClaimLockOption(string $slot): string
+    {
+        return self::CLAIM_LOCK_PREFIX . md5($slot);
+    }
+
+    /**
+     * Acquires a claim lock, replacing it only when it has expired.
+     */
+    private static function acquireClaimLock(string $lockOption, int $now): bool
+    {
+        if (add_option($lockOption, $now, '', false)) {
+            return true;
+        }
+        if ((int) get_option($lockOption, 0) >= $now - self::CLAIM_LOCK_TTL) {
+            return false;
+        }
+
+        delete_option($lockOption);
+
+        return add_option($lockOption, $now, '', false);
     }
 
     /**
@@ -219,9 +325,12 @@ final class BookingOpeningNotifier
         return null;
     }
 
+    /**
+     * Builds the public success-page URL for a subscription.
+     */
     public static function registrationUrl(string $statusToken): string
     {
-        return add_query_arg('rrze_appt_opening_registered', $statusToken, home_url('/'));
+        return add_query_arg(self::STATUS_QUERY_KEY, $statusToken, home_url('/'));
     }
 
     /**
@@ -246,6 +355,9 @@ final class BookingOpeningNotifier
         }
     }
 
+    /**
+     * Deletes one subscription and its scheduled delivery.
+     */
     private static function delete(string $token): void
     {
         $entries = self::getEntries();
@@ -256,10 +368,14 @@ final class BookingOpeningNotifier
         wp_clear_scheduled_hook(self::CRON_HOOK, [$token]);
     }
 
+    /**
+     * Schedules a subscription once, normalizing past timestamps.
+     */
     private static function schedule(string $token, int $timestamp): void
     {
-        if ($timestamp <= time()) {
-            $timestamp = time() + 1;
+        $now = time();
+        if ($timestamp <= $now) {
+            $timestamp = $now + 1;
         }
         if (!wp_next_scheduled(self::CRON_HOOK, [$token])) {
             wp_schedule_single_event($timestamp, self::CRON_HOOK, [$token]);
@@ -267,6 +383,8 @@ final class BookingOpeningNotifier
     }
 
     /**
+     * Returns all stored subscriptions keyed by claim token.
+     *
      * @return array<string, array<string, mixed>>
      */
     private static function getEntries(): array
@@ -279,12 +397,44 @@ final class BookingOpeningNotifier
      */
     private static function sendOpeningMail(string $token, array $entry): bool
     {
-        $slot = (string) ($entry['slot'] ?? '');
         $meta = is_array($entry['meta'] ?? null) ? $entry['meta'] : [];
+        $variables = self::getOpeningMailVariables(
+            (string) ($entry['slot'] ?? ''),
+            $token,
+            $meta
+        );
+        [$template, $default] = self::getOpeningMailTemplates((int) ($meta['tpl_id'] ?? 0));
+        $subject = Settings::renderTemplate(
+            !empty($template['subject']) ? $template['subject'] : $default['subject'],
+            $variables
+        );
+        $plain = !empty($template['body']) ? $template['body'] : $default['body'];
+        $html = !empty($template['body_html']) ? $template['body_html'] : $default['body_html'];
+        [$plain, $html] = self::ensureRequiredMailLinks($plain, $html);
+
+        return Settings::sendMail(
+            sanitize_email((string) ($meta['booker_email'] ?? '')),
+            $subject,
+            Settings::renderTemplate($plain, $variables),
+            Settings::renderTemplate($html, $variables),
+            [],
+            MailTemplate::STATUS_WARNING
+        );
+    }
+
+    /**
+     * Builds placeholder values for an opening-notification email.
+     *
+     * @param array<string, mixed> $meta Stored subscription metadata.
+     * @return array<string, string>
+     */
+    private static function getOpeningMailVariables(string $slot, string $token, array $meta): array
+    {
         [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
         [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
-        $bookingUrl = add_query_arg('rrze_appt_opening', $token, home_url('/'));
-        $variables = [
+        $bookingUrl = add_query_arg(self::CLAIM_QUERY_KEY, $token, home_url('/'));
+
+        return [
             '[title]' => (string) ($meta['title'] ?? ''),
             '[date]' => date_i18n(get_option('date_format'), strtotime($datePart)),
             '[time]' => $startTime . ' – ' . $endTime,
@@ -296,19 +446,29 @@ final class BookingOpeningNotifier
             '[imprint_link]' => TokenManager::imprintUrl(),
             '[post_link]' => esc_url_raw((string) ($meta['post_link'] ?? home_url('/'))),
         ];
+    }
 
-        $templateId = (int) ($meta['tpl_id'] ?? 0);
+    /**
+     * Returns the custom and default opening-notification templates.
+     *
+     * @return array{0: array<string, string>, 1: array<string, string>}
+     */
+    private static function getOpeningMailTemplates(int $templateId): array
+    {
         $template = $templateId > 0
-            ? (MailTemplatePost::getTemplateForType($templateId, 'booking_opening_notification') ?? [])
+            ? (MailTemplatePost::getTemplateForType($templateId, self::TEMPLATE_TYPE) ?? [])
             : [];
-        $default = MailTemplatePost::getDefault('booking_opening_notification');
-        $subject = Settings::renderTemplate(
-            !empty($template['subject']) ? $template['subject'] : $default['subject'],
-            $variables
-        );
-        $plain = !empty($template['body']) ? $template['body'] : $default['body'];
-        $html = !empty($template['body_html']) ? $template['body_html'] : $default['body_html'];
 
+        return [$template, MailTemplatePost::getDefault(self::TEMPLATE_TYPE)];
+    }
+
+    /**
+     * Ensures custom templates retain their required booking and imprint links.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private static function ensureRequiredMailLinks(string $plain, string $html): array
+    {
         if (strpos($plain, '[booking_link]') === false) {
             $plain .= "\n\n" . __('Book appointment', 'rrze-appointment') . ': [booking_link]';
         }
@@ -327,13 +487,6 @@ final class BookingOpeningNotifier
                 . '</a></p>';
         }
 
-        return Settings::sendMail(
-            sanitize_email((string) ($meta['booker_email'] ?? '')),
-            $subject,
-            Settings::renderTemplate($plain, $variables),
-            Settings::renderTemplate($html, $variables),
-            [],
-            MailTemplate::STATUS_WARNING
-        );
+        return [$plain, $html];
     }
 }
