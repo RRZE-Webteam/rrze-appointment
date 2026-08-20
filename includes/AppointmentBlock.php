@@ -87,7 +87,12 @@ final class AppointmentBlock
      *
      * @return array|\WP_Error
      */
-    public static function resolvePublished(int $postId, string $fingerprint, string $slot)
+    public static function resolvePublished(
+        int $postId,
+        string $fingerprint,
+        string $slot,
+        bool $allowNotOpen = false
+    )
     {
         if ($postId <= 0 || !preg_match('/^[a-f0-9]{64}$/', $fingerprint)) {
             return new \WP_Error(
@@ -126,7 +131,7 @@ final class AppointmentBlock
                 continue;
             }
 
-            $context = self::validateContext($post, $attributes, $slot);
+            $context = self::validateContext($post, $attributes, $slot, $allowNotOpen);
             if (!is_wp_error($context)) {
                 return $context;
             }
@@ -205,7 +210,12 @@ final class AppointmentBlock
     /**
      * @return array|\WP_Error
      */
-    private static function validateContext(\WP_Post $post, array $attributes, string $slot)
+    private static function validateContext(
+        \WP_Post $post,
+        array $attributes,
+        string $slot,
+        bool $allowNotOpen = false
+    )
     {
         $bookingCutoff = max(0, (int) ($attributes['bookingCutoff'] ?? 0));
         $bookingMaxAdvance = max(0, (int) ($attributes['bookingMaxAdvance'] ?? 0));
@@ -220,7 +230,8 @@ final class AppointmentBlock
                 __('This appointment can no longer be booked.', 'rrze-appointment')
             );
         }
-        if (BookingWindow::isNotOpen($slotStart, $now, $bookingMaxAdvance)) {
+        $bookingNotOpen = BookingWindow::isNotOpen($slotStart, $now, $bookingMaxAdvance);
+        if ($bookingNotOpen && !$allowNotOpen) {
             return new \WP_Error(
                 'rrze_appointment_booking_not_open',
                 __('This appointment cannot be booked yet.', 'rrze-appointment')
@@ -313,6 +324,9 @@ final class AppointmentBlock
             'questions' => self::getQuestions($attributes),
             'disable_sso' => !empty($attributes['disableSso']),
             'post_link' => $postLink ? esc_url_raw($postLink) : home_url('/'),
+            'booking_not_open' => $bookingNotOpen,
+            'booking_opens_at' => $slotStart->getTimestamp() - ($bookingMaxAdvance * MINUTE_IN_SECONDS),
+            'booking_closes_at' => $slotStart->getTimestamp() - ($bookingCutoff * MINUTE_IN_SECONDS),
         ];
     }
 

@@ -41,6 +41,14 @@ function renderAppointment(
 			chooseDate: 'Choose an appointment date',
 			nextMonth: 'Next month',
 			noSlotsAvailable: 'No time slots available.',
+			notifyButton: 'Notify me',
+			notifyDialogIntro:
+				'Enter your details and we will email you as soon as this appointment opens for booking.',
+			notifyDialogTitle: 'Notify me when booking opens',
+			notifySending: 'Saving notification…',
+			notifySuccess:
+				'We will email you when this appointment opens for booking.',
+			notifySuccessTitle: 'Notification registered',
 			previousMonth: 'Previous month',
 			required: 'required',
 			selected: 'selected',
@@ -63,6 +71,7 @@ describe( 'frontend calendar accessibility', () => {
 	afterEach( () => {
 		document.body.innerHTML = '';
 		delete window.rrze_appointment;
+		delete global.fetch;
 		jest.useRealTimers();
 	} );
 
@@ -138,7 +147,7 @@ describe( 'frontend calendar accessibility', () => {
 		expect( status?.classList.contains( 'is-hidden' ) ).toBe( false );
 	} );
 
-	it( 'shows appointments outside the advance window as not yet bookable', () => {
+	it( 'registers opening notifications for appointments outside the advance window', async () => {
 		jest.useFakeTimers();
 		jest.setSystemTime( new Date( '2099-01-10T09:00:00' ) );
 
@@ -169,7 +178,7 @@ describe( 'frontend calendar accessibility', () => {
 		const notOpenSlot = form.querySelector< HTMLButtonElement >(
 			'.rrze-appointment__slot-button.is-not-open'
 		) as HTMLButtonElement;
-		expect( notOpenSlot.disabled ).toBe( true );
+		expect( notOpenSlot.disabled ).toBe( false );
 		expect( notOpenSlot.getAttribute( 'aria-label' ) ).toContain(
 			'These appointments can only be booked 14 days in advance.'
 		);
@@ -181,6 +190,50 @@ describe( 'frontend calendar accessibility', () => {
 			form.querySelector( '.rrze-appointment__day-slots-title' )
 				?.textContent
 		).toContain( 'Appointments on' );
+
+		notOpenSlot.click();
+		expect(
+			document.querySelector( '.rrze-appointment__overlay-title' )
+				?.textContent
+		).toBe( 'Notify me when booking opens' );
+		expect(
+			document.querySelector( '.rrze-appointment__overlay-confirm' )
+				?.textContent
+		).toBe( 'Notify me' );
+		expect(
+			document.querySelector( '.rrze-appointment__overlay-waitlist' )
+		).toBeNull();
+
+		const fetchMock = jest.fn().mockImplementation(
+			() =>
+				new Promise( () => {
+					// Keep the request pending; this test only inspects its payload.
+				} )
+		);
+		global.fetch = fetchMock as typeof fetch;
+		const nameInput = document.querySelector< HTMLInputElement >(
+			'.rrze-appointment__overlay-name'
+		) as HTMLInputElement;
+		const emailInput = document.querySelector< HTMLInputElement >(
+			'.rrze-appointment__overlay-email'
+		) as HTMLInputElement;
+		nameInput.value = 'Ada Lovelace';
+		emailInput.value = 'ada@example.org';
+		document
+			.querySelector< HTMLFormElement >(
+				'.rrze-appointment__overlay-form'
+			)
+			?.dispatchEvent(
+				new Event( 'submit', { bubbles: true, cancelable: true } )
+			);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const requestBody = fetchMock.mock.calls[ 0 ][ 1 ].body as FormData;
+		expect( requestBody.get( 'action' ) ).toBe(
+			'rrze_appointment_notify_opening'
+		);
+		expect( requestBody.get( 'slot' ) ).toBe( '2099-02-02 14:00-14:30' );
 	} );
 
 	it( 'isolates the modal, associates errors, and restores focus', () => {

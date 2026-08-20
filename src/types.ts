@@ -159,6 +159,12 @@ export interface FrontendI18n {
 	networkError?: string;
 	nextMonth?: string;
 	noSlotsAvailable?: string;
+	notifyButton?: string;
+	notifyDialogIntro?: string;
+	notifyDialogTitle?: string;
+	notifySending?: string;
+	notifySuccess?: string;
+	notifySuccessTitle?: string;
 	previousMonth?: string;
 	required?: string;
 	selectedAppointment?: string;
@@ -227,6 +233,7 @@ export interface BookingResponse {
 		| string
 		| {
 				message?: string;
+				redirectUrl?: string;
 		  };
 }
 

@@ -179,6 +179,40 @@ final class PublicPageRenderer
     }
 
     /**
+     * Renders the success page after an opening notification is registered.
+     *
+     * @param array<string, string> $appointmentDetails Public appointment details.
+     */
+    public function renderOpeningNotificationSuccess(array $appointmentDetails = []): void
+    {
+        status_header(200);
+        nocache_headers();
+
+        $homeUrl = home_url('/');
+        $siteName = get_bloginfo('name');
+        $isQuestionForm = false;
+        $isCancellation = false;
+        $isCancellationConfirmation = false;
+        $isWaitlistOptOut = false;
+        $isOpeningNotification = true;
+        $waitlistNotificationsEnabled = false;
+        $waitlistOptInAction = '';
+        $waitlistOptInNonce = '';
+        $cancellationAction = '';
+        $cancellationNonce = '';
+        $illustrationUrl = plugin()->getUrl('src/illustrations') . 'notification-36.png';
+        $questions = [];
+        $submittedAnswers = [];
+        $formError = '';
+        $formErrorField = '';
+        $formAction = '';
+        $formNonce = '';
+
+        require plugin()->getPath('templates') . 'confirmation-page.php';
+        exit;
+    }
+
+    /**
      * Renders a public error without exposing the WordPress error interface.
      */
     public function renderError(string $message, int $statusCode = 410): void

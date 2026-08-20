@@ -338,16 +338,14 @@ import {
 					existingDialog.focus();
 					return;
 				}
-				if (
-					isSlotUnavailable( value ) ||
-					isSlotTooFarInAdvance( value )
-				) {
+				if ( isSlotUnavailable( value ) ) {
 					return;
 				}
 				const parsed = parseSlotValue( value );
 				if ( ! parsed.date || ! parsed.time ) {
 					return;
 				}
+				const isOpeningNotification = isSlotTooFarInAdvance( value );
 
 				selectedSlotValue = value;
 				markHiddenInput( value );
@@ -381,7 +379,9 @@ import {
 				const heading = document.createElement( 'h2' );
 				heading.className = 'rrze-appointment__overlay-title';
 				heading.id = titleId;
-				heading.textContent = i18n.dialogTitle || 'Request appointment';
+				heading.textContent = isOpeningNotification
+					? i18n.notifyDialogTitle || 'Notify me when booking opens'
+					: i18n.dialogTitle || 'Request appointment';
 				const closeBtn = document.createElement( 'button' );
 				closeBtn.type = 'button';
 				closeBtn.className = 'rrze-appointment__overlay-close';
@@ -396,9 +396,11 @@ import {
 				const intro = document.createElement( 'p' );
 				intro.className = 'rrze-appointment__overlay-intro';
 				intro.id = introId;
-				intro.textContent =
-					i18n.dialogIntro ||
-					'Enter your details to request this appointment. You will receive an email to confirm it.';
+				intro.textContent = isOpeningNotification
+					? i18n.notifyDialogIntro ||
+					  'Enter your details and we will email you as soon as this appointment opens for booking.'
+					: i18n.dialogIntro ||
+					  'Enter your details to request this appointment. You will receive an email to confirm it.';
 
 				const appointment = document.createElement( 'div' );
 				appointment.className = 'rrze-appointment__overlay-appointment';
@@ -548,7 +550,9 @@ import {
 				const confirmBtn = document.createElement( 'button' );
 				confirmBtn.type = 'submit';
 				confirmBtn.className = 'rrze-appointment__overlay-confirm';
-				confirmBtn.textContent = i18n.book || 'Request appointment';
+				confirmBtn.textContent = isOpeningNotification
+					? i18n.notifyButton || 'Notify me'
+					: i18n.book || 'Request appointment';
 
 				const cancelBtn = document.createElement( 'button' );
 				cancelBtn.type = 'button';
@@ -699,10 +703,20 @@ import {
 					closeBtn.disabled = true;
 					isSubmitting = true;
 					dialogForm.setAttribute( 'aria-busy', 'true' );
-					showStatus( i18n.booking || 'Sending request…', 'loading' );
+					showStatus(
+						isOpeningNotification
+							? i18n.notifySending || 'Saving notification…'
+							: i18n.booking || 'Sending request…',
+						'loading'
+					);
 
 					const data = new FormData();
-					data.append( 'action', 'rrze_appointment_book' );
+					data.append(
+						'action',
+						isOpeningNotification
+							? 'rrze_appointment_notify_opening'
+							: 'rrze_appointment_book'
+					);
 					data.append(
 						'nonce',
 						window.rrze_appointment?.nonce || ''
@@ -728,27 +742,49 @@ import {
 						.then( ( r ) => r.json() as Promise< BookingResponse > )
 						.then( ( res ) => {
 							if ( res.success ) {
-								bookedSlots.add( value );
+								const responseData =
+									typeof res.data === 'object'
+										? res.data
+										: null;
+								if (
+									isOpeningNotification &&
+									responseData?.redirectUrl
+								) {
+									window.location.assign(
+										responseData.redirectUrl
+									);
+									return;
+								}
+								if ( ! isOpeningNotification ) {
+									bookedSlots.add( value );
+								}
 								isSubmitting = false;
 								dialogForm.removeAttribute( 'aria-busy' );
 								showStatus(
-									i18n.booked ||
-										'Check your inbox to confirm the appointment. We sent a confirmation link to your email address.',
+									isOpeningNotification
+										? i18n.notifySuccess ||
+												'We will email you when this appointment opens for booking.'
+										: i18n.booked ||
+												'Check your inbox to confirm the appointment. We sent a confirmation link to your email address.',
 									'success'
 								);
 								fields.hidden = true;
 								intro.hidden = true;
-								heading.textContent =
-									i18n.successTitle || 'Check your inbox';
+								heading.textContent = isOpeningNotification
+									? i18n.notifySuccessTitle ||
+									  'Notification registered'
+									: i18n.successTitle || 'Check your inbox';
 								heading.tabIndex = -1;
 								box.classList.add( 'is-success' );
 								confirmBtn.remove();
 								cancelBtn.textContent = i18n.close || 'Close';
 								cancelBtn.disabled = false;
 								closeBtn.disabled = false;
-								renderCalendar();
-								renderDaySlots( activeDate );
-								refreshAvailabilityMessage();
+								if ( ! isOpeningNotification ) {
+									renderCalendar();
+									renderDaySlots( activeDate );
+									refreshAvailabilityMessage();
+								}
 								heading.focus();
 							} else {
 								isSubmitting = false;
@@ -786,7 +822,9 @@ import {
 				actions.appendChild( confirmBtn );
 				fields.appendChild( nameLabel );
 				fields.appendChild( emailLabel );
-				fields.appendChild( waitlistLabel );
+				if ( ! isOpeningNotification ) {
+					fields.appendChild( waitlistLabel );
+				}
 				dialogForm.appendChild( fields );
 				dialogForm.appendChild( status );
 				dialogForm.appendChild( actions );
@@ -834,7 +872,6 @@ import {
 				if ( isNotOpen ) {
 					const bookingAdvanceMessage = getBookingAdvanceMessage();
 					button.classList.add( 'is-not-open' );
-					button.disabled = true;
 					button.title = bookingAdvanceMessage;
 					button.setAttribute(
 						'aria-label',
@@ -842,7 +879,6 @@ import {
 							button.getAttribute( 'aria-label' ) || slot.label
 						}, ${ bookingAdvanceMessage }`
 					);
-					return button;
 				}
 
 				if ( selectedSlotValue && slot.value === selectedSlotValue ) {

@@ -1408,7 +1408,6 @@ msgstr "Zeitraum"
 
 #: build/index.js:187
 #, fuzzy
-#| msgid "Appointment duration"
 msgid "Appointment Duration"
 msgstr "Termindauer"
 
@@ -1696,7 +1695,8 @@ msgstr "Frühester Buchungszeitpunkt"
 
 #: build/index.js:195
 msgid "How far in advance an appointment can first be booked."
-msgstr "Legt fest, wie lange im Voraus ein Termin erstmals gebucht werden kann."
+msgstr ""
+"Legt fest, wie lange im Voraus ein Termin erstmals gebucht werden kann."
 
 #: build/index.js:195
 msgid "No advance limit"
@@ -2115,6 +2115,99 @@ msgstr "RRZE-Appointment"
 msgctxt "block description"
 msgid "block to create an appointment"
 msgstr "Block zum Buchen und Verwalten von Sprechstunden und Terminen"
+
+#: includes/AssetManager.php:90
+msgid "Notify me when booking opens"
+msgstr "Benachrichtigen, sobald die Buchung öffnet"
+
+#: includes/AssetManager.php:91
+msgid ""
+"Enter your details and we will email you as soon as this appointment opens "
+"for booking."
+msgstr ""
+"Geben Sie Ihre Daten ein. Wir benachrichtigen Sie per E-Mail, sobald dieser "
+"Termin gebucht werden kann."
+
+#: includes/AssetManager.php:92
+msgid "Notify me"
+msgstr "Benachrichtigen"
+
+#: includes/AssetManager.php:93
+msgid "Saving notification…"
+msgstr "Benachrichtigung wird gespeichert …"
+
+#: includes/AssetManager.php:94
+msgid "Notification registered"
+msgstr "Benachrichtigung vorgemerkt"
+
+#: includes/AssetManager.php:95 includes/BookingOpeningController.php:92
+msgid "We will email you when this appointment opens for booking."
+msgstr "Wir benachrichtigen Sie per E-Mail, sobald dieser Termin gebucht werden kann."
+
+#: includes/BookingOpeningController.php:45
+msgid "This appointment is already open for booking."
+msgstr "Dieser Termin kann bereits gebucht werden."
+
+#: includes/BookingOpeningController.php:50
+msgid "This appointment has no valid booking period."
+msgstr "Für diesen Termin ist kein gültiger Buchungszeitraum konfiguriert."
+
+#: includes/BookingOpeningNotifier.php:130
+msgid "This booking notification link is invalid or has expired."
+msgstr "Dieser Link zur Buchungsbenachrichtigung ist ungültig oder abgelaufen."
+
+#: includes/BookingOpeningNotifier.php:138
+msgid "This appointment is not open for booking yet."
+msgstr "Dieser Termin kann noch nicht gebucht werden."
+
+#: includes/BookingOpeningNotifier.php:159
+msgid ""
+"This appointment is currently being requested. Please try again shortly."
+msgstr "Dieser Termin wird gerade angefragt. Bitte versuchen Sie es in Kürze erneut."
+
+#: includes/BookingOpeningNotifier.php:275
+#: includes/BookingOpeningNotifier.php:283
+msgid "Book appointment"
+msgstr "Termin buchen"
+
+#: includes/MailTemplatePost.php:66
+msgid "Book appointment now"
+msgstr "Termin jetzt buchen"
+
+#: includes/MailTemplatePost.php:137
+msgid "Booking is now open: [title] on [date]"
+msgstr "Buchung jetzt möglich: [title] am [date]"
+
+#: includes/MailTemplatePost.php:141 includes/MailTemplatePost.php:153
+msgid "The appointment you asked about is now open for booking."
+msgstr "Der Termin, für den Sie sich vorgemerkt haben, kann jetzt gebucht werden."
+
+#: includes/MailTemplatePost.php:147 includes/MailTemplatePost.php:155
+msgid "The appointment is not reserved until you complete the booking."
+msgstr "Der Termin ist erst reserviert, wenn Sie die Buchung abgeschlossen haben."
+
+#: includes/Settings.php:28
+msgid "Link to book an appointment when booking opens"
+msgstr "Link zur Terminbuchung nach Öffnung des Buchungszeitraums"
+
+#: templates/confirmation-page.php:35
+msgid "We will let you know"
+msgstr "Wir geben Ihnen Bescheid"
+
+#: templates/confirmation-page.php:36
+msgid "We will email you as soon as this appointment opens for booking. The appointment is not reserved until you complete the booking from that email."
+msgstr ""
+"Wir benachrichtigen Sie per E-Mail, sobald dieser Termin gebucht werden kann. "
+"Der Termin ist erst reserviert, wenn Sie die Buchung über diese E-Mail "
+"abgeschlossen haben."
+
+#: includes/Settings.php:489
+msgid "Booking opening notification"
+msgstr "Benachrichtigung zum Buchungsstart"
+
+#: includes/Settings.php:500
+msgid "Sent when a requested appointment opens for booking."
+msgstr "Wird versendet, sobald ein vorgemerkter Termin gebucht werden kann."
 
 #~ msgid "Message"
 #~ msgstr "Nachricht"

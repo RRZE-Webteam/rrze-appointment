@@ -358,8 +358,14 @@
             background: #fff4df;
             border-color: #8a4b00;
             color: #2b1a00;
-            cursor: not-allowed;
+            cursor: pointer;
             opacity: 1;
+
+            &:hover {
+                background: #ffc14d;
+                border-color: #8a4b00;
+                color: #2b1a00 !important;
+            }
         }
     }
 
