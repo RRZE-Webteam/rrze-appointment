@@ -13,7 +13,7 @@ defined('ABSPATH') || exit;
  * each slot is stored in {@see self::META_OPTION}, keyed by the same slot
  * string. A slot uses the sortable format `Y-m-d H:i-H:i`.
  */
-class Bookings
+final class Bookings
 {
     /** Option containing the list of booked slot strings. */
     public const SLOTS_OPTION = 'rrze_appointment_booked_slots';
@@ -22,9 +22,11 @@ class Bookings
     public const META_OPTION = 'rrze_appointment_booked_slots_meta';
 
     private const MAX_RETENTION_DAYS = 3650;
-    private const WAITLIST_LOCK_TTL = 300;
+    private const WAITLIST_LOCK_TTL = 5 * MINUTE_IN_SECONDS;
     private const WAITLIST_NOTIFIED_SLOTS_KEY = 'waitlist_notified_slots';
     private const WAITLIST_LOCK_PREFIX = 'rrze_appointment_waitlist_lock_';
+    private const CANCELLATION_TEMPLATE_TYPE = 'cancellation';
+    private const WAITLIST_TEMPLATE_TYPE = 'waitlist_earlier_slot';
 
     /**
      * Permanently removes completed bookings after their retention period.
@@ -124,25 +126,34 @@ class Bookings
 
             wp_clear_scheduled_hook(Reminder::CRON_HOOK, [$slot]);
             self::sendCancellationMail($slot, $meta);
-
-            update_option(
-                self::SLOTS_OPTION,
-                array_values(array_filter(
-                    $slots,
-                    static fn($bookedSlot): bool => $bookedSlot !== $slot
-                )),
-                false
-            );
-
-            unset($allMeta[$slot]);
-            update_option(self::META_OPTION, $allMeta, false);
-
-            self::notifyWaitlist($slot, $meta, $allMeta);
+            $remainingMeta = self::removeStoredBooking($slot, $slots, $allMeta);
+            self::notifyWaitlist($slot, $meta, $remainingMeta);
 
             return true;
         } catch (\Exception $exception) {
             throw self::createException($exception);
         }
+    }
+
+    /**
+     * Removes one booking from the slot and metadata options.
+     *
+     * @param array<int, mixed>    $slots   Stored slot values.
+     * @param array<string, mixed> $allMeta Stored metadata keyed by slot.
+     * @return array<string, mixed> Remaining booking metadata.
+     */
+    private static function removeStoredBooking(string $slot, array $slots, array $allMeta): array
+    {
+        $remainingSlots = array_values(array_filter(
+            $slots,
+            static fn($bookedSlot): bool => $bookedSlot !== $slot
+        ));
+        update_option(self::SLOTS_OPTION, $remainingSlots, false);
+
+        unset($allMeta[$slot]);
+        update_option(self::META_OPTION, $allMeta, false);
+
+        return $allMeta;
     }
 
     /**
@@ -191,7 +202,10 @@ class Bookings
                 $bookedSlot,
                 $bookedMeta
             );
-            $template = self::getMailTemplate((int) ($bookedMeta['tpl_id'] ?? 0), 'waitlist_earlier_slot');
+            $template = self::getMailTemplate(
+                (int) ($bookedMeta['tpl_id'] ?? 0),
+                self::WAITLIST_TEMPLATE_TYPE
+            );
             $template['body'] = self::ensurePlainTemplateLink(
                 $template['body'],
                 '[imprint_link]',
@@ -487,6 +501,11 @@ class Bookings
         return $currentMeta === [] ? $fallbackMeta : array_merge($fallbackMeta, $currentMeta);
     }
 
+    /**
+     * Acquires the short-lived lock used to deduplicate waitlist emails.
+     *
+     * @return string Lock option name, or an empty string when already locked.
+     */
     private static function acquireWaitlistNotificationLock(string $bookedSlot): string
     {
         $option = self::getWaitlistLockOption($bookedSlot);
@@ -507,11 +526,17 @@ class Bookings
         return '';
     }
 
+    /**
+     * Returns the lock option name for a booked slot.
+     */
     private static function getWaitlistLockOption(string $slot): string
     {
         return self::WAITLIST_LOCK_PREFIX . md5($slot);
     }
 
+    /**
+     * Records that an available slot was already sent to a waitlisted booker.
+     */
     private static function rememberWaitlistNotification(string $bookedSlot, string $availableSlot): void
     {
         $allMeta = self::getStoredMetadata();
@@ -551,6 +576,9 @@ class Bookings
         return array_values(array_unique(array_filter($notifiedSlots, 'is_string')));
     }
 
+    /**
+     * Updates the earlier-slot notification preference for one booking.
+     */
     private static function setWaitlistNotifications(string $slot, bool $enabled): bool
     {
         try {
@@ -596,7 +624,10 @@ class Bookings
                 '[post_link]' => esc_url_raw($meta['post_link'] ?? home_url('/')),
             ];
 
-            $template = self::getMailTemplate((int) ($meta['tpl_id'] ?? 0), 'cancellation');
+            $template = self::getMailTemplate(
+                (int) ($meta['tpl_id'] ?? 0),
+                self::CANCELLATION_TEMPLATE_TYPE
+            );
             $template['body'] = self::ensurePlainTemplateLink(
                 $template['body'],
                 '[imprint_link]',
@@ -683,6 +714,9 @@ class Bookings
         ];
     }
 
+    /**
+     * Appends a required placeholder link to a plain-text template.
+     */
     private static function ensurePlainTemplateLink(
         string $template,
         string $placeholder,
@@ -696,6 +730,9 @@ class Bookings
         return $template . $separator . $label . ': ' . $placeholder;
     }
 
+    /**
+     * Appends a required placeholder link to an HTML template.
+     */
     private static function ensureHtmlTemplateLink(
         string $template,
         string $placeholder,
@@ -756,6 +793,9 @@ class Bookings
         return $title !== '' ? $title : "Person #{$personId}";
     }
 
+    /**
+     * Determines whether a valid slot has started or passed.
+     */
     private static function isPastSlot(string $slot): bool
     {
         $parts = self::parseSlot($slot);
@@ -767,12 +807,18 @@ class Bookings
         return $slotStart !== null && $slotStart->getTimestamp() <= current_time('timestamp');
     }
 
+    /**
+     * Parses the ending time of a slot in the site timezone.
+     */
     private static function getSlotEnd(string $slot): ?\DateTimeImmutable
     {
         $parts = self::parseSlot($slot);
         return $parts === null ? null : self::createDateTime($parts['date'], $parts['end']);
     }
 
+    /**
+     * Returns the date component of a slot, or an empty string when malformed.
+     */
     private static function getSlotDate(string $slot): string
     {
         $parts = self::parseSlot($slot);
@@ -794,6 +840,9 @@ class Bookings
         return ['date' => $date, 'start' => $start, 'end' => $end];
     }
 
+    /**
+     * Creates a strictly validated date-time in the site timezone.
+     */
     private static function createDateTime(string $date, string $time): ?\DateTimeImmutable
     {
         $value = $date . ' ' . $time;
@@ -806,23 +855,37 @@ class Bookings
         return $dateTime;
     }
 
+    /**
+     * Formats an ISO date using the site's configured date format.
+     */
     private static function formatDate(string $date): string
     {
         return date_i18n(get_option('date_format'), strtotime($date));
     }
 
+    /**
+     * Formats a human-readable appointment time range.
+     */
     private static function formatTimeRange(string $start, string $end): string
     {
         return $start . ' – ' . $end;
     }
 
-    /** @return array<int, mixed> */
+    /**
+     * Returns raw persisted slot values.
+     *
+     * @return array<int, mixed>
+     */
     private static function getStoredSlots(): array
     {
         return (array) get_option(self::SLOTS_OPTION, []);
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * Returns raw persisted booking metadata.
+     *
+     * @return array<string, mixed>
+     */
     private static function getStoredMetadata(): array
     {
         return (array) get_option(self::META_OPTION, []);
@@ -838,6 +901,9 @@ class Bookings
         return is_array($meta) ? $meta : [];
     }
 
+    /**
+     * Converts internal exceptions to the plugin's public exception type.
+     */
     private static function createException(\Exception $exception): CustomException
     {
         return new CustomException($exception->getMessage(), $exception->getCode(), null);
