@@ -1,3 +1,4 @@
+/** Parsed representation of `YYYY-MM-DD HH:MM-HH:MM`. */
 export interface ParsedSlotValue {
 	date: string;
 	time: string;
@@ -6,6 +7,7 @@ export interface ParsedSlotValue {
 }
 
 export interface FrontendSlot {
+	/** Serialized slot value submitted to the booking endpoint. */
 	value: string;
 	label: string;
 	time: string;

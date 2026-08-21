@@ -1,8 +1,10 @@
 import { registerBlockType } from '@wordpress/blocks';
+import type { BlockConfiguration } from '@wordpress/blocks';
 import { Path, SVG } from '@wordpress/primitives';
 
-import Edit from './editor/edit';
+import AppointmentEditor from './editor/edit';
 import metadata from './block.json';
+import type { AppointmentAttributes } from './scheduling/types';
 import './styles/editor.scss';
 import './styles/style.scss';
 
@@ -20,11 +22,11 @@ const appointmentIcon = (
 	</SVG>
 );
 
-registerBlockType(
-	metadata.name as any,
-	{
-		edit: Edit,
-		icon: appointmentIcon,
-		save: (): any => null,
-	} as any
-);
+const appointmentBlockMetadata =
+	metadata as unknown as BlockConfiguration< AppointmentAttributes >;
+
+registerBlockType< AppointmentAttributes >( appointmentBlockMetadata, {
+	edit: AppointmentEditor,
+	icon: appointmentIcon,
+	save: () => null,
+} );

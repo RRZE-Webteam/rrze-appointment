@@ -91,7 +91,7 @@ function getAvailabilityWindows(
 	}
 
 	const globalDuration = Number( attributes.duration );
-	const globalPause = Number( attributes.breakDuration );
+	const globalBreakDuration = Number( attributes.breakDuration );
 
 	return getCalendarDates( attributes ).map( ( date ) => {
 		const recurrenceAnchor = getRecurrenceAnchor( attributes, date );
@@ -114,7 +114,7 @@ function getAvailabilityWindows(
 			breakDuration:
 				override.breakDuration !== undefined
 					? Number( override.breakDuration )
-					: globalPause,
+					: globalBreakDuration,
 			removedSlots: Array.isArray( override.removedSlots )
 				? override.removedSlots
 				: [],
@@ -126,21 +126,34 @@ function getAvailabilityWindows(
 }
 
 interface GenerateTimeSlotsOptions {
+	/** Include slots hidden by a date override and mark them as excluded. */
 	includeExcluded?: boolean;
 }
 
+const MAX_GENERATED_SLOTS = 1000;
+
+/**
+ * Builds unique future appointment slots from the persisted scheduling data.
+ * Past slots are omitted, and generation is capped to protect the editor from
+ * unexpectedly large recurrence configurations.
+ * @param attributes Persisted block scheduling data.
+ * @param options    Controls whether hidden slots are included.
+ */
 export function generateTimeSlots(
 	attributes: AppointmentAttributes,
 	options: GenerateTimeSlotsOptions = {}
 ): TimeSlot[] {
-	const windows = getAvailabilityWindows( attributes );
+	const availabilityWindows = getAvailabilityWindows( attributes );
 	const now = new Date();
-	const slots: TimeSlot[] = [];
+	const generatedSlots: TimeSlot[] = [];
 	const slotMap = new Map< string, TimeSlot >();
 	const processedExtraDates = new Set< string >();
 	const includeExcluded = !! options.includeExcluded;
 
-	const addSlot = ( slot: TimeSlot, removedSlots: Set< string > ) => {
+	const addUniqueFutureSlot = (
+		slot: TimeSlot,
+		removedSlots: Set< string >
+	) => {
 		const slotStart = new Date( `${ slot.date }T${ slot.startTime }:00` );
 		if ( ! Number.isNaN( slotStart.getTime() ) && slotStart <= now ) {
 			return;
@@ -154,10 +167,10 @@ export function generateTimeSlots(
 		}
 		const nextSlot = { ...slot, isExcluded };
 		slotMap.set( slot.value, nextSlot );
-		slots.push( nextSlot );
+		generatedSlots.push( nextSlot );
 	};
 
-	for ( const window of windows ) {
+	for ( const availabilityWindow of availabilityWindows ) {
 		const {
 			date,
 			duration,
@@ -165,7 +178,7 @@ export function generateTimeSlots(
 			startTime,
 			endTime,
 			extraSlots,
-		} = window;
+		} = availabilityWindow;
 		if (
 			! Number.isFinite( duration ) ||
 			! Number.isInteger( duration ) ||
@@ -187,14 +200,14 @@ export function generateTimeSlots(
 			continue;
 		}
 
-		const removedSlots = new Set( window.removedSlots );
+		const removedSlots = new Set( availabilityWindow.removedSlots );
 
 		let slotStart = startMinutes;
 		while ( slotStart + duration <= endMinutes ) {
 			const slotEnd = slotStart + duration;
 			const startLabel = minutesToTime( slotStart );
 			const endLabel = minutesToTime( slotEnd );
-			addSlot(
+			addUniqueFutureSlot(
 				{
 					date,
 					startTime: startLabel,
@@ -234,7 +247,7 @@ export function generateTimeSlots(
 			}
 			const startLabel = minutesToTime( extraStartMinutes );
 			const endLabel = minutesToTime( extraEndMinutes );
-			addSlot(
+			addUniqueFutureSlot(
 				{
 					date,
 					startTime: startLabel,
@@ -250,12 +263,12 @@ export function generateTimeSlots(
 			);
 		} );
 
-		if ( slots.length >= 1000 ) {
+		if ( generatedSlots.length >= MAX_GENERATED_SLOTS ) {
 			break;
 		}
 	}
 
-	return slots.sort(
+	return generatedSlots.sort(
 		( a, b ) =>
 			a.date.localeCompare( b.date ) ||
 			a.startMinutes - b.startMinutes ||
@@ -266,11 +279,14 @@ export function generateTimeSlots(
 export function groupSlotsByDate(
 	slots: TimeSlot[]
 ): Record< string, TimeSlot[] > {
-	return slots.reduce< Record< string, TimeSlot[] > >( ( acc, slot ) => {
-		if ( ! acc[ slot.date ] ) {
-			acc[ slot.date ] = [];
-		}
-		acc[ slot.date ].push( slot );
-		return acc;
-	}, {} );
+	return slots.reduce< Record< string, TimeSlot[] > >(
+		( slotsByDate, slot ) => {
+			if ( ! slotsByDate[ slot.date ] ) {
+				slotsByDate[ slot.date ] = [];
+			}
+			slotsByDate[ slot.date ].push( slot );
+			return slotsByDate;
+		},
+		{}
+	);
 }

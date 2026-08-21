@@ -24,8 +24,10 @@ function formatSlotLabel( value: unknown ): string {
 		: parsed.time;
 }
 
-export function buildDateMap( inputs: HTMLInputElement[] ): FrontendDateMap {
-	const map: FrontendDateMap = new Map();
+export function buildSlotsByDate(
+	inputs: HTMLInputElement[]
+): FrontendDateMap {
+	const slotsByDate: FrontendDateMap = new Map();
 
 	inputs.forEach( ( input ) => {
 		const value = input.value || '';
@@ -43,10 +45,10 @@ export function buildDateMap( inputs: HTMLInputElement[] ): FrontendDateMap {
 				?.textContent?.trim() ||
 			formatSlotLabel( value ) ||
 			value;
-		const slots = map.get( parsed.date ) || [];
+		const slots = slotsByDate.get( parsed.date ) || [];
 		slots.push( { value, label, time: parsed.time } );
-		map.set( parsed.date, slots );
+		slotsByDate.set( parsed.date, slots );
 	} );
 
-	return map;
+	return slotsByDate;
 }

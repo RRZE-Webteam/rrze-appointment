@@ -6,15 +6,20 @@ import type {
 } from './types';
 
 export async function submitAppointment(
-	data: FormData
+	bookingFormData: FormData
 ): Promise< BookingResponse > {
 	const response = await fetch(
 		window.rrze_appointment?.ajaxUrl || '/wp-admin/admin-ajax.php',
-		{ method: 'POST', body: data }
+		{ method: 'POST', body: bookingFormData }
 	);
 	return response.json() as Promise< BookingResponse >;
 }
 
+/**
+ * Loads the current visitor before opening the booking dialog. An HTML response
+ * is an SSO hand-off page, so it replaces the current document and returns null.
+ * @param returnTo URL to restore after the SSO flow finishes.
+ */
 export async function requestBooker(
 	returnTo: string
 ): Promise< BookerResponse | null > {
@@ -27,26 +32,29 @@ export async function requestBooker(
 			body: JSON.stringify( { returnTo } ),
 		}
 	);
-	const text = await response.text();
-	const trimmed = text.trim();
+	const responseBody = await response.text();
+	const trimmedResponseBody = responseBody.trim();
 
-	if ( trimmed.startsWith( '<!DOCTYPE' ) || trimmed.startsWith( '<html' ) ) {
+	if (
+		trimmedResponseBody.startsWith( '<!DOCTYPE' ) ||
+		trimmedResponseBody.startsWith( '<html' )
+	) {
 		document.open();
-		document.write( text );
+		document.write( responseBody );
 		document.close();
 		return null;
 	}
 
-	return JSON.parse( text ) as BookerResponse;
+	return JSON.parse( responseBody ) as BookerResponse;
 }
 
 export async function loadCurrentBooker(): Promise< Booker > {
-	const data = new FormData();
-	data.append( 'action', 'rrze_appointment_get_booker' );
+	const requestData = new FormData();
+	requestData.append( 'action', 'rrze_appointment_get_booker' );
 	const response = await fetch(
 		window.rrze_appointment?.ajaxUrl || '/wp-admin/admin-ajax.php',
-		{ method: 'POST', body: data }
+		{ method: 'POST', body: requestData }
 	);
-	const result = ( await response.json() ) as BookerAjaxResponse;
-	return result.success ? result.data || {} : {};
+	const bookerResponse = ( await response.json() ) as BookerAjaxResponse;
+	return bookerResponse.success ? bookerResponse.data || {} : {};
 }

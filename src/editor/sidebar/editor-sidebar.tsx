@@ -9,7 +9,7 @@ import {
 } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
 import type { AppointmentAttributes } from '../../scheduling/types';
-import type { EditProps, MailTemplateOption } from '../types';
+import type { AppointmentEditorProps, MailTemplateOption } from '../types';
 import { BookingMaxAdvanceControl } from './booking-max-advance-control';
 
 interface EditorSidebarProps {
@@ -23,7 +23,7 @@ interface EditorSidebarProps {
 	onManageAppointments: () => void;
 	onManageQuestions: () => void;
 	questionCount: number;
-	setAttributes: EditProps[ 'setAttributes' ];
+	setAttributes: AppointmentEditorProps[ 'setAttributes' ];
 }
 
 export function EditorSidebar( {
@@ -40,15 +40,15 @@ export function EditorSidebar( {
 	setAttributes,
 }: EditorSidebarProps ) {
 	const {
-		bookingCutoff,
-		disableSso,
+		bookingCutoff: bookingCutoffMinutes,
+		disableSso: allowBookingsWithoutSso,
 		hideWeekends,
 		location,
 		locationUrl,
 		personEmail,
 		personId,
 		personName,
-		tplId,
+		tplId: mailTemplateId,
 	} = attributes;
 	const editorI18n = window.rrze_appointment?.editorI18n || {};
 	const appointmentSummary = sprintf(
@@ -57,7 +57,7 @@ export function EditorSidebar( {
 		availabilityCount,
 		appointmentDateCount
 	);
-	const hasValidEmail =
+	const isEmailEmptyOrValid =
 		! personEmail ||
 		/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test( personEmail.trim() );
 	let emailHelp;
@@ -66,7 +66,7 @@ export function EditorSidebar( {
 			'Enter the address that receives booking requests.',
 			'rrze-appointment'
 		);
-	} else if ( ! hasValidEmail ) {
+	} else if ( ! isEmailEmptyOrValid ) {
 		emailHelp = __( 'Enter a valid email address.', 'rrze-appointment' );
 	}
 
@@ -150,7 +150,7 @@ export function EditorSidebar( {
 						'Host email address (required)',
 						'rrze-appointment'
 					) }
-					type=" email"
+					type="email"
 					help={ emailHelp }
 					value={ personEmail }
 					onChange={ ( value ) =>
@@ -197,8 +197,10 @@ export function EditorSidebar( {
 			>
 				<BookingMaxAdvanceControl
 					value={ attributes.bookingMaxAdvance }
-					onChange={ ( bookingMaxAdvance ) =>
-						setAttributes( { bookingMaxAdvance } )
+					onChange={ ( bookingMaxAdvanceMinutes ) =>
+						setAttributes( {
+							bookingMaxAdvance: bookingMaxAdvanceMinutes,
+						} )
 					}
 				/>
 				<SelectControl
@@ -207,7 +209,7 @@ export function EditorSidebar( {
 						'How long before an appointment booking closes.',
 						'rrze-appointment'
 					) }
-					value={ String( bookingCutoff || 0 ) }
+					value={ String( bookingCutoffMinutes || 0 ) }
 					options={ [
 						{
 							label: __(
@@ -264,7 +266,7 @@ export function EditorSidebar( {
 						'People can request appointments without signing in.',
 						'rrze-appointment'
 					) }
-					checked={ !! disableSso }
+					checked={ !! allowBookingsWithoutSso }
 					onChange={ ( value ) =>
 						setAttributes( { disableSso: !! value } )
 					}
@@ -282,7 +284,7 @@ export function EditorSidebar( {
 						'Choose the messages sent for this appointment.',
 						'rrze-appointment'
 					) }
-					value={ String( tplId || 0 ) }
+					value={ String( mailTemplateId || 0 ) }
 					options={ [
 						{
 							label: __( 'Default template', 'rrze-appointment' ),
@@ -301,7 +303,7 @@ export function EditorSidebar( {
 
 			<PanelBody
 				title={ __( 'Calendar display', 'rrze-appointment' ) }
-				icon=" calendar-alt"
+				icon="calendar-alt"
 				initialOpen={ false }
 			>
 				<ToggleControl

@@ -17,11 +17,11 @@ export type RecurrenceEndMode = 'date' | 'count';
 
 interface ValidationOptions {
 	draft: AvailabilityEntry;
-	entries: AvailabilityEntry[];
-	originalDate: string;
-	originalId: string;
+	existingEntries: AvailabilityEntry[];
+	originalEntryDate: string;
+	originalEntryId: string;
 	recurrenceEndMode: RecurrenceEndMode;
-	usePattern: boolean;
+	splitsRangeIntoAppointments: boolean;
 }
 
 interface ValidationResult {
@@ -35,18 +35,18 @@ function failure( error: string ): ValidationResult {
 
 export function validateAvailability( {
 	draft,
-	entries,
-	originalDate,
-	originalId,
+	existingEntries,
+	originalEntryDate,
+	originalEntryId,
 	recurrenceEndMode,
-	usePattern,
+	splitsRangeIntoAppointments,
 }: ValidationOptions ): ValidationResult {
 	if ( ! draft.date ) {
 		return failure( __( 'Please select a date.', 'rrze-appointment' ) );
 	}
 	if (
 		draft.date < formatDate( new Date() ) &&
-		draft.date !== originalDate
+		draft.date !== originalEntryDate
 	) {
 		return failure(
 			__( 'The date must not be in the past.', 'rrze-appointment' )
@@ -65,7 +65,7 @@ export function validateAvailability( {
 		);
 	}
 
-	const entry = usePattern
+	const entry = splitsRangeIntoAppointments
 		? draft
 		: { ...draft, duration: endMinutes - startMinutes, breakDuration: 0 };
 	if ( ! Number.isInteger( entry.duration ) || entry.duration <= 0 ) {
@@ -145,7 +145,7 @@ export function validateAvailability( {
 		}
 	}
 
-	if ( hasAvailabilityConflict( entries, entry, originalId ) ) {
+	if ( hasAvailabilityConflict( existingEntries, entry, originalEntryId ) ) {
 		return failure(
 			__(
 				'These appointment times overlap with an existing schedule on at least one date.',

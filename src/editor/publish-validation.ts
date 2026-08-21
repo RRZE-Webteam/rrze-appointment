@@ -70,25 +70,32 @@ function AppointmentPublishCheck() {
 	) as NoticesStore;
 
 	const appointmentBlocks = getAppointmentBlocks( blocks );
-	const hasInvalidContact = appointmentBlocks.some( ( b ) => {
-		const name = b.attributes.personName?.trim();
-		const email = b.attributes.personEmail?.trim();
-		const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test( email || '' );
-		return ! name || ! email || ! emailValid;
+	const hasInvalidContact = appointmentBlocks.some( ( appointmentBlock ) => {
+		const contactName = appointmentBlock.attributes.personName?.trim();
+		const contactEmail = appointmentBlock.attributes.personEmail?.trim();
+		const hasValidEmailFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+			contactEmail || ''
+		);
+		return ! contactName || ! contactEmail || ! hasValidEmailFormat;
 	} );
-	const hasInvalidQuestionPurpose = appointmentBlocks.some( ( b ) => {
-		const questions = Array.isArray( b.attributes.questions )
-			? b.attributes.questions
-			: [];
-		return questions.some( ( question ) => ! question?.dataUse?.trim() );
-	} );
+	const hasInvalidQuestionPurpose = appointmentBlocks.some(
+		( appointmentBlock ) => {
+			const questions = Array.isArray(
+				appointmentBlock.attributes.questions
+			)
+				? appointmentBlock.attributes.questions
+				: [];
+			return questions.some(
+				( question ) => ! question?.dataUse?.trim()
+			);
+		}
+	);
 
-	const prevSaving = useRef( false );
+	const wasSaving = useRef( false );
 
 	useEffect( () => {
-		const justSaved =
-			prevSaving.current && ! isSavingPost && ! isAutosaving;
-		prevSaving.current = isSavingPost && ! isAutosaving;
+		const justSaved = wasSaving.current && ! isSavingPost && ! isAutosaving;
+		wasSaving.current = isSavingPost && ! isAutosaving;
 
 		if (
 			justSaved &&

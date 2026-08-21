@@ -1,12 +1,24 @@
 export type RecurrenceFrequency = '' | 'daily' | 'weekly' | 'monthly';
+
+/** JavaScript weekday number: Sunday is 0 and Saturday is 6. */
 export type RecurrenceWeekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
+/**
+ * Persisted recurrence rule. Dates use the local `YYYY-MM-DD` format.
+ * `freq` and `until` retain their serialized names for block compatibility.
+ */
 export interface Recurrence {
+	/** Recurrence frequency. An empty value means that the entry does not repeat. */
 	freq?: RecurrenceFrequency;
+	/** Inclusive last occurrence date. Mutually exclusive with `count`. */
 	until?: string;
+	/** Maximum number of generated appointment dates. */
 	count?: number;
+	/** First date of the recurrence series. */
 	anchor?: string;
+	/** Materialized occurrence dates retained in the saved block attributes. */
 	dates?: string[];
+	/** Generated dates removed manually by an editor. */
 	excludedDates?: string[];
 	weekdays?: RecurrenceWeekday[];
 }
@@ -14,11 +26,17 @@ export interface Recurrence {
 export type RecurrenceRules = Record< string, Recurrence >;
 
 export interface DateOverride {
+	/** Local time in `HH:MM` format. */
 	startTime?: string;
+	/** Local time in `HH:MM` format. */
 	endTime?: string;
+	/** Appointment length in minutes. */
 	duration?: number;
+	/** Break between generated appointments, in minutes. */
 	breakDuration?: number;
+	/** Serialized slot values hidden for this date. */
 	removedSlots?: string[];
+	/** Manual slots serialized as `HH:MM|HH:MM`. */
 	extraSlots?: string[];
 }
 
@@ -45,7 +63,12 @@ export interface AppointmentQuestion {
 	options: string[];
 }
 
+/**
+ * Attributes persisted in the appointment block. Some singular date and
+ * recurrence fields are compatibility mirrors for previously saved content.
+ */
 export interface AppointmentAttributes {
+	[ attributeName: string ]: unknown;
 	title: string;
 	selectedDates: string[];
 	startDate: string;
@@ -60,15 +83,20 @@ export interface AppointmentAttributes {
 	locationUrl: string;
 	description: string;
 	recurrence: Recurrence;
+	/** Explicitly selected dates; retained alongside the materialized date list. */
 	manualDates?: string[];
+	/** Current multi-series recurrence representation. */
 	recurrences?: RecurrenceRules;
 	availabilities?: AvailabilityEntry[];
 	personId: number;
 	personName: string;
 	personEmail: string;
 	useConsultationHours: boolean;
+	/** Persisted mail-template identifier; serialized as `tplId` for compatibility. */
 	tplId: number;
+	/** Minutes before a slot starts when new bookings close. */
 	bookingCutoff: number;
+	/** Maximum number of minutes before a slot when booking becomes available. */
 	bookingMaxAdvance: number;
 	questions: AppointmentQuestion[];
 	disableSso: boolean;
@@ -83,7 +111,9 @@ export interface TimeSlot {
 	endTime: string;
 	startMinutes: number;
 	endMinutes: number;
+	/** Human-readable start and end time. */
 	timeRange: string;
+	/** Stable serialized value: `YYYY-MM-DD HH:MM-HH:MM`. */
 	value: string;
 	label: string;
 	isExtra: boolean;

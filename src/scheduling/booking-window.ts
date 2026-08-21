@@ -3,23 +3,27 @@ const MILLISECONDS_PER_MINUTE = 60 * 1000;
 export function isBookingClosed(
 	slotStart: Date,
 	now: Date,
-	bookingCutoff: number
+	bookingCutoffMinutes: number
 ): boolean {
-	const cutoff = Math.max( 0, bookingCutoff || 0 );
+	const normalizedCutoffMinutes = Math.max( 0, bookingCutoffMinutes || 0 );
 	return (
-		slotStart.getTime() - now.getTime() <= cutoff * MILLISECONDS_PER_MINUTE
+		slotStart.getTime() - now.getTime() <=
+		normalizedCutoffMinutes * MILLISECONDS_PER_MINUTE
 	);
 }
 
 export function isBookingNotOpen(
 	slotStart: Date,
 	now: Date,
-	bookingMaxAdvance: number
+	bookingMaxAdvanceMinutes: number
 ): boolean {
-	const maxAdvance = Math.max( 0, bookingMaxAdvance || 0 );
+	const normalizedMaxAdvanceMinutes = Math.max(
+		0,
+		bookingMaxAdvanceMinutes || 0
+	);
 	return (
-		maxAdvance > 0 &&
+		normalizedMaxAdvanceMinutes > 0 &&
 		slotStart.getTime() - now.getTime() >
-			maxAdvance * MILLISECONDS_PER_MINUTE
+			normalizedMaxAdvanceMinutes * MILLISECONDS_PER_MINUTE
 	);
 }

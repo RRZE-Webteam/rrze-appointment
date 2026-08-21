@@ -1,8 +1,12 @@
 import type { AppointmentAttributes, TimeSlot } from '../scheduling/types';
 
+/** Weekly consultation range returned by the FAUdir API. */
 export interface ConsultationHour {
+	/** JavaScript weekday number: Sunday is 0. */
 	weekday: number;
+	/** Start time supplied by FAUdir. */
 	from?: string;
+	/** End time supplied by FAUdir. */
 	to?: string;
 }
 
@@ -50,11 +54,11 @@ export interface PreviewCalendarProps {
 	onToggleSlotVisibility?: ( slot: TimeSlot ) => void;
 	onAddSlot?: ( date: string ) => void;
 	activeDate: string;
-	setActiveDate: ( date: string ) => void;
+	onActiveDateChange: ( date: string ) => void;
 	hideWeekends: boolean;
 }
 
-export interface EditProps {
+export interface AppointmentEditorProps {
 	attributes: AppointmentAttributes;
 	setAttributes: ( attributes: Partial< AppointmentAttributes > ) => void;
 }

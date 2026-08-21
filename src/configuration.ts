@@ -46,6 +46,7 @@ export interface FrontendI18n {
 	yourName?: string;
 }
 
+/** Configuration injected by PHP before the editor and frontend bundles run. */
 export interface AppointmentWindowConfig {
 	ajaxUrl?: string;
 	bookedSlots?: string[];

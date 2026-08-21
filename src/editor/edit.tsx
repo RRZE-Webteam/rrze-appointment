@@ -27,7 +27,7 @@ import type {
 	DateOverrides,
 	TimeSlot,
 } from '../scheduling/types';
-import type { EditProps } from './types';
+import type { AppointmentEditorProps } from './types';
 import { formatDate, getCalendarDates } from '../scheduling/dates';
 import { generateTimeSlots } from '../scheduling/schedule';
 import { minutesToTime, parseTimeToMinutes } from '../scheduling/time';
@@ -39,7 +39,10 @@ import {
 import { useFaudirImport } from './faudir/use-faudir-import';
 import { useMailTemplates } from './use-mail-templates';
 
-export default function Edit( { attributes, setAttributes }: EditProps ) {
+export default function AppointmentEditor( {
+	attributes,
+	setAttributes,
+}: AppointmentEditorProps ) {
 	const {
 		title,
 		dateOverrides,
@@ -71,14 +74,14 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 	const availabilityEntries = getAvailabilityEntries( attributes );
 	const availabilityCount = availabilityEntries.length;
 	const [ activeDate, setActiveDate ] = useState( calendarDates[ 0 ] || '' );
-	const faudir = useFaudirImport( {
+	const faudirImport = useFaudirImport( {
 		attributes,
 		availabilityEntries,
-		setActiveDate,
+		onActiveDateChange: setActiveDate,
 		setAttributes,
 	} );
 	const [ addSlotDate, setAddSlotDate ] = useState< string | null >( null );
-	const [ addSlotTime, setAddSlotTime ] = useState( '' );
+	const [ addSlotStartTime, setAddSlotStartTime ] = useState( '' );
 	const [ addSlotEndTime, setAddSlotEndTime ] = useState( '' );
 	const [ addSlotError, setAddSlotError ] = useState( '' );
 	const [ showCalendarPreview, setShowCalendarPreview ] = useState(
@@ -97,8 +100,10 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 	const [ showAvailabilityManager, setShowAvailabilityManager ] =
 		useState( false );
 	const [ showQuestionsManager, setShowQuestionsManager ] = useState( false );
-	const [ returnToAvailabilityManager, setReturnToAvailabilityManager ] =
-		useState( false );
+	const [
+		shouldReturnToAvailabilityManager,
+		setShouldReturnToAvailabilityManager,
+	] = useState( false );
 	const [ availabilityDraft, setAvailabilityDraft ] =
 		useState< AvailabilityEntry | null >( null );
 	const [ editedAvailabilityId, setEditedAvailabilityId ] = useState( '' );
@@ -114,7 +119,7 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 		}
 	}, [ activeDate, calendarDates ] );
 
-	const activeOverrides: DateOverrides =
+	const normalizedDateOverrides: DateOverrides =
 		dateOverrides && typeof dateOverrides === 'object' ? dateOverrides : {};
 
 	const handleAddAvailability = ( returnToManager = false ) => {
@@ -123,7 +128,7 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 		const startTime = attributes.startTime || '09:00';
 		const startMinutes = parseTimeToMinutes( startTime ) || 9 * 60;
 		const duration = attributes.duration || 30;
-		setReturnToAvailabilityManager( returnToManager );
+		setShouldReturnToAvailabilityManager( returnToManager );
 		setShowAvailabilityManager( false );
 		setEditedAvailabilityId( '' );
 		setAvailabilityDraft( {
@@ -144,7 +149,7 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 		returnToManager = false
 	) => {
 		setActiveDate( entry.date );
-		setReturnToAvailabilityManager( returnToManager );
+		setShouldReturnToAvailabilityManager( returnToManager );
 		setShowAvailabilityManager( false );
 		setEditedAvailabilityId( entry.id );
 		setAvailabilityDraft( {
@@ -162,33 +167,33 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 		setActiveDate( entry.date );
 		setAvailabilityDraft( null );
 		setEditedAvailabilityId( '' );
-		if ( returnToAvailabilityManager ) {
+		if ( shouldReturnToAvailabilityManager ) {
 			setShowAvailabilityManager( true );
 		}
-		setReturnToAvailabilityManager( false );
+		setShouldReturnToAvailabilityManager( false );
 	};
 
 	const handleCancelAvailability = () => {
 		setAvailabilityDraft( null );
 		setEditedAvailabilityId( '' );
-		if ( returnToAvailabilityManager ) {
+		if ( shouldReturnToAvailabilityManager ) {
 			setShowAvailabilityManager( true );
 		}
-		setReturnToAvailabilityManager( false );
+		setShouldReturnToAvailabilityManager( false );
 	};
 
 	const handleRequestDeleteAvailability = ( entry: AvailabilityEntry ) => {
 		setShowAvailabilityManager( false );
-		setReturnToAvailabilityManager( true );
+		setShouldReturnToAvailabilityManager( true );
 		setAvailabilityToDelete( entry );
 	};
 
 	const handleCloseDeleteAvailability = () => {
 		setAvailabilityToDelete( null );
-		if ( returnToAvailabilityManager ) {
+		if ( shouldReturnToAvailabilityManager ) {
 			setShowAvailabilityManager( true );
 		}
-		setReturnToAvailabilityManager( false );
+		setShouldReturnToAvailabilityManager( false );
 	};
 
 	const handleDeleteAvailability = ( id: string ) => {
@@ -206,9 +211,9 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 		}
 	};
 
-	const handleToggleException = ( slot: TimeSlot ) => {
-		const overridesNext = { ...activeOverrides };
-		const currentOverride = overridesNext[ slot.date ] || {};
+	const handleToggleSlotExclusion = ( slot: TimeSlot ) => {
+		const nextDateOverrides = { ...normalizedDateOverrides };
+		const currentOverride = nextDateOverrides[ slot.date ] || {};
 		const removedSlots = new Set(
 			Array.isArray( currentOverride.removedSlots )
 				? currentOverride.removedSlots
@@ -229,18 +234,18 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 		}
 
 		if ( Object.keys( nextOverride ).length === 0 ) {
-			delete overridesNext[ slot.date ];
+			delete nextDateOverrides[ slot.date ];
 		} else {
-			overridesNext[ slot.date ] = nextOverride;
+			nextDateOverrides[ slot.date ] = nextOverride;
 		}
 
-		setAttributes( { dateOverrides: overridesNext } );
+		setAttributes( { dateOverrides: nextDateOverrides } );
 	};
 
 	const handleSetDateExcluded = ( date: string, excluded: boolean ) => {
 		setAttributes( {
 			dateOverrides: setDateSlotsExcluded(
-				activeOverrides,
+				normalizedDateOverrides,
 				appointmentSlots,
 				date,
 				excluded
@@ -250,16 +255,16 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 
 	const handleOpenAddSlot = ( date: string ) => {
 		setAddSlotDate( date );
-		setAddSlotTime( '' );
+		setAddSlotStartTime( '' );
 		setAddSlotEndTime( '' );
 		setAddSlotError( '' );
 	};
 
 	const handleConfirmAddSlot = () => {
-		if ( ! addSlotDate || ! addSlotTime || ! addSlotEndTime ) {
+		if ( ! addSlotDate || ! addSlotStartTime || ! addSlotEndTime ) {
 			return;
 		}
-		const newStartMinutes = parseTimeToMinutes( addSlotTime );
+		const newStartMinutes = parseTimeToMinutes( addSlotStartTime );
 		const newEndMinutes = parseTimeToMinutes( addSlotEndTime );
 		if ( newStartMinutes === null || newEndMinutes === null ) {
 			setAddSlotError( __( 'Invalid time.', 'rrze-appointment' ) );
@@ -277,36 +282,36 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 			);
 			return;
 		}
-		const dateSlots = appointmentSlots.filter(
-			( s ) => s.date === addSlotDate
+		const existingDateSlots = appointmentSlots.filter(
+			( existingSlot ) => existingSlot.date === addSlotDate
 		);
-		const overlaps = dateSlots.some(
-			( s ) =>
-				newStartMinutes < s.endMinutes && newEndMinutes > s.startMinutes
+		const hasOverlap = existingDateSlots.some(
+			( existingSlot ) =>
+				newStartMinutes < existingSlot.endMinutes &&
+				newEndMinutes > existingSlot.startMinutes
 		);
-		if ( overlaps ) {
+		if ( hasOverlap ) {
 			setAddSlotError(
 				__( 'This time slot is already taken.', 'rrze-appointment' )
 			);
 			return;
 		}
-		const overridesNext = { ...activeOverrides };
-		const currentOverride = overridesNext[ addSlotDate ] || {};
-		const nextExtras = Array.isArray( currentOverride.extraSlots )
+		const nextDateOverrides = { ...normalizedDateOverrides };
+		const currentOverride = nextDateOverrides[ addSlotDate ] || {};
+		const nextExtraSlots = Array.isArray( currentOverride.extraSlots )
 			? [ ...currentOverride.extraSlots ]
 			: [];
-		// Store as "HH:MM-HH:MM" to carry custom end time
-		const slotKey = `${ addSlotTime }|${ addSlotEndTime }`;
-		if ( ! nextExtras.includes( slotKey ) ) {
-			nextExtras.push( slotKey );
+		const serializedSlotValue = `${ addSlotStartTime }|${ addSlotEndTime }`;
+		if ( ! nextExtraSlots.includes( serializedSlotValue ) ) {
+			nextExtraSlots.push( serializedSlotValue );
 		}
-		overridesNext[ addSlotDate ] = {
+		nextDateOverrides[ addSlotDate ] = {
 			...currentOverride,
-			extraSlots: nextExtras,
+			extraSlots: nextExtraSlots,
 		};
-		setAttributes( { dateOverrides: overridesNext } );
+		setAttributes( { dateOverrides: nextDateOverrides } );
 		setAddSlotDate( null );
-		setAddSlotTime( '' );
+		setAddSlotStartTime( '' );
 		setAddSlotEndTime( '' );
 		setAddSlotError( '' );
 	};
@@ -352,10 +357,10 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 				appointmentDateCount={ calendarDates.length }
 				attributes={ attributes }
 				availabilityCount={ availabilityEntries.length }
-				faudirAvailable={ faudir.available }
-				importNotice={ faudir.notice }
+				faudirAvailable={ faudirImport.available }
+				importNotice={ faudirImport.notice }
 				mailTemplates={ mailTemplates }
-				onImportFromFaudir={ faudir.open }
+				onImportFromFaudir={ faudirImport.open }
 				onManageAppointments={ () =>
 					setShowAvailabilityManager( true )
 				}
@@ -458,11 +463,13 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 												slots={ appointmentSlots }
 												selectedDates={ calendarDates }
 												onToggleSlotVisibility={
-													handleToggleException
+													handleToggleSlotExclusion
 												}
 												onAddSlot={ handleOpenAddSlot }
 												activeDate={ activeDate }
-												setActiveDate={ setActiveDate }
+												onActiveDateChange={
+													setActiveDate
+												}
 												hideWeekends={ !! hideWeekends }
 											/>
 										</div>
@@ -483,7 +490,9 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 									onEdit={ ( entry ) =>
 										handleEditAvailability( entry, true )
 									}
-									onToggleException={ handleToggleException }
+									onToggleSlotExclusion={
+										handleToggleSlotExclusion
+									}
 									onSetDateExcluded={ handleSetDateExcluded }
 								/>
 							) }
@@ -502,9 +511,9 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 							) }
 							{ availabilityDraft && (
 								<AvailabilityDialog
-									entries={ availabilityEntries }
+									existingEntries={ availabilityEntries }
 									entry={ availabilityDraft }
-									originalId={ editedAvailabilityId }
+									originalEntryId={ editedAvailabilityId }
 									onSave={ handleSaveAvailability }
 									onCancel={ handleCancelAvailability }
 								/>
@@ -524,11 +533,11 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 							{ addSlotDate && (
 								<AddSlotDialog
 									date={ addSlotDate }
-									startTime={ addSlotTime }
+									startTime={ addSlotStartTime }
 									endTime={ addSlotEndTime }
 									error={ addSlotError }
 									onStartTimeChange={ ( value ) => {
-										setAddSlotTime( value );
+										setAddSlotStartTime( value );
 										setAddSlotError( '' );
 									} }
 									onEndTimeChange={ ( value ) => {
@@ -547,13 +556,13 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 				</div>
 			</div>
 
-			{ faudir.isOpen && (
+			{ faudirImport.isOpen && (
 				<FaudirImportDialog
-					error={ faudir.error }
-					isLoading={ faudir.loading }
-					persons={ faudir.persons }
-					onConfirm={ faudir.importPerson }
-					onCancel={ () => faudir.setOpen( false ) }
+					error={ faudirImport.error }
+					isLoading={ faudirImport.loading }
+					persons={ faudirImport.persons }
+					onConfirm={ faudirImport.importPerson }
+					onCancel={ () => faudirImport.setOpen( false ) }
 				/>
 			) }
 		</Fragment>

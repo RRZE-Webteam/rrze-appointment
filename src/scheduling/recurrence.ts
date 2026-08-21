@@ -13,7 +13,9 @@ const RECURRENCE_FREQUENCIES: RecurrenceFrequency[] = [
 	'monthly',
 ];
 
+/** Hard safety limit for one recurrence series. */
 export const MAX_RECURRENCE_DATES = 730;
+/** Default occurrence count when a rule has neither an end date nor a count. */
 const DEFAULT_RECURRENCE_DATES = 52;
 
 function getConfiguredRecurrenceLimit(): number {
@@ -52,7 +54,7 @@ function expandRecurrenceWithLimit(
 	} else if ( Number.isInteger( requestedCount ) && requestedCount > 0 ) {
 		occurrenceLimit = Math.min( requestedCount, maxDates );
 	}
-	const results: string[] = [];
+	const occurrenceDates: string[] = [];
 
 	const weekdays =
 		recurrence.freq === 'weekly' && Array.isArray( recurrence.weekdays )
@@ -62,32 +64,32 @@ function expandRecurrenceWithLimit(
 		if ( weekdays.size === 0 ) {
 			return [];
 		}
-		const current = new Date( anchor );
-		while ( results.length < occurrenceLimit ) {
-			if ( untilDate && current > untilDate ) {
+		const currentDate = new Date( anchor );
+		while ( occurrenceDates.length < occurrenceLimit ) {
+			if ( untilDate && currentDate > untilDate ) {
 				break;
 			}
-			if ( weekdays.has( current.getDay() as RecurrenceWeekday ) ) {
-				results.push( formatDate( current ) );
+			if ( weekdays.has( currentDate.getDay() as RecurrenceWeekday ) ) {
+				occurrenceDates.push( formatDate( currentDate ) );
 			}
-			current.setDate( current.getDate() + 1 );
+			currentDate.setDate( currentDate.getDate() + 1 );
 		}
-		return results;
+		return occurrenceDates;
 	}
 
-	let current = new Date( anchor );
+	let currentDate = new Date( anchor );
 	let occurrenceIndex = 0;
-	while ( results.length < occurrenceLimit ) {
-		if ( untilDate && current > untilDate ) {
+	while ( occurrenceDates.length < occurrenceLimit ) {
+		if ( untilDate && currentDate > untilDate ) {
 			break;
 		}
-		results.push( formatDate( current ) );
+		occurrenceDates.push( formatDate( currentDate ) );
 		occurrenceIndex += 1;
 
 		if ( recurrence.freq === 'daily' ) {
-			current.setDate( current.getDate() + 1 );
+			currentDate.setDate( currentDate.getDate() + 1 );
 		} else if ( recurrence.freq === 'weekly' ) {
-			current.setDate( current.getDate() + 7 );
+			currentDate.setDate( currentDate.getDate() + 7 );
 		} else if ( recurrence.freq === 'monthly' ) {
 			const targetMonth = new Date(
 				anchor.getFullYear(),
@@ -99,7 +101,7 @@ function expandRecurrenceWithLimit(
 				targetMonth.getMonth() + 1,
 				0
 			).getDate();
-			current = new Date(
+			currentDate = new Date(
 				targetMonth.getFullYear(),
 				targetMonth.getMonth(),
 				Math.min( anchor.getDate(), lastDay )
@@ -109,7 +111,7 @@ function expandRecurrenceWithLimit(
 		}
 	}
 
-	return results;
+	return occurrenceDates;
 }
 
 export function expandRecurrence(

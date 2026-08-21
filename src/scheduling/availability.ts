@@ -192,7 +192,7 @@ export function getAvailabilitySlotCount( entry: AvailabilityEntry ): number {
 	return getAvailabilitySlotIntervals( entry ).length;
 }
 
-export function usesConsultationPattern( entry: AvailabilityEntry ): boolean {
+export function usesAppointmentPattern( entry: AvailabilityEntry ): boolean {
 	const slotCount = getAvailabilitySlotCount( entry );
 	const startMinutes = parseTimeToMinutes( entry.startTime );
 	const endMinutes = parseTimeToMinutes( entry.endTime );
@@ -257,16 +257,16 @@ export function buildAvailabilityAttributes(
 	entries: AvailabilityEntry[]
 ): Partial< AppointmentAttributes > {
 	const normalizedEntries = sortAvailabilityEntries(
-		entries.reduce< AvailabilityEntry[] >( ( result, entry, index ) => {
+		entries.reduce< AvailabilityEntry[] >( ( normalized, entry, index ) => {
 			const normalizedEntry = normalizeAvailabilityEntry(
 				entry,
 				attributes,
 				index
 			);
 			if ( normalizedEntry ) {
-				result.push( normalizedEntry );
+				normalized.push( normalizedEntry );
 			}
-			return result;
+			return normalized;
 		}, [] )
 	);
 	const rules: RecurrenceRules = {};
@@ -338,13 +338,13 @@ export function buildAvailabilityAttributes(
 export function hasAvailabilityConflict(
 	entries: AvailabilityEntry[],
 	candidate: AvailabilityEntry,
-	originalId = ''
+	excludedEntryId = ''
 ): boolean {
 	const candidateDates = new Set( getAvailabilityDates( candidate ) );
 	const candidateSlots = getAvailabilitySlotIntervals( candidate );
 
 	return entries.some( ( entry ) => {
-		if ( entry.id === originalId ) {
+		if ( entry.id === excludedEntryId ) {
 			return false;
 		}
 		const sharesDate = getAvailabilityDates( entry ).some( ( date ) =>

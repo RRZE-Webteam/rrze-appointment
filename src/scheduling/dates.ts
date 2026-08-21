@@ -1,5 +1,11 @@
 import type { AppointmentAttributes, WeekdayMonthGridCell } from './types';
 
+const MAX_DATE_RANGE_DAYS = 366;
+
+/**
+ * Formats a local calendar date as `YYYY-MM-DD` without a timezone conversion.
+ * @param date Local JavaScript date to format.
+ */
 export function formatDate( date: Date ): string {
 	return `${ date.getFullYear() }-${ String( date.getMonth() + 1 ).padStart(
 		2,
@@ -7,7 +13,7 @@ export function formatDate( date: Date ): string {
 	) }-${ String( date.getDate() ).padStart( 2, '0' ) }`;
 }
 
-export function getWeekdayMonthGridCells(
+export function getWorkweekMonthGridCells(
 	year: number,
 	monthIndex: number
 ): WeekdayMonthGridCell[] {
@@ -152,7 +158,7 @@ export function getDateRange( startDate: string, endDate: string ): string[] {
 	while ( currentDate <= toDate ) {
 		dates.push( formatDate( currentDate ) );
 		currentDate.setDate( currentDate.getDate() + 1 );
-		if ( dates.length >= 366 ) {
+		if ( dates.length >= MAX_DATE_RANGE_DAYS ) {
 			break;
 		}
 	}

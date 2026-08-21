@@ -6,7 +6,7 @@ import {
 	getAvailabilitySlotCount,
 	hasAvailabilityConflict,
 	setDateSlotsExcluded,
-	usesConsultationPattern,
+	usesAppointmentPattern,
 } from '../src/scheduling/availability';
 import type {
 	AppointmentAttributes,
@@ -406,14 +406,14 @@ describe( 'availability editor model', () => {
 
 	it( 'preserves a pattern that has one custom slot and unused time', () => {
 		expect(
-			usesConsultationPattern(
+			usesAppointmentPattern(
 				createEntry( 'single-custom-slot', {
 					duration: 31,
 				} )
 			)
 		).toBe( true );
 		expect(
-			usesConsultationPattern(
+			usesAppointmentPattern(
 				createEntry( 'single-full-range-slot', {
 					duration: 60,
 				} )

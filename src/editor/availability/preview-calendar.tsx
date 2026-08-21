@@ -162,7 +162,7 @@ export function PreviewCalendar( {
 	onToggleSlotVisibility,
 	onAddSlot,
 	activeDate,
-	setActiveDate,
+	onActiveDateChange,
 	hideWeekends,
 }: PreviewCalendarProps ) {
 	const groupedSlots = useMemo( () => groupSlotsByDate( slots ), [ slots ] );
@@ -195,7 +195,7 @@ export function PreviewCalendar( {
 		( hideWeekends && ( date.getDay() === 0 || date.getDay() === 6 ) );
 	const selectDate = ( date?: Date ) => {
 		if ( date && ! isUnavailable( date ) ) {
-			setActiveDate( formatDate( date ) );
+			onActiveDateChange( formatDate( date ) );
 		}
 	};
 

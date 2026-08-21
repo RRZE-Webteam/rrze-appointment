@@ -7,7 +7,7 @@ import type {
 	AvailabilityEntry,
 } from '../../scheduling/types';
 import type {
-	EditProps,
+	AppointmentEditorProps,
 	FaudirImportOptions,
 	FaudirPerson,
 	FaudirResponse,
@@ -20,14 +20,14 @@ import {
 interface UseFaudirImportOptions {
 	attributes: AppointmentAttributes;
 	availabilityEntries: AvailabilityEntry[];
-	setActiveDate: ( date: string ) => void;
-	setAttributes: EditProps[ 'setAttributes' ];
+	onActiveDateChange: ( date: string ) => void;
+	setAttributes: AppointmentEditorProps[ 'setAttributes' ];
 }
 
 export function useFaudirImport( {
 	attributes,
 	availabilityEntries,
-	setActiveDate,
+	onActiveDateChange,
 	setAttributes,
 }: UseFaudirImportOptions ) {
 	const available = !! window.rrze_appointment?.faudir?.available;
@@ -99,8 +99,8 @@ export function useFaudirImport( {
 			nextAttributes.locationUrl = person.locationUrl || '';
 		}
 
-		let addedHours = 0;
-		let skippedHours = 0;
+		let addedTimeRangeCount = 0;
+		let skippedTimeRangeCount = 0;
 		if ( options.importHours ) {
 			const importedEntries = createFaudirAvailabilityEntries(
 				person.consultationHours || [],
@@ -114,10 +114,10 @@ export function useFaudirImport( {
 				availabilityEntries,
 				importedEntries
 			);
-			addedHours = mergeResult.addedEntries.length;
-			skippedHours = mergeResult.skippedCount;
+			addedTimeRangeCount = mergeResult.addedEntries.length;
+			skippedTimeRangeCount = mergeResult.skippedCount;
 
-			if ( addedHours > 0 ) {
+			if ( addedTimeRangeCount > 0 ) {
 				Object.assign(
 					nextAttributes,
 					buildAvailabilityAttributes(
@@ -128,7 +128,7 @@ export function useFaudirImport( {
 				);
 				const firstEntry = mergeResult.addedEntries[ 0 ];
 				if ( firstEntry ) {
-					setActiveDate( firstEntry.date );
+					onActiveDateChange( firstEntry.date );
 				}
 			}
 		}
@@ -138,15 +138,15 @@ export function useFaudirImport( {
 			'FAUdir information imported.',
 			'rrze-appointment'
 		);
-		if ( options.importHours && skippedHours > 0 ) {
+		if ( options.importHours && skippedTimeRangeCount > 0 ) {
 			nextNotice = sprintf(
 				/* translators: 1: Number of imported time ranges. 2: Number of skipped overlaps. */
 				__(
 					'FAUdir information imported. %1$d time ranges added; %2$d overlaps skipped.',
 					'rrze-appointment'
 				),
-				addedHours,
-				skippedHours
+				addedTimeRangeCount,
+				skippedTimeRangeCount
 			);
 		} else if ( options.importHours ) {
 			nextNotice = sprintf(
@@ -155,7 +155,7 @@ export function useFaudirImport( {
 					'FAUdir information imported. %d time ranges added.',
 					'rrze-appointment'
 				),
-				addedHours
+				addedTimeRangeCount
 			);
 		}
 		setNotice( nextNotice );

@@ -20,7 +20,7 @@ interface AppointmentDataViewProps {
 	slots: TimeSlot[];
 	onAdd: () => void;
 	onSetDateExcluded: ( date: string, excluded: boolean ) => void;
-	onToggleException: ( slot: TimeSlot ) => void;
+	onToggleSlotExclusion: ( slot: TimeSlot ) => void;
 }
 
 const INITIAL_VIEW: View = {
@@ -73,7 +73,7 @@ export function AppointmentDataView( {
 	slots,
 	onAdd,
 	onSetDateExcluded,
-	onToggleException,
+	onToggleSlotExclusion,
 }: AppointmentDataViewProps ) {
 	const [ view, setView ] = useState< View >( INITIAL_VIEW );
 	const [ selectedDate, setSelectedDate ] = useState( '' );
@@ -156,7 +156,7 @@ export function AppointmentDataView( {
 			supportsBulk: false,
 			callback: ( items ) => {
 				if ( items[ 0 ] ) {
-					onToggleException( items[ 0 ] );
+					onToggleSlotExclusion( items[ 0 ] );
 				}
 			},
 		},
@@ -169,7 +169,7 @@ export function AppointmentDataView( {
 			supportsBulk: false,
 			callback: ( items ) => {
 				if ( items[ 0 ] ) {
-					onToggleException( items[ 0 ] );
+					onToggleSlotExclusion( items[ 0 ] );
 				}
 			},
 		},
