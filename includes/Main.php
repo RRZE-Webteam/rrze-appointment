@@ -16,8 +16,25 @@ defined('ABSPATH') || exit;
  * @package RRZE\Appointment
  * @since 1.0.0
  */
-class Main
+final class Main
 {
+    private const REST_NAMESPACE = 'rrze/v2/appointment';
+    private const BOOKER_ROUTE = '/booker';
+    private const PERSONS_ROUTE = '/persons';
+    private const BOOKING_AJAX_ACTION = 'rrze_appointment_book';
+    private const OPENING_AJAX_ACTION = 'rrze_appointment_notify_opening';
+    private const BOOKER_AJAX_ACTION = 'rrze_appointment_get_booker';
+    private const LEGACY_FIELD_KEYS = [
+        'name',
+        'label',
+        'description',
+        'options',
+        'default',
+        'sanitize',
+        'validate',
+        'placeholder',
+    ];
+
     /**
      * Legacy defaults object retained for callers of settings().
      */
@@ -62,32 +79,89 @@ class Main
     public function onInit(): void
     {
         $this->defaults = new Defaults();
-        MailTemplatePost::ensureEditableDefaultTemplateExists();
-        TokenManager::cleanupPendingState();
-        BookingOpeningNotifier::cleanup();
+        $this->initializePluginState();
 
         (new Settings())->register();
         (new Reminder())->register();
 
+        $this->registerAssetHooks();
+        $this->registerAjaxHooks();
+        $this->registerPublicPageHooks();
+        $this->registerBackgroundHooks();
+        add_action('rest_api_init', [$this, 'registerRestRoutes']);
+    }
+
+    /**
+     * Runs one-time maintenance needed before request hooks execute.
+     */
+    private function initializePluginState(): void
+    {
+        MailTemplatePost::ensureEditableDefaultTemplateExists();
+        TokenManager::cleanupPendingState();
+        BookingOpeningNotifier::cleanup();
+    }
+
+    /**
+     * Registers public and editor asset hooks.
+     */
+    private function registerAssetHooks(): void
+    {
         add_action('wp_enqueue_scripts', [$this->assets, 'enqueueFrontendAssets']);
         add_action('enqueue_block_assets', [$this->assets, 'enqueueFrontendAssets']);
         add_action('enqueue_block_editor_assets', [$this->assets, 'enqueueEditorAssets']);
-        add_action('wp_ajax_rrze_appointment_book', [$this->bookingRequests, 'handleRequest']);
-        add_action('wp_ajax_nopriv_rrze_appointment_book', [$this->bookingRequests, 'handleRequest']);
-        add_action('wp_ajax_rrze_appointment_notify_opening', [$this->bookingOpenings, 'handleSubscription']);
-        add_action('wp_ajax_nopriv_rrze_appointment_notify_opening', [$this->bookingOpenings, 'handleSubscription']);
-        add_action('wp_ajax_rrze_appointment_get_booker', [$this->sso, 'handleBookerRequest']);
-        add_action('wp_ajax_nopriv_rrze_appointment_get_booker', [$this->sso, 'handleBookerRequest']);
+    }
+
+    /**
+     * Registers authenticated and anonymous AJAX endpoints.
+     */
+    private function registerAjaxHooks(): void
+    {
+        $this->addPublicAjaxAction(
+            self::BOOKING_AJAX_ACTION,
+            [$this->bookingRequests, 'handleRequest']
+        );
+        $this->addPublicAjaxAction(
+            self::OPENING_AJAX_ACTION,
+            [$this->bookingOpenings, 'handleSubscription']
+        );
+        $this->addPublicAjaxAction(
+            self::BOOKER_AJAX_ACTION,
+            [$this->sso, 'handleBookerRequest']
+        );
+    }
+
+    /**
+     * Registers an AJAX callback for logged-in and anonymous visitors.
+     *
+     * @param callable $callback WordPress AJAX callback.
+     */
+    private function addPublicAjaxAction(string $action, callable $callback): void
+    {
+        add_action('wp_ajax_' . $action, $callback);
+        add_action('wp_ajax_nopriv_' . $action, $callback);
+    }
+
+    /**
+     * Registers controllers that handle public page links.
+     */
+    private function registerPublicPageHooks(): void
+    {
         add_action('template_redirect', [$this->sso, 'handleLogin']);
         add_action('template_redirect', [$this->confirmations, 'handleConfirmation']);
         add_action('template_redirect', [$this->bookingOpenings, 'handleClaim']);
         add_action('template_redirect', [$this->bookingOpenings, 'handleRegistrationStatus']);
         add_action('template_redirect', [$this->cancellations, 'handleCancellation']);
         add_action('template_redirect', [$this->cancellations, 'handleWaitlistPreference']);
+    }
+
+    /**
+     * Registers cron and content-change callbacks.
+     */
+    private function registerBackgroundHooks(): void
+    {
         add_action(TokenManager::PENDING_EXPIRY_HOOK, [TokenManager::class, 'expirePending']);
         add_action(BookingOpeningNotifier::CRON_HOOK, [BookingOpeningNotifier::class, 'notify']);
         add_action('post_updated', [$this->waitlistNotifier, 'handlePostUpdated'], 10, 3);
-        add_action('rest_api_init', [$this, 'registerRestRoutes']);
     }
 
     /**
@@ -95,17 +169,15 @@ class Main
      */
     public function registerRestRoutes(): void
     {
-        register_rest_route('rrze/v2/appointment', '/booker', [
+        register_rest_route(self::REST_NAMESPACE, self::BOOKER_ROUTE, [
             'methods' => 'POST',
             'callback' => [$this->sso, 'handleBookerRequest'],
             'permission_callback' => [$this, 'allowBookerRequest'],
         ]);
-        register_rest_route('rrze/v2/appointment', '/persons', [
+        register_rest_route(self::REST_NAMESPACE, self::PERSONS_ROUTE, [
             'methods' => 'GET',
             'callback' => [$this->faudirPersons, 'handleRequest'],
-            'permission_callback' => static function (): bool {
-                return current_user_can('edit_posts');
-            },
+            'permission_callback' => [$this, 'allowPersonsRequest'],
         ]);
     }
 
@@ -123,6 +195,16 @@ class Main
     }
 
     /**
+     * Restricts the FAUdir person endpoint to users who can edit content.
+     *
+     * @param mixed $request REST request supplied by WordPress.
+     */
+    public function allowPersonsRequest($request): bool
+    {
+        return current_user_can('edit_posts');
+    }
+
+    /**
      * Builds the legacy common settings screen from Defaults configuration.
      *
      * The current Settings service is registered from onInit(); this method is
@@ -130,40 +212,50 @@ class Main
      */
     public function settings(): void
     {
-        $this->settings = new CommonSettings($this->defaults->get('settings')['page_title']);
+        $settings = $this->defaults->get('settings');
+        $sections = $this->defaults->get('sections');
+        $fields = $this->defaults->get('fields');
+        if (!is_array($settings) || !is_array($sections) || !is_array($fields)) {
+            return;
+        }
+
+        $this->settings = new CommonSettings((string) ($settings['page_title'] ?? ''));
         $this->settings
-            ->setCapability($this->defaults->get('settings')['capability'])
-            ->setOptionName($this->defaults->get('settings')['option_name'])
-            ->setMenuTitle($this->defaults->get('settings')['menu_title'])
+            ->setCapability((string) ($settings['capability'] ?? 'manage_options'))
+            ->setOptionName((string) ($settings['option_name'] ?? ''))
+            ->setMenuTitle((string) ($settings['menu_title'] ?? ''))
             ->setMenuPosition(6)
             ->setMenuParentSlug('options-general.php');
 
-        foreach ($this->defaults->get('sections') as $section) {
+        foreach ($sections as $section) {
+            if (!is_array($section)) {
+                continue;
+            }
+
+            $sectionId = sanitize_key((string) ($section['id'] ?? ''));
+            $sectionTitle = (string) ($section['title'] ?? '');
+            if ($sectionId === '' || $sectionTitle === '') {
+                continue;
+            }
+
             $tab = $this->settings->addTab(
-                __($section['title'], 'rrze-appointment'),
-                $section['id']
+                __($sectionTitle, 'rrze-appointment'),
+                $sectionId
             );
             $settingsSection = $tab->addSection(
-                __($section['title'], 'rrze-appointment'),
-                $section['id']
+                __($sectionTitle, 'rrze-appointment'),
+                $sectionId
             );
 
-            foreach ($this->defaults->get('fields')[$section['id']] as $field) {
+            $sectionFields = is_array($fields[$sectionId] ?? null) ? $fields[$sectionId] : [];
+            foreach ($sectionFields as $field) {
+                if (!is_array($field) || !is_string($field['type'] ?? null)) {
+                    continue;
+                }
+
                 $settingsSection->addOption(
                     $field['type'],
-                    array_intersect_key(
-                        $field,
-                        array_flip([
-                            'name',
-                            'label',
-                            'description',
-                            'options',
-                            'default',
-                            'sanitize',
-                            'validate',
-                            'placeholder',
-                        ])
-                    )
+                    array_intersect_key($field, array_flip(self::LEGACY_FIELD_KEYS))
                 );
             }
         }
