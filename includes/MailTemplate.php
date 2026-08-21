@@ -4,24 +4,59 @@ namespace RRZE\Appointment;
 
 defined('ABSPATH') || exit;
 
-class MailTemplate
+/**
+ * Renders the shared HTML email layout and reusable email components.
+ */
+final class MailTemplate
 {
     private const LAYOUT_PATH = 'build/email/layout.html';
+    private const TEMPLATE_URL_PATTERN = '/^\[[a-z0-9_]+\]$/';
+    private const WARNING_TEMPLATE_TYPES = [
+        'booking_pending',
+        'booking_pending_questions',
+        'booking_opening_notification',
+    ];
+    private const SUCCESS_TEMPLATE_TYPES = [
+        'booking_booker',
+        'booking_host',
+        'reminder_admin',
+        'reminder_booker',
+    ];
+    private const REQUIRED_LAYOUT_MARKERS = [
+        '___RRZE_EMAIL_LANG___',
+        '___RRZE_EMAIL_DIR___',
+        '___RRZE_EMAIL_SUBJECT___',
+        '___RRZE_EMAIL_SITE_URL___',
+        '___RRZE_EMAIL_SITE_NAME___',
+        '___RRZE_EMAIL_LOGO___',
+        '___RRZE_EMAIL_CONTENT___',
+        '___RRZE_EMAIL_FOOTER_LINKS___',
+        '___RRZE_EMAIL_STATUS_ACCENT___',
+        '___RRZE_EMAIL_STATUS_SURFACE___',
+        '___RRZE_EMAIL_STATUS_TEXT___',
+        '___RRZE_EMAIL_STATUS_LABEL___',
+    ];
+
     public const STATUS_NEUTRAL = 'neutral';
     public const STATUS_SUCCESS = 'success';
     public const STATUS_WARNING = 'warning';
     public const STATUS_DANGER = 'danger';
 
+    /**
+     * Wraps trusted template HTML in the shared email layout.
+     *
+     * The content is deliberately not escaped because it is produced from the
+     * plugin's email templates. User-provided values must be escaped before
+     * they are inserted into that HTML.
+     */
     public static function wrap(string $content, string $subject = '', string $status = self::STATUS_NEUTRAL): string
     {
         $siteName = (string) get_bloginfo('name');
-        $siteUrl = home_url('/');
+        $siteUrl = (string) home_url('/');
         $language = str_replace('_', '-', (string) get_bloginfo('language')) ?: 'de';
         $statusStyle = self::getStatusStyle($status);
 
-        $layout = self::getLayout();
-
-        return strtr($layout, [
+        return strtr(self::getLayout(), [
             '___RRZE_EMAIL_LANG___' => esc_attr($language),
             '___RRZE_EMAIL_DIR___' => is_rtl() ? 'rtl' : 'ltr',
             '___RRZE_EMAIL_SUBJECT___' => esc_html($subject),
@@ -37,13 +72,16 @@ class MailTemplate
         ]);
     }
 
+    /**
+     * Maps an email template type to its visual status.
+     */
     public static function statusForType(string $type): string
     {
-        if (in_array($type, ['booking_pending', 'booking_pending_questions', 'booking_opening_notification'], true)) {
+        if (in_array($type, self::WARNING_TEMPLATE_TYPES, true)) {
             return self::STATUS_WARNING;
         }
 
-        if (in_array($type, ['booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker'], true)) {
+        if (in_array($type, self::SUCCESS_TEMPLATE_TYPES, true)) {
             return self::STATUS_SUCCESS;
         }
 
@@ -58,7 +96,8 @@ class MailTemplate
      * Creates an appointment details table that also works in classic Outlook.
      *
      * @param array<string, string> $rows Label/value pairs. Values may contain
-     *                                   the plugin's mail placeholders.
+     *                                   trusted template HTML or placeholders;
+     *                                   labels are always escaped.
      */
     public static function detailsTable(array $rows): string
     {
@@ -79,13 +118,31 @@ class MailTemplate
             . '</table>';
     }
 
+    /**
+     * Creates an Outlook-compatible primary action button.
+     *
+     * Template URL placeholders are retained for later replacement. Concrete
+     * URLs are restricted to protocols accepted by WordPress.
+     */
     public static function actionButton(string $url, string $label): string
     {
         return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 16px;">'
             . '<tr><td bgcolor="#04316a" style="border-radius:4px;background:#04316a;">'
-            . '<a href="' . esc_attr($url) . '" target="_blank" style="display:inline-block;padding:12px 20px;color:#ffffff;font-size:15px;font-weight:700;line-height:20px;text-decoration:none;">'
+            . '<a href="' . self::escapeActionUrl($url) . '" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 20px;color:#ffffff;font-size:15px;font-weight:700;line-height:20px;text-decoration:none;">'
             . esc_html($label)
             . '</a></td></tr></table>';
+    }
+
+    /**
+     * Escapes a template placeholder or concrete action URL.
+     */
+    private static function escapeActionUrl(string $url): string
+    {
+        if (preg_match(self::TEMPLATE_URL_PATTERN, $url) === 1) {
+            return esc_attr($url);
+        }
+
+        return esc_url($url);
     }
 
     private static function getLayout(): string
@@ -93,12 +150,26 @@ class MailTemplate
         $path = dirname(__DIR__) . '/' . self::LAYOUT_PATH;
         if (is_readable($path)) {
             $layout = file_get_contents($path);
-            if (is_string($layout) && strpos($layout, '___RRZE_EMAIL_CONTENT___') !== false) {
+            if (is_string($layout) && self::hasRequiredLayoutMarkers($layout)) {
                 return $layout;
             }
         }
 
         return self::getFallbackLayout();
+    }
+
+    /**
+     * Verifies that a compiled layout contains every runtime marker.
+     */
+    private static function hasRequiredLayoutMarkers(string $layout): bool
+    {
+        foreach (self::REQUIRED_LAYOUT_MARKERS as $marker) {
+            if (strpos($layout, $marker) === false) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static function getLogoHtml(string $siteName): string
@@ -123,14 +194,14 @@ class MailTemplate
 
         $privacyUrl = get_privacy_policy_url();
         if ($privacyUrl) {
-            $links[] = '<a href="' . esc_url($privacyUrl) . '" target="_blank" style="' . $linkStyle . '">'
+            $links[] = '<a href="' . esc_url($privacyUrl) . '" target="_blank" rel="noopener noreferrer" style="' . $linkStyle . '">'
                 . esc_html__('Privacy Policy', 'rrze-appointment')
                 . '</a>';
         }
 
         $imprintUrl = TokenManager::imprintUrl();
         if ($imprintUrl) {
-            $links[] = '<a href="' . esc_url($imprintUrl) . '" target="_blank" style="' . $linkStyle . '">'
+            $links[] = '<a href="' . esc_url($imprintUrl) . '" target="_blank" rel="noopener noreferrer" style="' . $linkStyle . '">'
                 . esc_html__('Legal Notice', 'rrze-appointment')
                 . '</a>';
         }
