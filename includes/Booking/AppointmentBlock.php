@@ -1,6 +1,8 @@
 <?php
 
-namespace RRZE\Appointment;
+namespace RRZE\Appointment\Booking;
+
+use RRZE\Appointment\Mail\MailTemplatePost;
 
 defined('ABSPATH') || exit;
 

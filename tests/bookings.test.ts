@@ -12,15 +12,20 @@ type BookingsResult = {
 };
 
 const runBookingsScenario = (): BookingsResult => {
-	const bookingsPath = resolve( process.cwd(), 'includes/Bookings.php' );
+	const bookingsPath = resolve(
+		process.cwd(),
+		'includes/Booking/Bookings.php'
+	);
 	const php = `
 		namespace RRZE\\Appointment\\Common {
 			class CustomException extends \\Exception {}
 		}
-		namespace RRZE\\Appointment {
+		namespace RRZE\\Appointment\\Notification {
 			class Reminder {
 				public const CRON_HOOK = 'reminder_hook';
 			}
+		}
+		namespace RRZE\\Appointment\\Booking {
 			class TokenManager {
 				public const CANCEL_OPTION = 'cancel_tokens';
 				public const PENDING_OPTION = 'pending_tokens';
@@ -96,12 +101,12 @@ const runBookingsScenario = (): BookingsResult => {
 				return '';
 			}
 			require ${ JSON.stringify( bookingsPath ) };
-			$bookings = \\RRZE\\Appointment\\Bookings::getAll( [
+			$bookings = \\RRZE\\Appointment\\Booking\\Bookings::getAll( [
 				'date_from' => '2026-08-21',
 				'date_to' => '2026-08-21',
 				'person_id' => 1,
 			] );
-			$removed = \\RRZE\\Appointment\\Bookings::cleanupExpired( 0 );
+			$removed = \\RRZE\\Appointment\\Booking\\Bookings::cleanupExpired( 0 );
 			echo json_encode( [
 				'bookings' => $bookings,
 				'removed' => $removed,

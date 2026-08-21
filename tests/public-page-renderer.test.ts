@@ -19,15 +19,17 @@ type RendererResult = {
 const getRendererResult = (): RendererResult => {
 	const rendererPath = resolve(
 		process.cwd(),
-		'includes/PublicPageRenderer.php'
+		'includes/Presentation/PublicPageRenderer.php'
 	);
 	const php = `
-		namespace RRZE\\Appointment {
+		namespace RRZE\\Appointment\\Booking {
 			class TokenManager {
 				public static function confirmUrl( string $token ): string { return 'confirm:' . $token; }
 				public static function cancelUrl( string $token ): string { return 'cancel:' . $token; }
 				public static function waitlistOptOutUrl( string $token ): string { return 'waitlist:' . $token; }
 			}
+		}
+		namespace RRZE\\Appointment {
 			function plugin() {
 				return new class {
 					public function getUrl( string $path ): string { return 'https://assets.test/' . $path . '/'; }
@@ -48,7 +50,7 @@ const getRendererResult = (): RendererResult => {
 			function wp_create_nonce( $action ) { return 'nonce:' . $action; }
 			require ${ JSON.stringify( rendererPath ) };
 
-			$renderer = new \\RRZE\\Appointment\\PublicPageRenderer();
+			$renderer = new \\RRZE\\Appointment\\Presentation\\PublicPageRenderer();
 			$reflection = new ReflectionClass( $renderer );
 			$buildContext = $reflection->getMethod( 'buildConfirmationContext' );
 			$build = static function ( string $mode, array $data ) use ( $renderer, $buildContext ): array {

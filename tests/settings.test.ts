@@ -51,7 +51,7 @@ const getSettingsResult = (): SettingsResult => {
 				public function isHTML( $enabled ) { $this->isHtml = $enabled; }
 			}
 		}
-		namespace RRZE\\Appointment {
+		namespace RRZE\\Appointment\\Mail {
 			class MailTemplate {
 				public const STATUS_NEUTRAL = 'neutral';
 				public static function wrap( $html, $subject, $status ) {

@@ -17,7 +17,7 @@ type Question = {
 const normalizeQuestions = ( questions: Question[] ) => {
 	const appointmentBlockPath = resolve(
 		process.cwd(),
-		'includes/AppointmentBlock.php'
+		'includes/Booking/AppointmentBlock.php'
 	);
 	const encodedQuestions = JSON.stringify( JSON.stringify( { questions } ) );
 	const php = `
@@ -33,7 +33,7 @@ const normalizeQuestions = ( questions: Question[] ) => {
 		}
 		require ${ JSON.stringify( appointmentBlockPath ) };
 		$attributes = json_decode( ${ encodedQuestions }, true );
-		echo json_encode( \\RRZE\\Appointment\\AppointmentBlock::getQuestions( $attributes ) );
+		echo json_encode( \\RRZE\\Appointment\\Booking\\AppointmentBlock::getQuestions( $attributes ) );
 	`;
 
 	return JSON.parse(

@@ -32,7 +32,7 @@ type SsoResult = {
 const getSsoResult = (): SsoResult => {
 	const controllerPath = resolve(
 		process.cwd(),
-		'includes/SsoController.php'
+		'includes/Controller/SsoController.php'
 	);
 	const php = `
 		namespace {
@@ -112,7 +112,7 @@ const getSsoResult = (): SsoResult => {
 
 			require ${ JSON.stringify( controllerPath ) };
 
-			$controller = new \\RRZE\\Appointment\\SsoController();
+			$controller = new \\RRZE\\Appointment\\Controller\\SsoController();
 			\\RRZE\\Appointment\\Rights::$identity = [
 				'authenticated' => true,
 				'bookerEmail' => 'ada@example.test',
@@ -158,7 +158,7 @@ const getSsoResult = (): SsoResult => {
 			$invalidLoginIgnored = $GLOBALS['redirects'] === [] && $GLOBALS['dies'] === [];
 
 			$startAuthentication = new ReflectionMethod(
-				\\RRZE\\Appointment\\SsoController::class,
+				\\RRZE\\Appointment\\Controller\\SsoController::class,
 				'startAuthentication'
 			);
 			if ( PHP_VERSION_ID < 80100 ) { $startAuthentication->setAccessible( true ); }

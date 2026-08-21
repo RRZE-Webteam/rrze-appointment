@@ -2,6 +2,11 @@
 
 namespace RRZE\Appointment;
 
+use RRZE\Appointment\Booking\Bookings;
+use RRZE\Appointment\Booking\TokenManager;
+use RRZE\Appointment\Mail\MailTemplate;
+use RRZE\Appointment\Mail\MailTemplatePost;
+
 defined('ABSPATH') || exit;
 
 /**

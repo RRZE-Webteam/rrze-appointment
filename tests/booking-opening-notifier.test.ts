@@ -15,7 +15,7 @@ type NotifierResult = {
 const runNotifierScenario = (): NotifierResult => {
 	const notifierPath = resolve(
 		process.cwd(),
-		'includes/BookingOpeningNotifier.php'
+		'includes/Notification/BookingOpeningNotifier.php'
 	);
 	const php = `
 		namespace RRZE\\Appointment\\Common {
@@ -61,7 +61,7 @@ const runNotifierScenario = (): NotifierResult => {
 				return $url . '?' . $key . '=' . rawurlencode( $value );
 			}
 			require ${ JSON.stringify( notifierPath ) };
-			$notifier = \\RRZE\\Appointment\\BookingOpeningNotifier::class;
+			$notifier = \\RRZE\\Appointment\\Notification\\BookingOpeningNotifier::class;
 			$now = time();
 			$meta = [ 'booker_email' => 'Person@Example.test', 'title' => 'Consultation' ];
 			$first = $notifier::subscribe(

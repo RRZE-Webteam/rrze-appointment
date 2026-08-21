@@ -1,8 +1,11 @@
 <?php
 
-namespace RRZE\Appointment;
+namespace RRZE\Appointment\Presentation;
 
+use RRZE\Appointment\Booking\Bookings;
+use RRZE\Appointment\Booking\TokenManager;
 use RRZE\Appointment\Common\CustomException;
+use RRZE\Appointment\Settings;
 
 defined('ABSPATH') || exit;
 

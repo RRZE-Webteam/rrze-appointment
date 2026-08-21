@@ -2,7 +2,19 @@
 
 namespace RRZE\Appointment;
 
+use RRZE\Appointment\Booking\TokenManager;
 use RRZE\Appointment\Common\Settings\Settings as CommonSettings;
+use RRZE\Appointment\Controller\BookingOpeningController;
+use RRZE\Appointment\Controller\BookingRequestController;
+use RRZE\Appointment\Controller\CancellationController;
+use RRZE\Appointment\Controller\ConfirmationController;
+use RRZE\Appointment\Controller\SsoController;
+use RRZE\Appointment\Notification\BookingOpeningNotifier;
+use RRZE\Appointment\Notification\Reminder;
+use RRZE\Appointment\Notification\WaitlistNotifier;
+use RRZE\Appointment\Mail\MailTemplatePost;
+use RRZE\Appointment\Presentation\AssetManager;
+use RRZE\Appointment\Presentation\PublicPageRenderer;
 
 defined('ABSPATH') || exit;
 

@@ -1,7 +1,8 @@
 <?php
 
-namespace RRZE\Appointment;
+namespace RRZE\Appointment\Controller;
 
+use RRZE\Appointment\Rights;
 use WP_REST_Request;
 use WP_REST_Response;
 

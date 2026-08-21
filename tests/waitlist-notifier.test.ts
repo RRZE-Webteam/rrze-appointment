@@ -20,7 +20,7 @@ type WaitlistNotifierResult = {
 const getWaitlistNotifierResult = (): WaitlistNotifierResult => {
 	const notifierPath = resolve(
 		process.cwd(),
-		'includes/WaitlistNotifier.php'
+		'includes/Notification/WaitlistNotifier.php'
 	);
 	const php = `
 		namespace {
@@ -33,7 +33,7 @@ const getWaitlistNotifierResult = (): WaitlistNotifierResult => {
 				}
 			}
 		}
-		namespace RRZE\\Appointment {
+		namespace RRZE\\Appointment\\Booking {
 			class Bookings {
 				public const META_OPTION = 'booking_meta';
 				public const SLOTS_OPTION = 'booked_slots';
@@ -184,23 +184,23 @@ const getWaitlistNotifierResult = (): WaitlistNotifierResult => {
 
 			require ${ JSON.stringify( notifierPath ) };
 
-			$notifier = new \\RRZE\\Appointment\\WaitlistNotifier();
+			$notifier = new \\RRZE\\Appointment\\Notification\\WaitlistNotifier();
 			$notifier->handlePostUpdated(
 				10,
 				new WP_Post( 'publish', 'after' ),
 				new WP_Post( 'publish', 'before' )
 			);
-			$attempts = \\RRZE\\Appointment\\Bookings::$attempts;
-			$notifications = \\RRZE\\Appointment\\Bookings::$notifications;
+			$attempts = \\RRZE\\Appointment\\Booking\\Bookings::$attempts;
+			$notifications = \\RRZE\\Appointment\\Booking\\Bookings::$notifications;
 
-			\\RRZE\\Appointment\\Bookings::$attempts = [];
+			\\RRZE\\Appointment\\Booking\\Bookings::$attempts = [];
 			$GLOBALS['is_revision'] = true;
 			$notifier->handlePostUpdated(
 				10,
 				new WP_Post( 'publish', 'after' ),
 				new WP_Post( 'publish', 'before' )
 			);
-			$revisionIgnored = \\RRZE\\Appointment\\Bookings::$attempts === [];
+			$revisionIgnored = \\RRZE\\Appointment\\Booking\\Bookings::$attempts === [];
 
 			$GLOBALS['is_revision'] = false;
 			$notifier->handlePostUpdated(
@@ -208,7 +208,7 @@ const getWaitlistNotifierResult = (): WaitlistNotifierResult => {
 				new WP_Post( 'draft', 'after' ),
 				new WP_Post( 'publish', 'before' )
 			);
-			$draftIgnored = \\RRZE\\Appointment\\Bookings::$attempts === [];
+			$draftIgnored = \\RRZE\\Appointment\\Booking\\Bookings::$attempts === [];
 
 			$parseFailureSuppressed = true;
 			try {
@@ -227,7 +227,7 @@ const getWaitlistNotifierResult = (): WaitlistNotifierResult => {
 				new WP_Post( 'publish', 'after' ),
 				new WP_Post( 'publish', 'before' )
 			);
-			$corruptOptionsIgnored = \\RRZE\\Appointment\\Bookings::$attempts === [];
+			$corruptOptionsIgnored = \\RRZE\\Appointment\\Booking\\Bookings::$attempts === [];
 
 			echo json_encode( [
 				'attempts' => $attempts,

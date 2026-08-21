@@ -20,12 +20,15 @@ type ReminderResult = {
 };
 
 const getReminderResult = (): ReminderResult => {
-	const reminderPath = resolve( process.cwd(), 'includes/Reminder.php' );
+	const reminderPath = resolve(
+		process.cwd(),
+		'includes/Notification/Reminder.php'
+	);
 	const php = `
 		namespace RRZE\\Appointment\\Common {
 			class CustomException extends \\Exception {}
 		}
-		namespace RRZE\\Appointment {
+		namespace RRZE\\Appointment\\Booking {
 			class Bookings {
 				public const META_OPTION = 'booking_meta';
 				public static int $cleanupRetention = -1;
@@ -34,6 +37,14 @@ const getReminderResult = (): ReminderResult => {
 					return 0;
 				}
 			}
+			class TokenManager {
+				public static function getCancelUrlForSlot( string $slot ): string {
+					return 'https://example.test/cancel?a=1&slot=' . rawurlencode( $slot );
+				}
+				public static function imprintUrl(): string { return 'https://example.test/legal'; }
+			}
+		}
+		namespace RRZE\\Appointment {
 			class Settings {
 				public static array $mails = [];
 				public static function get( string $key ) {
@@ -54,12 +65,8 @@ const getReminderResult = (): ReminderResult => {
 					return true;
 				}
 			}
-			class TokenManager {
-				public static function getCancelUrlForSlot( string $slot ): string {
-					return 'https://example.test/cancel?a=1&slot=' . rawurlencode( $slot );
-				}
-				public static function imprintUrl(): string { return 'https://example.test/legal'; }
-			}
+		}
+		namespace RRZE\\Appointment\\Mail {
 			class MailTemplatePost {
 				public static function getTemplateForType( int $id, string $type ): ?array {
 					if ( $id !== 5 ) { return null; }
@@ -138,9 +145,9 @@ const getReminderResult = (): ReminderResult => {
 			}
 			require ${ JSON.stringify( reminderPath ) };
 
-			$reminder = new \\RRZE\\Appointment\\Reminder();
+			$reminder = new \\RRZE\\Appointment\\Notification\\Reminder();
 			$reminder->register();
-			\\RRZE\\Appointment\\Reminder::scheduleForSlot(
+			\\RRZE\\Appointment\\Notification\\Reminder::scheduleForSlot(
 				'2099-09-01 08:00-08:30',
 				[ 'title' => 'Future' ]
 			);
@@ -155,7 +162,7 @@ const getReminderResult = (): ReminderResult => {
 				'storedFutureMeta' => $GLOBALS['options']['booking_meta']['2099-09-01 08:00-08:30'],
 				'mails' => $mails,
 				'dailyMails' => \\RRZE\\Appointment\\Settings::$mails,
-				'cleanupRetention' => \\RRZE\\Appointment\\Bookings::$cleanupRetention,
+				'cleanupRetention' => \\RRZE\\Appointment\\Booking\\Bookings::$cleanupRetention,
 			] );
 		}
 	`;

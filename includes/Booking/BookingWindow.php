@@ -1,6 +1,6 @@
 <?php
 
-namespace RRZE\Appointment;
+namespace RRZE\Appointment\Booking;
 
 defined('ABSPATH') || exit;
 

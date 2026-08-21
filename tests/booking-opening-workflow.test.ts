@@ -7,11 +7,15 @@ const readProjectFile = ( path: string ) =>
 describe( 'booking opening notification workflow', () => {
 	const main = readProjectFile( 'includes/Main.php' );
 	const controller = readProjectFile(
-		'includes/BookingOpeningController.php'
+		'includes/Controller/BookingOpeningController.php'
 	);
-	const notifier = readProjectFile( 'includes/BookingOpeningNotifier.php' );
-	const renderer = readProjectFile( 'includes/PublicPageRenderer.php' );
-	const templates = readProjectFile( 'includes/MailTemplatePost.php' );
+	const notifier = readProjectFile(
+		'includes/Notification/BookingOpeningNotifier.php'
+	);
+	const renderer = readProjectFile(
+		'includes/Presentation/PublicPageRenderer.php'
+	);
+	const templates = readProjectFile( 'includes/Mail/MailTemplatePost.php' );
 
 	it( 'registers subscriptions and schedules their opening email', () => {
 		expect( main ).toContain( 'rrze_appointment_notify_opening' );

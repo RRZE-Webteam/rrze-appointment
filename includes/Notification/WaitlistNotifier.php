@@ -1,6 +1,9 @@
 <?php
 
-namespace RRZE\Appointment;
+namespace RRZE\Appointment\Notification;
+
+use RRZE\Appointment\Booking\Bookings;
+use RRZE\Appointment\Booking\SlotGenerator;
 
 defined('ABSPATH') || exit;
 

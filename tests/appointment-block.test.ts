@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 const fingerprint = ( attributes: Record< string, unknown > ): string => {
 	const appointmentBlockPath = resolve(
 		process.cwd(),
-		'includes/AppointmentBlock.php'
+		'includes/Booking/AppointmentBlock.php'
 	);
 	const encodedAttributes = JSON.stringify( JSON.stringify( attributes ) );
 	const php = `
@@ -17,7 +17,7 @@ const fingerprint = ( attributes: Record< string, unknown > ): string => {
 		}
 		require ${ JSON.stringify( appointmentBlockPath ) };
 		$attributes = json_decode( ${ encodedAttributes }, true );
-		echo \\RRZE\\Appointment\\AppointmentBlock::fingerprint( $attributes );
+		echo \\RRZE\\Appointment\\Booking\\AppointmentBlock::fingerprint( $attributes );
 	`;
 
 	return execFileSync( 'php', [ '-r', php ], { encoding: 'utf8' } );

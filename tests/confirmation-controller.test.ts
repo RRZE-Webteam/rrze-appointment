@@ -19,13 +19,13 @@ type ConfirmationResult = {
 const getConfirmationResult = (): ConfirmationResult => {
 	const controllerPath = resolve(
 		process.cwd(),
-		'includes/ConfirmationController.php'
+		'includes/Controller/ConfirmationController.php'
 	);
 	const php = `
 		namespace RRZE\\Appointment\\Common {
 			class CustomException extends \\Exception {}
 		}
-		namespace RRZE\\Appointment {
+		namespace RRZE\\Appointment\\Presentation {
 			class PublicPageRenderer {
 				public array $events = [];
 				public function renderConfirmation( ...$arguments ): void {
@@ -33,9 +33,13 @@ const getConfirmationResult = (): ConfirmationResult => {
 				}
 				public function renderError( string $message, int $status ): void {}
 			}
+		}
+		namespace RRZE\\Appointment\\Booking {
 			class Bookings {
 				public const SLOTS_OPTION = 'booked_slots';
 			}
+		}
+		namespace RRZE\\Appointment\\Mail {
 			class MailTemplate {
 				public const STATUS_SUCCESS = 'success';
 			}
@@ -51,6 +55,8 @@ const getConfirmationResult = (): ConfirmationResult => {
 					];
 				}
 			}
+		}
+		namespace RRZE\\Appointment {
 			class Settings {
 				public static string $attachmentPath = '';
 				public static function renderTemplate( string $template, array $variables ): string {
@@ -92,8 +98,8 @@ const getConfirmationResult = (): ConfirmationResult => {
 			function wp_delete_file( $path ) { if ( is_file( $path ) ) { unlink( $path ); } }
 			require ${ JSON.stringify( controllerPath ) };
 
-			$renderer = new \\RRZE\\Appointment\\PublicPageRenderer();
-			$controller = new \\RRZE\\Appointment\\ConfirmationController( $renderer );
+			$renderer = new \\RRZE\\Appointment\\Presentation\\PublicPageRenderer();
+			$controller = new \\RRZE\\Appointment\\Controller\\ConfirmationController( $renderer );
 			$reflection = new ReflectionClass( $controller );
 			$getToken = $reflection->getMethod( 'getConfirmationToken' );
 			$collect = $reflection->getMethod( 'collectQuestionAnswers' );

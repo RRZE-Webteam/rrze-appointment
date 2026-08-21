@@ -22,12 +22,15 @@ type MailTemplatePostResult = {
 };
 
 const getMailTemplatePostResult = (): MailTemplatePostResult => {
-	const classPath = resolve( process.cwd(), 'includes/MailTemplatePost.php' );
+	const classPath = resolve(
+		process.cwd(),
+		'includes/Mail/MailTemplatePost.php'
+	);
 	const php = `
 		namespace RRZE\\Appointment\\Common {
 			class CustomException extends \\Exception {}
 		}
-		namespace RRZE\\Appointment {
+		namespace RRZE\\Appointment\\Mail {
 			class MailTemplate {
 				public static function detailsTable( array $rows ): string { return '<table></table>'; }
 				public static function actionButton( string $url, string $label ): string {
@@ -118,7 +121,7 @@ const getMailTemplatePostResult = (): MailTemplatePostResult => {
 			}
 			require ${ JSON.stringify( classPath ) };
 
-			$class = \\RRZE\\Appointment\\MailTemplatePost::class;
+			$class = \\RRZE\\Appointment\\Mail\\MailTemplatePost::class;
 			$class::register();
 			$plainMetaAllowed = $GLOBALS['registered_meta']['tpl_booking_pending_subject']['auth_callback']();
 			$htmlMetaAllowed = $GLOBALS['registered_meta']['tpl_booking_pending_body_html']['auth_callback']();

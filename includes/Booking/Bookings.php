@@ -1,8 +1,12 @@
 <?php
 
-namespace RRZE\Appointment;
+namespace RRZE\Appointment\Booking;
 
 use RRZE\Appointment\Common\CustomException;
+use RRZE\Appointment\Mail\MailTemplate;
+use RRZE\Appointment\Mail\MailTemplatePost;
+use RRZE\Appointment\Notification\Reminder;
+use RRZE\Appointment\Settings;
 
 defined('ABSPATH') || exit;
 

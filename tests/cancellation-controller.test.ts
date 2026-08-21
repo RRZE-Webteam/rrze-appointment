@@ -15,13 +15,13 @@ type CancellationResults = Record< string, ScenarioResult >;
 const runCancellationScenarios = (): CancellationResults => {
 	const controllerPath = resolve(
 		process.cwd(),
-		'includes/CancellationController.php'
+		'includes/Controller/CancellationController.php'
 	);
 	const php = `
 		namespace RRZE\\Appointment\\Common {
 			class CustomException extends \\Exception {}
 		}
-		namespace RRZE\\Appointment {
+		namespace RRZE\\Appointment\\Presentation {
 			class PublicPageRenderer {
 				public array $events = [];
 				public function getAppointmentDetails( string $slot, array $meta ): array {
@@ -40,6 +40,8 @@ const runCancellationScenarios = (): CancellationResults => {
 					$this->events[] = [ 'waitlist', $token, $enabled ];
 				}
 			}
+		}
+		namespace RRZE\\Appointment\\Booking {
 			class TokenManager {
 				public static array $deletedPending = [];
 				public static array $deletedCancel = [];
@@ -109,21 +111,21 @@ const runCancellationScenarios = (): CancellationResults => {
 				$_GET = $get;
 				$_POST = $post;
 				$_SERVER['REQUEST_METHOD'] = $method;
-				\\RRZE\\Appointment\\TokenManager::$deletedPending = [];
-				\\RRZE\\Appointment\\TokenManager::$deletedCancel = [];
-				\\RRZE\\Appointment\\Bookings::$cancelledSlots = [];
-				\\RRZE\\Appointment\\Bookings::$enabledSlots = [];
-				\\RRZE\\Appointment\\Bookings::$disabledSlots = [];
-				$renderer = new \\RRZE\\Appointment\\PublicPageRenderer();
-				$controller = new \\RRZE\\Appointment\\CancellationController( $renderer );
+				\\RRZE\\Appointment\\Booking\\TokenManager::$deletedPending = [];
+				\\RRZE\\Appointment\\Booking\\TokenManager::$deletedCancel = [];
+				\\RRZE\\Appointment\\Booking\\Bookings::$cancelledSlots = [];
+				\\RRZE\\Appointment\\Booking\\Bookings::$enabledSlots = [];
+				\\RRZE\\Appointment\\Booking\\Bookings::$disabledSlots = [];
+				$renderer = new \\RRZE\\Appointment\\Presentation\\PublicPageRenderer();
+				$controller = new \\RRZE\\Appointment\\Controller\\CancellationController( $renderer );
 				$controller->$handler();
 				return [
 					'events' => $renderer->events,
-					'deletedPending' => \\RRZE\\Appointment\\TokenManager::$deletedPending,
-					'deletedCancel' => \\RRZE\\Appointment\\TokenManager::$deletedCancel,
-					'cancelledSlots' => \\RRZE\\Appointment\\Bookings::$cancelledSlots,
-					'enabledSlots' => \\RRZE\\Appointment\\Bookings::$enabledSlots,
-					'disabledSlots' => \\RRZE\\Appointment\\Bookings::$disabledSlots,
+					'deletedPending' => \\RRZE\\Appointment\\Booking\\TokenManager::$deletedPending,
+					'deletedCancel' => \\RRZE\\Appointment\\Booking\\TokenManager::$deletedCancel,
+					'cancelledSlots' => \\RRZE\\Appointment\\Booking\\Bookings::$cancelledSlots,
+					'enabledSlots' => \\RRZE\\Appointment\\Booking\\Bookings::$enabledSlots,
+					'disabledSlots' => \\RRZE\\Appointment\\Booking\\Bookings::$disabledSlots,
 				];
 			}
 

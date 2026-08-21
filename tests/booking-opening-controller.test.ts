@@ -9,13 +9,13 @@ type ControllerResult = {
 const getControllerResult = (): ControllerResult => {
 	const controllerPath = resolve(
 		process.cwd(),
-		'includes/BookingOpeningController.php'
+		'includes/Controller/BookingOpeningController.php'
 	);
 	const php = `
 		namespace RRZE\\Appointment\\Common {
 			class CustomException extends \\Exception {}
 		}
-		namespace RRZE\\Appointment {
+		namespace RRZE\\Appointment\\Presentation {
 			class PublicPageRenderer {}
 		}
 		namespace {
@@ -40,8 +40,8 @@ const getControllerResult = (): ControllerResult => {
 				'booker_name' => "O\\\\'Connor",
 			];
 			require ${ JSON.stringify( controllerPath ) };
-			$controller = new \\RRZE\\Appointment\\BookingOpeningController(
-				new \\RRZE\\Appointment\\PublicPageRenderer()
+			$controller = new \\RRZE\\Appointment\\Controller\\BookingOpeningController(
+				new \\RRZE\\Appointment\\Presentation\\PublicPageRenderer()
 			);
 			$reflection = new ReflectionClass( $controller );
 			$getRequestData = $reflection->getMethod( 'getRequestData' );

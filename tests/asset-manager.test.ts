@@ -14,13 +14,13 @@ const runAssetManager = (
 ): AssetResult | null => {
 	const assetManagerPath = resolve(
 		process.cwd(),
-		'includes/AssetManager.php'
+		'includes/Presentation/AssetManager.php'
 	);
 	const php = `
 		namespace RRZE\\Appointment\\Common {
 			class CustomException extends \\Exception {}
 		}
-		namespace RRZE\\Appointment {
+		namespace RRZE\\Appointment\\Booking {
 			class Bookings {
 				public const SLOTS_OPTION = 'rrze_appointment_booked_slots';
 			}
@@ -29,6 +29,8 @@ const runAssetManager = (
 					return [ '2099-01-01 10:00-10:30', '2099-01-02 11:00-11:30' ];
 				}
 			}
+		}
+		namespace RRZE\\Appointment {
 			class Settings {
 				public static function get( $key ) {
 					if ( ${ settingsFail ? 'true' : 'false' } ) {
@@ -77,7 +79,7 @@ const runAssetManager = (
 				$GLOBALS['asset_result'] = compact( 'handle', 'position', 'configuration' );
 			}
 			require ${ JSON.stringify( assetManagerPath ) };
-			$manager = new \\RRZE\\Appointment\\AssetManager();
+			$manager = new \\RRZE\\Appointment\\Presentation\\AssetManager();
 			$manager->${ method }();
 			echo json_encode( $GLOBALS['asset_result'] );
 		}

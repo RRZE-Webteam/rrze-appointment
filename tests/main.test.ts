@@ -39,53 +39,63 @@ const getMainResult = (): MainResult => {
 				public function build(): void {}
 			}
 		}
-		namespace RRZE\\Appointment {
+		namespace RRZE\\Appointment\\Presentation {
 			class PublicPageRenderer {}
 			class AssetManager {
 				public function enqueueFrontendAssets(): void {}
 				public function enqueueEditorAssets(): void {}
 			}
+		}
+		namespace RRZE\\Appointment {
+			class FaudirPersonProvider { public function handleRequest(): void {} }
+			class Defaults { public function get( string $key ) { return null; } }
+			class Settings {
+				public static int $registered = 0;
+				public function register(): void { self::$registered++; }
+			}
+		}
+		namespace RRZE\\Appointment\\Mail {
+			class MailTemplatePost {
+				public static int $initialized = 0;
+				public static function register(): void {}
+				public static function ensureEditableDefaultTemplateExists(): void { self::$initialized++; }
+			}
+		}
+		namespace RRZE\\Appointment\\Booking {
+			class TokenManager {
+				public const PENDING_EXPIRY_HOOK = 'pending_expiry';
+				public static int $cleaned = 0;
+				public static function cleanupPendingState(): void { self::$cleaned++; }
+				public static function expirePending(): void {}
+			}
+		}
+		namespace RRZE\\Appointment\\Controller {
 			class BookingOpeningController {
-				public function __construct( PublicPageRenderer $renderer ) {}
+				public function __construct( \\RRZE\\Appointment\\Presentation\\PublicPageRenderer $renderer ) {}
 				public function handleSubscription(): void {}
 				public function handleClaim(): void {}
 				public function handleRegistrationStatus(): void {}
 			}
 			class BookingRequestController { public function handleRequest(): void {} }
 			class CancellationController {
-				public function __construct( PublicPageRenderer $renderer ) {}
+				public function __construct( \\RRZE\\Appointment\\Presentation\\PublicPageRenderer $renderer ) {}
 				public function handleCancellation(): void {}
 				public function handleWaitlistPreference(): void {}
 			}
 			class ConfirmationController {
-				public function __construct( PublicPageRenderer $renderer ) {}
+				public function __construct( \\RRZE\\Appointment\\Presentation\\PublicPageRenderer $renderer ) {}
 				public function handleConfirmation(): void {}
 			}
-			class FaudirPersonProvider { public function handleRequest(): void {} }
 			class SsoController {
 				public function handleBookerRequest(): void {}
 				public function handleLogin(): void {}
 			}
+		}
+		namespace RRZE\\Appointment\\Notification {
 			class WaitlistNotifier { public function handlePostUpdated(): void {} }
-			class Defaults { public function get( string $key ) { return null; } }
-			class Settings {
-				public static int $registered = 0;
-				public function register(): void { self::$registered++; }
-			}
 			class Reminder {
 				public static int $registered = 0;
 				public function register(): void { self::$registered++; }
-			}
-			class MailTemplatePost {
-				public static int $initialized = 0;
-				public static function register(): void {}
-				public static function ensureEditableDefaultTemplateExists(): void { self::$initialized++; }
-			}
-			class TokenManager {
-				public const PENDING_EXPIRY_HOOK = 'pending_expiry';
-				public static int $cleaned = 0;
-				public static function cleanupPendingState(): void { self::$cleaned++; }
-				public static function expirePending(): void {}
 			}
 			class BookingOpeningNotifier {
 				public const CRON_HOOK = 'opening_cron';
@@ -138,11 +148,11 @@ const getMainResult = (): MainResult => {
 				'actions' => $GLOBALS['actions'],
 				'routes' => $GLOBALS['routes'],
 				'maintenance' => [
-					'defaultTemplate' => \\RRZE\\Appointment\\MailTemplatePost::$initialized,
-					'pendingState' => \\RRZE\\Appointment\\TokenManager::$cleaned,
-					'openingState' => \\RRZE\\Appointment\\BookingOpeningNotifier::$cleaned,
+					'defaultTemplate' => \\RRZE\\Appointment\\Mail\\MailTemplatePost::$initialized,
+					'pendingState' => \\RRZE\\Appointment\\Booking\\TokenManager::$cleaned,
+					'openingState' => \\RRZE\\Appointment\\Notification\\BookingOpeningNotifier::$cleaned,
 					'settings' => \\RRZE\\Appointment\\Settings::$registered,
-					'reminder' => \\RRZE\\Appointment\\Reminder::$registered,
+					'reminder' => \\RRZE\\Appointment\\Notification\\Reminder::$registered,
 				],
 				'bookerAllowed' => $bookerAllowed,
 				'personsDenied' => $personsDenied,
@@ -201,7 +211,7 @@ describe( 'plugin bootstrap', () => {
 				route: '/booker',
 				methods: 'POST',
 				callback:
-					'RRZE\\Appointment\\SsoController::handleBookerRequest',
+					'RRZE\\Appointment\\Controller\\SsoController::handleBookerRequest',
 				permissionCallback:
 					'RRZE\\Appointment\\Main::allowBookerRequest',
 			},

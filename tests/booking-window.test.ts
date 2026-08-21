@@ -9,7 +9,7 @@ const minutesFromNow = ( minutes: number ) =>
 function getPhpResults(): boolean[] {
 	const bookingWindowPath = resolve(
 		process.cwd(),
-		'includes/BookingWindow.php'
+		'includes/Booking/BookingWindow.php'
 	);
 	const php = `
 		define( 'ABSPATH', __DIR__ );
@@ -19,12 +19,12 @@ function getPhpResults(): boolean[] {
 		$atOpening = $now->modify( '+14 days' );
 		$beforeOpening = $atOpening->modify( '+1 minute' );
 		echo json_encode( [
-			\\RRZE\\Appointment\\BookingWindow::isClosed( $atCutoff, $now, 15 ),
-			\\RRZE\\Appointment\\BookingWindow::isNotOpen( $atOpening, $now, 20160 ),
-			\\RRZE\\Appointment\\BookingWindow::isNotOpen( $beforeOpening, $now, 20160 ),
-			\\RRZE\\Appointment\\BookingWindow::isNotOpen( $beforeOpening, $now, 0 ),
-			\\RRZE\\Appointment\\BookingWindow::isClosed( $now, $now, -15 ),
-			\\RRZE\\Appointment\\BookingWindow::isNotOpen( $beforeOpening, $now, -15 ),
+			\\RRZE\\Appointment\\Booking\\BookingWindow::isClosed( $atCutoff, $now, 15 ),
+			\\RRZE\\Appointment\\Booking\\BookingWindow::isNotOpen( $atOpening, $now, 20160 ),
+			\\RRZE\\Appointment\\Booking\\BookingWindow::isNotOpen( $beforeOpening, $now, 20160 ),
+			\\RRZE\\Appointment\\Booking\\BookingWindow::isNotOpen( $beforeOpening, $now, 0 ),
+			\\RRZE\\Appointment\\Booking\\BookingWindow::isClosed( $now, $now, -15 ),
+			\\RRZE\\Appointment\\Booking\\BookingWindow::isNotOpen( $beforeOpening, $now, -15 ),
 		] );
 	`;
 

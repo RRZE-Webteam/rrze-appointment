@@ -1,6 +1,8 @@
 <?php
 
-namespace RRZE\Appointment;
+namespace RRZE\Appointment\Mail;
+
+use RRZE\Appointment\Booking\TokenManager;
 
 defined('ABSPATH') || exit;
 
@@ -147,7 +149,7 @@ final class MailTemplate
 
     private static function getLayout(): string
     {
-        $path = dirname(__DIR__) . '/' . self::LAYOUT_PATH;
+        $path = dirname(__DIR__, 2) . '/' . self::LAYOUT_PATH;
         if (is_readable($path)) {
             $layout = file_get_contents($path);
             if (is_string($layout) && self::hasRequiredLayoutMarkers($layout)) {

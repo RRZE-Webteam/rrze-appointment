@@ -1,6 +1,6 @@
 <?php
 
-namespace RRZE\Appointment;
+namespace RRZE\Appointment\Mail;
 
 use RRZE\Appointment\Common\CustomException;
 

@@ -12,13 +12,13 @@ type RequestControllerResult = {
 const getControllerResult = (): RequestControllerResult => {
 	const controllerPath = resolve(
 		process.cwd(),
-		'includes/BookingRequestController.php'
+		'includes/Controller/BookingRequestController.php'
 	);
 	const php = `
 		namespace RRZE\\Appointment\\Common {
 			class CustomException extends \\Exception {}
 		}
-		namespace RRZE\\Appointment {
+		namespace RRZE\\Appointment\\Booking {
 			class Bookings {
 				public const SLOTS_OPTION = 'rrze_appointment_booked_slots';
 			}
@@ -49,7 +49,7 @@ const getControllerResult = (): RequestControllerResult => {
 				'booker_waitlist' => '1',
 			];
 			require ${ JSON.stringify( controllerPath ) };
-			$controller = new \\RRZE\\Appointment\\BookingRequestController();
+			$controller = new \\RRZE\\Appointment\\Controller\\BookingRequestController();
 			$reflection = new ReflectionClass( $controller );
 			$getRequestData = $reflection->getMethod( 'getRequestData' );
 			$buildMeta = $reflection->getMethod( 'buildPendingMeta' );

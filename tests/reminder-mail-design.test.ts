@@ -5,7 +5,7 @@ const readProjectFile = ( path: string ) =>
 	readFileSync( resolve( process.cwd(), path ), 'utf8' );
 
 describe( 'reminder mail design', () => {
-	const reminder = readProjectFile( 'includes/Reminder.php' );
+	const reminder = readProjectFile( 'includes/Notification/Reminder.php' );
 	const settings = readProjectFile( 'includes/Settings.php' );
 
 	it( 'sends reminder HTML through the compiled Maizzle layout', () => {

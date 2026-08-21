@@ -31,13 +31,13 @@ type TokenManagerResult = {
 const getTokenManagerResult = (): TokenManagerResult => {
 	const tokenManagerPath = resolve(
 		process.cwd(),
-		'includes/TokenManager.php'
+		'includes/Booking/TokenManager.php'
 	);
 	const php = `
 		namespace RRZE\\Appointment\\Common {
 			class CustomException extends \\Exception {}
 		}
-		namespace RRZE\\Appointment {
+		namespace RRZE\\Appointment\\Booking {
 			class Bookings {
 				public const META_OPTION = 'rrze_appointment_booked_slots_meta';
 			}
@@ -116,21 +116,21 @@ const getTokenManagerResult = (): TokenManagerResult => {
 
 			require ${ JSON.stringify( tokenManagerPath ) };
 
-			\\RRZE\\Appointment\\TokenManager::cleanupPendingState();
+			\\RRZE\\Appointment\\Booking\\TokenManager::cleanupPendingState();
 			$cleanedPending = $GLOBALS['options']['rrze_appointment_pending_slots'];
 			$cleanedTokens = $GLOBALS['options']['rrze_appointment_cancel_tokens'];
 
-			$createdPendingToken = \\RRZE\\Appointment\\TokenManager::createPending(
+			$createdPendingToken = \\RRZE\\Appointment\\Booking\\TokenManager::createPending(
 				'2099-01-04 10:00-10:30',
 				[ 'title' => 'Created' ]
 			);
-			$pendingCancelToken = \\RRZE\\Appointment\\TokenManager::createPendingCancelToken(
+			$pendingCancelToken = \\RRZE\\Appointment\\Booking\\TokenManager::createPendingCancelToken(
 				$createdPendingToken
 			);
-			$pendingCancellation = \\RRZE\\Appointment\\TokenManager::validateCancelToken(
+			$pendingCancellation = \\RRZE\\Appointment\\Booking\\TokenManager::validateCancelToken(
 				$pendingCancelToken
 			);
-			$confirmedPending = \\RRZE\\Appointment\\TokenManager::confirmPending(
+			$confirmedPending = \\RRZE\\Appointment\\Booking\\TokenManager::confirmPending(
 				$createdPendingToken
 			);
 			$pendingRemoved = !isset(
@@ -140,40 +140,40 @@ const getTokenManagerResult = (): TokenManagerResult => {
 				$GLOBALS['options']['rrze_appointment_cancel_tokens'][ $pendingCancelToken ]
 			);
 
-			$legacyCancellation = \\RRZE\\Appointment\\TokenManager::validateCancelToken(
+			$legacyCancellation = \\RRZE\\Appointment\\Booking\\TokenManager::validateCancelToken(
 				'legacy-booked'
 			);
-			$malformedCancellation = \\RRZE\\Appointment\\TokenManager::validateCancelToken(
+			$malformedCancellation = \\RRZE\\Appointment\\Booking\\TokenManager::validateCancelToken(
 				'malformed'
 			);
-			$emptyCancellation = \\RRZE\\Appointment\\TokenManager::validateCancelToken( '' );
-			$cancelUrl = \\RRZE\\Appointment\\TokenManager::getCancelUrlForSlot(
+			$emptyCancellation = \\RRZE\\Appointment\\Booking\\TokenManager::validateCancelToken( '' );
+			$cancelUrl = \\RRZE\\Appointment\\Booking\\TokenManager::getCancelUrlForSlot(
 				'2099-01-03 10:00-10:30'
 			);
-			$waitlistUrl = \\RRZE\\Appointment\\TokenManager::getWaitlistOptOutUrlForSlot(
+			$waitlistUrl = \\RRZE\\Appointment\\Booking\\TokenManager::getWaitlistOptOutUrlForSlot(
 				'2099-01-03 10:00-10:30'
 			);
 			$waitlistToken = $GLOBALS['options']['rrze_appointment_booked_slots_meta']
 				['2099-01-03 10:00-10:30']['waitlist_optout_token'];
-			$waitlistSlot = \\RRZE\\Appointment\\TokenManager::validateWaitlistOptOutToken(
+			$waitlistSlot = \\RRZE\\Appointment\\Booking\\TokenManager::validateWaitlistOptOutToken(
 				$waitlistToken
 			);
-			$unknownWaitlistSlot = \\RRZE\\Appointment\\TokenManager::validateWaitlistOptOutToken(
+			$unknownWaitlistSlot = \\RRZE\\Appointment\\Booking\\TokenManager::validateWaitlistOptOutToken(
 				'unknown'
 			);
 			$actionUrls = [
-				\\RRZE\\Appointment\\TokenManager::confirmUrl( 'confirm-token' ),
-				\\RRZE\\Appointment\\TokenManager::cancelUrl( 'cancel-token' ),
-				\\RRZE\\Appointment\\TokenManager::waitlistOptOutUrl( 'waitlist-token' ),
+				\\RRZE\\Appointment\\Booking\\TokenManager::confirmUrl( 'confirm-token' ),
+				\\RRZE\\Appointment\\Booking\\TokenManager::cancelUrl( 'cancel-token' ),
+				\\RRZE\\Appointment\\Booking\\TokenManager::waitlistOptOutUrl( 'waitlist-token' ),
 			];
-			$imprintUrl = \\RRZE\\Appointment\\TokenManager::imprintUrl();
+			$imprintUrl = \\RRZE\\Appointment\\Booking\\TokenManager::imprintUrl();
 
 			$GLOBALS['options']['rrze_appointment_pending_slots'] = 'corrupt';
-			$corruptOptionsIgnored = \\RRZE\\Appointment\\TokenManager::getPendingSlots();
+			$corruptOptionsIgnored = \\RRZE\\Appointment\\Booking\\TokenManager::getPendingSlots();
 			$GLOBALS['throw_on_get'] = true;
 			$wrappedFailure = [];
 			try {
-				\\RRZE\\Appointment\\TokenManager::getPendingSlots();
+				\\RRZE\\Appointment\\Booking\\TokenManager::getPendingSlots();
 			} catch ( \\Throwable $exception ) {
 				$wrappedFailure = [
 					'className' => get_class( $exception ),

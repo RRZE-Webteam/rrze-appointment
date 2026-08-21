@@ -13,9 +13,12 @@ type MailTemplateResult = {
 };
 
 const getMailTemplateResult = (): MailTemplateResult => {
-	const templatePath = resolve( process.cwd(), 'includes/MailTemplate.php' );
+	const templatePath = resolve(
+		process.cwd(),
+		'includes/Mail/MailTemplate.php'
+	);
 	const php = `
-		namespace RRZE\\Appointment {
+		namespace RRZE\\Appointment\\Booking {
 			class TokenManager {
 				public static function imprintUrl(): string {
 					return 'https://example.test/legal';
@@ -42,11 +45,13 @@ const getMailTemplateResult = (): MailTemplateResult => {
 			function __( $value, $domain ) { return $value; }
 			require ${ JSON.stringify( templatePath ) };
 
-			$class = \\RRZE\\Appointment\\MailTemplate::class;
+			$class = \\RRZE\\Appointment\\Mail\\MailTemplate::class;
 			$reflection = new ReflectionClass( $class );
 			$validateLayout = $reflection->getMethod( 'hasRequiredLayoutMarkers' );
 			$compiledLayout = file_get_contents(
-				dirname( ${ JSON.stringify( templatePath ) } ) . '/../build/email/layout.html'
+				dirname( ${ JSON.stringify(
+					templatePath
+				) } ) . '/../../build/email/layout.html'
 			);
 			$incompleteLayout = str_replace( '___RRZE_EMAIL_LOGO___', '', $compiledLayout );
 			echo json_encode( [

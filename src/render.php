@@ -2,6 +2,9 @@
 
 namespace RRZE\Appointment;
 
+use RRZE\Appointment\Booking\AppointmentBlock;
+use RRZE\Appointment\Booking\SlotGenerator;
+
 defined('ABSPATH') || exit;
 
 $attributes = is_array($attributes ?? null) ? $attributes : [];

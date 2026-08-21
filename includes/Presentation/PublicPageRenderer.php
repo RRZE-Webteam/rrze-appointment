@@ -1,6 +1,9 @@
 <?php
 
-namespace RRZE\Appointment;
+namespace RRZE\Appointment\Presentation;
+
+use RRZE\Appointment\Booking\TokenManager;
+use function RRZE\Appointment\plugin;
 
 defined('ABSPATH') || exit;
 
