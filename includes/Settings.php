@@ -4,13 +4,38 @@ namespace RRZE\Appointment;
 
 defined('ABSPATH') || exit;
 
-class Settings
+/**
+ * Manages appointment settings, admin screens, and template administration.
+ */
+final class Settings
 {
-    const OPTION_NAME = 'rrze_appointment_settings';
-    const PAGE_SLUG   = 'rrze-appointment-settings';
+    public const OPTION_NAME = 'rrze_appointment_settings';
+    public const PAGE_SLUG = 'rrze-appointment-settings';
 
     private const ADMIN_MENU_ICON_PATH = 'assets/svg/approval_delegation_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg';
+    private const ADMIN_CSS_PATH = 'assets/css/rrze-appointment-admin.css';
+    private const BOOKINGS_PAGE_SLUG = 'rrze-appointment-bookings';
+    private const SETTINGS_GROUP = 'rrze_appointment_settings_group';
+    private const GENERAL_SECTION = 'rrze_appointment_general';
+    private const MAX_REMINDER_DAYS = 7;
+    private const MAX_RETENTION_DAYS = 3650;
+    private const TEMPLATE_TYPES = [
+        'booking_pending',
+        'booking_pending_questions',
+        'booking_opening_notification',
+        'booking_booker',
+        'booking_host',
+        'reminder_admin',
+        'reminder_booker',
+        'cancellation',
+        'waitlist_earlier_slot',
+    ];
 
+    /**
+     * Returns placeholders supported by appointment email templates.
+     *
+     * @return array<string, string>
+     */
     public static function getPlaceholders(): array
     {
         return [
@@ -33,6 +58,11 @@ class Settings
         ];
     }
 
+    /**
+     * Returns defaults for persisted plugin settings.
+     *
+     * @return array{reminder_days: int, recurrence_limit: int, retention_days: int}
+     */
     public static function getDefaults(): array
     {
         return [
@@ -42,21 +72,42 @@ class Settings
         ];
     }
 
+    /**
+     * Returns a configured setting with fallback to its default.
+     *
+     * @return mixed|null
+     */
     public static function get(string $key): mixed
     {
-        $options  = get_option(self::OPTION_NAME, []);
+        $storedOptions = get_option(self::OPTION_NAME, []);
+        $options = is_array($storedOptions) ? $storedOptions : [];
         $defaults = self::getDefaults();
         return (isset($options[$key]) && $options[$key] !== '') ? $options[$key] : ($defaults[$key] ?? null);
     }
 
+    /**
+     * Replaces placeholders in a plain-text or trusted HTML template.
+     *
+     * @param array<string, mixed> $vars Placeholder values.
+     */
     public static function renderTemplate(string $template, array $vars): string
     {
         // Existing custom templates may still contain the removed placeholder.
         $vars['[message]'] = '';
 
-        return str_replace(array_keys($vars), array_values($vars), $template);
+        $replacements = [];
+        foreach ($vars as $placeholder => $value) {
+            $replacements[(string) $placeholder] = is_scalar($value) ? (string) $value : '';
+        }
+
+        return strtr($template, $replacements);
     }
 
+    /**
+     * Sends a multipart email and always removes the temporary PHPMailer hook.
+     *
+     * @param array<int, string> $attachments Absolute attachment paths.
+     */
     public static function sendMail(
         string $to,
         string $subject,
@@ -67,22 +118,33 @@ class Settings
     ): bool {
         $GLOBALS['rrze_appointment_html_body'] = MailTemplate::wrap($html, $subject, $status);
         add_action('phpmailer_init', [self::class, 'addHtmlPart']);
-        $sent = wp_mail($to, $subject, $plain, [], $attachments);
-        remove_action('phpmailer_init', [self::class, 'addHtmlPart']);
-        unset($GLOBALS['rrze_appointment_html_body']);
-        return $sent;
+        try {
+            return wp_mail($to, $subject, $plain, [], $attachments);
+        } finally {
+            remove_action('phpmailer_init', [self::class, 'addHtmlPart']);
+            unset($GLOBALS['rrze_appointment_html_body']);
+        }
     }
 
+    /**
+     * Adds the prepared HTML alternative to WordPress' PHPMailer instance.
+     */
     public static function addHtmlPart(\PHPMailer\PHPMailer\PHPMailer $phpmailer): void
     {
         $html = $GLOBALS['rrze_appointment_html_body'] ?? '';
-        if ($html === '') return;
+        if (!is_string($html) || $html === '') {
+            return;
+        }
+
         $phpmailer->CharSet  = 'UTF-8';
         $phpmailer->AltBody  = $phpmailer->Body;
         $phpmailer->Body     = $html;
         $phpmailer->isHTML(true);
     }
 
+    /**
+     * Registers the settings controller's WordPress hooks.
+     */
     public function register(): void
     {
         add_action('admin_menu', [$this, 'addMenuPage']);
@@ -94,6 +156,9 @@ class Settings
         add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets']);
     }
 
+    /**
+     * Adds the settings and bookings administration pages.
+     */
     public function addMenuPage(): void
     {
         add_options_page(
@@ -108,7 +173,7 @@ class Settings
             __('Appointments', 'rrze-appointment'),
             __('Appointments', 'rrze-appointment'),
             'manage_options',
-            'rrze-appointment-bookings',
+            self::BOOKINGS_PAGE_SLUG,
             [$this, 'renderBookingsPage'],
             self::getAdminMenuIcon(),
             30
@@ -135,62 +200,158 @@ class Settings
         return 'data:image/svg+xml;base64,' . base64_encode($svg);
     }
 
+    /**
+     * Registers plugin settings and their fields with WordPress.
+     */
     public function registerSettings(): void
     {
         register_setting(
-            'rrze_appointment_settings_group',
+            self::SETTINGS_GROUP,
             self::OPTION_NAME,
             ['sanitize_callback' => [$this, 'sanitize'], 'default' => self::getDefaults()]
         );
-        add_settings_section('rrze_appointment_general', '', '__return_false', self::PAGE_SLUG);
-        add_settings_field('reminder_days', __('Reminder Email', 'rrze-appointment'), [$this, 'renderReminderDaysField'], self::PAGE_SLUG, 'rrze_appointment_general');
-        add_settings_field('retention_days', __('Booking data retention', 'rrze-appointment'), [$this, 'renderRetentionDaysField'], self::PAGE_SLUG, 'rrze_appointment_general');
+        add_settings_section(self::GENERAL_SECTION, '', '__return_false', self::PAGE_SLUG);
+        add_settings_field(
+            'reminder_days',
+            __('Reminder Email', 'rrze-appointment'),
+            [$this, 'renderReminderDaysField'],
+            self::PAGE_SLUG,
+            self::GENERAL_SECTION
+        );
+        add_settings_field(
+            'retention_days',
+            __('Booking data retention', 'rrze-appointment'),
+            [$this, 'renderRetentionDaysField'],
+            self::PAGE_SLUG,
+            self::GENERAL_SECTION
+        );
     }
 
+    /**
+     * Sanitizes persisted settings while retaining the legacy recurrence cap.
+     *
+     * @param array<string, mixed> $input Submitted settings.
+     * @return array{reminder_days: int, recurrence_limit: int, retention_days: int}
+     */
     public function sanitize(array $input): array
     {
-        $currentOptions = get_option(self::OPTION_NAME, []);
+        $storedOptions = get_option(self::OPTION_NAME, []);
+        $currentOptions = is_array($storedOptions) ? $storedOptions : [];
         $legacyRecurrenceLimit = max(1, (int) ($currentOptions['recurrence_limit'] ?? 52));
 
         return [
-            'reminder_days'    => (int) ($input['reminder_days'] ?? 0),
+            'reminder_days' => min(
+                self::MAX_REMINDER_DAYS,
+                max(0, (int) ($input['reminder_days'] ?? 0))
+            ),
             // Retained as an internal fallback for existing series that do
             // not yet have an explicit end date or occurrence count.
             'recurrence_limit' => $legacyRecurrenceLimit,
-            'retention_days'   => min(3650, max(0, (int) ($input['retention_days'] ?? 30))),
+            'retention_days' => min(
+                self::MAX_RETENTION_DAYS,
+                max(0, (int) ($input['retention_days'] ?? 30))
+            ),
         ];
     }
 
     /**
-     * Verarbeitet POST-Requests für Vorlagen (Speichern / Löschen).
+     * Reads and sanitizes a scalar form value.
+     */
+    private static function getPostText(string $key, bool $sanitizeAsKey = false): string
+    {
+        return self::getRequestText($_POST, $key, $sanitizeAsKey);
+    }
+
+    /**
+     * Reads a scalar form value as an integer.
+     */
+    private static function getPostInt(string $key): int
+    {
+        $value = wp_unslash($_POST[$key] ?? 0);
+        return is_scalar($value) ? (int) $value : 0;
+    }
+
+    /**
+     * Reads and sanitizes a scalar query-string value.
+     */
+    private static function getQueryText(string $key, bool $sanitizeAsKey = false): string
+    {
+        return self::getRequestText($_GET, $key, $sanitizeAsKey);
+    }
+
+    /**
+     * Reads a scalar query-string value as an integer.
+     */
+    private static function getQueryInt(string $key): int
+    {
+        $value = wp_unslash($_GET[$key] ?? 0);
+        return is_scalar($value) ? (int) $value : 0;
+    }
+
+    /**
+     * Determines whether a scalar query flag has been supplied.
+     */
+    private static function hasQueryFlag(string $key): bool
+    {
+        return isset($_GET[$key]) && is_scalar($_GET[$key]);
+    }
+
+    /**
+     * Normalizes a scalar value from a request collection.
+     *
+     * @param array<string, mixed> $source Request collection.
+     */
+    private static function getRequestText(array $source, string $key, bool $sanitizeAsKey): string
+    {
+        $value = wp_unslash($source[$key] ?? '');
+        if (!is_string($value)) {
+            return '';
+        }
+
+        return $sanitizeAsKey ? sanitize_key($value) : sanitize_text_field($value);
+    }
+
+    /**
+     * Processes template save and delete requests.
      */
     public function handleTemplatePost(): void
     {
-        if (!isset($_POST['rrze_appt_tpl_action'])) return;
-        if (!current_user_can('manage_options')) return;
+        $action = self::getPostText('rrze_appt_tpl_action', true);
+        if ($action === '' || !current_user_can('manage_options')) {
+            return;
+        }
+
         check_admin_referer('rrze_appt_tpl_save', 'rrze_appt_tpl_nonce');
 
-        $action = sanitize_key(wp_unslash($_POST['rrze_appt_tpl_action']));
-
         if ($action === 'delete') {
-            $id    = (int) ($_POST['tpl_id'] ?? 0);
+            $id = self::getPostInt('tpl_id');
             $inUse = $id > 0 ? MailTemplatePost::isInUse($id) : [];
             if (!empty($inUse)) {
                 $titles = implode(', ', array_column($inUse, 'title'));
-                wp_redirect(add_query_arg(['page' => self::PAGE_SLUG, 'tab' => 'templates', 'inuse' => urlencode($titles)], admin_url('options-general.php')));
+                wp_redirect(add_query_arg([
+                    'page' => self::PAGE_SLUG,
+                    'tab' => 'templates',
+                    'inuse' => $titles,
+                ], admin_url('options-general.php')));
                 exit;
             }
-            if ($id > 0) MailTemplatePost::delete($id);
-            wp_redirect(add_query_arg(['page' => self::PAGE_SLUG, 'tab' => 'templates', 'deleted' => '1'], admin_url('options-general.php')));
+            if ($id > 0) {
+                MailTemplatePost::delete($id);
+            }
+            wp_redirect(add_query_arg([
+                'page' => self::PAGE_SLUG,
+                'tab' => 'templates',
+                'deleted' => '1',
+            ], admin_url('options-general.php')));
             exit;
         }
 
         if (in_array($action, ['save', 'new'], true)) {
             // Empty content fields intentionally inherit the corresponding
             // default. Only the title is required to publish a template.
-            $title    = sanitize_text_field(wp_unslash($_POST['title'] ?? ''));
-            $isDraft  = $title === '';
-            $requestedId = (int) ($_POST['id'] ?? 0);
+            $title = self::getPostText('title');
+            $isDraft = $title === '';
+            $requestedId = self::getPostInt('id');
             $result = MailTemplatePost::save($_POST, $isDraft, MailTemplatePost::canEditHtml());
             $id     = is_wp_error($result) ? $requestedId : $result;
             $params = ['page' => self::PAGE_SLUG, 'tab' => 'templates'];
@@ -207,15 +368,23 @@ class Settings
         }
     }
 
+    /**
+     * Sends a complete template preview set to the current administrator.
+     */
     public function handleTestMail(): void
     {
-        if (($_POST['rrze_appt_action'] ?? '') !== 'test_mail') return;
-        if (!current_user_can('manage_options')) return;
+        if (
+            self::getPostText('rrze_appt_action', true) !== 'test_mail'
+            || !current_user_can('manage_options')
+        ) {
+            return;
+        }
+
         check_admin_referer('rrze_appt_test_mail', 'rrze_appt_test_nonce');
 
-        $tplId = (int) ($_POST['tpl_id'] ?? 0);
-        $user  = wp_get_current_user();
-        $to    = $user->user_email;
+        $templateId = self::getPostInt('tpl_id');
+        $user = wp_get_current_user();
+        $to = sanitize_email((string) $user->user_email);
 
         $vars = [
             '[title]'             => 'Test lecture on sample topics',
@@ -236,8 +405,7 @@ class Settings
             '[current_time]'      => '12:00 – 12:30',
         ];
 
-        $types = ['booking_pending', 'booking_pending_questions', 'booking_opening_notification', 'booking_booker', 'booking_host', 'reminder_admin', 'reminder_booker', 'cancellation', 'waitlist_earlier_slot'];
-        $sent  = 0;
+        $sent = 0;
         $plainVars = array_merge($vars, [
             '[questions]' => "\n\n" . __('Additional information:', 'rrze-appointment')
                 . "\n" . __('Preferred format', 'rrze-appointment') . ': ' . __('Video call', 'rrze-appointment'),
@@ -251,8 +419,10 @@ class Settings
                 ]),
         ]);
 
-        foreach ($types as $type) {
-            $tpl = $tplId > 0 ? (MailTemplatePost::getTemplateForType($tplId, $type) ?? []) : [];
+        foreach (self::TEMPLATE_TYPES as $type) {
+            $tpl = $templateId > 0
+                ? (MailTemplatePost::getTemplateForType($templateId, $type) ?? [])
+                : [];
             $def = MailTemplatePost::getDefault($type);
 
             $subject = Settings::renderTemplate(!empty($tpl['subject']) ? $tpl['subject'] : $def['subject'], $vars);
@@ -266,7 +436,9 @@ class Settings
                 $html,
                 [],
                 MailTemplate::statusForType($type)
-            )) $sent++;
+            )) {
+                $sent++;
+            }
         }
 
         $redirect = add_query_arg([
@@ -278,19 +450,35 @@ class Settings
         exit;
     }
 
+    /**
+     * Processes an administrator's booking cancellation request.
+     */
     public function handleCancelPost(): void
     {
-        if (($_POST['rrze_appt_action'] ?? '') !== 'cancel') return;
-        if (!current_user_can('manage_options')) return;
+        if (
+            self::getPostText('rrze_appt_action', true) !== 'cancel'
+            || !current_user_can('manage_options')
+        ) {
+            return;
+        }
+
         check_admin_referer('rrze_appt_cancel', 'rrze_appt_cancel_nonce');
 
-        $slot = sanitize_text_field($_POST['cancel_slot'] ?? '');
-        if ($slot) Bookings::cancel($slot);
+        $slot = self::getPostText('cancel_slot');
+        if ($slot !== '') {
+            Bookings::cancel($slot);
+        }
 
-        wp_redirect(add_query_arg(['page' => 'rrze-appointment-bookings', 'cancelled' => '1'], admin_url('admin.php')));
+        wp_redirect(add_query_arg([
+            'page' => self::BOOKINGS_PAGE_SLUG,
+            'cancelled' => '1',
+        ], admin_url('admin.php')));
         exit;
     }
 
+    /**
+     * Renders the bookings administration page.
+     */
     public function renderBookingsPage(): void
     {
         if (!current_user_can('manage_options')) return;
@@ -303,11 +491,14 @@ class Settings
         <?php
     }
 
+    /**
+     * Renders the reminder-days settings field.
+     */
     public function renderReminderDaysField(): void
     {
         $value   = (int) self::get('reminder_days');
         $options = [0 => __('Disabled', 'rrze-appointment')];
-        for ($i = 1; $i <= 7; $i++) {
+        for ($i = 1; $i <= self::MAX_REMINDER_DAYS; $i++) {
             $options[$i] = $i;
         }
         echo '<select name="' . esc_attr(self::OPTION_NAME) . '[reminder_days]">';
@@ -317,23 +508,32 @@ class Settings
         echo '</select> ' . esc_html__('days before the appointment.', 'rrze-appointment');
     }
 
+    /**
+     * Renders the booking-retention settings field.
+     */
     public function renderRetentionDaysField(): void
     {
         $value = (int) self::get('retention_days');
         printf(
-            '<input type="number" name="%s[retention_days]" value="%d" min="0" max="3650" step="1" class="small-text"> %s',
+            '<input type="number" name="%s[retention_days]" value="%d" min="0" max="%d" step="1" class="small-text"> %s',
             esc_attr(self::OPTION_NAME),
             $value,
+            self::MAX_RETENTION_DAYS,
             esc_html__('Completed bookings are permanently deleted this many days after the appointment ends (default: 30).', 'rrze-appointment')
         );
     }
 
 
+    /**
+     * Renders the tabbed plugin settings page.
+     */
     public function renderPage(): void
     {
-        if (!current_user_can('manage_options')) return;
+        if (!current_user_can('manage_options')) {
+            return;
+        }
 
-        $tab = sanitize_key($_GET['tab'] ?? 'general');
+        $tab = self::getQueryText('tab', true) ?: 'general';
         $tabs = [
             'general'   => __('General', 'rrze-appointment'),
             'templates' => __('Mail Templates', 'rrze-appointment'),
@@ -368,7 +568,7 @@ class Settings
         ?>
         <form method="post" action="options.php">
             <?php
-            settings_fields('rrze_appointment_settings_group');
+            settings_fields(self::SETTINGS_GROUP);
             do_settings_sections(self::PAGE_SLUG);
             submit_button();
             ?>
@@ -378,20 +578,50 @@ class Settings
 
     private function renderTabTemplates(): void
     {
-        $editId = (int) ($_GET['edit'] ?? 0);
+        $editId = self::getQueryInt('edit');
 
         // Notices
-        if (!empty($_GET['saved']))   echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Template saved.', 'rrze-appointment') . '</p></div>';
-        if (!empty($_GET['draft']))    echo '<div class="notice notice-warning is-dismissible"><p>' . esc_html__('Template saved as a draft. Add a template name to make it available in the editor.', 'rrze-appointment') . '</p></div>';
-        if (!empty($_GET['save_error'])) echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__('The template could not be saved. Please try again.', 'rrze-appointment') . '</p></div>';
-        if (!empty($_GET['deleted']))  echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Template deleted.', 'rrze-appointment') . '</p></div>';
-        if (!empty($_GET['inuse']))    echo '<div class="notice notice-error is-dismissible"><p>' . sprintf(esc_html__('The template cannot be deleted because it is still in use: %s', 'rrze-appointment'), esc_html(urldecode($_GET['inuse']))) . '</p></div>';
-        if (isset($_GET['test_sent'])) {
-            $sent = (int) $_GET['test_sent'];
+        if (self::hasQueryFlag('saved')) {
+            echo '<div class="notice notice-success is-dismissible"><p>'
+                . esc_html__('Template saved.', 'rrze-appointment')
+                . '</p></div>';
+        }
+        if (self::hasQueryFlag('draft')) {
+            echo '<div class="notice notice-warning is-dismissible"><p>'
+                . esc_html__(
+                    'Template saved as a draft. Add a template name to make it available in the editor.',
+                    'rrze-appointment'
+                )
+                . '</p></div>';
+        }
+        if (self::hasQueryFlag('save_error')) {
+            echo '<div class="notice notice-error is-dismissible"><p>'
+                . esc_html__('The template could not be saved. Please try again.', 'rrze-appointment')
+                . '</p></div>';
+        }
+        if (self::hasQueryFlag('deleted')) {
+            echo '<div class="notice notice-success is-dismissible"><p>'
+                . esc_html__('Template deleted.', 'rrze-appointment')
+                . '</p></div>';
+        }
+        $inUse = self::getQueryText('inuse');
+        if ($inUse !== '') {
+            echo '<div class="notice notice-error is-dismissible"><p>'
+                . sprintf(
+                    esc_html__(
+                        'The template cannot be deleted because it is still in use: %s',
+                        'rrze-appointment'
+                    ),
+                    esc_html($inUse)
+                )
+                . '</p></div>';
+        }
+        if (self::hasQueryFlag('test_sent')) {
+            $sent = self::getQueryInt('test_sent');
             echo '<div class="notice notice-success is-dismissible"><p>' . sprintf(esc_html__('%d test email(s) sent to %s.', 'rrze-appointment'), $sent, esc_html(wp_get_current_user()->user_email)) . '</p></div>';
         }
 
-        if ($editId > 0 || !empty($_GET['new'])) {
+        if ($editId > 0 || self::hasQueryFlag('new')) {
             $this->renderTemplateForm($editId);
         } else {
             $this->renderTemplateList();
@@ -469,7 +699,7 @@ class Settings
 
         if ($id > 0) {
             $post = get_post($id);
-            if ($post) {
+            if ($post instanceof \WP_Post && $post->post_type === MailTemplatePost::POST_TYPE) {
                 $title = $post->post_title;
                 foreach (array_keys($sections) as $key) {
                     $sections[$key] = [
@@ -692,21 +922,25 @@ class Settings
 
     private function renderTabBookings(): void
     {
-        if (!empty($_GET['cancelled'])) {
+        if (self::hasQueryFlag('cancelled')) {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Booking cancelled and cancellation emails sent.', 'rrze-appointment') . '</p></div>';
         }
 
         // Filter
-        $filterDate     = sanitize_text_field($_GET['filter_date'] ?? '');
-        $filterDateTo   = sanitize_text_field($_GET['filter_date_to'] ?? '');
-        $filterPerson   = (int) ($_GET['filter_person'] ?? 0);
-        $filterArgs     = array_filter(['date_from' => $filterDate, 'date_to' => $filterDateTo, 'person_id' => $filterPerson ?: null]);
-        $bookings       = Bookings::getAll($filterArgs);
-        $persons        = Bookings::getPersonsFromBookings();
-        $baseUrl        = add_query_arg(['page' => 'rrze-appointment-bookings'], admin_url('admin.php'));
+        $filterDate = self::getQueryText('filter_date');
+        $filterDateTo = self::getQueryText('filter_date_to');
+        $filterPerson = self::getQueryInt('filter_person');
+        $filterArgs = array_filter([
+            'date_from' => $filterDate,
+            'date_to' => $filterDateTo,
+            'person_id' => $filterPerson ?: null,
+        ]);
+        $bookings = Bookings::getAll($filterArgs);
+        $persons = Bookings::getPersonsFromBookings();
+        $baseUrl = add_query_arg(['page' => self::BOOKINGS_PAGE_SLUG], admin_url('admin.php'));
         ?>
         <form method="get" action="" style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-            <input type="hidden" name="page" value="rrze-appointment-bookings">
+            <input type="hidden" name="page" value="<?php echo esc_attr(self::BOOKINGS_PAGE_SLUG); ?>">
             <label>
                 <?php esc_html_e('From', 'rrze-appointment'); ?>
                 <input type="date" name="filter_date" value="<?php echo esc_attr($filterDate); ?>">
@@ -791,10 +1025,15 @@ class Settings
         <?php endif;
     }
 
+    /**
+     * Renders inline interactions used by the plugin's admin pages.
+     */
     public function renderAdminJs(): void
     {
         $screen = get_current_screen();
-        if (!$screen || !in_array($screen->id, ['settings_page_' . self::PAGE_SLUG, 'toplevel_page_rrze-appointment-bookings'], true)) return;
+        if (!$screen || !in_array($screen->id, self::getAdminPageHooks(), true)) {
+            return;
+        }
         ?>
         <script>
         (function() {
@@ -980,23 +1219,31 @@ class Settings
      */
     public function enqueueAdminAssets(string $hook): void
     {
-        $adminHooks = [
-            'settings_page_' . self::PAGE_SLUG,
-            'toplevel_page_rrze-appointment-bookings',
-        ];
-
-        if (!in_array($hook, $adminHooks, true)) {
+        if (!in_array($hook, self::getAdminPageHooks(), true)) {
             return;
         }
 
-        $admin_css = plugin()->getPath() . 'assets/css/rrze-appointment-admin.css';
-        if (is_readable($admin_css)) {
+        $adminCss = plugin()->getPath() . self::ADMIN_CSS_PATH;
+        if (is_readable($adminCss)) {
             wp_enqueue_style(
                 'rrze-appointment-admin-css',
-                plugin()->getUrl() . 'assets/css/rrze-appointment-admin.css',
+                plugin()->getUrl() . self::ADMIN_CSS_PATH,
                 [],
-                (string) filemtime($admin_css)
+                (string) filemtime($adminCss)
             );
         }
+    }
+
+    /**
+     * Returns WordPress screen hooks belonging to this settings controller.
+     *
+     * @return array<int, string>
+     */
+    private static function getAdminPageHooks(): array
+    {
+        return [
+            'settings_page_' . self::PAGE_SLUG,
+            'toplevel_page_' . self::BOOKINGS_PAGE_SLUG,
+        ];
     }
 }
