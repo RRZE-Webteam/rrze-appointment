@@ -16,13 +16,6 @@
   },
   "include": [
     "./src/**/*",
-    "types/declarations.d.ts",
-    "types/block-editor.d.ts",
-    "types/server-side-render.d.ts",
-    "types/wordpress-blocks-compat.d.ts",
-    "tests/**/*.spec.ts",
-    "playwright.config.ts",
-    "global-setup.ts",
-    "types/nodeJs.d.ts"
+    "./types/**/*.d.ts"
   ]
 }

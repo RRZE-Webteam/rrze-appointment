@@ -14,7 +14,7 @@ final class PublicPageRenderer
 {
     private const CONFIRMATION_TEMPLATE = 'confirmation-page.php';
     private const ERROR_TEMPLATE = 'error-page.php';
-    private const ILLUSTRATION_PATH = 'src/illustrations';
+    private const ILLUSTRATION_PATH = 'assets/images';
     private const MODE_CONFIRMATION = 'confirmation';
     private const MODE_CANCELLATION_SUCCESS = 'cancellation_success';
     private const MODE_CANCELLATION_CONFIRMATION = 'cancellation_confirmation';

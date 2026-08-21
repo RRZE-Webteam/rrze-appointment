@@ -1,6 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
-import { isBookingClosed, isBookingNotOpen } from '../src/booking-window';
+import {
+	isBookingClosed,
+	isBookingNotOpen,
+} from '../src/scheduling/booking-window';
 
 const now = new Date( '2026-08-20T12:00:00Z' );
 const minutesFromNow = ( minutes: number ) =>

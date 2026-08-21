@@ -43,9 +43,11 @@ const normalizeQuestions = ( questions: Question[] ) => {
 
 describe( 'additional question data-use requirements', () => {
 	const questionEditor = readProjectFile(
-		'src/components/questions-manager-dialog.tsx'
+		'src/editor/questions/questions-manager-dialog.tsx'
 	);
-	const prePublishCheck = readProjectFile( 'src/pre-publish.js' );
+	const prePublishCheck = readProjectFile(
+		'src/editor/publish-validation.ts'
+	);
 
 	it( 'requires an explanation before the editor saves a question', () => {
 		expect( questionEditor ).toContain(

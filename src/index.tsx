@@ -1,12 +1,12 @@
 import { registerBlockType } from '@wordpress/blocks';
 import { Path, SVG } from '@wordpress/primitives';
 
-import Edit from './edit';
+import Edit from './editor/edit';
 import metadata from './block.json';
-import './editor.scss';
-import './style.scss';
+import './styles/editor.scss';
+import './styles/style.scss';
 
-import './pre-publish';
+import './editor/publish-validation';
 
 const appointmentIcon = (
 	<SVG

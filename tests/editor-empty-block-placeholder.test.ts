@@ -5,15 +5,18 @@ const readProjectFile = ( path: string ) =>
 	readFileSync( resolve( process.cwd(), path ), 'utf8' );
 
 describe( 'empty appointment block placeholder', () => {
-	const editor = readProjectFile( 'src/edit.tsx' );
-	const editorStyles = readProjectFile( 'src/editor.scss' );
-	const frontendStyles = readProjectFile( 'src/style.scss' );
+	const editor = readProjectFile( 'src/editor/edit.tsx' );
+	const placeholder = readProjectFile(
+		'src/editor/empty-block-placeholder.tsx'
+	);
+	const editorStyles = readProjectFile( 'src/styles/editor.scss' );
+	const frontendStyles = readProjectFile( 'src/styles/style.scss' );
 
 	it( 'shows the setup UI until appointment times exist', () => {
-		expect( editor ).toContain( 'function EmptyBlockPlaceholder' );
-		expect( editor ).toContain( 'Placeholder,' );
-		expect( editor ).toContain( '<Placeholder' );
-		expect( editor ).toContain( 'isColumnLayout' );
+		expect( placeholder ).toContain( 'function EmptyBlockPlaceholder' );
+		expect( placeholder ).toContain( 'Placeholder,' );
+		expect( placeholder ).toContain( '<Placeholder' );
+		expect( placeholder ).toContain( 'isColumnLayout' );
 		expect( editor ).toContain( 'availabilityEntries.length === 0' );
 		expect( editor ).toContain( '<EmptyBlockPlaceholder' );
 		expect( editor ).toContain( 'handleAddAvailability()' );
@@ -28,10 +31,10 @@ describe( 'empty appointment block placeholder', () => {
 	} );
 
 	it( 'collects the initial title and short description', () => {
-		expect( editor ).toContain(
+		expect( placeholder ).toContain(
 			"label={ __( 'Appointment title', 'rrze-appointment' ) }"
 		);
-		expect( editor ).toContain(
+		expect( placeholder ).toContain(
 			"label={ __( 'Short description', 'rrze-appointment' ) }"
 		);
 		expect( editor ).toContain( 'onTitleChange={ ( value ) =>' );
@@ -39,11 +42,11 @@ describe( 'empty appointment block placeholder', () => {
 	} );
 
 	it( 'uses the decorative illustration only in the responsive editor UI', () => {
-		expect( editor ).toContain(
-			"import emptyBlockIllustration from './illustrations/dream-3.png'"
+		expect( placeholder ).toContain(
+			"import emptyBlockIllustration from '../../assets/images/dream-3.png'"
 		);
-		expect( editor ).toContain( 'alt=""' );
-		expect( editor ).toContain(
+		expect( placeholder ).toContain( 'alt=""' );
+		expect( placeholder ).toContain(
 			'<span className="rrze-appointment-block__placeholder-media">'
 		);
 		expect( editorStyles ).toContain( '&__placeholder-illustration {' );

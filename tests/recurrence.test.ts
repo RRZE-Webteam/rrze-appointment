@@ -1,16 +1,17 @@
 import {
+	expandRecurrence,
 	buildRecurrenceAttributes,
 	createRecurrenceRule,
 	getRecurrenceEditorState,
 	getRecurrenceWeekdays,
-	toggleRecurrenceDate,
-} from '../src/recurrence';
-import type { AppointmentAttributes, RecurrenceRules } from '../src/types';
-import {
-	expandRecurrence,
 	MAX_RECURRENCE_DATES,
 	recurrenceExceedsLimit,
-} from '../src/utils';
+	toggleRecurrenceDate,
+} from '../src/scheduling/recurrence';
+import type {
+	AppointmentAttributes,
+	RecurrenceRules,
+} from '../src/scheduling/types';
 
 declare function describe( name: string, callback: () => void ): void;
 declare function it( name: string, callback: () => void ): void;

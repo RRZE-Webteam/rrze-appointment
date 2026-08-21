@@ -7,13 +7,14 @@ import {
 	hasAvailabilityConflict,
 	setDateSlotsExcluded,
 	usesConsultationPattern,
-} from '../src/availability';
+} from '../src/scheduling/availability';
 import type {
 	AppointmentAttributes,
 	AvailabilityEntry,
 	TimeSlot,
-} from '../src/types';
-import { formatDateWithWeekdayDisplay, generateTimeSlots } from '../src/utils';
+} from '../src/scheduling/types';
+import { formatDateWithWeekdayDisplay } from '../src/scheduling/dates';
+import { generateTimeSlots } from '../src/scheduling/schedule';
 
 declare function describe( name: string, callback: () => void ): void;
 declare function it( name: string, callback: () => void ): void;
