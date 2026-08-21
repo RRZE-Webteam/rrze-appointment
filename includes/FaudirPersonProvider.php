@@ -9,6 +9,25 @@ defined('ABSPATH') || exit;
  */
 final class FaudirPersonProvider
 {
+    private const PERSON_POST_TYPE = 'custom_person';
+    private const PERSON_ID_META_KEY = 'person_id';
+    private const EMAIL_KEYS = [
+        'email',
+        'emails',
+        'emailAddress',
+        'emailAddresses',
+        'mail',
+    ];
+    private const NESTED_EMAIL_KEYS = [
+        'email',
+        'emails',
+        'emailAddress',
+        'emailAddresses',
+        'mail',
+        'mails',
+        'value',
+    ];
+
     /**
      * Returns the REST response consumed by the block editor.
      *
@@ -26,24 +45,57 @@ final class FaudirPersonProvider
      */
     private function getPersons(): array
     {
-        if (!post_type_exists('custom_person')) {
-            return [
-                'error' => true,
-                'message' => __('Tip: Activate the RRZE FAUdir plugin to conveniently import person data.', 'rrze-appointment'),
-                'data' => [],
-            ];
+        $dependencyError = $this->getDependencyError();
+        if ($dependencyError !== '') {
+            return $this->errorResponse($dependencyError);
+        }
+
+        $api = new \RRZE\FAUdir\API(new \RRZE\FAUdir\Config());
+        return [
+            'error' => false,
+            'message' => '',
+            'data' => $this->loadPersons($this->getPersonPostIds(), $api),
+        ];
+    }
+
+    /**
+     * Returns a localized dependency error, or an empty string when FAUdir is available.
+     */
+    private function getDependencyError(): string
+    {
+        if (!post_type_exists(self::PERSON_POST_TYPE)) {
+            return __(
+                'Tip: Activate the RRZE FAUdir plugin to conveniently import person data.',
+                'rrze-appointment'
+            );
         }
 
         if (!class_exists('\RRZE\FAUdir\API') || !class_exists('\RRZE\FAUdir\Config')) {
-            return [
-                'error' => true,
-                'message' => __('FAUdir classes not available.', 'rrze-appointment'),
-                'data' => [],
-            ];
+            return __('FAUdir classes not available.', 'rrze-appointment');
         }
 
+        return '';
+    }
+
+    /**
+     * Builds the REST error schema used by dependency checks.
+     *
+     * @return array{error: true, message: string, data: array{}}
+     */
+    private function errorResponse(string $message): array
+    {
+        return ['error' => true, 'message' => $message, 'data' => []];
+    }
+
+    /**
+     * Returns published FAUdir person post IDs in display order.
+     *
+     * @return array<int, int>
+     */
+    private function getPersonPostIds(): array
+    {
         $postIds = get_posts([
-            'post_type' => 'custom_person',
+            'post_type' => self::PERSON_POST_TYPE,
             'post_status' => 'publish',
             'posts_per_page' => -1,
             'orderby' => 'title',
@@ -51,11 +103,23 @@ final class FaudirPersonProvider
             'no_found_rows' => true,
             'fields' => 'ids',
         ]);
-        $api = new \RRZE\FAUdir\API(new \RRZE\FAUdir\Config());
+
+        return array_values(array_map('intval', is_array($postIds) ? $postIds : []));
+    }
+
+    /**
+     * Loads and normalizes people represented by the supplied posts.
+     *
+     * @param array<int, int> $postIds Published custom_person post IDs.
+     * @param object          $api     FAUdir API client.
+     * @return array<int, array<string, mixed>>
+     */
+    private function loadPersons(array $postIds, object $api): array
+    {
         $persons = [];
 
         foreach ($postIds as $postId) {
-            $faudirId = (string) get_post_meta($postId, 'person_id', true);
+            $faudirId = trim((string) get_post_meta($postId, self::PERSON_ID_META_KEY, true));
             if ($faudirId === '') {
                 continue;
             }
@@ -68,7 +132,7 @@ final class FaudirPersonProvider
             $persons[] = $this->normalizePerson($person, (int) $postId, $api);
         }
 
-        return ['error' => false, 'message' => '', 'data' => $persons];
+        return $persons;
     }
 
     /**
@@ -81,72 +145,196 @@ final class FaudirPersonProvider
      */
     private function normalizePerson(array $person, int $postId, object $api): array
     {
-        $givenName = (string) ($person['givenName'] ?? '');
-        $familyName = (string) ($person['familyName'] ?? '');
-        $email = sanitize_email($person['email'] ?? '');
-        $consultationHours = [];
-        $hoursType = null;
-        $location = '';
-        $locationUrl = '';
-
-        foreach ($person['contacts'] ?? [] as $contact) {
-            $contactDetails = [];
-            $contactId = is_array($contact) ? ($contact['identifier'] ?? '') : '';
-            if ($contactId !== '') {
-                $contactDetails = $api->getContact($contactId);
-            }
-            if (!is_array($contactDetails) || $contactDetails === []) {
-                $contactDetails = is_array($contact) ? $contact : [];
-            }
-
-            foreach ($contactDetails['workplaces'] ?? [] as $workplace) {
-                $workplace = (array) $workplace;
-                if ($email === '') {
-                    $email = $this->extractFirstWorkplaceEmail($workplace);
-                }
-
-                if (!empty($workplace['consultationHours'])) {
-                    $consultationHours = $workplace['consultationHours'];
-                    $hoursType = 'consultation';
-                } elseif (!empty($workplace['officeHours'])) {
-                    $consultationHours = $workplace['officeHours'];
-                    $hoursType = 'office';
-                }
-
-                if ($consultationHours !== []) {
-                    $location = implode(', ', array_filter([
-                        $workplace['room'] ?? '',
-                        $workplace['street'] ?? '',
-                        $workplace['city'] ?? '',
-                    ]));
-                    $locationUrl = (string) ($workplace['faumap'] ?? '');
-                    break 2;
-                }
-            }
-        }
-
+        $givenName = sanitize_text_field((string) ($person['givenName'] ?? ''));
+        $familyName = sanitize_text_field((string) ($person['familyName'] ?? ''));
+        $contactData = $this->findContactData($person, $api);
+        $email = sanitize_email((string) ($person['email'] ?? ''));
         if ($email === '') {
-            foreach ($person['workplaces'] ?? [] as $workplace) {
-                $email = $this->extractFirstWorkplaceEmail((array) $workplace);
-                if ($email !== '') {
-                    break;
-                }
-            }
+            $email = $contactData['email'] ?: $this->findPersonWorkplaceEmail($person);
         }
 
         return [
             'id' => $postId,
             'error' => false,
             'message' => '',
-            'label' => trim($givenName . ' ' . $familyName) ?: get_the_title($postId),
-            'honorificPrefix' => (string) ($person['honorificPrefix'] ?? ''),
+            'label' => trim($givenName . ' ' . $familyName)
+                ?: sanitize_text_field((string) get_the_title($postId)),
+            'honorificPrefix' => sanitize_text_field((string) ($person['honorificPrefix'] ?? '')),
             'givenName' => $givenName,
             'familyName' => $familyName,
             'email' => $email,
-            'location' => $location,
-            'locationUrl' => $locationUrl,
-            'consultationHours' => $consultationHours,
-            'hoursType' => $hoursType,
+            'location' => $contactData['location'],
+            'locationUrl' => $contactData['locationUrl'],
+            'consultationHours' => $contactData['hours'],
+            'hoursType' => $contactData['hoursType'],
+        ];
+    }
+
+    /**
+     * Finds the first workplace containing importable appointment hours.
+     *
+     * @param array<string, mixed> $person FAUdir person payload.
+     * @param object               $api    FAUdir API client.
+     * @return array{
+     *     email: string,
+     *     location: string,
+     *     locationUrl: string,
+     *     hours: array<int, array{weekday: int, from: string, to: string}>,
+     *     hoursType: 'consultation'|'office'|null
+     * }
+     */
+    private function findContactData(array $person, object $api): array
+    {
+        $result = $this->emptyContactData();
+        $contacts = is_array($person['contacts'] ?? null) ? $person['contacts'] : [];
+
+        foreach ($contacts as $contact) {
+            if (!is_array($contact)) {
+                continue;
+            }
+
+            $contactDetails = $this->getContactDetails($contact, $api);
+            $workplaces = is_array($contactDetails['workplaces'] ?? null)
+                ? $contactDetails['workplaces']
+                : [];
+
+            foreach ($workplaces as $workplace) {
+                if (!is_array($workplace)) {
+                    continue;
+                }
+
+                if ($result['email'] === '') {
+                    $result['email'] = $this->extractFirstWorkplaceEmail($workplace);
+                }
+
+                [$hours, $hoursType] = $this->getAppointmentHours($workplace);
+                if ($hours === []) {
+                    continue;
+                }
+
+                $result['hours'] = $hours;
+                $result['hoursType'] = $hoursType;
+                $result['location'] = $this->getWorkplaceLocation($workplace);
+                $result['locationUrl'] = esc_url_raw((string) ($workplace['faumap'] ?? ''));
+                return $result;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Returns normalized contact details, falling back to the embedded payload.
+     *
+     * @param array<string, mixed> $contact Embedded contact payload.
+     * @return array<string, mixed>
+     */
+    private function getContactDetails(array $contact, object $api): array
+    {
+        $contactId = trim((string) ($contact['identifier'] ?? ''));
+        $contactDetails = $contactId !== '' ? $api->getContact($contactId) : null;
+
+        return is_array($contactDetails) && $contactDetails !== [] ? $contactDetails : $contact;
+    }
+
+    /**
+     * Returns consultation hours in preference to general office hours.
+     *
+     * @param array<string, mixed> $workplace FAUdir workplace payload.
+     * @return array{0: array<int, array{weekday: int, from: string, to: string}>, 1: 'consultation'|'office'|null}
+     */
+    private function getAppointmentHours(array $workplace): array
+    {
+        $consultationHours = $this->normalizeHours($workplace['consultationHours'] ?? []);
+        if ($consultationHours !== []) {
+            return [$consultationHours, 'consultation'];
+        }
+
+        $officeHours = $this->normalizeHours($workplace['officeHours'] ?? []);
+        return $officeHours === [] ? [[], null] : [$officeHours, 'office'];
+    }
+
+    /**
+     * Restricts hours to the schema consumed by the editor.
+     *
+     * @param mixed $hours FAUdir hours payload.
+     * @return array<int, array{weekday: int, from: string, to: string}>
+     */
+    private function normalizeHours($hours): array
+    {
+        if (!is_array($hours)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($hours as $entry) {
+            if (!is_array($entry) || !isset($entry['weekday'], $entry['from'], $entry['to'])) {
+                continue;
+            }
+
+            $weekday = (int) $entry['weekday'];
+            $from = sanitize_text_field((string) $entry['from']);
+            $to = sanitize_text_field((string) $entry['to']);
+            if ($weekday < 0 || $weekday > 6 || ($from === '' && $to === '')) {
+                continue;
+            }
+
+            $normalized[] = ['weekday' => $weekday, 'from' => $from, 'to' => $to];
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Builds a plain-text workplace location.
+     *
+     * @param array<string, mixed> $workplace FAUdir workplace payload.
+     */
+    private function getWorkplaceLocation(array $workplace): string
+    {
+        $parts = array_map(
+            static fn ($value): string => sanitize_text_field((string) $value),
+            [$workplace['room'] ?? '', $workplace['street'] ?? '', $workplace['city'] ?? '']
+        );
+
+        return implode(', ', array_filter($parts, static fn (string $part): bool => $part !== ''));
+    }
+
+    /**
+     * Finds an email in workplaces embedded directly in a person payload.
+     *
+     * @param array<string, mixed> $person FAUdir person payload.
+     */
+    private function findPersonWorkplaceEmail(array $person): string
+    {
+        $workplaces = is_array($person['workplaces'] ?? null) ? $person['workplaces'] : [];
+        foreach ($workplaces as $workplace) {
+            if (!is_array($workplace)) {
+                continue;
+            }
+
+            $email = $this->extractFirstWorkplaceEmail($workplace);
+            if ($email !== '') {
+                return $email;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Returns the empty normalized contact schema.
+     *
+     * @return array{email: string, location: string, locationUrl: string, hours: array{}, hoursType: null}
+     */
+    private function emptyContactData(): array
+    {
+        return [
+            'email' => '',
+            'location' => '',
+            'locationUrl' => '',
+            'hours' => [],
+            'hoursType' => null,
         ];
     }
 
@@ -157,7 +345,7 @@ final class FaudirPersonProvider
      */
     private function extractFirstWorkplaceEmail(array $workplace): string
     {
-        foreach (['email', 'emails', 'emailAddress', 'emailAddresses', 'mail'] as $key) {
+        foreach (self::EMAIL_KEYS as $key) {
             if (empty($workplace[$key])) {
                 continue;
             }
@@ -221,7 +409,7 @@ final class FaudirPersonProvider
             return '';
         }
 
-        foreach (['email', 'emails', 'emailAddress', 'emailAddresses', 'mail', 'mails', 'value'] as $key) {
+        foreach (self::NESTED_EMAIL_KEYS as $key) {
             if (!empty($value[$key])) {
                 $email = $this->extractFirstEmailFromValue($value[$key]);
                 if ($email !== '') {
