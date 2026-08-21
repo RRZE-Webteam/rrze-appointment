@@ -2,53 +2,33 @@
 
 namespace RRZE\Appointment;
 
-use function RRZE\Appointment\plugin;
-
-
 defined('ABSPATH') || exit;
 
-
 /**
- * Class Defaults
- *
- * Holds and provides access to plugin-wide default values.
- *
- * @package RRZE\Appointment\Common
+ * Provides access to legacy plugin defaults and namespaced option keys.
  */
-class Defaults
+final class Defaults
 {
+    private const PREFIX_LENGTH = 6;
+    private const SLUG_PART_LENGTH = 3;
+
     /**
-     * Plugin default values.
-     *
-     * @var array
+     * @var array<string, mixed>
      */
     private readonly array $defaults;
 
     /**
-     * Defaults constructor.
-     * 
-     * @return void
+     * Initializes the legacy defaults collection.
      */
     public function __construct()
     {
-        $this->defaults = $this->load();
+        $this->defaults = [];
     }
 
     /**
-     * Returns the default values, filtered via WordPress.
+     * Returns a default value, or null when the key is not configured.
      *
-     * @return array
-     */
-    private function load(): array
-    {
-        return [];
-    }
-
-    /**
-     * Retrieve a default value by key.
-     *
-     * @param string $key The key of the default.
-     * @return mixed|null The value if found, or null.
+     * @return mixed|null
      */
     public function get(string $key): mixed
     {
@@ -56,9 +36,9 @@ class Defaults
     }
 
     /**
-     * Get all defaults.
+     * Returns every configured default value.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function all(): array
     {
@@ -66,28 +46,31 @@ class Defaults
     }
 
     /**
-     * Prepends a deterministic, 6-char unique prefix to any key.
+     * Prepends a deterministic six-character plugin prefix to a key.
      *
-     * @param string $key The raw key to namespace.
-     * @return string The 6-char-prefixed key.
+     * The prefix is derived from the plugin slug and remains stable between
+     * requests. The supplied key is normalized with WordPress' key sanitizer.
      */
     public function withPrefix(string $key = ''): string
     {
-        $rawSlug = plugin()->getSlug();
-        $clean = preg_replace('/[^a-z0-9]/', '', $rawSlug);
+        return $this->buildPrefix(plugin()->getSlug()) . '_' . sanitize_key($key);
+    }
 
-        $keep = min(3, strlen($clean));
-        $part = substr($clean, 0, $keep);
+    /**
+     * Builds the fixed-length prefix used by {@see self::withPrefix()}.
+     */
+    private function buildPrefix(string $slug): string
+    {
+        $cleanSlug = preg_replace('/[^a-z0-9]/', '', strtolower($slug)) ?: '';
+        $slugPart = substr($cleanSlug, 0, self::SLUG_PART_LENGTH);
+        $hashLength = self::PREFIX_LENGTH - strlen($slugPart);
+        $hashPart = substr(md5($cleanSlug), 0, $hashLength);
+        $prefix = $slugPart . $hashPart;
 
-        $needed = 6 - strlen($part);
-        $hash = substr(md5($clean), 0, $needed);
-
-        $prefix = $part . $hash;
-
-        if (!preg_match('/^[a-z]/', $prefix)) {
-            $prefix = 'p' . substr($prefix, 0, 5);
+        if (preg_match('/^[a-z]/', $prefix) !== 1) {
+            return 'p' . substr($prefix, 0, self::PREFIX_LENGTH - 1);
         }
 
-        return $prefix . '_' . sanitize_key($key);
+        return $prefix;
     }
 }
