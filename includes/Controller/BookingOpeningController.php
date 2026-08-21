@@ -4,7 +4,7 @@ namespace RRZE\Appointment\Controller;
 
 use RRZE\Appointment\Booking\AppointmentBlock;
 use RRZE\Appointment\Booking\Bookings;
-use RRZE\Appointment\Common\CustomException;
+use RRZE\Appointment\AppointmentException;
 use RRZE\Appointment\Notification\BookingOpeningNotifier;
 use RRZE\Appointment\Presentation\PublicPageRenderer;
 use RRZE\Appointment\Rights;
@@ -60,7 +60,7 @@ final class BookingOpeningController
                     $subscription['statusToken']
                 ),
             ]);
-        } catch (CustomException $exception) {
+        } catch (AppointmentException $exception) {
             wp_send_json_error($exception->getMessage());
         }
     }
@@ -83,7 +83,7 @@ final class BookingOpeningController
 
             wp_safe_redirect($result);
             exit;
-        } catch (CustomException $exception) {
+        } catch (AppointmentException $exception) {
             wp_die(esc_html($exception->getMessage()), '', ['response' => 500]);
         }
     }
@@ -114,7 +114,7 @@ final class BookingOpeningController
                     $meta
                 )
             );
-        } catch (CustomException $exception) {
+        } catch (AppointmentException $exception) {
             wp_die(esc_html($exception->getMessage()), '', ['response' => 500]);
         }
     }

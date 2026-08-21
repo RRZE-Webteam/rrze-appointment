@@ -15,8 +15,8 @@ const getControllerResult = (): RequestControllerResult => {
 		'includes/Controller/BookingRequestController.php'
 	);
 	const php = `
-		namespace RRZE\\Appointment\\Common {
-			class CustomException extends \\Exception {}
+		namespace RRZE\\Appointment {
+			class AppointmentException extends \\Exception {}
 		}
 		namespace RRZE\\Appointment\\Booking {
 			class Bookings {

@@ -5,11 +5,11 @@ namespace RRZE\Appointment\Controller;
 use RRZE\Appointment\Booking\AppointmentBlock;
 use RRZE\Appointment\Booking\Bookings;
 use RRZE\Appointment\Booking\TokenManager;
-use RRZE\Appointment\Common\CustomException;
+use RRZE\Appointment\AppointmentException;
 use RRZE\Appointment\Mail\MailTemplate;
 use RRZE\Appointment\Mail\MailTemplatePost;
+use RRZE\Appointment\Mail\Mailer;
 use RRZE\Appointment\Rights;
-use RRZE\Appointment\Settings;
 
 defined('ABSPATH') || exit;
 
@@ -53,7 +53,7 @@ final class BookingRequestController
             wp_send_json_success([
                 'message' => __('Please confirm your appointment by email.', 'rrze-appointment'),
             ]);
-        } catch (CustomException $exception) {
+        } catch (AppointmentException $exception) {
             wp_send_json_error($exception->getMessage());
         }
     }
@@ -232,7 +232,7 @@ final class BookingRequestController
             (int) ($meta['tpl_id'] ?? 0),
             $templateType
         );
-        $subject = Settings::renderTemplate(
+        $subject = Mailer::render(
             !empty($template['subject']) ? $template['subject'] : $default['subject'],
             $variables
         );
@@ -240,11 +240,11 @@ final class BookingRequestController
         $html = !empty($template['body_html']) ? $template['body_html'] : $default['body_html'];
         [$plain, $html] = $this->ensureRequiredConfirmationLinks($plain, $html);
 
-        Settings::sendMail(
+        Mailer::send(
             $meta['booker_email'],
             $subject,
-            Settings::renderTemplate($plain, $variables),
-            Settings::renderTemplate($html, $variables),
+            Mailer::render($plain, $variables),
+            Mailer::render($html, $variables),
             [],
             MailTemplate::STATUS_WARNING
         );

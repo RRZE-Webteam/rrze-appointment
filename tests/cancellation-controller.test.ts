@@ -18,8 +18,8 @@ const runCancellationScenarios = (): CancellationResults => {
 		'includes/Controller/CancellationController.php'
 	);
 	const php = `
-		namespace RRZE\\Appointment\\Common {
-			class CustomException extends \\Exception {}
+		namespace RRZE\\Appointment {
+			class AppointmentException extends \\Exception {}
 		}
 		namespace RRZE\\Appointment\\Presentation {
 			class PublicPageRenderer {

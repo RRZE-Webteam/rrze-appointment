@@ -2,8 +2,10 @@
 
 namespace RRZE\Appointment;
 
+use RRZE\Appointment\Admin\BookingsPage;
+use RRZE\Appointment\Admin\MailTemplatesPage;
+use RRZE\Appointment\Admin\SettingsPage;
 use RRZE\Appointment\Booking\TokenManager;
-use RRZE\Appointment\Common\Settings\Settings as CommonSettings;
 use RRZE\Appointment\Controller\BookingOpeningController;
 use RRZE\Appointment\Controller\BookingRequestController;
 use RRZE\Appointment\Controller\CancellationController;
@@ -22,8 +24,7 @@ defined('ABSPATH') || exit;
  * Boots the plugin and connects focused services to WordPress hooks.
  *
  * Business workflows live in dedicated controllers. This class deliberately
- * contains only lifecycle setup, route registration, and legacy settings
- * initialization.
+ * contains only lifecycle setup and route registration.
  *
  * @package RRZE\Appointment
  * @since 1.0.0
@@ -36,27 +37,6 @@ final class Main
     private const BOOKING_AJAX_ACTION = 'rrze_appointment_book';
     private const OPENING_AJAX_ACTION = 'rrze_appointment_notify_opening';
     private const BOOKER_AJAX_ACTION = 'rrze_appointment_get_booker';
-    private const LEGACY_FIELD_KEYS = [
-        'name',
-        'label',
-        'description',
-        'options',
-        'default',
-        'sanitize',
-        'validate',
-        'placeholder',
-    ];
-
-    /**
-     * Legacy defaults object retained for callers of settings().
-     */
-    public Defaults $defaults;
-
-    /**
-     * Legacy common settings builder retained for backwards compatibility.
-     */
-    public CommonSettings $settings;
-
     private AssetManager $assets;
     private BookingOpeningController $bookingOpenings;
     private BookingRequestController $bookingRequests;
@@ -90,10 +70,11 @@ final class Main
      */
     public function onInit(): void
     {
-        $this->defaults = new Defaults();
         $this->initializePluginState();
 
-        (new Settings())->register();
+        $mailTemplatesPage = new MailTemplatesPage();
+        (new SettingsPage($mailTemplatesPage))->register();
+        (new BookingsPage())->register();
         (new Reminder())->register();
 
         $this->registerAssetHooks();
@@ -216,62 +197,4 @@ final class Main
         return current_user_can('edit_posts');
     }
 
-    /**
-     * Builds the legacy common settings screen from Defaults configuration.
-     *
-     * The current Settings service is registered from onInit(); this method is
-     * retained for compatibility with integrations that still invoke it.
-     */
-    public function settings(): void
-    {
-        $settings = $this->defaults->get('settings');
-        $sections = $this->defaults->get('sections');
-        $fields = $this->defaults->get('fields');
-        if (!is_array($settings) || !is_array($sections) || !is_array($fields)) {
-            return;
-        }
-
-        $this->settings = new CommonSettings((string) ($settings['page_title'] ?? ''));
-        $this->settings
-            ->setCapability((string) ($settings['capability'] ?? 'manage_options'))
-            ->setOptionName((string) ($settings['option_name'] ?? ''))
-            ->setMenuTitle((string) ($settings['menu_title'] ?? ''))
-            ->setMenuPosition(6)
-            ->setMenuParentSlug('options-general.php');
-
-        foreach ($sections as $section) {
-            if (!is_array($section)) {
-                continue;
-            }
-
-            $sectionId = sanitize_key((string) ($section['id'] ?? ''));
-            $sectionTitle = (string) ($section['title'] ?? '');
-            if ($sectionId === '' || $sectionTitle === '') {
-                continue;
-            }
-
-            $tab = $this->settings->addTab(
-                __($sectionTitle, 'rrze-appointment'),
-                $sectionId
-            );
-            $settingsSection = $tab->addSection(
-                __($sectionTitle, 'rrze-appointment'),
-                $sectionId
-            );
-
-            $sectionFields = is_array($fields[$sectionId] ?? null) ? $fields[$sectionId] : [];
-            foreach ($sectionFields as $field) {
-                if (!is_array($field) || !is_string($field['type'] ?? null)) {
-                    continue;
-                }
-
-                $settingsSection->addOption(
-                    $field['type'],
-                    array_intersect_key($field, array_flip(self::LEGACY_FIELD_KEYS))
-                );
-            }
-        }
-
-        $this->settings->build();
-    }
 }

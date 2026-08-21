@@ -4,12 +4,12 @@ namespace RRZE\Appointment\Controller;
 
 use RRZE\Appointment\Booking\Bookings;
 use RRZE\Appointment\Booking\TokenManager;
-use RRZE\Appointment\Common\CustomException;
+use RRZE\Appointment\AppointmentException;
 use RRZE\Appointment\Mail\MailTemplate;
 use RRZE\Appointment\Mail\MailTemplatePost;
+use RRZE\Appointment\Mail\Mailer;
 use RRZE\Appointment\Notification\Reminder;
 use RRZE\Appointment\Presentation\PublicPageRenderer;
-use RRZE\Appointment\Settings;
 
 defined('ABSPATH') || exit;
 
@@ -112,7 +112,7 @@ final class ConfirmationController
             );
 
             $this->renderer->renderConfirmation('', [], [], '', '', $appointmentDetails);
-        } catch (CustomException $exception) {
+        } catch (AppointmentException $exception) {
             wp_die(esc_html($exception->getMessage()), '', ['response' => 500]);
         }
     }
@@ -412,7 +412,7 @@ final class ConfirmationController
 
         $temporaryFile = $this->createTemporaryCalendarFile($calendarContent);
         try {
-            Settings::sendMail(
+            Mailer::send(
                 (string) ($meta['booker_email'] ?? ''),
                 $bookerSubject,
                 $bookerPlain,
@@ -423,7 +423,7 @@ final class ConfirmationController
 
             $hostEmail = sanitize_email((string) ($meta['person_email'] ?? ''));
             if ($hostEmail !== '') {
-                Settings::sendMail(
+                Mailer::send(
                     $hostEmail,
                     $hostSubject,
                     $hostPlain,
@@ -440,13 +440,13 @@ final class ConfirmationController
     /**
      * Writes calendar content to a temporary .ics file.
      *
-     * @throws CustomException When a temporary attachment cannot be created.
+     * @throws AppointmentException When a temporary attachment cannot be created.
      */
     private function createTemporaryCalendarFile(string $calendarContent): string
     {
         $temporaryFile = tempnam(get_temp_dir(), self::CALENDAR_FILE_PREFIX);
         if ($temporaryFile === false) {
-            throw new CustomException(
+            throw new AppointmentException(
                 __('The calendar attachment could not be created.', 'rrze-appointment')
             );
         }
@@ -454,14 +454,14 @@ final class ConfirmationController
         $calendarFile = $temporaryFile . '.ics';
         if (!rename($temporaryFile, $calendarFile)) {
             wp_delete_file($temporaryFile);
-            throw new CustomException(
+            throw new AppointmentException(
                 __('The calendar attachment could not be created.', 'rrze-appointment')
             );
         }
 
         if (file_put_contents($calendarFile, $calendarContent, LOCK_EX) === false) {
             wp_delete_file($calendarFile);
-            throw new CustomException(
+            throw new AppointmentException(
                 __('The calendar attachment could not be created.', 'rrze-appointment')
             );
         }
@@ -481,7 +481,7 @@ final class ConfirmationController
             ? (MailTemplatePost::getTemplateForType($templateId, self::BOOKER_TEMPLATE_TYPE) ?? [])
             : [];
         $default = MailTemplatePost::getDefault(self::BOOKER_TEMPLATE_TYPE);
-        $subject = Settings::renderTemplate(
+        $subject = Mailer::render(
             !empty($template['subject']) ? $template['subject'] : $default['subject'],
             $variables
         );
@@ -491,8 +491,8 @@ final class ConfirmationController
 
         return [
             $subject,
-            Settings::renderTemplate($plainTemplate, $variables),
-            Settings::renderTemplate($htmlTemplate, $variables),
+            Mailer::render($plainTemplate, $variables),
+            Mailer::render($htmlTemplate, $variables),
         ];
     }
 
@@ -512,7 +512,7 @@ final class ConfirmationController
             ? (MailTemplatePost::getTemplateForType($templateId, self::HOST_TEMPLATE_TYPE) ?? [])
             : [];
         $default = MailTemplatePost::getDefault(self::HOST_TEMPLATE_TYPE);
-        $subject = Settings::renderTemplate(
+        $subject = Mailer::render(
             !empty($template['subject']) ? $template['subject'] : $default['subject'],
             $variables
         );
@@ -529,11 +529,11 @@ final class ConfirmationController
 
         return [
             $subject,
-            Settings::renderTemplate(
+            Mailer::render(
                 $plainTemplate,
                 array_merge($variables, ['[questions]' => $questionSections['plain']])
             ),
-            Settings::renderTemplate(
+            Mailer::render(
                 $htmlTemplate,
                 array_merge($variables, ['[questions]' => $questionSections['html']])
             ),

@@ -4,7 +4,7 @@ namespace RRZE\Appointment\Controller;
 
 use RRZE\Appointment\Booking\Bookings;
 use RRZE\Appointment\Booking\TokenManager;
-use RRZE\Appointment\Common\CustomException;
+use RRZE\Appointment\AppointmentException;
 use RRZE\Appointment\Presentation\PublicPageRenderer;
 
 defined('ABSPATH') || exit;
@@ -78,7 +78,7 @@ final class CancellationController
 
             $this->cancelAppointment($entry, $slot, $token);
             $this->renderer->renderCancellationSuccess($appointmentDetails);
-        } catch (CustomException $exception) {
+        } catch (AppointmentException $exception) {
             wp_die(esc_html($exception->getMessage()), '', ['response' => 500]);
         }
     }
@@ -131,7 +131,7 @@ final class CancellationController
                 return;
             }
             $this->renderer->renderWaitlistStatus($token, false, $appointmentDetails);
-        } catch (CustomException $exception) {
+        } catch (AppointmentException $exception) {
             wp_die(esc_html($exception->getMessage()), '', ['response' => 500]);
         }
     }

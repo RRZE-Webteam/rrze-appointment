@@ -21,24 +21,11 @@ type MainResult = {
 	bookerAllowed: boolean;
 	personsDenied: boolean;
 	personsAllowed: boolean;
-	legacySettingsConstructed: number;
 };
 
 const getMainResult = (): MainResult => {
 	const mainPath = resolve( process.cwd(), 'includes/Main.php' );
 	const php = `
-		namespace RRZE\\Appointment\\Common\\Settings {
-			class Settings {
-				public static int $constructed = 0;
-				public function __construct( string $title ) { self::$constructed++; }
-				public function setCapability( string $value ): self { return $this; }
-				public function setOptionName( string $value ): self { return $this; }
-				public function setMenuTitle( string $value ): self { return $this; }
-				public function setMenuPosition( int $value ): self { return $this; }
-				public function setMenuParentSlug( string $value ): self { return $this; }
-				public function build(): void {}
-			}
-		}
 		namespace RRZE\\Appointment\\Presentation {
 			class PublicPageRenderer {}
 			class AssetManager {
@@ -48,8 +35,15 @@ const getMainResult = (): MainResult => {
 		}
 		namespace RRZE\\Appointment {
 			class FaudirPersonProvider { public function handleRequest(): void {} }
-			class Defaults { public function get( string $key ) { return null; } }
-			class Settings {
+		}
+		namespace RRZE\\Appointment\\Admin {
+			class MailTemplatesPage {}
+			class SettingsPage {
+				public static int $registered = 0;
+				public function __construct( MailTemplatesPage $templates ) {}
+				public function register(): void { self::$registered++; }
+			}
+			class BookingsPage {
 				public static int $registered = 0;
 				public function register(): void { self::$registered++; }
 			}
@@ -143,7 +137,6 @@ const getMainResult = (): MainResult => {
 			$personsDenied = ! $main->allowPersonsRequest( null );
 			$GLOBALS['can_edit_posts'] = true;
 			$personsAllowed = $main->allowPersonsRequest( null );
-			$main->settings();
 			echo json_encode( [
 				'actions' => $GLOBALS['actions'],
 				'routes' => $GLOBALS['routes'],
@@ -151,13 +144,13 @@ const getMainResult = (): MainResult => {
 					'defaultTemplate' => \\RRZE\\Appointment\\Mail\\MailTemplatePost::$initialized,
 					'pendingState' => \\RRZE\\Appointment\\Booking\\TokenManager::$cleaned,
 					'openingState' => \\RRZE\\Appointment\\Notification\\BookingOpeningNotifier::$cleaned,
-					'settings' => \\RRZE\\Appointment\\Settings::$registered,
+					'settings' => \\RRZE\\Appointment\\Admin\\SettingsPage::$registered,
+					'bookings' => \\RRZE\\Appointment\\Admin\\BookingsPage::$registered,
 					'reminder' => \\RRZE\\Appointment\\Notification\\Reminder::$registered,
 				],
 				'bookerAllowed' => $bookerAllowed,
 				'personsDenied' => $personsDenied,
 				'personsAllowed' => $personsAllowed,
-				'legacySettingsConstructed' => \\RRZE\\Appointment\\Common\\Settings\\Settings::$constructed,
 			] );
 		}
 	`;
@@ -177,6 +170,7 @@ describe( 'plugin bootstrap', () => {
 			pendingState: 1,
 			openingState: 1,
 			settings: 1,
+			bookings: 1,
 			reminder: 1,
 		} );
 		expect( hookNames ).toEqual(
@@ -228,9 +222,5 @@ describe( 'plugin bootstrap', () => {
 		expect( result.bookerAllowed ).toBe( true );
 		expect( result.personsDenied ).toBe( true );
 		expect( result.personsAllowed ).toBe( true );
-	} );
-
-	it( 'ignores incomplete legacy settings defaults safely', () => {
-		expect( getMainResult().legacySettingsConstructed ).toBe( 0 );
 	} );
 } );

@@ -25,7 +25,12 @@ type TokenManagerResult = {
 	actionUrls: string[];
 	imprintUrl: string;
 	corruptOptionsIgnored: string[];
-	wrappedFailure: { className: string; message: string };
+	wrappedFailure: {
+		className: string;
+		message: string;
+		previousClass: string;
+		previousMessage: string;
+	};
 };
 
 const getTokenManagerResult = (): TokenManagerResult => {
@@ -34,8 +39,8 @@ const getTokenManagerResult = (): TokenManagerResult => {
 		'includes/Booking/TokenManager.php'
 	);
 	const php = `
-		namespace RRZE\\Appointment\\Common {
-			class CustomException extends \\Exception {}
+		namespace RRZE\\Appointment {
+			class AppointmentException extends \\Exception {}
 		}
 		namespace RRZE\\Appointment\\Booking {
 			class Bookings {
@@ -178,6 +183,8 @@ const getTokenManagerResult = (): TokenManagerResult => {
 				$wrappedFailure = [
 					'className' => get_class( $exception ),
 					'message' => $exception->getMessage(),
+					'previousClass' => get_class( $exception->getPrevious() ),
+					'previousMessage' => $exception->getPrevious()->getMessage(),
 				];
 			}
 
@@ -294,8 +301,10 @@ describe( 'token manager', () => {
 
 		expect( result.corruptOptionsIgnored ).toEqual( [] );
 		expect( result.wrappedFailure ).toEqual( {
-			className: 'RRZE\\Appointment\\Common\\CustomException',
+			className: 'RRZE\\Appointment\\AppointmentException',
 			message: 'storage failed',
+			previousClass: 'RuntimeException',
+			previousMessage: 'storage failed',
 		} );
 	} );
 } );

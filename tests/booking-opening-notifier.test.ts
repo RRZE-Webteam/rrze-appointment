@@ -18,8 +18,8 @@ const runNotifierScenario = (): NotifierResult => {
 		'includes/Notification/BookingOpeningNotifier.php'
 	);
 	const php = `
-		namespace RRZE\\Appointment\\Common {
-			class CustomException extends \\Exception {}
+		namespace RRZE\\Appointment {
+			class AppointmentException extends \\Exception {}
 		}
 		namespace {
 			define( 'ABSPATH', __DIR__ );

@@ -2,7 +2,7 @@
 
 namespace RRZE\Appointment\Mail;
 
-use RRZE\Appointment\Common\CustomException;
+use RRZE\Appointment\AppointmentException;
 
 defined('ABSPATH') || exit;
 
@@ -31,7 +31,7 @@ final class MailTemplatePost
     /**
      * Registers the private post type and its REST-visible template fields.
      *
-     * @throws CustomException When WordPress registration fails.
+     * @throws AppointmentException When WordPress registration fails.
      */
     public static function register(): void
     {
@@ -59,7 +59,7 @@ final class MailTemplatePost
                     ]);
                 }
             }
-        } catch (CustomException $exception) {
+        } catch (AppointmentException $exception) {
             return;
         } catch (\Exception $exception) {
             throw self::createException($exception);
@@ -588,12 +588,12 @@ final class MailTemplatePost
     /**
      * Converts infrastructure errors to the plugin's shared exception type.
      */
-    private static function createException(\Exception $exception): CustomException
+    private static function createException(\Exception $exception): AppointmentException
     {
-        if ($exception instanceof CustomException) {
+        if ($exception instanceof AppointmentException) {
             return $exception;
         }
 
-        return new CustomException($exception->getMessage(), (int) $exception->getCode(), null);
+        return new AppointmentException($exception->getMessage(), (int) $exception->getCode(), $exception);
     }
 }

@@ -2,7 +2,7 @@
 
 namespace RRZE\Appointment;
 
-use RRZE\Appointment\Common\CustomException;
+use RRZE\Appointment\AppointmentException;
 
 defined('ABSPATH') || exit;
 
@@ -55,10 +55,10 @@ final class Rights
         try {
             return self::getAuthenticatedBooker() ?? self::anonymousBooker();
         } catch (\Exception $exception) {
-            throw new CustomException(
+            throw new AppointmentException(
                 $exception->getMessage(),
                 (int) $exception->getCode(),
-                null
+                $exception
             );
         }
     }

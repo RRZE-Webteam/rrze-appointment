@@ -6,13 +6,13 @@ const readProjectFile = ( path: string ) =>
 
 describe( 'reminder mail design', () => {
 	const reminder = readProjectFile( 'includes/Notification/Reminder.php' );
-	const settings = readProjectFile( 'includes/Settings.php' );
+	const mailer = readProjectFile( 'includes/Mail/Mailer.php' );
 
 	it( 'sends reminder HTML through the compiled Maizzle layout', () => {
-		expect( settings ).toContain(
+		expect( mailer ).toContain(
 			'MailTemplate::wrap($html, $subject, $status)'
 		);
-		expect( reminder ).toContain( 'Settings::sendMail(' );
+		expect( reminder ).toContain( 'Mailer::send(' );
 		expect( reminder ).toContain(
 			'MailTemplate::statusForType($templateType)'
 		);

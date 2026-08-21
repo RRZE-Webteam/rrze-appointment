@@ -4,10 +4,10 @@ namespace RRZE\Appointment\Notification;
 
 use RRZE\Appointment\Booking\Bookings;
 use RRZE\Appointment\Booking\TokenManager;
-use RRZE\Appointment\Common\CustomException;
+use RRZE\Appointment\AppointmentException;
 use RRZE\Appointment\Mail\MailTemplate;
 use RRZE\Appointment\Mail\MailTemplatePost;
-use RRZE\Appointment\Settings;
+use RRZE\Appointment\Mail\Mailer;
 
 defined('ABSPATH') || exit;
 
@@ -53,7 +53,7 @@ final class BookingOpeningNotifier
 
             return self::createSubscription($entries, $slot, $meta, $opensAt, $closesAt);
         } catch (\Exception $exception) {
-            throw new CustomException($exception->getMessage(), $exception->getCode(), null);
+            throw new AppointmentException($exception->getMessage(), $exception->getCode(), $exception);
         }
     }
 
@@ -181,7 +181,7 @@ final class BookingOpeningNotifier
 
             self::markNotified($token, $now);
         } catch (\Exception $exception) {
-            throw new CustomException($exception->getMessage(), $exception->getCode(), null);
+            throw new AppointmentException($exception->getMessage(), $exception->getCode(), $exception);
         }
     }
 
@@ -281,7 +281,7 @@ final class BookingOpeningNotifier
                 delete_option($lockOption);
             }
         } catch (\Exception $exception) {
-            throw new CustomException($exception->getMessage(), $exception->getCode(), null);
+            throw new AppointmentException($exception->getMessage(), $exception->getCode(), $exception);
         }
     }
 
@@ -409,7 +409,7 @@ final class BookingOpeningNotifier
             $meta
         );
         [$template, $default] = self::getOpeningMailTemplates((int) ($meta['tpl_id'] ?? 0));
-        $subject = Settings::renderTemplate(
+        $subject = Mailer::render(
             !empty($template['subject']) ? $template['subject'] : $default['subject'],
             $variables
         );
@@ -417,11 +417,11 @@ final class BookingOpeningNotifier
         $html = !empty($template['body_html']) ? $template['body_html'] : $default['body_html'];
         [$plain, $html] = self::ensureRequiredMailLinks($plain, $html);
 
-        return Settings::sendMail(
+        return Mailer::send(
             sanitize_email((string) ($meta['booker_email'] ?? '')),
             $subject,
-            Settings::renderTemplate($plain, $variables),
-            Settings::renderTemplate($html, $variables),
+            Mailer::render($plain, $variables),
+            Mailer::render($html, $variables),
             [],
             MailTemplate::STATUS_WARNING
         );

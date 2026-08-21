@@ -18,7 +18,7 @@ Requires PHP:       8.2
 namespace RRZE\Appointment;
 
 use RRZE\Appointment\Main;
-use RRZE\Appointment\Common\Plugin\Plugin;
+use RRZE\Appointment\Plugin;
 
 defined('ABSPATH') || exit;
 
@@ -28,6 +28,8 @@ defined('ABSPATH') || exit;
  */
 spl_autoload_register(function (string $class): void {
     $legacyClasses = [
+        __NAMESPACE__ . '\\Common\\CustomException' => __NAMESPACE__ . '\\AppointmentException',
+        __NAMESPACE__ . '\\Common\\Plugin\\Plugin' => __NAMESPACE__ . '\\Plugin',
         __NAMESPACE__ . '\\AppointmentBlock' => __NAMESPACE__ . '\\Booking\\AppointmentBlock',
         __NAMESPACE__ . '\\AssetManager' => __NAMESPACE__ . '\\Presentation\\AssetManager',
         __NAMESPACE__ . '\\BookingOpeningController' => __NAMESPACE__ . '\\Controller\\BookingOpeningController',

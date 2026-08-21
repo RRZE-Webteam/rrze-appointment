@@ -2,7 +2,7 @@
 
 namespace RRZE\Appointment\Booking;
 
-use RRZE\Appointment\Common\CustomException;
+use RRZE\Appointment\AppointmentException;
 
 defined('ABSPATH') || exit;
 
@@ -557,13 +557,13 @@ final class TokenManager
     /**
      * Preserves domain exceptions and wraps unexpected integration failures.
      */
-    private static function wrapException(\Throwable $exception): CustomException
+    private static function wrapException(\Throwable $exception): AppointmentException
     {
-        if ($exception instanceof CustomException) {
+        if ($exception instanceof AppointmentException) {
             return $exception;
         }
 
-        return new CustomException($exception->getMessage(), (int) $exception->getCode(), null);
+        return new AppointmentException($exception->getMessage(), (int) $exception->getCode(), $exception);
     }
 
     /**

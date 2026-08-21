@@ -17,8 +17,8 @@ const runAssetManager = (
 		'includes/Presentation/AssetManager.php'
 	);
 	const php = `
-		namespace RRZE\\Appointment\\Common {
-			class CustomException extends \\Exception {}
+		namespace RRZE\\Appointment {
+			class AppointmentException extends \\Exception {}
 		}
 		namespace RRZE\\Appointment\\Booking {
 			class Bookings {
@@ -30,11 +30,11 @@ const runAssetManager = (
 				}
 			}
 		}
-		namespace RRZE\\Appointment {
-			class Settings {
+		namespace RRZE\\Appointment\\Configuration {
+			class PluginSettings {
 				public static function get( $key ) {
 					if ( ${ settingsFail ? 'true' : 'false' } ) {
-						throw new \\RRZE\\Appointment\\Common\\CustomException( 'Unavailable' );
+						throw new \\RRZE\\Appointment\\AppointmentException( 'Unavailable' );
 					}
 					return 24;
 				}

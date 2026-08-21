@@ -18,8 +18,8 @@ type RightsResult = {
 const getRightsResult = (): RightsResult => {
 	const rightsPath = resolve( process.cwd(), 'includes/Rights.php' );
 	const php = `
-		namespace RRZE\\Appointment\\Common {
-			class CustomException extends \\Exception {}
+		namespace RRZE\\Appointment {
+			class AppointmentException extends \\Exception {}
 		}
 		namespace RRZE\\AccessControl {
 			class AuthStub {

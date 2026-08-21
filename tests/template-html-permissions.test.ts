@@ -5,7 +5,7 @@ const readProjectFile = ( path: string ) =>
 	readFileSync( resolve( process.cwd(), path ), 'utf8' );
 
 describe( 'mail template HTML permissions', () => {
-	const settings = readProjectFile( 'includes/Settings.php' );
+	const settings = readProjectFile( 'includes/Admin/MailTemplatesPage.php' );
 
 	it( 'uses the same permission for rendering and saving HTML', () => {
 		expect( settings ).toContain(

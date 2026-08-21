@@ -25,8 +25,8 @@ const getReminderResult = (): ReminderResult => {
 		'includes/Notification/Reminder.php'
 	);
 	const php = `
-		namespace RRZE\\Appointment\\Common {
-			class CustomException extends \\Exception {}
+		namespace RRZE\\Appointment {
+			class AppointmentException extends \\Exception {}
 		}
 		namespace RRZE\\Appointment\\Booking {
 			class Bookings {
@@ -44,16 +44,20 @@ const getReminderResult = (): ReminderResult => {
 				public static function imprintUrl(): string { return 'https://example.test/legal'; }
 			}
 		}
-		namespace RRZE\\Appointment {
-			class Settings {
-				public static array $mails = [];
+		namespace RRZE\\Appointment\\Configuration {
+			class PluginSettings {
 				public static function get( string $key ) {
 					return [ 'reminder_days' => 2, 'retention_days' => 30 ][ $key ] ?? null;
 				}
-				public static function renderTemplate( string $template, array $variables ): string {
+			}
+		}
+		namespace RRZE\\Appointment\\Mail {
+			class Mailer {
+				public static array $mails = [];
+				public static function render( string $template, array $variables ): string {
 					return str_replace( array_keys( $variables ), array_values( $variables ), $template );
 				}
-				public static function sendMail(
+				public static function send(
 					string $to,
 					string $subject,
 					string $plain,
@@ -152,8 +156,8 @@ const getReminderResult = (): ReminderResult => {
 				[ 'title' => 'Future' ]
 			);
 			$reminder->sendReminder( '2026-08-23 10:00-10:30' );
-			$mails = \\RRZE\\Appointment\\Settings::$mails;
-			\\RRZE\\Appointment\\Settings::$mails = [];
+			$mails = \\RRZE\\Appointment\\Mail\\Mailer::$mails;
+			\\RRZE\\Appointment\\Mail\\Mailer::$mails = [];
 			$reminder->checkAndSendReminders();
 			echo json_encode( [
 				'actions' => $GLOBALS['actions'],
@@ -161,7 +165,7 @@ const getReminderResult = (): ReminderResult => {
 				'singleSchedule' => $GLOBALS['single_schedule'],
 				'storedFutureMeta' => $GLOBALS['options']['booking_meta']['2099-09-01 08:00-08:30'],
 				'mails' => $mails,
-				'dailyMails' => \\RRZE\\Appointment\\Settings::$mails,
+				'dailyMails' => \\RRZE\\Appointment\\Mail\\Mailer::$mails,
 				'cleanupRetention' => \\RRZE\\Appointment\\Booking\\Bookings::$cleanupRetention,
 			] );
 		}

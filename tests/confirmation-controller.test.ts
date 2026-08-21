@@ -22,8 +22,8 @@ const getConfirmationResult = (): ConfirmationResult => {
 		'includes/Controller/ConfirmationController.php'
 	);
 	const php = `
-		namespace RRZE\\Appointment\\Common {
-			class CustomException extends \\Exception {}
+		namespace RRZE\\Appointment {
+			class AppointmentException extends \\Exception {}
 		}
 		namespace RRZE\\Appointment\\Presentation {
 			class PublicPageRenderer {
@@ -56,13 +56,13 @@ const getConfirmationResult = (): ConfirmationResult => {
 				}
 			}
 		}
-		namespace RRZE\\Appointment {
-			class Settings {
+		namespace RRZE\\Appointment\\Mail {
+			class Mailer {
 				public static string $attachmentPath = '';
-				public static function renderTemplate( string $template, array $variables ): string {
+				public static function render( string $template, array $variables ): string {
 					return str_replace( array_keys( $variables ), array_values( $variables ), $template );
 				}
-				public static function sendMail(
+				public static function send(
 					string $to,
 					string $subject,
 					string $plain,
@@ -176,9 +176,9 @@ const getConfirmationResult = (): ConfirmationResult => {
 				'slotParts' => $slotParts,
 				'escapedCalendarValue' => $escapedCalendarValue,
 				'calendar' => $calendar,
-				'attachmentPath' => \\RRZE\\Appointment\\Settings::$attachmentPath,
+				'attachmentPath' => \\RRZE\\Appointment\\Mail\\Mailer::$attachmentPath,
 				'attachmentExistsAfterFailure' => file_exists(
-					\\RRZE\\Appointment\\Settings::$attachmentPath
+					\\RRZE\\Appointment\\Mail\\Mailer::$attachmentPath
 				),
 			] );
 		}

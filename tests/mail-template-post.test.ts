@@ -27,8 +27,8 @@ const getMailTemplatePostResult = (): MailTemplatePostResult => {
 		'includes/Mail/MailTemplatePost.php'
 	);
 	const php = `
-		namespace RRZE\\Appointment\\Common {
-			class CustomException extends \\Exception {}
+		namespace RRZE\\Appointment {
+			class AppointmentException extends \\Exception {}
 		}
 		namespace RRZE\\Appointment\\Mail {
 			class MailTemplate {

@@ -4,10 +4,11 @@ namespace RRZE\Appointment\Notification;
 
 use RRZE\Appointment\Booking\Bookings;
 use RRZE\Appointment\Booking\TokenManager;
-use RRZE\Appointment\Common\CustomException;
+use RRZE\Appointment\AppointmentException;
+use RRZE\Appointment\Configuration\PluginSettings;
 use RRZE\Appointment\Mail\MailTemplate;
 use RRZE\Appointment\Mail\MailTemplatePost;
-use RRZE\Appointment\Settings;
+use RRZE\Appointment\Mail\Mailer;
 
 defined('ABSPATH') || exit;
 
@@ -57,7 +58,7 @@ final class Reminder
             $allMeta[$slot] = $meta;
             update_option(Bookings::META_OPTION, $allMeta, false);
 
-            $days = (int) Settings::get('reminder_days');
+            $days = (int) PluginSettings::get('reminder_days');
             if ($days < 1) {
                 return;
             }
@@ -79,7 +80,7 @@ final class Reminder
     public function sendReminder(string $slot): void
     {
         try {
-            $days = (int) Settings::get('reminder_days');
+            $days = (int) PluginSettings::get('reminder_days');
             if ($days < 1) {
                 return;
             }
@@ -200,7 +201,7 @@ final class Reminder
 
     /**
      * Renders all parts of a reminder before the HTML is placed in the
-     * compiled Maizzle layout by Settings::sendMail().
+     * compiled Maizzle layout by Mailer::send().
      *
      * @param array{subject: string, body: string, body_html: string} $template
      * @param array<string, string>                                  $variables
@@ -214,9 +215,9 @@ final class Reminder
         );
 
         return [
-            'subject' => Settings::renderTemplate($template['subject'], $variables),
-            'plain' => Settings::renderTemplate($template['body'], $variables),
-            'html' => Settings::renderTemplate($template['body_html'], $htmlVariables),
+            'subject' => Mailer::render($template['subject'], $variables),
+            'plain' => Mailer::render($template['body'], $variables),
+            'html' => Mailer::render($template['body_html'], $htmlVariables),
         ];
     }
 
@@ -231,7 +232,7 @@ final class Reminder
             return;
         }
 
-        Settings::sendMail(
+        Mailer::send(
             $recipient,
             $mail['subject'],
             $mail['plain'],
@@ -244,9 +245,9 @@ final class Reminder
     public function checkAndSendReminders(): void
     {
         try {
-            Bookings::cleanupExpired((int) Settings::get('retention_days'));
+            Bookings::cleanupExpired((int) PluginSettings::get('retention_days'));
 
-            $days = (int) Settings::get('reminder_days');
+            $days = (int) PluginSettings::get('reminder_days');
             if ($days < 1) {
                 return;
             }
@@ -316,12 +317,12 @@ final class Reminder
     /**
      * Converts infrastructure errors to the plugin's shared exception type.
      */
-    private static function createException(\Exception $exception): CustomException
+    private static function createException(\Exception $exception): AppointmentException
     {
-        if ($exception instanceof CustomException) {
+        if ($exception instanceof AppointmentException) {
             return $exception;
         }
 
-        return new CustomException($exception->getMessage(), (int) $exception->getCode(), null);
+        return new AppointmentException($exception->getMessage(), (int) $exception->getCode(), $exception);
     }
 }

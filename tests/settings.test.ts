@@ -2,45 +2,24 @@ import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
 type SettingsResult = {
-	registeredHooks: string[];
 	defaultReminderDays: number;
 	storedReminderDays: number;
 	blankRetentionDays: number;
-	sanitized: {
-		reminder_days: number;
-		recurrence_limit: number;
-		retention_days: number;
-	};
+	sanitized: Record< string, number >;
 	renderedTemplate: string;
-	successfulMail: {
-		result: boolean;
-		wrappedHtml: string;
-		hookRemoved: boolean;
-		globalRemoved: boolean;
-	};
-	failedMail: {
-		message: string;
-		hookRemoved: boolean;
-		globalRemoved: boolean;
-	};
-	htmlMail: {
-		charset: string;
-		plainBody: string;
-		htmlBody: string;
-		isHtml: boolean;
-	};
-	requestValues: {
-		text: string;
-		key: string;
-		invalidInt: number;
-		scalarFlag: boolean;
-		arrayFlag: boolean;
-	};
-	adminHooks: string[];
+	successfulMail: Record< string, unknown >;
+	failedMail: Record< string, unknown >;
+	htmlMail: Record< string, unknown >;
+	requestValues: Record< string, unknown >;
 };
 
 const getSettingsResult = (): SettingsResult => {
-	const settingsPath = resolve( process.cwd(), 'includes/Settings.php' );
+	const pluginSettingsPath = resolve(
+		process.cwd(),
+		'includes/Configuration/PluginSettings.php'
+	);
+	const mailerPath = resolve( process.cwd(), 'includes/Mail/Mailer.php' );
+	const requestPath = resolve( process.cwd(), 'includes/Admin/Request.php' );
 	const php = `
 		namespace PHPMailer\\PHPMailer {
 			class PHPMailer {
@@ -67,16 +46,13 @@ const getSettingsResult = (): SettingsResult => {
 			$GLOBALS['mail_should_throw'] = false;
 			$GLOBALS['mail_html'] = '';
 
-			function __( $value, $domain ) { return $value; }
 			function get_option( $key, $default = false ) {
 				return array_key_exists( $key, $GLOBALS['options'] )
 					? $GLOBALS['options'][ $key ]
 					: $default;
 			}
-			function add_action( $hook, $callback, $priority = 10, $acceptedArgs = 1 ) {
-				$GLOBALS['actions'][] = $hook;
-			}
-			function remove_action( $hook, $callback, $priority = 10 ) {
+			function add_action( $hook, $callback ) { $GLOBALS['actions'][] = $hook; }
+			function remove_action( $hook, $callback ) {
 				$GLOBALS['removed_actions'][] = $hook;
 				$key = array_search( $hook, $GLOBALS['actions'], true );
 				if ( $key !== false ) { unset( $GLOBALS['actions'][ $key ] ); }
@@ -95,34 +71,31 @@ const getSettingsResult = (): SettingsResult => {
 				return preg_replace( '/[^a-z0-9_\\-]/', '', strtolower( $value ) );
 			}
 
-			require ${ JSON.stringify( settingsPath ) };
+			require ${ JSON.stringify( pluginSettingsPath ) };
+			require ${ JSON.stringify( mailerPath ) };
+			require ${ JSON.stringify( requestPath ) };
 
-			$settings = new \\RRZE\\Appointment\\Settings();
-			$settings->register();
-			$registeredHooks = $GLOBALS['actions'];
+			$settings = \\RRZE\\Appointment\\Configuration\\PluginSettings::class;
+			$mailerClass = \\RRZE\\Appointment\\Mail\\Mailer::class;
+			$request = \\RRZE\\Appointment\\Admin\\Request::class;
 
-			$GLOBALS['options'][ \\RRZE\\Appointment\\Settings::OPTION_NAME ] = 'invalid';
-			$defaultReminderDays = \\RRZE\\Appointment\\Settings::get( 'reminder_days' );
-			$GLOBALS['options'][ \\RRZE\\Appointment\\Settings::OPTION_NAME ] = [
+			$GLOBALS['options'][ $settings::OPTION_NAME ] = 'invalid';
+			$defaultReminderDays = $settings::get( 'reminder_days' );
+			$GLOBALS['options'][ $settings::OPTION_NAME ] = [
 				'reminder_days' => 0,
 				'retention_days' => '',
 				'recurrence_limit' => 0,
 			];
-			$storedReminderDays = \\RRZE\\Appointment\\Settings::get( 'reminder_days' );
-			$blankRetentionDays = \\RRZE\\Appointment\\Settings::get( 'retention_days' );
-			$sanitized = $settings->sanitize( [ 'reminder_days' => 99, 'retention_days' => -5 ] );
-			$renderedTemplate = \\RRZE\\Appointment\\Settings::renderTemplate(
+			$storedReminderDays = $settings::get( 'reminder_days' );
+			$blankRetentionDays = $settings::get( 'retention_days' );
+			$sanitized = $settings::sanitize( [ 'reminder_days' => 99, 'retention_days' => -5 ] );
+			$renderedTemplate = $mailerClass::render(
 				'[name]|[message]|[invalid]',
 				[ '[name]' => 'Ada', '[invalid]' => [ 'ignored' ] ]
 			);
 
-			$GLOBALS['actions'] = [];
-			$GLOBALS['removed_actions'] = [];
-			$mailResult = \\RRZE\\Appointment\\Settings::sendMail(
-				'user@example.test',
-				'Subject',
-				'Plain',
-				'<p>HTML</p>'
+			$mailResult = $mailerClass::send(
+				'user@example.test', 'Subject', 'Plain', '<p>HTML</p>'
 			);
 			$successfulMail = [
 				'result' => $mailResult,
@@ -137,12 +110,7 @@ const getSettingsResult = (): SettingsResult => {
 			$GLOBALS['mail_should_throw'] = true;
 			$failureMessage = '';
 			try {
-				\\RRZE\\Appointment\\Settings::sendMail(
-					'user@example.test',
-					'Subject',
-					'Plain',
-					'<p>HTML</p>'
-				);
+				$mailerClass::send( 'user@example.test', 'Subject', 'Plain', '<p>HTML</p>' );
 			} catch ( \\RuntimeException $exception ) {
 				$failureMessage = $exception->getMessage();
 			}
@@ -154,52 +122,35 @@ const getSettingsResult = (): SettingsResult => {
 			];
 
 			$GLOBALS['rrze_appointment_html_body'] = '<p>Prepared HTML</p>';
-			$mailer = new \\PHPMailer\\PHPMailer\\PHPMailer();
-			\\RRZE\\Appointment\\Settings::addHtmlPart( $mailer );
+			$phpmailer = new \\PHPMailer\\PHPMailer\\PHPMailer();
+			$mailerClass::addHtmlPart( $phpmailer );
 			$htmlMail = [
-				'charset' => $mailer->CharSet,
-				'plainBody' => $mailer->AltBody,
-				'htmlBody' => $mailer->Body,
-				'isHtml' => $mailer->isHtml,
+				'charset' => $phpmailer->CharSet,
+				'plainBody' => $phpmailer->AltBody,
+				'htmlBody' => $phpmailer->Body,
+				'isHtml' => $phpmailer->isHtml,
 			];
 
-			$_POST = [
-				'text' => ' <b>Hello</b> ',
-				'key' => ' Hello WORLD! ',
-				'int' => [ '7' ],
-			];
+			$_POST = [ 'text' => ' <b>Hello</b> ', 'key' => ' Hello WORLD! ', 'int' => [ '7' ] ];
 			$_GET = [ 'scalar_flag' => '1', 'array_flag' => [ '1' ] ];
-			$getPostText = new \\ReflectionMethod( \\RRZE\\Appointment\\Settings::class, 'getPostText' );
-			$getPostInt = new \\ReflectionMethod( \\RRZE\\Appointment\\Settings::class, 'getPostInt' );
-			$hasQueryFlag = new \\ReflectionMethod( \\RRZE\\Appointment\\Settings::class, 'hasQueryFlag' );
-			$getAdminPageHooks = new \\ReflectionMethod(
-				\\RRZE\\Appointment\\Settings::class,
-				'getAdminPageHooks'
-			);
-			if ( PHP_VERSION_ID < 80100 ) {
-				foreach ( [ $getPostText, $getPostInt, $hasQueryFlag, $getAdminPageHooks ] as $method ) {
-					$method->setAccessible( true );
-				}
-			}
 
-			echo json_encode( [
-				'registeredHooks' => $registeredHooks,
-				'defaultReminderDays' => $defaultReminderDays,
-				'storedReminderDays' => $storedReminderDays,
-				'blankRetentionDays' => $blankRetentionDays,
-				'sanitized' => $sanitized,
-				'renderedTemplate' => $renderedTemplate,
-				'successfulMail' => $successfulMail,
-				'failedMail' => $failedMail,
-				'htmlMail' => $htmlMail,
+			echo json_encode( compact(
+				'defaultReminderDays',
+				'storedReminderDays',
+				'blankRetentionDays',
+				'sanitized',
+				'renderedTemplate',
+				'successfulMail',
+				'failedMail',
+				'htmlMail'
+			) + [
 				'requestValues' => [
-					'text' => $getPostText->invoke( null, 'text', false ),
-					'key' => $getPostText->invoke( null, 'key', true ),
-					'invalidInt' => $getPostInt->invoke( null, 'int' ),
-					'scalarFlag' => $hasQueryFlag->invoke( null, 'scalar_flag' ),
-					'arrayFlag' => $hasQueryFlag->invoke( null, 'array_flag' ),
+					'text' => $request::postText( 'text' ),
+					'key' => $request::postText( 'key', true ),
+					'invalidInt' => $request::postInt( 'int' ),
+					'scalarFlag' => $request::hasQueryFlag( 'scalar_flag' ),
+					'arrayFlag' => $request::hasQueryFlag( 'array_flag' ),
 				],
-				'adminHooks' => $getAdminPageHooks->invoke( null ),
 			] );
 		}
 	`;
@@ -209,19 +160,10 @@ const getSettingsResult = (): SettingsResult => {
 	) as SettingsResult;
 };
 
-describe( 'settings controller', () => {
-	it( 'registers its hooks and normalizes persisted settings', () => {
+describe( 'plugin configuration and mail delivery', () => {
+	it( 'normalizes persisted settings', () => {
 		const result = getSettingsResult();
 
-		expect( result.registeredHooks ).toEqual( [
-			'admin_menu',
-			'admin_init',
-			'admin_init',
-			'admin_init',
-			'admin_init',
-			'admin_print_footer_scripts',
-			'admin_enqueue_scripts',
-		] );
 		expect( result.defaultReminderDays ).toBe( 0 );
 		expect( result.storedReminderDays ).toBe( 0 );
 		expect( result.blankRetentionDays ).toBe( 30 );
@@ -232,14 +174,11 @@ describe( 'settings controller', () => {
 		} );
 	} );
 
-	it( 'renders only scalar placeholder values', () => {
-		expect( getSettingsResult().renderedTemplate ).toBe( 'Ada||' );
-	} );
-
-	it( 'cleans up temporary mail state on success and failure', () => {
+	it( 'renders scalar placeholders and cleans up multipart mail state', () => {
 		const result = getSettingsResult();
 
-		expect( result.successfulMail ).toEqual( {
+		expect( result.renderedTemplate ).toBe( 'Ada||' );
+		expect( result.successfulMail ).toMatchObject( {
 			result: true,
 			wrappedHtml: 'neutral:Subject:<p>HTML</p>',
 			hookRemoved: true,
@@ -250,27 +189,21 @@ describe( 'settings controller', () => {
 			hookRemoved: true,
 			globalRemoved: true,
 		} );
-	} );
-
-	it( 'prepares multipart mail and rejects non-scalar request values', () => {
-		const result = getSettingsResult();
-
 		expect( result.htmlMail ).toEqual( {
 			charset: 'UTF-8',
 			plainBody: 'Plain body',
 			htmlBody: '<p>Prepared HTML</p>',
 			isHtml: true,
 		} );
-		expect( result.requestValues ).toEqual( {
+	} );
+
+	it( 'rejects non-scalar admin request values', () => {
+		expect( getSettingsResult().requestValues ).toEqual( {
 			text: 'Hello',
 			key: 'helloworld',
 			invalidInt: 0,
 			scalarFlag: true,
 			arrayFlag: false,
 		} );
-		expect( result.adminHooks ).toEqual( [
-			'settings_page_rrze-appointment-settings',
-			'toplevel_page_rrze-appointment-bookings',
-		] );
 	} );
 } );

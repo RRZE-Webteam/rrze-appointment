@@ -4,8 +4,8 @@ namespace RRZE\Appointment\Presentation;
 
 use RRZE\Appointment\Booking\Bookings;
 use RRZE\Appointment\Booking\TokenManager;
-use RRZE\Appointment\Common\CustomException;
-use RRZE\Appointment\Settings;
+use RRZE\Appointment\AppointmentException;
+use RRZE\Appointment\Configuration\PluginSettings;
 
 defined('ABSPATH') || exit;
 
@@ -31,7 +31,7 @@ final class AssetManager
 
         try {
             $configuration = $this->getFrontendConfiguration();
-        } catch (CustomException $exception) {
+        } catch (AppointmentException $exception) {
             return;
         }
 
@@ -53,7 +53,7 @@ final class AssetManager
 
         try {
             $configuration = $this->getEditorConfiguration();
-        } catch (CustomException $exception) {
+        } catch (AppointmentException $exception) {
             $configuration = $this->getDefaultEditorConfiguration();
         }
 
@@ -68,7 +68,7 @@ final class AssetManager
      * Builds configuration consumed by the public booking interface.
      *
      * @return array<string, mixed>
-     * @throws CustomException If pending-slot state cannot be loaded.
+     * @throws AppointmentException If pending-slot state cannot be loaded.
      */
     private function getFrontendConfiguration(): array
     {
@@ -97,7 +97,7 @@ final class AssetManager
                 'available' => $this->isFaudirAvailable(),
                 'personsPath' => self::PERSONS_REST_PATH,
             ],
-            'recurrenceLimit' => (int) Settings::get('recurrence_limit'),
+            'recurrenceLimit' => (int) PluginSettings::get('recurrence_limit'),
             'editorI18n' => $this->getEditorTranslations(),
         ];
     }

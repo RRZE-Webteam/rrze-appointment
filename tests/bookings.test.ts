@@ -17,8 +17,8 @@ const runBookingsScenario = (): BookingsResult => {
 		'includes/Booking/Bookings.php'
 	);
 	const php = `
-		namespace RRZE\\Appointment\\Common {
-			class CustomException extends \\Exception {}
+		namespace RRZE\\Appointment {
+			class AppointmentException extends \\Exception {}
 		}
 		namespace RRZE\\Appointment\\Notification {
 			class Reminder {

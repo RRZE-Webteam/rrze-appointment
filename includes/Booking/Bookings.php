@@ -2,11 +2,11 @@
 
 namespace RRZE\Appointment\Booking;
 
-use RRZE\Appointment\Common\CustomException;
+use RRZE\Appointment\AppointmentException;
 use RRZE\Appointment\Mail\MailTemplate;
 use RRZE\Appointment\Mail\MailTemplatePost;
+use RRZE\Appointment\Mail\Mailer;
 use RRZE\Appointment\Notification\Reminder;
-use RRZE\Appointment\Settings;
 
 defined('ABSPATH') || exit;
 
@@ -39,7 +39,7 @@ final class Bookings
      * and waitlist notifications.
      *
      * @return int Number of removed slots.
-     * @throws CustomException When persisted booking data cannot be processed.
+     * @throws AppointmentException When persisted booking data cannot be processed.
      */
     public static function cleanupExpired(int $retentionDays): int
     {
@@ -81,7 +81,7 @@ final class Bookings
      *     booker_email: mixed,
      *     tpl_id: int
      * }>
-     * @throws CustomException When persisted booking data cannot be processed.
+     * @throws AppointmentException When persisted booking data cannot be processed.
      */
     public static function getAll(array $filter = []): array
     {
@@ -115,7 +115,7 @@ final class Bookings
      * Cancels a booking and notifies the booker, host, and eligible waitlist.
      *
      * @return bool False when the requested slot is not booked.
-     * @throws CustomException When the cancellation cannot be completed.
+     * @throws AppointmentException When the cancellation cannot be completed.
      */
     public static function cancel(string $slot): bool
     {
@@ -266,7 +266,7 @@ final class Bookings
      * Returns the hosts referenced by bookings, sorted by display name.
      *
      * @return array<int, string> Person names keyed by post ID.
-     * @throws CustomException When persisted booking data cannot be processed.
+     * @throws AppointmentException When persisted booking data cannot be processed.
      */
     public static function getPersonsFromBookings(): array
     {
@@ -759,11 +759,11 @@ final class Bookings
         array $variables,
         string $status = MailTemplate::STATUS_NEUTRAL
     ): bool {
-        $subject = Settings::renderTemplate($template['subject'], $variables);
-        $plain = Settings::renderTemplate($template['body'], $variables);
-        $html = Settings::renderTemplate($template['body_html'], $variables);
+        $subject = Mailer::render($template['subject'], $variables);
+        $plain = Mailer::render($template['body'], $variables);
+        $html = Mailer::render($template['body_html'], $variables);
 
-        return Settings::sendMail($recipient, $subject, $plain, $html, [], $status);
+        return Mailer::send($recipient, $subject, $plain, $html, [], $status);
     }
 
     /**
@@ -908,8 +908,8 @@ final class Bookings
     /**
      * Converts internal exceptions to the plugin's public exception type.
      */
-    private static function createException(\Exception $exception): CustomException
+    private static function createException(\Exception $exception): AppointmentException
     {
-        return new CustomException($exception->getMessage(), $exception->getCode(), null);
+        return new AppointmentException($exception->getMessage(), $exception->getCode(), $exception);
     }
 }

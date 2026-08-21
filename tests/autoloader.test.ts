@@ -11,6 +11,8 @@ describe( 'plugin autoloader', () => {
 			require ${ JSON.stringify( pluginPath ) };
 
 			$pairs = [
+				[ 'RRZE\\Appointment\\Common\\CustomException', 'RRZE\\Appointment\\AppointmentException' ],
+				[ 'RRZE\\Appointment\\Common\\Plugin\\Plugin', 'RRZE\\Appointment\\Plugin' ],
 				[ 'RRZE\\Appointment\\AppointmentBlock', 'RRZE\\Appointment\\Booking\\AppointmentBlock' ],
 				[ 'RRZE\\Appointment\\AssetManager', 'RRZE\\Appointment\\Presentation\\AssetManager' ],
 				[ 'RRZE\\Appointment\\BookingOpeningController', 'RRZE\\Appointment\\Controller\\BookingOpeningController' ],
@@ -42,6 +44,6 @@ describe( 'plugin autoloader', () => {
 			execFileSync( 'php', [ '-r', php ], { encoding: 'utf8' } )
 		) as boolean[];
 
-		expect( result ).toEqual( Array( 17 ).fill( true ) );
+		expect( result ).toEqual( Array( 19 ).fill( true ) );
 	} );
 } );
