@@ -14,21 +14,18 @@ describe( 'reminder mail design', () => {
 		);
 		expect( reminder ).toContain( 'Settings::sendMail(' );
 		expect( reminder ).toContain(
-			"MailTemplate::statusForType('reminder_admin')"
-		);
-		expect( reminder ).toContain(
-			"MailTemplate::statusForType('reminder_booker')"
+			'MailTemplate::statusForType($templateType)'
 		);
 	} );
 
 	it( 'renders host and booker reminder templates independently', () => {
 		expect( reminder ).toContain(
-			"$this->resolveTemplate($tplId, 'reminder_admin')"
+			'$this->resolveTemplate($templateId, self::ADMIN_TEMPLATE_TYPE)'
 		);
 		expect( reminder ).toContain(
-			"$this->resolveTemplate($tplId, 'reminder_booker')"
+			'$this->resolveTemplate($templateId, self::BOOKER_TEMPLATE_TYPE)'
 		);
-		expect( reminder ).toContain( "$adminMail['subject']" );
-		expect( reminder ).toContain( "$bookerMail['subject']" );
+		expect( reminder ).toContain( '$adminMail = $this->renderMail(' );
+		expect( reminder ).toContain( '$bookerMail = $this->renderMail(' );
 	} );
 } );
