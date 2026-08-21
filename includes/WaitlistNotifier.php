@@ -9,65 +9,67 @@ defined('ABSPATH') || exit;
  */
 final class WaitlistNotifier
 {
+    private const APPOINTMENT_BLOCK = 'rrze/appointment';
+    private const PUBLISHED_STATUS = 'publish';
+    private const SLOT_PATTERN = '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}-\d{2}:\d{2}$/';
+
     /**
      * Compares the previous and current appointment blocks after a post update.
+     *
+     * Notification failures are non-critical and must not interrupt post saves.
      */
     public function handlePostUpdated(int $postId, \WP_Post $postAfter, \WP_Post $postBefore): void
     {
         if (wp_is_post_revision($postId) || wp_is_post_autosave($postId)) {
             return;
         }
-        if ($postAfter->post_status !== 'publish' || !has_blocks($postAfter->post_content)) {
+        if (
+            $postAfter->post_status !== self::PUBLISHED_STATUS
+            || !has_blocks($postAfter->post_content)
+        ) {
             return;
         }
 
-        $today = current_time('Y-m-d');
-        $allMeta = (array) get_option(Bookings::META_OPTION, []);
-        $bookedSet = array_flip((array) get_option(Bookings::SLOTS_OPTION, []));
-        $waitlisted = $this->getWaitlistedBookings($allMeta, $today);
-        if ($waitlisted === []) {
-            return;
-        }
-
-        $previousSlotsByPerson = [];
-        if ($postBefore->post_status === 'publish' && has_blocks($postBefore->post_content)) {
-            $previousSlotsByPerson = $this->collectAppointmentSlots($postBefore->post_content);
-        }
-        $currentSlotsByPerson = $this->collectAppointmentSlots($postAfter->post_content);
-
-        foreach ($waitlisted as $personId => $entries) {
-            if (empty($currentSlotsByPerson[$personId])) {
-                continue;
+        try {
+            $today = (string) current_time('Y-m-d');
+            $waitlisted = $this->getWaitlistedBookings(
+                $this->getOptionArray(Bookings::META_OPTION),
+                $today
+            );
+            if ($waitlisted === []) {
+                return;
             }
 
-            $addedSlots = array_diff_key(
-                $currentSlotsByPerson[$personId],
-                $previousSlotsByPerson[$personId] ?? []
-            );
-            $addedSlots = array_filter(
-                $addedSlots,
-                static fn($attributes, $slot): bool => !isset($bookedSet[$slot])
-                    && explode(' ', $slot)[0] >= $today,
-                ARRAY_FILTER_USE_BOTH
-            );
+            $previousSlotsByPerson = [];
+            if (
+                $postBefore->post_status === self::PUBLISHED_STATUS
+                && has_blocks($postBefore->post_content)
+            ) {
+                $previousSlotsByPerson = $this->collectAppointmentSlots($postBefore->post_content);
+            }
+            $currentSlotsByPerson = $this->collectAppointmentSlots($postAfter->post_content);
+            $bookedSlots = $this->getBookedSlotSet();
 
-            foreach ($entries as $entry) {
-                $earlierSlots = array_filter(
-                    array_keys($addedSlots),
-                    static fn($slot): bool => $slot < $entry['slot']
-                );
-                if ($earlierSlots === []) {
+            foreach ($waitlisted as $personId => $entries) {
+                $currentSlots = $currentSlotsByPerson[$personId] ?? [];
+                if ($currentSlots === []) {
                     continue;
                 }
 
-                $earliest = (string) min($earlierSlots);
-                Bookings::sendWaitlistNotificationStatic(
-                    $earliest,
-                    $addedSlots[$earliest],
-                    $entry['slot'],
-                    $entry['meta']
+                $addedSlots = $this->getAddedAvailableSlots(
+                    $currentSlots,
+                    $previousSlotsByPerson[$personId] ?? [],
+                    $bookedSlots,
+                    $today
                 );
+                if ($addedSlots === []) {
+                    continue;
+                }
+
+                $this->notifyWaitlistedBookings($entries, $addedSlots);
             }
+        } catch (\Throwable $exception) {
+            // Waitlist notifications are ancillary to the completed post save.
         }
     }
 
@@ -81,15 +83,24 @@ final class WaitlistNotifier
     {
         $waitlisted = [];
         foreach ($allMeta as $slot => $meta) {
-            if (empty($meta['booker_waitlist'])) {
+            if (
+                !is_string($slot)
+                || !is_array($meta)
+                || !$this->isValidSlot($slot)
+                || empty($meta['booker_waitlist'])
+            ) {
                 continue;
             }
-            $date = explode(' ', $slot)[0] ?? '';
-            if ($date < $today) {
+
+            if ($this->getSlotDate($slot) < $today) {
                 continue;
             }
 
             $personId = (int) ($meta['person_id'] ?? 0);
+            if ($personId <= 0) {
+                continue;
+            }
+
             $waitlisted[$personId][] = ['slot' => $slot, 'meta' => $meta];
         }
 
@@ -104,7 +115,11 @@ final class WaitlistNotifier
     private function collectAppointmentSlots(string $postContent): array
     {
         $slotsByPerson = [];
-        $this->collectAppointmentSlotsFromBlocks(parse_blocks($postContent), $slotsByPerson);
+        $blocks = parse_blocks($postContent);
+        if (is_array($blocks)) {
+            $this->collectAppointmentSlotsFromBlocks($blocks, $slotsByPerson);
+        }
+
         return $slotsByPerson;
     }
 
@@ -117,11 +132,25 @@ final class WaitlistNotifier
     private function collectAppointmentSlotsFromBlocks(array $blocks, array &$slotsByPerson): void
     {
         foreach ($blocks as $block) {
-            if (($block['blockName'] ?? '') === 'rrze/appointment') {
-                $attributes = $block['attrs'] ?? [];
+            if (!is_array($block)) {
+                continue;
+            }
+
+            if (($block['blockName'] ?? '') === self::APPOINTMENT_BLOCK) {
+                $attributes = is_array($block['attrs'] ?? null) ? $block['attrs'] : [];
                 $personId = (int) ($attributes['personId'] ?? 0);
-                foreach (SlotGenerator::fromAttributes($attributes) as $slot) {
-                    $slotsByPerson[$personId][$slot] = $attributes;
+                if ($personId > 0) {
+                    try {
+                        $generatedSlots = SlotGenerator::fromAttributes($attributes);
+                    } catch (\Throwable $exception) {
+                        $generatedSlots = [];
+                    }
+
+                    foreach ($generatedSlots as $slot) {
+                        if (is_string($slot) && $this->isValidSlot($slot)) {
+                            $slotsByPerson[$personId][$slot] = $attributes;
+                        }
+                    }
                 }
             }
 
@@ -129,5 +158,117 @@ final class WaitlistNotifier
                 $this->collectAppointmentSlotsFromBlocks($block['innerBlocks'], $slotsByPerson);
             }
         }
+    }
+
+    /**
+     * Returns newly introduced, unbooked, non-past slots.
+     *
+     * @param array<string, array<string, mixed>> $currentSlots
+     * @param array<string, array<string, mixed>> $previousSlots
+     * @param array<string, true>                 $bookedSlots
+     * @return array<string, array<string, mixed>>
+     */
+    private function getAddedAvailableSlots(
+        array $currentSlots,
+        array $previousSlots,
+        array $bookedSlots,
+        string $today
+    ): array {
+        $availableSlots = [];
+        foreach (array_diff_key($currentSlots, $previousSlots) as $slot => $attributes) {
+            if (!isset($bookedSlots[$slot]) && $this->getSlotDate($slot) >= $today) {
+                $availableSlots[$slot] = $attributes;
+            }
+        }
+
+        return $availableSlots;
+    }
+
+    /**
+     * Sends each waitlisted booking the earliest newly available earlier slot.
+     *
+     * @param array<int, array{slot: string, meta: array<string, mixed>}> $entries
+     * @param array<string, array<string, mixed>>                         $addedSlots
+     */
+    private function notifyWaitlistedBookings(array $entries, array $addedSlots): void
+    {
+        foreach ($entries as $entry) {
+            $earliestSlot = $this->findEarliestSlotBefore(array_keys($addedSlots), $entry['slot']);
+            if ($earliestSlot === null) {
+                continue;
+            }
+
+            try {
+                Bookings::sendWaitlistNotificationStatic(
+                    $earliestSlot,
+                    $addedSlots[$earliestSlot],
+                    $entry['slot'],
+                    $entry['meta']
+                );
+            } catch (\Throwable $exception) {
+                // One failed email must not prevent other waitlist notifications.
+            }
+        }
+    }
+
+    /**
+     * Finds the earliest candidate that sorts before an existing booking.
+     *
+     * @param array<int, string> $slots
+     */
+    private function findEarliestSlotBefore(array $slots, string $bookedSlot): ?string
+    {
+        $earliestSlot = null;
+        foreach ($slots as $slot) {
+            if ($slot < $bookedSlot && ($earliestSlot === null || $slot < $earliestSlot)) {
+                $earliestSlot = $slot;
+            }
+        }
+
+        return $earliestSlot;
+    }
+
+    /**
+     * Returns confirmed slot identifiers as a lookup set.
+     *
+     * @return array<string, true>
+     */
+    private function getBookedSlotSet(): array
+    {
+        $bookedSlots = [];
+        foreach ($this->getOptionArray(Bookings::SLOTS_OPTION) as $slot) {
+            if (is_string($slot) && $this->isValidSlot($slot)) {
+                $bookedSlots[$slot] = true;
+            }
+        }
+
+        return $bookedSlots;
+    }
+
+    /**
+     * Reads an array-valued option without coercing corrupt scalar data.
+     *
+     * @return array<mixed>
+     */
+    private function getOptionArray(string $optionName): array
+    {
+        $value = get_option($optionName, []);
+        return is_array($value) ? $value : [];
+    }
+
+    /**
+     * Determines whether a slot uses the sortable persisted format.
+     */
+    private function isValidSlot(string $slot): bool
+    {
+        return preg_match(self::SLOT_PATTERN, $slot) === 1;
+    }
+
+    /**
+     * Extracts the ISO date prefix from a validated slot.
+     */
+    private function getSlotDate(string $slot): string
+    {
+        return substr($slot, 0, 10);
     }
 }
