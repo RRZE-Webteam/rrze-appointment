@@ -12,32 +12,32 @@ defined('ABSPATH') || exit;
  */
 final class SsoController
 {
+    private const PERMISSIONS_CLASS = '\\RRZE\\AccessControl\\Permissions';
+    private const LOGIN_FLAG = 'rrze_appt_sso';
+    private const RETURN_URL_PARAMETER = 'rrze_appt_return';
+    private const REQUEST_RETURN_URL_PARAMETER = 'returnTo';
+
     /**
      * Returns the authenticated booking identity or a login URL.
      *
      * Supports both the REST endpoint and the legacy AJAX action.
      *
      * @param mixed $request REST request for REST callbacks; null for AJAX.
-     * @return WP_REST_Response|void
+     * @return WP_REST_Response|null
      */
-    public function handleBookerRequest($request = null)
+    public function handleBookerRequest($request = null): ?WP_REST_Response
     {
         $isRestRequest = $request instanceof WP_REST_Request;
 
         try {
-            $requestReturnTo = $this->getReturnUrl($request, $isRestRequest);
-            $redirectUrl = wp_validate_redirect($requestReturnTo, wp_get_referer() ?: home_url('/'));
-            $loginUrl = add_query_arg([
-                'rrze_appt_sso' => '1',
-                'rrze_appt_return' => $redirectUrl,
-            ], home_url('/'));
+            $loginUrl = $this->buildLoginUrl($this->getReturnUrl($request));
 
-            if (!class_exists('\RRZE\AccessControl\Permissions')) {
+            if (!class_exists(self::PERMISSIONS_CLASS)) {
                 return $this->sendResponse([
                     'needsLogin' => true,
                     'loginUrl' => $loginUrl,
                     'data' => null,
-                    'error' => 'AccessControl not available',
+                    'error' => __('SSO is not available.', 'rrze-appointment'),
                 ], $isRestRequest, false);
             }
 
@@ -53,10 +53,7 @@ final class SsoController
             return $this->sendResponse([
                 'needsLogin' => false,
                 'loginUrl' => '',
-                'data' => [
-                    'bookerEmail' => $serverBooker['bookerEmail'] ?? '',
-                    'bookerName' => $serverBooker['bookerName'] ?? '',
-                ],
+                'data' => $this->normalizeBooker($serverBooker),
             ], $isRestRequest, true);
         } catch (\Throwable $exception) {
             return $this->sendResponse([
@@ -73,88 +70,143 @@ final class SsoController
      */
     public function handleLogin(): void
     {
-        if (empty($_GET['rrze_appt_sso'])) {
+        if (self::getQueryString(self::LOGIN_FLAG) !== '1') {
             return;
         }
 
-        $returnToParameter = isset($_GET['rrze_appt_return'])
-            ? wp_unslash($_GET['rrze_appt_return'])
-            : '';
-        $returnTo = $returnToParameter ?: remove_query_arg(['rrze_appt_sso', 'rrze_appt_return']);
-        $returnTo = wp_validate_redirect($returnTo, home_url('/'));
+        $returnTo = $this->getLoginReturnUrl();
 
-        if (!class_exists('\RRZE\AccessControl\Permissions')) {
-            wp_die(esc_html__('SSO is not available.', 'rrze-appointment'), '', ['response' => 500]);
+        if (!class_exists(self::PERMISSIONS_CLASS)) {
+            $this->abortLogin(__('SSO is not available.', 'rrze-appointment'));
+            return;
         }
 
         try {
-            $permissions = new \RRZE\AccessControl\Permissions();
-            if ($this->isLoggedIn($permissions)) {
-                wp_safe_redirect($returnTo);
-                exit;
+            $permissionsClass = self::PERMISSIONS_CLASS;
+            $permissions = new $permissionsClass();
+            if (!$this->startAuthentication($permissions, $returnTo)) {
+                $this->abortLogin(__('SSO is not available.', 'rrze-appointment'));
+                return;
             }
 
-            $auth = method_exists($permissions, 'simplesamlAuth')
-                ? $permissions->simplesamlAuth()
-                : null;
-            if (is_object($auth)) {
-                if (method_exists($auth, 'isAuthenticated') && $auth->isAuthenticated()) {
-                    wp_safe_redirect($returnTo);
-                    exit;
-                }
-                if (method_exists($auth, 'requireAuth')) {
-                    $auth->requireAuth(['ReturnTo' => $returnTo, 'KeepPost' => false]);
-                    wp_safe_redirect($returnTo);
-                    exit;
-                }
-            }
-
-            if (method_exists($permissions, 'checkSSOLoggedIn')) {
-                $permissions->checkSSOLoggedIn();
-                wp_safe_redirect($returnTo);
-                exit;
-            }
-
-            wp_die(esc_html__('SSO is not available.', 'rrze-appointment'), '', ['response' => 500]);
+            $this->redirect($returnTo);
         } catch (\Throwable $exception) {
-            wp_die(esc_html__('SSO login failed.', 'rrze-appointment'), '', ['response' => 500]);
+            $this->abortLogin(__('SSO login failed.', 'rrze-appointment'));
         }
     }
 
     /**
-     * Reads and sanitizes the caller's desired post-login return URL.
-     *
-     * @param mixed $request       REST request or null.
-     * @param bool  $isRestRequest Whether the caller is the REST endpoint.
+     * Builds the explicit login URL for the public booking dialog.
      */
-    private function getReturnUrl($request, bool $isRestRequest): string
+    private function buildLoginUrl(string $requestedReturnUrl): string
     {
-        if ($isRestRequest) {
-            return (string) ($request->get_param('returnTo') ?? '');
+        $homeUrl = home_url('/');
+        $referer = wp_get_referer();
+        $fallbackUrl = is_string($referer) && $referer !== ''
+            ? wp_validate_redirect($referer, $homeUrl)
+            : $homeUrl;
+        $returnUrl = wp_validate_redirect($requestedReturnUrl, $fallbackUrl);
+
+        return add_query_arg([
+            self::LOGIN_FLAG => '1',
+            self::RETURN_URL_PARAMETER => $returnUrl,
+        ], $homeUrl);
+    }
+
+    /**
+     * Reads the caller's desired post-login return URL.
+     *
+     * @param mixed $request REST request or null.
+     */
+    private function getReturnUrl($request): string
+    {
+        if ($request instanceof WP_REST_Request) {
+            return self::normalizeString($request->get_param(self::REQUEST_RETURN_URL_PARAMETER));
         }
 
-        return isset($_POST['returnTo'])
-            ? sanitize_text_field(wp_unslash($_POST['returnTo']))
-            : '';
+        return self::getRequestString($_POST, self::REQUEST_RETURN_URL_PARAMETER);
+    }
+
+    /**
+     * Returns a validated destination after the explicit SSO flow.
+     */
+    private function getLoginReturnUrl(): string
+    {
+        $requestedReturnUrl = self::getQueryString(self::RETURN_URL_PARAMETER);
+        if ($requestedReturnUrl === '') {
+            $currentUrl = remove_query_arg([self::LOGIN_FLAG, self::RETURN_URL_PARAMETER]);
+            $requestedReturnUrl = is_string($currentUrl) ? $currentUrl : '';
+        }
+
+        return wp_validate_redirect($requestedReturnUrl, home_url('/'));
+    }
+
+    /**
+     * Normalizes the authenticated identity returned by AccessControl.
+     *
+     * @param array<string, mixed> $booker Passive SSO identity.
+     * @return array{bookerEmail: string, bookerName: string}
+     */
+    private function normalizeBooker(array $booker): array
+    {
+        return [
+            'bookerEmail' => sanitize_email(self::normalizeString($booker['bookerEmail'] ?? '')),
+            'bookerName' => sanitize_text_field(self::normalizeString($booker['bookerName'] ?? '')),
+        ];
     }
 
     /**
      * Sends a response in the format expected by REST or legacy AJAX clients.
      *
      * @param array<string, mixed> $response Response payload.
-     * @return WP_REST_Response|void
+     * @return WP_REST_Response|null
      */
-    private function sendResponse(array $response, bool $isRestRequest, bool $success)
-    {
+    private function sendResponse(
+        array $response,
+        bool $isRestRequest,
+        bool $success
+    ): ?WP_REST_Response {
         if ($isRestRequest) {
             return new WP_REST_Response($response, 200);
         }
 
         if ($success) {
             wp_send_json_success($response['data']);
+            return null;
         }
 
         wp_send_json_error($response);
+        return null;
+    }
+
+    /**
+     * Starts or resumes authentication through supported AccessControl APIs.
+     */
+    private function startAuthentication(object $permissions, string $returnTo): bool
+    {
+        if ($this->isLoggedIn($permissions)) {
+            return true;
+        }
+
+        $auth = method_exists($permissions, 'simplesamlAuth')
+            ? $permissions->simplesamlAuth()
+            : null;
+        if (is_object($auth)) {
+            if (method_exists($auth, 'isAuthenticated') && $auth->isAuthenticated()) {
+                return true;
+            }
+            if (method_exists($auth, 'requireAuth')) {
+                $auth->requireAuth(['ReturnTo' => $returnTo, 'KeepPost' => false]);
+                return true;
+            }
+        }
+
+        if (!method_exists($permissions, 'checkSSOLoggedIn')) {
+            return false;
+        }
+
+        $permissions->checkSSOLoggedIn();
+        return true;
     }
 
     /**
@@ -171,5 +223,50 @@ final class SsoController
         } catch (\Throwable $exception) {
             return false;
         }
+    }
+
+    /**
+     * Redirects to a validated local URL and stops request processing.
+     */
+    private function redirect(string $url): void
+    {
+        wp_safe_redirect($url);
+        exit;
+    }
+
+    /**
+     * Stops an explicit login request with a generic public error.
+     */
+    private function abortLogin(string $message): void
+    {
+        wp_die(esc_html($message), '', ['response' => 500]);
+    }
+
+    /**
+     * Reads a string from an HTTP request collection.
+     *
+     * @param array<string, mixed> $source Request values.
+     */
+    private static function getRequestString(array $source, string $key): string
+    {
+        return self::normalizeString(wp_unslash($source[$key] ?? ''));
+    }
+
+    /**
+     * Reads a string query parameter.
+     */
+    private static function getQueryString(string $key): string
+    {
+        return self::getRequestString($_GET, $key);
+    }
+
+    /**
+     * Converts scalar request data to a string and rejects nested values.
+     *
+     * @param mixed $value Request or integration value.
+     */
+    private static function normalizeString($value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
     }
 }
