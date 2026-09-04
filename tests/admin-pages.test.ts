@@ -77,4 +77,14 @@ describe( 'focused administration pages', () => {
 		);
 		expect( page ).toContain( 'Bookings::cancel($slot, $reason);' );
 	} );
+
+	it( 'registers a switch for the cancellation-reason field', () => {
+		const settings = readFileSync(
+			resolve( process.cwd(), 'includes/Admin/SettingsPage.php' ),
+			'utf8'
+		);
+
+		expect( settings ).toContain( "'cancellation_reason_enabled'" );
+		expect( settings ).toContain( 'renderCancellationReasonField' );
+	} );
 } );

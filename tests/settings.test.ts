@@ -5,7 +5,9 @@ type SettingsResult = {
 	defaultReminderDays: number;
 	storedReminderDays: number;
 	blankRetentionDays: number;
-	sanitized: Record< string, number >;
+	defaultCancellationReasonEnabled: boolean;
+	sanitized: Record< string, number | boolean >;
+	sanitizedEnabled: Record< string, number | boolean >;
 	renderedTemplate: string;
 	successfulMail: Record< string, unknown >;
 	failedMail: Record< string, unknown >;
@@ -81,6 +83,7 @@ const getSettingsResult = (): SettingsResult => {
 
 			$GLOBALS['options'][ $settings::OPTION_NAME ] = 'invalid';
 			$defaultReminderDays = $settings::get( 'reminder_days' );
+			$defaultCancellationReasonEnabled = $settings::get( 'cancellation_reason_enabled' );
 			$GLOBALS['options'][ $settings::OPTION_NAME ] = [
 				'reminder_days' => 0,
 				'retention_days' => '',
@@ -89,6 +92,9 @@ const getSettingsResult = (): SettingsResult => {
 			$storedReminderDays = $settings::get( 'reminder_days' );
 			$blankRetentionDays = $settings::get( 'retention_days' );
 			$sanitized = $settings::sanitize( [ 'reminder_days' => 99, 'retention_days' => -5 ] );
+			$sanitizedEnabled = $settings::sanitize( [
+				'cancellation_reason_enabled' => '1',
+			] );
 			$renderedTemplate = $mailerClass::render(
 				'[name]|[message]|[invalid]',
 				[ '[name]' => 'Ada', '[invalid]' => [ 'ignored' ] ]
@@ -138,7 +144,9 @@ const getSettingsResult = (): SettingsResult => {
 				'defaultReminderDays',
 				'storedReminderDays',
 				'blankRetentionDays',
+				'defaultCancellationReasonEnabled',
 				'sanitized',
+				'sanitizedEnabled',
 				'renderedTemplate',
 				'successfulMail',
 				'failedMail',
@@ -167,11 +175,16 @@ describe( 'plugin configuration and mail delivery', () => {
 		expect( result.defaultReminderDays ).toBe( 0 );
 		expect( result.storedReminderDays ).toBe( 0 );
 		expect( result.blankRetentionDays ).toBe( 30 );
+		expect( result.defaultCancellationReasonEnabled ).toBe( true );
 		expect( result.sanitized ).toEqual( {
 			reminder_days: 7,
 			recurrence_limit: 1,
 			retention_days: 0,
+			cancellation_reason_enabled: false,
 		} );
+		expect( result.sanitizedEnabled.cancellation_reason_enabled ).toBe(
+			true
+		);
 	} );
 
 	it( 'renders scalar placeholders and cleans up multipart mail state', () => {

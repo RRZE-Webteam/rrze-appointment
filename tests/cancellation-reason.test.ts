@@ -10,6 +10,7 @@ type SentMail = {
 type CancellationReasonResult = {
 	withReason: SentMail[];
 	withoutReason: SentMail[];
+	disabledReason: SentMail[];
 };
 
 const getCancellationReasonResult = (): CancellationReasonResult => {
@@ -23,6 +24,14 @@ const getCancellationReasonResult = (): CancellationReasonResult => {
 		}
 		namespace RRZE\\Appointment\\Notification {
 			class Reminder { public const CRON_HOOK = 'reminder'; }
+		}
+		namespace RRZE\\Appointment\\Configuration {
+			class PluginSettings {
+				public static bool $cancellationReasonEnabled = true;
+				public static function get( string $key ): bool {
+					return self::$cancellationReasonEnabled;
+				}
+			}
 		}
 		namespace RRZE\\Appointment\\Booking {
 			class TokenManager {
@@ -103,9 +112,19 @@ const getCancellationReasonResult = (): CancellationReasonResult => {
 			$withReason = \\RRZE\\Appointment\\Mail\\Mailer::$mails;
 			\\RRZE\\Appointment\\Mail\\Mailer::$mails = [];
 			$method->invoke( null, '2026-09-10 10:00-10:30', $meta, '   ' );
+			$withoutReason = \\RRZE\\Appointment\\Mail\\Mailer::$mails;
+			\\RRZE\\Appointment\\Mail\\Mailer::$mails = [];
+			\\RRZE\\Appointment\\Configuration\\PluginSettings::$cancellationReasonEnabled = false;
+			$method->invoke(
+				null,
+				'2026-09-10 10:00-10:30',
+				$meta,
+				'Injected reason'
+			);
 			echo json_encode( [
 				'withReason' => $withReason,
-				'withoutReason' => \\RRZE\\Appointment\\Mail\\Mailer::$mails,
+				'withoutReason' => $withoutReason,
+				'disabledReason' => \\RRZE\\Appointment\\Mail\\Mailer::$mails,
 			] );
 		}
 	`;
@@ -139,6 +158,13 @@ describe( 'cancellation reason emails', () => {
 		for ( const mail of getCancellationReasonResult().withoutReason ) {
 			expect( mail.plain ).not.toContain( 'Reason for cancellation' );
 			expect( mail.html ).not.toContain( 'Reason for cancellation' );
+		}
+	} );
+
+	it( 'ignores submitted reasons when the setting is disabled', () => {
+		for ( const mail of getCancellationReasonResult().disabledReason ) {
+			expect( mail.plain ).not.toContain( 'Injected reason' );
+			expect( mail.html ).not.toContain( 'Injected reason' );
 		}
 	} );
 } );

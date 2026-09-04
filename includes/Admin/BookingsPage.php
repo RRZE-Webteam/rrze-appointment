@@ -3,6 +3,7 @@
 namespace RRZE\Appointment\Admin;
 
 use RRZE\Appointment\Booking\Bookings;
+use RRZE\Appointment\Configuration\PluginSettings;
 use function RRZE\Appointment\plugin;
 
 defined('ABSPATH') || exit;
@@ -113,6 +114,7 @@ final class BookingsPage
         ]);
         $bookings = Bookings::getAll($filterArgs);
         $persons = Bookings::getPersonsFromBookings();
+        $cancellationReasonEnabled = (bool) PluginSettings::get('cancellation_reason_enabled');
         $baseUrl = add_query_arg(['page' => self::PAGE_SLUG], admin_url('admin.php'));
         ?>
         <form method="get" action="" style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
@@ -184,32 +186,47 @@ final class BookingsPage
                         <td><?php echo esc_html($b['booker_name']); ?></td>
                         <td><?php echo esc_html($b['booker_email']); ?></td>
                         <td>
-                            <details class="rrze-appt-cancellation">
-                                <summary class="button button-small">
-                                    <?php esc_html_e('Cancel booking', 'rrze-appointment'); ?>
-                                </summary>
-                                <form method="post" action="" class="rrze-appt-cancellation__form">
+                            <?php if ($cancellationReasonEnabled) : ?>
+                                <details class="rrze-appt-cancellation">
+                                    <summary class="button button-small">
+                                        <?php esc_html_e('Cancel booking', 'rrze-appointment'); ?>
+                                    </summary>
+                                    <form method="post" action="" class="rrze-appt-cancellation__form">
+                                        <?php wp_nonce_field('rrze_appt_cancel', 'rrze_appt_cancel_nonce'); ?>
+                                        <input type="hidden" name="rrze_appt_action" value="cancel">
+                                        <input type="hidden" name="cancel_slot" value="<?php echo esc_attr($b['slot']); ?>">
+                                        <label for="rrze-appt-cancellation-reason-<?php echo esc_attr(md5($b['slot'])); ?>">
+                                            <?php esc_html_e('Reason for cancellation', 'rrze-appointment'); ?>
+                                            <span class="description"><?php esc_html_e('(optional)', 'rrze-appointment'); ?></span>
+                                        </label>
+                                        <textarea
+                                            id="rrze-appt-cancellation-reason-<?php echo esc_attr(md5($b['slot'])); ?>"
+                                            name="cancellation_reason"
+                                            rows="3"
+                                            maxlength="<?php echo esc_attr(Bookings::MAX_CANCELLATION_REASON_LENGTH); ?>"
+                                        ></textarea>
+                                        <p class="description">
+                                            <?php esc_html_e('This reason will be included in the cancellation email.', 'rrze-appointment'); ?>
+                                        </p>
+                                        <button type="submit" class="button button-small button-link-delete">
+                                            <?php esc_html_e('Cancel booking', 'rrze-appointment'); ?>
+                                        </button>
+                                    </form>
+                                </details>
+                            <?php else : ?>
+                                <form method="post" action="" style="display:inline;">
                                     <?php wp_nonce_field('rrze_appt_cancel', 'rrze_appt_cancel_nonce'); ?>
                                     <input type="hidden" name="rrze_appt_action" value="cancel">
                                     <input type="hidden" name="cancel_slot" value="<?php echo esc_attr($b['slot']); ?>">
-                                    <label for="rrze-appt-cancellation-reason-<?php echo esc_attr(md5($b['slot'])); ?>">
-                                        <?php esc_html_e('Reason for cancellation', 'rrze-appointment'); ?>
-                                        <span class="description"><?php esc_html_e('(optional)', 'rrze-appointment'); ?></span>
-                                    </label>
-                                    <textarea
-                                        id="rrze-appt-cancellation-reason-<?php echo esc_attr(md5($b['slot'])); ?>"
-                                        name="cancellation_reason"
-                                        rows="3"
-                                        maxlength="<?php echo esc_attr(Bookings::MAX_CANCELLATION_REASON_LENGTH); ?>"
-                                    ></textarea>
-                                    <p class="description">
-                                        <?php esc_html_e('This reason will be included in the cancellation email.', 'rrze-appointment'); ?>
-                                    </p>
-                                    <button type="submit" class="button button-small button-link-delete">
+                                    <button
+                                        type="submit"
+                                        class="button button-small"
+                                        onclick="return confirm('<?php esc_attr_e('Really cancel this booking?', 'rrze-appointment'); ?>')"
+                                    >
                                         <?php esc_html_e('Cancel booking', 'rrze-appointment'); ?>
                                     </button>
                                 </form>
-                            </details>
+                            <?php endif; ?>
                         </td>
                     </tr>
                     <?php endforeach; ?>

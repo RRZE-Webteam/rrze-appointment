@@ -4,6 +4,7 @@ namespace RRZE\Appointment\Controller;
 
 use RRZE\Appointment\Booking\Bookings;
 use RRZE\Appointment\Booking\TokenManager;
+use RRZE\Appointment\Configuration\PluginSettings;
 use RRZE\Appointment\AppointmentException;
 use RRZE\Appointment\Presentation\PublicPageRenderer;
 
@@ -66,6 +67,7 @@ final class CancellationController
                     $token,
                     $appointmentDetails,
                     ($entry['type'] ?? '') !== 'pending'
+                        && (bool) PluginSettings::get('cancellation_reason_enabled')
                 );
                 return;
             }

@@ -3,6 +3,7 @@
 namespace RRZE\Appointment\Booking;
 
 use RRZE\Appointment\AppointmentException;
+use RRZE\Appointment\Configuration\PluginSettings;
 use RRZE\Appointment\Mail\MailTemplate;
 use RRZE\Appointment\Mail\MailTemplatePost;
 use RRZE\Appointment\Mail\Mailer;
@@ -617,7 +618,9 @@ final class Bookings
             $parts = self::parseSlot($slot) ?? ['date' => '', 'start' => '', 'end' => ''];
             $personId = (int) ($meta['person_id'] ?? 0);
             $bookerEmail = (string) ($meta['booker_email'] ?? '');
-            $reason = self::normalizeCancellationReason($reason);
+            $reason = (bool) PluginSettings::get('cancellation_reason_enabled')
+                ? self::normalizeCancellationReason($reason)
+                : '';
             $variables = [
                 '[title]' => $meta['title'] ?? __('Appointment', 'rrze-appointment'),
                 '[date]' => self::formatDate($parts['date']),

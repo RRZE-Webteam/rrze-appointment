@@ -22,6 +22,14 @@ const runCancellationScenarios = (): CancellationResults => {
 		namespace RRZE\\Appointment {
 			class AppointmentException extends \\Exception {}
 		}
+		namespace RRZE\\Appointment\\Configuration {
+			class PluginSettings {
+				public static bool $cancellationReasonEnabled = true;
+				public static function get( string $key ): bool {
+					return self::$cancellationReasonEnabled;
+				}
+			}
+		}
 		namespace RRZE\\Appointment\\Presentation {
 			class PublicPageRenderer {
 				public array $events = [];
@@ -120,10 +128,17 @@ const runCancellationScenarios = (): CancellationResults => {
 			function get_option( $key, $default = false ) { return $GLOBALS['options'][ $key ] ?? $default; }
 			require ${ JSON.stringify( controllerPath ) };
 
-			function run_scenario( array $get, array $post, string $method, string $handler ): array {
+			function run_scenario(
+				array $get,
+				array $post,
+				string $method,
+				string $handler,
+				bool $cancellationReasonEnabled = true
+			): array {
 				$_GET = $get;
 				$_POST = $post;
 				$_SERVER['REQUEST_METHOD'] = $method;
+				\\RRZE\\Appointment\\Configuration\\PluginSettings::$cancellationReasonEnabled = $cancellationReasonEnabled;
 				\\RRZE\\Appointment\\Booking\\TokenManager::$deletedPending = [];
 				\\RRZE\\Appointment\\Booking\\TokenManager::$deletedCancel = [];
 				\\RRZE\\Appointment\\Booking\\Bookings::$cancelledSlots = [];
@@ -151,6 +166,13 @@ const runCancellationScenarios = (): CancellationResults => {
 				),
 				'pendingConfirmation' => run_scenario(
 					[ 'rrze_appt_cancel' => 'pending-token' ], [], 'GET', 'handleCancellation'
+				),
+				'disabledReasonConfirmation' => run_scenario(
+					[ 'rrze_appt_cancel' => 'confirmed-token' ],
+					[],
+					'GET',
+					'handleCancellation',
+					false
 				),
 				'pending' => run_scenario(
 					[ 'rrze_appt_cancel' => 'pending-token' ],
@@ -207,6 +229,9 @@ describe( 'cancellation controller', () => {
 		expect( results.confirmation.cancelledSlots ).toEqual( [] );
 		expect( results.pendingConfirmation.events ).toEqual( [
 			[ 'confirmation', 'pending-token', 'Pending', false ],
+		] );
+		expect( results.disabledReasonConfirmation.events ).toEqual( [
+			[ 'confirmation', 'confirmed-token', 'Confirmed', false ],
 		] );
 		expect( results.invalidNonce.events ).toEqual( [ [ 'error', 403 ] ] );
 		expect( results.invalidNonce.cancelledSlots ).toEqual( [] );

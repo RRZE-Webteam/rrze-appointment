@@ -2084,3 +2084,15 @@ msgstr ""
 #: includes/Admin/MailTemplatesPage.php:175
 msgid "The host is unavailable."
 msgstr ""
+
+#: includes/Admin/SettingsPage.php:76
+msgid "Cancellation reason"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:129
+msgid "Allow a cancellation reason to be entered."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:132
+msgid "Applies to cancellations from email links and the appointment dashboard. Disable this option if the field is being abused."
+msgstr ""

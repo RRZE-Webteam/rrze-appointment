@@ -70,6 +70,13 @@ final class SettingsPage
             self::PAGE_SLUG,
             self::GENERAL_SECTION
         );
+        add_settings_field(
+            'cancellation_reason_enabled',
+            __('Cancellation reason', 'rrze-appointment'),
+            [$this, 'renderCancellationReasonField'],
+            self::PAGE_SLUG,
+            self::GENERAL_SECTION
+        );
     }
 
     /**
@@ -102,6 +109,28 @@ final class SettingsPage
             PluginSettings::MAX_RETENTION_DAYS,
             esc_html__('Completed bookings are permanently deleted this many days after the appointment ends (default: 30).', 'rrze-appointment')
         );
+    }
+
+    /**
+     * Renders the cancellation-reason opt-in setting.
+     */
+    public function renderCancellationReasonField(): void
+    {
+        $enabled = (bool) PluginSettings::get('cancellation_reason_enabled');
+        ?>
+        <label>
+            <input
+                type="checkbox"
+                name="<?php echo esc_attr(PluginSettings::OPTION_NAME); ?>[cancellation_reason_enabled]"
+                value="1"
+                <?php checked($enabled); ?>
+            >
+            <?php esc_html_e('Allow a cancellation reason to be entered.', 'rrze-appointment'); ?>
+        </label>
+        <p class="description">
+            <?php esc_html_e('Applies to cancellations from email links and the appointment dashboard. Disable this option if the field is being abused.', 'rrze-appointment'); ?>
+        </p>
+        <?php
     }
 
     /**
@@ -176,4 +205,3 @@ final class SettingsPage
         }
     }
 }
-

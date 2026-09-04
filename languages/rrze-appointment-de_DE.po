@@ -2236,6 +2236,18 @@ msgstr "Grund für die Stornierung (leer, wenn keiner angegeben wurde)"
 msgid "The host is unavailable."
 msgstr "Die verantwortliche Person ist verhindert."
 
+#: includes/Admin/SettingsPage.php:76
+msgid "Cancellation reason"
+msgstr "Stornierungsgrund"
+
+#: includes/Admin/SettingsPage.php:129
+msgid "Allow a cancellation reason to be entered."
+msgstr "Eingabe eines Stornierungsgrunds erlauben."
+
+#: includes/Admin/SettingsPage.php:132
+msgid "Applies to cancellations from email links and the appointment dashboard. Disable this option if the field is being abused."
+msgstr "Gilt für Stornierungen über E-Mail-Links und die Terminübersicht. Deaktivieren Sie diese Option, wenn das Feld missbraucht wird."
+
 #~ msgid "Message"
 #~ msgstr "Nachricht"
 

@@ -14,7 +14,12 @@ final class PluginSettings
     public const MAX_RETENTION_DAYS = 3650;
 
     /**
-     * @return array{reminder_days: int, recurrence_limit: int, retention_days: int}
+     * @return array{
+     *     reminder_days: int,
+     *     recurrence_limit: int,
+     *     retention_days: int,
+     *     cancellation_reason_enabled: bool
+     * }
      */
     public static function defaults(): array
     {
@@ -22,6 +27,7 @@ final class PluginSettings
             'reminder_days' => 0,
             'recurrence_limit' => 52,
             'retention_days' => 30,
+            'cancellation_reason_enabled' => true,
         ];
     }
 
@@ -38,7 +44,12 @@ final class PluginSettings
 
     /**
      * @param array<string, mixed> $input
-     * @return array{reminder_days: int, recurrence_limit: int, retention_days: int}
+     * @return array{
+     *     reminder_days: int,
+     *     recurrence_limit: int,
+     *     retention_days: int,
+     *     cancellation_reason_enabled: bool
+     * }
      */
     public static function sanitize(array $input): array
     {
@@ -56,6 +67,7 @@ final class PluginSettings
                 self::MAX_RETENTION_DAYS,
                 max(0, (int) ($input['retention_days'] ?? 30))
             ),
+            'cancellation_reason_enabled' => !empty($input['cancellation_reason_enabled']),
         ];
     }
 }
