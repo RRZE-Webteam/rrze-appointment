@@ -9,6 +9,7 @@ type ConfirmationResult = {
 	validAnswers: Array< { label: string; answer: string } >;
 	renderEvents: Array< Array< unknown > >;
 	persistedMeta: Record< string, unknown >;
+	sensitivePersistedMeta: Record< string, unknown >;
 	slotParts: string[];
 	escapedCalendarValue: string;
 	calendar: string;
@@ -37,6 +38,17 @@ const getConfirmationResult = (): ConfirmationResult => {
 		namespace RRZE\\Appointment\\Booking {
 			class Bookings {
 				public const SLOTS_OPTION = 'booked_slots';
+				public const ADMIN_ANONYMIZED_META_KEY = 'admin_anonymized';
+			}
+		}
+		namespace RRZE\\Appointment\\Configuration {
+			class PluginSettings {
+				public static bool $sensitiveModeEnabled = false;
+				public static function get( string $key ) {
+					return $key === 'sensitive_mode_enabled'
+						? self::$sensitiveModeEnabled
+						: null;
+				}
 			}
 		}
 		namespace RRZE\\Appointment\\Mail {
@@ -140,6 +152,13 @@ const getConfirmationResult = (): ConfirmationResult => {
 				'questions' => $questions,
 				'untrusted' => 'discard',
 			] );
+			\\RRZE\\Appointment\\Configuration\\PluginSettings::$sensitiveModeEnabled = true;
+			$sensitivePersistedMeta = $getMeta->invoke( $controller, [
+				'title' => 'Sensitive consultation',
+				'booker_name' => 'Private Person',
+				'booker_email' => 'private@example.test',
+				'untrusted' => 'discard',
+			] );
 			$slotParts = $parseSlot->invoke( $controller, '2026-08-21 09:00-09:30' );
 			$escapedCalendarValue = $escapeCalendar->invoke(
 				$controller,
@@ -173,6 +192,7 @@ const getConfirmationResult = (): ConfirmationResult => {
 				'validAnswers' => $validAnswers,
 				'renderEvents' => $renderer->events,
 				'persistedMeta' => $persistedMeta,
+				'sensitivePersistedMeta' => $sensitivePersistedMeta,
 				'slotParts' => $slotParts,
 				'escapedCalendarValue' => $escapedCalendarValue,
 				'calendar' => $calendar,
@@ -216,6 +236,12 @@ describe( 'confirmation controller', () => {
 		expect( result.persistedMeta ).toEqual( {
 			title: 'Consultation',
 			booker_email: 'person@example.test',
+		} );
+		expect( result.sensitivePersistedMeta ).toEqual( {
+			title: 'Sensitive consultation',
+			booker_name: 'Private Person',
+			booker_email: 'private@example.test',
+			admin_anonymized: true,
 		} );
 		expect( result.slotParts ).toEqual( [
 			'2026-08-21',

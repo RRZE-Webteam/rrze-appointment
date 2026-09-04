@@ -6,6 +6,7 @@ type SettingsResult = {
 	storedReminderDays: number;
 	blankRetentionDays: number;
 	defaultCancellationReasonEnabled: boolean;
+	defaultSensitiveModeEnabled: boolean;
 	sanitized: Record< string, unknown >;
 	sanitizedEnabled: Record< string, unknown >;
 	sanitizedIllustrationsTab: Record< string, unknown >;
@@ -88,6 +89,7 @@ const getSettingsResult = (): SettingsResult => {
 			$GLOBALS['options'][ $settings::OPTION_NAME ] = 'invalid';
 			$defaultReminderDays = $settings::get( 'reminder_days' );
 			$defaultCancellationReasonEnabled = $settings::get( 'cancellation_reason_enabled' );
+			$defaultSensitiveModeEnabled = $settings::get( 'sensitive_mode_enabled' );
 			$GLOBALS['options'][ $settings::OPTION_NAME ] = [
 				'reminder_days' => 0,
 				'retention_days' => '',
@@ -98,6 +100,7 @@ const getSettingsResult = (): SettingsResult => {
 			$sanitized = $settings::sanitize( [ 'reminder_days' => 99, 'retention_days' => -5 ] );
 			$sanitizedEnabled = $settings::sanitize( [
 				'cancellation_reason_enabled' => '1',
+				'sensitive_mode_enabled' => '1',
 				'illustrations' => [
 					'confirmation_success' => '42',
 					'error' => '99',
@@ -109,6 +112,7 @@ const getSettingsResult = (): SettingsResult => {
 				'recurrence_limit' => 12,
 				'retention_days' => 45,
 				'cancellation_reason_enabled' => true,
+				'sensitive_mode_enabled' => true,
 				'illustrations' => [ 'confirmation_success' => 42 ],
 			];
 			$sanitizedIllustrationsTab = $settings::sanitize( [
@@ -170,6 +174,7 @@ const getSettingsResult = (): SettingsResult => {
 				'storedReminderDays',
 				'blankRetentionDays',
 				'defaultCancellationReasonEnabled',
+				'defaultSensitiveModeEnabled',
 				'sanitized',
 				'sanitizedEnabled',
 				'sanitizedIllustrationsTab',
@@ -203,16 +208,19 @@ describe( 'plugin configuration and mail delivery', () => {
 		expect( result.storedReminderDays ).toBe( 0 );
 		expect( result.blankRetentionDays ).toBe( 30 );
 		expect( result.defaultCancellationReasonEnabled ).toBe( true );
+		expect( result.defaultSensitiveModeEnabled ).toBe( false );
 		expect( result.sanitized ).toEqual( {
 			reminder_days: 7,
 			recurrence_limit: 1,
 			retention_days: 0,
 			cancellation_reason_enabled: false,
+			sensitive_mode_enabled: false,
 			illustrations: [],
 		} );
 		expect( result.sanitizedEnabled.cancellation_reason_enabled ).toBe(
 			true
 		);
+		expect( result.sanitizedEnabled.sensitive_mode_enabled ).toBe( true );
 		expect( result.sanitizedEnabled.illustrations ).toEqual( {
 			confirmation_success: 42,
 		} );
@@ -221,6 +229,7 @@ describe( 'plugin configuration and mail delivery', () => {
 			recurrence_limit: 12,
 			retention_days: 45,
 			cancellation_reason_enabled: true,
+			sensitive_mode_enabled: true,
 			illustrations: { error: 42 },
 		} );
 		expect( result.sanitizedGeneralTab ).toEqual( {
@@ -228,6 +237,7 @@ describe( 'plugin configuration and mail delivery', () => {
 			recurrence_limit: 12,
 			retention_days: 10,
 			cancellation_reason_enabled: false,
+			sensitive_mode_enabled: false,
 			illustrations: { confirmation_success: 42 },
 		} );
 	} );

@@ -26,6 +26,9 @@ final class Bookings
     /** Option containing booking metadata keyed by slot string. */
     public const META_OPTION = 'rrze_appointment_booked_slots_meta';
 
+    /** Metadata flag preventing permanent disclosure in the administration area. */
+    public const ADMIN_ANONYMIZED_META_KEY = 'admin_anonymized';
+
     /** Maximum number of characters accepted for a cancellation reason. */
     public const MAX_CANCELLATION_REASON_LENGTH = 2000;
 
@@ -83,7 +86,8 @@ final class Bookings
      *     person_name: string,
      *     booker_name: mixed,
      *     booker_email: mixed,
-     *     tpl_id: int
+     *     tpl_id: int,
+     *     admin_anonymized: bool
      * }>
      * @throws AppointmentException When persisted booking data cannot be processed.
      */
@@ -92,13 +96,18 @@ final class Bookings
         try {
             $allMeta = self::getStoredMetadata();
             $bookings = [];
+            $hideAllDetails = (bool) PluginSettings::get('sensitive_mode_enabled');
 
             foreach (self::getStoredSlots() as $slot) {
                 if (!is_string($slot) || self::isPastSlot($slot)) {
                     continue;
                 }
 
-                $booking = self::buildBooking($slot, self::getSlotMetadata($allMeta, $slot));
+                $booking = self::buildBooking(
+                    $slot,
+                    self::getSlotMetadata($allMeta, $slot),
+                    $hideAllDetails
+                );
                 if (self::matchesFilter($booking, $filter)) {
                     $bookings[] = $booking;
                 }
@@ -275,10 +284,17 @@ final class Bookings
     public static function getPersonsFromBookings(): array
     {
         try {
+            if ((bool) PluginSettings::get('sensitive_mode_enabled')) {
+                return [];
+            }
+
             $persons = [];
 
             foreach (self::getStoredMetadata() as $meta) {
-                if (!is_array($meta)) {
+                if (
+                    !is_array($meta)
+                    || !empty($meta[self::ADMIN_ANONYMIZED_META_KEY])
+                ) {
                     continue;
                 }
 
@@ -379,22 +395,24 @@ final class Bookings
      * @param array<string, mixed> $meta
      * @return array<string, mixed>
      */
-    private static function buildBooking(string $slot, array $meta): array
+    private static function buildBooking(string $slot, array $meta, bool $hideDetails): array
     {
         $parts = self::parseSlot($slot);
-        $personId = (int) ($meta['person_id'] ?? 0);
+        $isAnonymized = $hideDetails || !empty($meta[self::ADMIN_ANONYMIZED_META_KEY]);
+        $personId = $isAnonymized ? 0 : (int) ($meta['person_id'] ?? 0);
 
         return [
             'slot' => $slot,
             'date' => $parts['date'] ?? '',
             'time' => $parts === null ? '' : $parts['start'] . '-' . $parts['end'],
-            'title' => $meta['title'] ?? '',
-            'location' => $meta['location'] ?? '',
+            'title' => $isAnonymized ? '' : ($meta['title'] ?? ''),
+            'location' => $isAnonymized ? '' : ($meta['location'] ?? ''),
             'person_id' => $personId,
-            'person_name' => self::resolvePersonName($personId, $meta),
-            'booker_name' => $meta['booker_name'] ?? '',
-            'booker_email' => $meta['booker_email'] ?? '',
-            'tpl_id' => (int) ($meta['tpl_id'] ?? 0),
+            'person_name' => $isAnonymized ? '' : self::resolvePersonName($personId, $meta),
+            'booker_name' => $isAnonymized ? '' : ($meta['booker_name'] ?? ''),
+            'booker_email' => $isAnonymized ? '' : ($meta['booker_email'] ?? ''),
+            'tpl_id' => $isAnonymized ? 0 : (int) ($meta['tpl_id'] ?? 0),
+            'admin_anonymized' => $isAnonymized,
         ];
     }
 

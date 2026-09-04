@@ -5,6 +5,7 @@ namespace RRZE\Appointment\Controller;
 use RRZE\Appointment\Booking\Bookings;
 use RRZE\Appointment\Booking\TokenManager;
 use RRZE\Appointment\AppointmentException;
+use RRZE\Appointment\Configuration\PluginSettings;
 use RRZE\Appointment\Mail\MailTemplate;
 use RRZE\Appointment\Mail\MailTemplatePost;
 use RRZE\Appointment\Mail\Mailer;
@@ -298,7 +299,15 @@ final class ConfirmationController
      */
     private function getPersistableBookingMeta(array $meta): array
     {
-        return array_intersect_key($meta, array_flip(self::PERSISTABLE_META_KEYS));
+        $persistableMeta = array_intersect_key($meta, array_flip(self::PERSISTABLE_META_KEYS));
+
+        // Keep mail metadata intact; this trusted marker only controls what
+        // the administration data layer is allowed to disclose.
+        if ((bool) PluginSettings::get('sensitive_mode_enabled')) {
+            $persistableMeta[Bookings::ADMIN_ANONYMIZED_META_KEY] = true;
+        }
+
+        return $persistableMeta;
     }
 
     /**

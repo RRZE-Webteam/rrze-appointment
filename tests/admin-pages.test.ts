@@ -88,6 +88,24 @@ describe( 'focused administration pages', () => {
 		expect( settings ).toContain( 'renderCancellationReasonField' );
 	} );
 
+	it( 'registers the sensitive appointment mode for the admin overview', () => {
+		const settings = readFileSync(
+			resolve( process.cwd(), 'includes/Admin/SettingsPage.php' ),
+			'utf8'
+		);
+		const bookings = readFileSync(
+			resolve( process.cwd(), 'includes/Admin/BookingsPage.php' ),
+			'utf8'
+		);
+
+		expect( settings ).toContain( "'sensitive_mode_enabled'" );
+		expect( settings ).toContain( 'renderSensitiveModeField' );
+		expect( bookings ).toContain(
+			"PluginSettings::get('sensitive_mode_enabled')"
+		);
+		expect( bookings ).toContain( "!empty($b['admin_anonymized'])" );
+	} );
+
 	it( 'provides media-library controls for public illustrations', () => {
 		const settings = readFileSync(
 			resolve( process.cwd(), 'includes/Admin/SettingsPage.php' ),

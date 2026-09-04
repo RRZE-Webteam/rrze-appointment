@@ -28,6 +28,7 @@ final class PluginSettings
      *     recurrence_limit: int,
      *     retention_days: int,
      *     cancellation_reason_enabled: bool,
+     *     sensitive_mode_enabled: bool,
      *     illustrations: array<string, int>
      * }
      */
@@ -38,6 +39,7 @@ final class PluginSettings
             'recurrence_limit' => 52,
             'retention_days' => 30,
             'cancellation_reason_enabled' => true,
+            'sensitive_mode_enabled' => false,
             'illustrations' => [],
         ];
     }
@@ -60,6 +62,7 @@ final class PluginSettings
      *     recurrence_limit: int,
      *     retention_days: int,
      *     cancellation_reason_enabled: bool,
+     *     sensitive_mode_enabled: bool,
      *     illustrations: array<string, int>
      * }
      */
@@ -81,6 +84,9 @@ final class PluginSettings
         $cancellationReasonEnabled = $scope === 'illustrations'
             ? self::get('cancellation_reason_enabled')
             : !empty($input['cancellation_reason_enabled']);
+        $sensitiveModeEnabled = $scope === 'illustrations'
+            ? self::get('sensitive_mode_enabled')
+            : !empty($input['sensitive_mode_enabled']);
         $illustrations = $scope === 'general'
             ? self::get('illustrations')
             : ($input['illustrations'] ?? []);
@@ -96,6 +102,7 @@ final class PluginSettings
                 max(0, (int) $retentionDays)
             ),
             'cancellation_reason_enabled' => (bool) $cancellationReasonEnabled,
+            'sensitive_mode_enabled' => (bool) $sensitiveModeEnabled,
             'illustrations' => self::sanitizeIllustrations($illustrations),
         ];
     }

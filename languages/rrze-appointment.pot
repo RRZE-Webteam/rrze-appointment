@@ -2098,6 +2098,26 @@ msgid "Applies to cancellations from email links and the appointment dashboard. 
 msgstr ""
 
 #: includes/Admin/SettingsPage.php:85
+msgid "Sensitive appointment mode"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:173
+msgid "Hide appointment details in the administration area."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:176
+msgid "While enabled, the appointment overview only shows dates and times. Appointments confirmed in this mode remain anonymized in the administration area after it is disabled. Existing appointments become visible again. Email delivery and content are unaffected."
+msgstr ""
+
+#: includes/Admin/BookingsPage.php:109
+msgid "Sensitive appointment mode is active. Only appointment dates and times are shown."
+msgstr ""
+
+#: includes/Admin/BookingsPage.php:184
+msgid "Sensitive appointment details remain hidden."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:85
 msgid "Illustrations"
 msgstr ""
 

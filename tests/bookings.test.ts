@@ -3,6 +3,10 @@ import { resolve } from 'node:path';
 
 type BookingsResult = {
 	bookings: Array< Record< string, unknown > >;
+	sensitiveBooking: Record< string, unknown >;
+	persons: Record< string, string >;
+	allDetailsHidden: boolean;
+	personsWhileSensitive: Record< string, string >;
 	removed: number;
 	remainingSlots: string[];
 	remainingMetaKeys: string[];
@@ -32,6 +36,16 @@ const runBookingsScenario = (): BookingsResult => {
 				public const PENDING_EXPIRY_HOOK = 'pending_expiry_hook';
 			}
 		}
+		namespace RRZE\\Appointment\\Configuration {
+			class PluginSettings {
+				public static bool $sensitiveModeEnabled = false;
+				public static function get( string $key ) {
+					return $key === 'sensitive_mode_enabled'
+						? self::$sensitiveModeEnabled
+						: null;
+				}
+			}
+		}
 		namespace {
 			define( 'ABSPATH', __DIR__ );
 			define( 'MINUTE_IN_SECONDS', 60 );
@@ -40,6 +54,7 @@ const runBookingsScenario = (): BookingsResult => {
 					'2026-08-22 11:00-11:30',
 					'2026-08-19 09:00-09:30',
 					'2026-08-21 10:00-10:30',
+					'2026-08-23 12:00-12:30',
 				],
 				'rrze_appointment_booked_slots_meta' => [
 					'2026-08-19 09:00-09:30' => [ 'title' => 'Past', 'person_id' => 1 ],
@@ -54,6 +69,15 @@ const runBookingsScenario = (): BookingsResult => {
 						'title' => 'Second',
 						'person_id' => 2,
 						'person_name' => 'Host Two',
+					],
+					'2026-08-23 12:00-12:30' => [
+						'title' => 'Sensitive topic',
+						'location' => 'Private room',
+						'person_id' => 3,
+						'person_name' => 'Host Three',
+						'booker_name' => 'Private Booker',
+						'booker_email' => 'private@example.test',
+						'admin_anonymized' => true,
 					],
 				],
 				'cancel_tokens' => [
@@ -106,9 +130,27 @@ const runBookingsScenario = (): BookingsResult => {
 				'date_to' => '2026-08-21',
 				'person_id' => 1,
 			] );
+			$allBookings = \\RRZE\\Appointment\\Booking\\Bookings::getAll();
+			$sensitiveBooking = array_values( array_filter(
+				$allBookings,
+				static fn( array $booking ): bool => $booking['slot'] === '2026-08-23 12:00-12:30'
+			) )[0] ?? [];
+			$persons = \\RRZE\\Appointment\\Booking\\Bookings::getPersonsFromBookings();
+			\\RRZE\\Appointment\\Configuration\\PluginSettings::$sensitiveModeEnabled = true;
+			$hiddenBookings = \\RRZE\\Appointment\\Booking\\Bookings::getAll();
+			$allDetailsHidden = count( array_filter(
+				$hiddenBookings,
+				static fn( array $booking ): bool => empty( $booking['admin_anonymized'] )
+			) ) === 0;
+			$personsWhileSensitive = \\RRZE\\Appointment\\Booking\\Bookings::getPersonsFromBookings();
+			\\RRZE\\Appointment\\Configuration\\PluginSettings::$sensitiveModeEnabled = false;
 			$removed = \\RRZE\\Appointment\\Booking\\Bookings::cleanupExpired( 0 );
 			echo json_encode( [
 				'bookings' => $bookings,
+				'sensitiveBooking' => $sensitiveBooking,
+				'persons' => $persons,
+				'allDetailsHidden' => $allDetailsHidden,
+				'personsWhileSensitive' => $personsWhileSensitive,
 				'removed' => $removed,
 				'remainingSlots' => get_option( 'rrze_appointment_booked_slots', [] ),
 				'remainingMetaKeys' => array_keys( get_option( 'rrze_appointment_booked_slots_meta', [] ) ),
@@ -140,6 +182,7 @@ describe( 'bookings persistence', () => {
 		expect( result.remainingSlots ).toEqual( [
 			'2026-08-22 11:00-11:30',
 			'2026-08-21 10:00-10:30',
+			'2026-08-23 12:00-12:30',
 		] );
 		expect( result.remainingMetaKeys ).not.toContain(
 			'2026-08-19 09:00-09:30'
@@ -152,5 +195,28 @@ describe( 'bookings persistence', () => {
 				'pending_expiry_hook:past-pending',
 			] )
 		);
+	} );
+
+	it( 'permanently masks sensitive records while preserving normal records', () => {
+		const result = runBookingsScenario();
+
+		expect( result.sensitiveBooking ).toMatchObject( {
+			slot: '2026-08-23 12:00-12:30',
+			date: '2026-08-23',
+			time: '12:00-12:30',
+			title: '',
+			location: '',
+			person_id: 0,
+			person_name: '',
+			booker_name: '',
+			booker_email: '',
+			admin_anonymized: true,
+		} );
+		expect( result.persons ).toEqual( {
+			1: 'Person #1',
+			2: 'Host Two',
+		} );
+		expect( result.allDetailsHidden ).toBe( true );
+		expect( result.personsWhileSensitive ).toEqual( [] );
 	} );
 } );

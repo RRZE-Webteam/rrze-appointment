@@ -103,19 +103,27 @@ final class BookingsPage
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Booking cancelled and cancellation emails sent.', 'rrze-appointment') . '</p></div>';
         }
 
+        $sensitiveModeEnabled = (bool) PluginSettings::get('sensitive_mode_enabled');
+        if ($sensitiveModeEnabled) {
+            echo '<div class="notice notice-info"><p>'
+                . esc_html__('Sensitive appointment mode is active. Only appointment dates and times are shown.', 'rrze-appointment')
+                . '</p></div>';
+        }
+
         // Filter
         $filterDate = Request::queryText('filter_date');
         $filterDateTo = Request::queryText('filter_date_to');
-        $filterPerson = Request::queryInt('filter_person');
+        $filterPerson = $sensitiveModeEnabled ? 0 : Request::queryInt('filter_person');
         $filterArgs = array_filter([
             'date_from' => $filterDate,
             'date_to' => $filterDateTo,
             'person_id' => $filterPerson ?: null,
         ]);
         $bookings = Bookings::getAll($filterArgs);
-        $persons = Bookings::getPersonsFromBookings();
+        $persons = $sensitiveModeEnabled ? [] : Bookings::getPersonsFromBookings();
         $cancellationReasonEnabled = (bool) PluginSettings::get('cancellation_reason_enabled');
         $baseUrl = add_query_arg(['page' => self::PAGE_SLUG], admin_url('admin.php'));
+        $columnCount = $sensitiveModeEnabled ? 3 : 7;
         ?>
         <form method="get" action="" style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
             <input type="hidden" name="page" value="<?php echo esc_attr(self::PAGE_SLUG); ?>">
@@ -142,49 +150,46 @@ final class BookingsPage
             <a href="<?php echo esc_url($baseUrl); ?>" class="button"><?php esc_html_e('Reset', 'rrze-appointment'); ?></a>
         </form>
 
-        <?php if (empty($bookings)) : ?>
-            <table class="widefat striped">
-                <thead>
-                    <tr>
-                        <th><?php esc_html_e('Date', 'rrze-appointment'); ?></th>
-                        <th><?php esc_html_e('Time', 'rrze-appointment'); ?></th>
+        <table class="widefat striped">
+            <thead>
+                <tr>
+                    <th><?php esc_html_e('Date', 'rrze-appointment'); ?></th>
+                    <th><?php esc_html_e('Time', 'rrze-appointment'); ?></th>
+                    <?php if (!$sensitiveModeEnabled) : ?>
                         <th><?php esc_html_e('Title', 'rrze-appointment'); ?></th>
                         <th><?php esc_html_e('Person', 'rrze-appointment'); ?></th>
                         <th><?php esc_html_e('Booker', 'rrze-appointment'); ?></th>
                         <th><?php esc_html_e('Email', 'rrze-appointment'); ?></th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
+                    <?php endif; ?>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($bookings)) : ?>
                     <tr>
-                        <td colspan="7"><?php esc_html_e('No appointments found.', 'rrze-appointment'); ?></td>
+                        <td colspan="<?php echo esc_attr($columnCount); ?>">
+                            <?php esc_html_e('No appointments found.', 'rrze-appointment'); ?>
+                        </td>
                     </tr>
-                </tbody>
-            </table>
-        <?php else : ?>
-            <table class="widefat striped">
-                <thead>
-                    <tr>
-                        <th><?php esc_html_e('Date', 'rrze-appointment'); ?></th>
-                        <th><?php esc_html_e('Time', 'rrze-appointment'); ?></th>
-                        <th><?php esc_html_e('Title', 'rrze-appointment'); ?></th>
-                        <th><?php esc_html_e('Person', 'rrze-appointment'); ?></th>
-                        <th><?php esc_html_e('Booker', 'rrze-appointment'); ?></th>
-                        <th><?php esc_html_e('Email', 'rrze-appointment'); ?></th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
+                <?php else : ?>
                     <?php foreach ($bookings as $b) :
                         $dateFormatted = date_i18n(get_option('date_format'), strtotime($b['date']));
                     ?>
                     <tr>
                         <td><?php echo esc_html($dateFormatted); ?></td>
                         <td><?php echo esc_html(str_replace('-', ' – ', $b['time'])); ?></td>
-                        <td><?php echo esc_html($b['title']); ?></td>
-                        <td><?php echo esc_html($b['person_name']); ?></td>
-                        <td><?php echo esc_html($b['booker_name']); ?></td>
-                        <td><?php echo esc_html($b['booker_email']); ?></td>
+                        <?php if (!$sensitiveModeEnabled) : ?>
+                            <?php if (!empty($b['admin_anonymized'])) : ?>
+                                <td colspan="4">
+                                    <em><?php esc_html_e('Sensitive appointment details remain hidden.', 'rrze-appointment'); ?></em>
+                                </td>
+                            <?php else : ?>
+                                <td><?php echo esc_html($b['title']); ?></td>
+                                <td><?php echo esc_html($b['person_name']); ?></td>
+                                <td><?php echo esc_html($b['booker_name']); ?></td>
+                                <td><?php echo esc_html($b['booker_email']); ?></td>
+                            <?php endif; ?>
+                        <?php endif; ?>
                         <td>
                             <?php if ($cancellationReasonEnabled) : ?>
                                 <details class="rrze-appt-cancellation">
@@ -230,8 +235,9 @@ final class BookingsPage
                         </td>
                     </tr>
                     <?php endforeach; ?>
-                </tbody>
-            </table>
-        <?php endif;
+                <?php endif; ?>
+            </tbody>
+        </table>
+        <?php
     }
 }

@@ -80,6 +80,13 @@ final class SettingsPage
             self::PAGE_SLUG,
             self::GENERAL_SECTION
         );
+        add_settings_field(
+            'sensitive_mode_enabled',
+            __('Sensitive appointment mode', 'rrze-appointment'),
+            [$this, 'renderSensitiveModeField'],
+            self::PAGE_SLUG,
+            self::GENERAL_SECTION
+        );
         add_settings_section(
             self::ILLUSTRATIONS_SECTION,
             '',
@@ -145,6 +152,28 @@ final class SettingsPage
         </label>
         <p class="description">
             <?php esc_html_e('Applies to cancellations from email links and the appointment dashboard. Disable this option if the field is being abused.', 'rrze-appointment'); ?>
+        </p>
+        <?php
+    }
+
+    /**
+     * Renders the privacy mode for the appointment administration screen.
+     */
+    public function renderSensitiveModeField(): void
+    {
+        $enabled = (bool) PluginSettings::get('sensitive_mode_enabled');
+        ?>
+        <label>
+            <input
+                type="checkbox"
+                name="<?php echo esc_attr(PluginSettings::OPTION_NAME); ?>[sensitive_mode_enabled]"
+                value="1"
+                <?php checked($enabled); ?>
+            >
+            <?php esc_html_e('Hide appointment details in the administration area.', 'rrze-appointment'); ?>
+        </label>
+        <p class="description">
+            <?php esc_html_e('While enabled, the appointment overview only shows dates and times. Appointments confirmed in this mode remain anonymized in the administration area after it is disabled. Existing appointments become visible again. Email delivery and content are unaffected.', 'rrze-appointment'); ?>
         </p>
         <?php
     }

@@ -2249,6 +2249,26 @@ msgid "Applies to cancellations from email links and the appointment dashboard. 
 msgstr "Gilt für Stornierungen über E-Mail-Links und die Terminübersicht. Deaktivieren Sie diese Option, wenn das Feld missbraucht wird."
 
 #: includes/Admin/SettingsPage.php:85
+msgid "Sensitive appointment mode"
+msgstr "Modus für sensible Sprechstunden"
+
+#: includes/Admin/SettingsPage.php:173
+msgid "Hide appointment details in the administration area."
+msgstr "Termindetails im Verwaltungsbereich ausblenden."
+
+#: includes/Admin/SettingsPage.php:176
+msgid "While enabled, the appointment overview only shows dates and times. Appointments confirmed in this mode remain anonymized in the administration area after it is disabled. Existing appointments become visible again. Email delivery and content are unaffected."
+msgstr "Solange der Modus aktiviert ist, zeigt die Terminübersicht nur Datum und Uhrzeit. Termine, die in diesem Modus bestätigt wurden, bleiben im Verwaltungsbereich auch nach dem Deaktivieren anonymisiert. Bereits zuvor bestehende Termine werden wieder sichtbar. E-Mail-Versand und -Inhalte bleiben unverändert."
+
+#: includes/Admin/BookingsPage.php:109
+msgid "Sensitive appointment mode is active. Only appointment dates and times are shown."
+msgstr "Der Modus für sensible Sprechstunden ist aktiv. Es werden nur Datum und Uhrzeit der Termine angezeigt."
+
+#: includes/Admin/BookingsPage.php:184
+msgid "Sensitive appointment details remain hidden."
+msgstr "Die Details dieses sensiblen Termins bleiben ausgeblendet."
+
+#: includes/Admin/SettingsPage.php:85
 msgid "Illustrations"
 msgstr "Illustrationen"
 
