@@ -6,14 +6,15 @@ import {
 	getAvailabilitySlotCount,
 	hasAvailabilityConflict,
 	setDateSlotsExcluded,
-	usesConsultationPattern,
-} from '../src/availability';
+	usesAppointmentPattern,
+} from '../src/scheduling/availability';
 import type {
 	AppointmentAttributes,
 	AvailabilityEntry,
 	TimeSlot,
-} from '../src/types';
-import { formatDateWithWeekdayDisplay, generateTimeSlots } from '../src/utils';
+} from '../src/scheduling/types';
+import { formatDateWithWeekdayDisplay } from '../src/scheduling/dates';
+import { generateTimeSlots } from '../src/scheduling/schedule';
 
 declare function describe( name: string, callback: () => void ): void;
 declare function it( name: string, callback: () => void ): void;
@@ -405,14 +406,14 @@ describe( 'availability editor model', () => {
 
 	it( 'preserves a pattern that has one custom slot and unused time', () => {
 		expect(
-			usesConsultationPattern(
+			usesAppointmentPattern(
 				createEntry( 'single-custom-slot', {
 					duration: 31,
 				} )
 			)
 		).toBe( true );
 		expect(
-			usesConsultationPattern(
+			usesAppointmentPattern(
 				createEntry( 'single-full-range-slot', {
 					duration: 60,
 				} )

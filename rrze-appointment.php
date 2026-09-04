@@ -3,7 +3,7 @@
 /*
 Plugin Name:        RRZE Appointment
 Plugin URI:         https://github.com/RRZE-Webteam/rrze-appointment
-Version:            2.0.3
+Version:            2.1.0
 Description:        Appointments the easy way.
 Author:             RRZE Webteam
 Author URI:         https://www.wp.rrze.fau.de/
@@ -18,18 +18,43 @@ Requires PHP:       8.2
 namespace RRZE\Appointment;
 
 use RRZE\Appointment\Main;
-use RRZE\Appointment\Common\Plugin\Plugin;
+use RRZE\Appointment\Plugin;
 
 defined('ABSPATH') || exit;
 
 
 /**
- * ------------------------------------------------------------
- * PSR-4-ish autoloader for /includes
- * ------------------------------------------------------------
+ * Loads plugin classes from /includes and preserves renamed public classes.
  */
-spl_autoload_register(function ($class) {
-    $prefix  = __NAMESPACE__;
+spl_autoload_register(function (string $class): void {
+    $legacyClasses = [
+        __NAMESPACE__ . '\\Common\\CustomException' => __NAMESPACE__ . '\\AppointmentException',
+        __NAMESPACE__ . '\\Common\\Plugin\\Plugin' => __NAMESPACE__ . '\\Plugin',
+        __NAMESPACE__ . '\\AppointmentBlock' => __NAMESPACE__ . '\\Booking\\AppointmentBlock',
+        __NAMESPACE__ . '\\AssetManager' => __NAMESPACE__ . '\\Presentation\\AssetManager',
+        __NAMESPACE__ . '\\BookingOpeningController' => __NAMESPACE__ . '\\Controller\\BookingOpeningController',
+        __NAMESPACE__ . '\\BookingRequestController' => __NAMESPACE__ . '\\Controller\\BookingRequestController',
+        __NAMESPACE__ . '\\BookingWindow' => __NAMESPACE__ . '\\Booking\\BookingWindow',
+        __NAMESPACE__ . '\\Bookings' => __NAMESPACE__ . '\\Booking\\Bookings',
+        __NAMESPACE__ . '\\CancellationController' => __NAMESPACE__ . '\\Controller\\CancellationController',
+        __NAMESPACE__ . '\\ConfirmationController' => __NAMESPACE__ . '\\Controller\\ConfirmationController',
+        __NAMESPACE__ . '\\MailTemplate' => __NAMESPACE__ . '\\Mail\\MailTemplate',
+        __NAMESPACE__ . '\\MailTemplatePost' => __NAMESPACE__ . '\\Mail\\MailTemplatePost',
+        __NAMESPACE__ . '\\PublicPageRenderer' => __NAMESPACE__ . '\\Presentation\\PublicPageRenderer',
+        __NAMESPACE__ . '\\SlotGenerator' => __NAMESPACE__ . '\\Booking\\SlotGenerator',
+        __NAMESPACE__ . '\\SsoController' => __NAMESPACE__ . '\\Controller\\SsoController',
+        __NAMESPACE__ . '\\TokenManager' => __NAMESPACE__ . '\\Booking\\TokenManager',
+        __NAMESPACE__ . '\\BookingOpeningNotifier' => __NAMESPACE__ . '\\Notification\\BookingOpeningNotifier',
+        __NAMESPACE__ . '\\Reminder' => __NAMESPACE__ . '\\Notification\\Reminder',
+        __NAMESPACE__ . '\\WaitlistNotifier' => __NAMESPACE__ . '\\Notification\\WaitlistNotifier',
+    ];
+
+    if (isset($legacyClasses[$class])) {
+        class_alias($legacyClasses[$class], $class);
+        return;
+    }
+
+    $prefix  = __NAMESPACE__ . '\\';
     $baseDir = __DIR__ . '/includes/';
 
     $len = strlen($prefix);

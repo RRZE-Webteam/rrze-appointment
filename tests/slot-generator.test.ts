@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 function generateSlotsWithPhp( duration: number | string ): string[] {
 	const slotGeneratorPath = resolve(
 		process.cwd(),
-		'includes/SlotGenerator.php'
+		'includes/Booking/SlotGenerator.php'
 	);
 	const php = `
 		define( 'ABSPATH', __DIR__ );
@@ -22,7 +22,7 @@ function generateSlotsWithPhp( duration: number | string ): string[] {
 			] ],
 			'dateOverrides' => [],
 		];
-		echo json_encode( \\RRZE\\Appointment\\SlotGenerator::fromAttributes( $attributes ) );
+		echo json_encode( \\RRZE\\Appointment\\Booking\\SlotGenerator::fromAttributes( $attributes ) );
 	`;
 
 	return JSON.parse(

@@ -99,6 +99,8 @@ $pageTitle = sprintf(
             display: block;
             width: min(100%, 30rem);
             height: auto;
+            max-height: min(60vh, 30rem);
+            object-fit: contain;
         }
 
         .rrze-appointment-confirmation__status {
@@ -588,24 +590,43 @@ $pageTitle = sprintf(
                     </button>
                 </form>
             <?php elseif ($isCancellationConfirmation) : ?>
-                <div class="rrze-appointment-confirmation__actions">
-                    <form method="post" action="<?php echo esc_url($cancellationAction); ?>">
-                        <input type="hidden" name="rrze_appt_cancel_action" value="cancel">
-                        <input type="hidden" name="rrze_appt_cancel_nonce" value="<?php echo esc_attr($cancellationNonce); ?>">
+                <form class="rrze-appointment-confirmation__form" method="post" action="<?php echo esc_url($cancellationAction); ?>">
+                    <input type="hidden" name="rrze_appt_cancel_action" value="cancel">
+                    <input type="hidden" name="rrze_appt_cancel_nonce" value="<?php echo esc_attr($cancellationNonce); ?>">
+                    <?php if ($showCancellationReason) : ?>
+                        <div class="rrze-appointment-confirmation__field">
+                            <label class="rrze-appointment-confirmation__field-label" for="rrze-appt-cancellation-reason">
+                                <?php esc_html_e('Reason for cancellation', 'rrze-appointment'); ?>
+                                <span class="rrze-appointment-confirmation__requirement">
+                                    <?php esc_html_e('Optional', 'rrze-appointment'); ?>
+                                </span>
+                            </label>
+                            <textarea
+                                id="rrze-appt-cancellation-reason"
+                                name="cancellation_reason"
+                                maxlength="<?php echo esc_attr(\RRZE\Appointment\Booking\Bookings::MAX_CANCELLATION_REASON_LENGTH); ?>"
+                                rows="4"
+                            ></textarea>
+                            <p class="rrze-appointment-confirmation__legal-notice">
+                                <?php esc_html_e('This reason will be included in the cancellation email.', 'rrze-appointment'); ?>
+                            </p>
+                        </div>
+                    <?php endif; ?>
+                    <div class="rrze-appointment-confirmation__actions">
                         <button
                             class="rrze-appointment-confirmation__action rrze-appointment-confirmation__action--destructive"
                             type="submit"
                         >
                             <?php esc_html_e('Cancel appointment', 'rrze-appointment'); ?>
                         </button>
-                    </form>
-                    <a
-                        class="rrze-appointment-confirmation__action rrze-appointment-confirmation__action--secondary"
-                        href="<?php echo esc_url($homeUrl); ?>"
-                    >
-                        <?php esc_html_e('Keep appointment and return to website', 'rrze-appointment'); ?>
-                    </a>
-                </div>
+                        <a
+                            class="rrze-appointment-confirmation__action rrze-appointment-confirmation__action--secondary"
+                            href="<?php echo esc_url($homeUrl); ?>"
+                        >
+                            <?php esc_html_e('Keep appointment and return to website', 'rrze-appointment'); ?>
+                        </a>
+                    </div>
+                </form>
             <?php else : ?>
                 <div class="rrze-appointment-confirmation__actions">
                     <a class="rrze-appointment-confirmation__action" href="<?php echo esc_url($homeUrl); ?>">

@@ -1,8 +1,8 @@
 import {
 	createFaudirAvailabilityEntries,
 	mergeFaudirAvailabilityEntries,
-} from '../src/faudir';
-import type { AvailabilityEntry } from '../src/types';
+} from '../src/editor/faudir/import';
+import type { AvailabilityEntry } from '../src/scheduling/types';
 
 function entry(
 	id: string,

@@ -7,11 +7,18 @@ const readProjectFile = ( path: string ) =>
 describe( 'booking opening notification workflow', () => {
 	const main = readProjectFile( 'includes/Main.php' );
 	const controller = readProjectFile(
-		'includes/BookingOpeningController.php'
+		'includes/Controller/BookingOpeningController.php'
 	);
-	const notifier = readProjectFile( 'includes/BookingOpeningNotifier.php' );
-	const renderer = readProjectFile( 'includes/PublicPageRenderer.php' );
-	const templates = readProjectFile( 'includes/MailTemplatePost.php' );
+	const notifier = readProjectFile(
+		'includes/Notification/BookingOpeningNotifier.php'
+	);
+	const renderer = readProjectFile(
+		'includes/Presentation/PublicPageRenderer.php'
+	);
+	const settings = readProjectFile(
+		'includes/Configuration/PluginSettings.php'
+	);
+	const templates = readProjectFile( 'includes/Mail/MailTemplatePost.php' );
 
 	it( 'registers subscriptions and schedules their opening email', () => {
 		expect( main ).toContain( 'rrze_appointment_notify_opening' );
@@ -36,7 +43,12 @@ describe( 'booking opening notification workflow', () => {
 		expect( templates ).toContain( "'booking_opening_notification'" );
 		expect( templates ).not.toContain( '[notification_image]' );
 		expect( notifier ).not.toContain( 'notification-36.png' );
-		expect( renderer ).toContain( "'notification-36.png'" );
+		expect( settings ).toContain(
+			"'opening_notification' => 'notification-36.png'"
+		);
+		expect( renderer ).toContain(
+			"getIllustrationUrl('opening_notification')"
+		);
 		expect( renderer ).toContain( 'renderOpeningNotificationSuccess' );
 	} );
 } );

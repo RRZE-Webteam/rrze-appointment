@@ -61,6 +61,8 @@ $pageTitle = sprintf(
             display: block;
             width: min(100%, 30rem);
             height: auto;
+            max-height: min(60vh, 30rem);
+            object-fit: contain;
         }
 
         .rrze-appointment-error__status {

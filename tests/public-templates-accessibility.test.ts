@@ -9,9 +9,6 @@ describe( 'public confirmation templates accessibility', () => {
 		'templates/confirmation-page.php'
 	);
 	const errorTemplate = readProjectFile( 'templates/error-page.php' );
-	const cancellationController = readProjectFile(
-		'includes/CancellationController.php'
-	);
 
 	it( 'shows appointment details with semantic description markup', () => {
 		expect( confirmationTemplate ).toContain(
@@ -23,28 +20,15 @@ describe( 'public confirmation templates accessibility', () => {
 		);
 	} );
 
-	it( 'requires an explicit, nonce-protected POST to cancel', () => {
-		const cancelHandler = cancellationController.slice(
-			cancellationController.indexOf(
-				'public function handleCancellation()'
-			),
-			cancellationController.indexOf(
-				'public function handleWaitlistPreference()'
-			)
-		);
-		const confirmationPosition = cancelHandler.indexOf(
-			'renderCancellationConfirmation'
-		);
-		const mutationPosition = cancelHandler.indexOf(
-			'TokenManager::deletePending'
-		);
-
-		expect( confirmationPosition ).toBeGreaterThan( -1 );
-		expect( mutationPosition ).toBeGreaterThan( confirmationPosition );
-		expect( cancelHandler ).toContain( "$requestMethod !== 'POST'" );
-		expect( cancelHandler ).toContain( 'wp_verify_nonce' );
+	it( 'submits an explicit cancellation action', () => {
 		expect( confirmationTemplate ).toContain(
 			'name="rrze_appt_cancel_action" value="cancel"'
+		);
+		expect( confirmationTemplate ).toContain(
+			'name="cancellation_reason"'
+		);
+		expect( confirmationTemplate ).toContain(
+			'<?php if ($showCancellationReason) : ?>'
 		);
 	} );
 

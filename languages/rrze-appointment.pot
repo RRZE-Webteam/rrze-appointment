@@ -575,6 +575,8 @@ msgid ""
 "%s: [time]\n"
 "%s: [location]\n"
 "\n"
+"[cancellation_reason]\n"
+"\n"
 "%s: [imprint_link]"
 msgstr ""
 
@@ -2057,4 +2059,164 @@ msgstr ""
 
 #: includes/Settings.php:500
 msgid "Sent when a requested appointment opens for booking."
+msgstr ""
+
+#: includes/Admin/BookingsPage.php:198
+#: includes/Admin/MailTemplatesPage.php:151
+#: includes/Booking/Bookings.php:635 includes/Booking/Bookings.php:642
+#: templates/confirmation-page.php:597
+msgid "Reason for cancellation"
+msgstr ""
+
+#: includes/Admin/BookingsPage.php:199
+msgid "(optional)"
+msgstr ""
+
+#: includes/Admin/BookingsPage.php:210 templates/confirmation-page.php:610
+msgid "This reason will be included in the cancellation email."
+msgstr ""
+
+#: includes/Admin/MailTemplatesPage.php:57
+msgid "Reason for cancellation (empty if none was provided)"
+msgstr ""
+
+#: includes/Admin/MailTemplatesPage.php:152
+#: includes/Admin/MailTemplatesPage.php:175
+msgid "The host is unavailable."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:76
+msgid "Cancellation reason"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:129
+msgid "Allow a cancellation reason to be entered."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:132
+msgid "Applies to cancellations from email links and the appointment dashboard. Disable this option if the field is being abused."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:85
+msgid "Lock Appointment Management View to these users"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:222
+msgid "Selected users can open the Appointments page and cancel appointments. Administrators always have access and do not need to be added."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:226 includes/Admin/SettingsPage.php:229
+msgid "Select user"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:245
+msgid "Add user to permission list"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:219 includes/Admin/SettingsPage.php:262
+msgid "Remove"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:267
+msgid "No additional users have access."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:85
+msgid "Sensitive appointment mode"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:173
+msgid "Hide appointment details in the administration area."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:176
+msgid "While enabled, the appointment overview only shows dates and times. Appointments confirmed in this mode remain anonymized in the administration area after it is disabled. Existing appointments become visible again. Email delivery and content are unaffected."
+msgstr ""
+
+#: includes/Admin/BookingsPage.php:109
+msgid "Sensitive appointment mode is active. Only appointment dates and times are shown."
+msgstr ""
+
+#: includes/Admin/BookingsPage.php:184
+msgid "Sensitive appointment details remain hidden."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:85
+msgid "Illustrations"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:155
+msgid "Appointment confirmed"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:156
+msgid "Additional questions"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:157
+msgid "Cancellation confirmation"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:158
+msgid "Cancellation completed"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:159
+msgid "Waitlist preference"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:161
+msgid "Error page"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:165
+msgid "Replace the bundled illustrations on public confirmation and information screens with images from the media library."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:201 includes/Admin/SettingsPage.php:218
+msgid "Custom illustration"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:202 includes/Admin/SettingsPage.php:231
+msgid "Default illustration"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:216
+msgid "Select illustration"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:217
+msgid "Use this image"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:221
+msgid "Select image"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:234
+msgid "Use default illustration"
+msgstr ""
+
+#: src/render.php:84
+msgid "Calendar legend"
+msgstr ""
+
+#: src/render.php:88
+msgid "Available"
+msgstr ""
+
+#: src/render.php:92
+msgid "Selected"
+msgstr ""
+
+#: src/render.php:97
+msgid "Not yet bookable"
+msgstr ""
+
+#: src/render.php:102
+msgid "Past or booked"
+msgstr ""
+
+#: src/render.php:106
+msgid "Today"
 msgstr ""

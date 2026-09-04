@@ -1,0 +1,551 @@
+@import "../../node_modules/@wordpress/dataviews/build-style/style.css";
+
+.rrze-appointment-spacer {
+	margin-bottom: 1rem;
+}
+
+.rrze-appointment-pill {
+	font-size: 0.9rem;
+	font-style: italic;
+	padding: 0.25rem 0.75rem;
+	border: 1px solid #0d47a1;
+	//border-radius: 50px;
+	background: #0d47a1;
+	color: #fff;
+}
+
+.rrze-appointment-gentle-notice {
+	font-size: 0.9rem;
+	font-style: italic;
+}
+
+.rrze-appointment-divider {
+	border-bottom: 1px solid currentcolor;
+	margin-bottom: 1rem;
+	padding-bottom: 1rem;
+}
+
+.rrze-appointment-block {
+
+	.rrze-appointment__title[contenteditable="true"],
+	&__description[contenteditable="true"] {
+		border-radius: 2px;
+		outline: 1px dashed transparent;
+		transition: outline-color 0.15s ease;
+
+		&:hover,
+		&:focus {
+			outline-color: var(--wp-admin-theme-color, #3858e9);
+		}
+	}
+
+	&__description {
+		min-height: 1.5em;
+	}
+
+	&__placeholder.components-placeholder {
+		display: grid;
+		grid-template-columns: minmax(200px, 0.85fr) minmax(280px, 1.15fr);
+		align-items: center;
+		column-gap: clamp(2rem, 6vw, 5rem);
+		row-gap: 0.5rem;
+		box-sizing: border-box;
+		min-height: 520px;
+		padding: clamp(2rem, 5vw, 4.5rem);
+		border: 1px solid #dcdcde;
+		border-radius: 12px;
+		background: #fff;
+		color: #1e1e1e;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+		&::before {
+			background: none;
+			content: none;
+		}
+	}
+
+	&__placeholder .components-placeholder__preview {
+		align-self: center;
+		grid-column: 1;
+		grid-row: 1 / span 3;
+		width: 100%;
+
+		&::before {
+			background: none;
+			content: none;
+		}
+	}
+
+	&__placeholder-illustration {
+		display: block;
+		width: min(100%, 360px);
+		height: auto;
+		margin: 0 auto;
+		object-fit: contain;
+	}
+
+	&__placeholder-media {
+		display: block;
+		width: 100%;
+	}
+
+	&__placeholder .components-placeholder__label,
+	&__placeholder .components-placeholder__instructions,
+	&__placeholder .components-placeholder__fieldset {
+		grid-column: 2;
+		width: 100%;
+		max-width: 34rem;
+	}
+
+	&__placeholder .components-placeholder__label {
+		align-self: end;
+		color: #1e1e1e;
+		font-size: clamp(1.5rem, 3vw, 2rem);
+		font-weight: 600;
+		line-height: 1.25;
+	}
+
+	&__placeholder .components-placeholder__instructions {
+		align-self: start;
+		margin-bottom: 1.25rem;
+		color: #50575e;
+		font-size: 1rem;
+		line-height: 1.5;
+	}
+
+	&__placeholder .components-placeholder__fieldset {
+		align-self: start;
+		align-items: stretch;
+	}
+
+	&__placeholder-fields {
+		display: grid;
+		gap: 1.25rem;
+
+		.components-base-control__label {
+			font-size: 0.8125rem;
+		}
+
+		.components-text-control__input,
+		.components-textarea-control__input {
+			border-color: #8c8f94;
+		}
+	}
+
+	&__placeholder-action.components-button {
+		min-height: 44px;
+		margin-top: 1.75rem;
+		padding-right: 1.25rem;
+		padding-left: 1.25rem;
+	}
+
+	@media (max-width: 700px) {
+
+		&__placeholder.components-placeholder {
+			grid-template-columns: 1fr;
+			gap: 1.5rem;
+			min-height: 0;
+			padding: 1.5rem;
+		}
+
+		&__placeholder .components-placeholder__preview,
+		&__placeholder .components-placeholder__label,
+		&__placeholder .components-placeholder__instructions,
+		&__placeholder .components-placeholder__fieldset {
+			grid-column: 1;
+			grid-row: auto;
+		}
+
+		&__placeholder-illustration {
+			width: min(70%, 240px);
+		}
+	}
+
+	&__faudir-preview {
+		margin: 1.5rem 0;
+		padding-top: 1rem;
+		border-top: 1px solid #dcdcde;
+
+		h3 {
+			margin-top: 0;
+		}
+
+		.components-notice {
+			margin: 1rem 0;
+		}
+	}
+
+	&__faudir-hours {
+		margin: 0 0 1rem 1.25rem;
+		font-variant-numeric: tabular-nums;
+	}
+}
+
+.rrze-appointment-data-view {
+
+	&__modal .components-modal__content {
+		display: flex;
+		flex-direction: column;
+	}
+
+	&__header {
+		margin-bottom: 1.5rem;
+
+		p {
+			margin: 0;
+		}
+	}
+
+	&__navigation {
+		margin-bottom: 1.5rem;
+	}
+
+	&__filters {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		margin-bottom: 1rem;
+	}
+
+	&__filter-actions {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+	}
+
+	&__date-picker-content {
+		padding: 1rem;
+	}
+
+	&__empty {
+		display: flex;
+		align-items: center;
+		flex: 1;
+		flex-direction: column;
+		justify-content: center;
+		box-sizing: border-box;
+		min-height: 480px;
+		padding: 1rem;
+		background: transparent;
+		text-align: center;
+
+		&::before {
+			display: none;
+			content: none;
+		}
+	}
+
+	&__empty-illustration {
+		display: block;
+		width: min(440px, 90%);
+		height: auto;
+		max-height: 420px;
+		margin: 0 auto 2rem;
+		object-fit: contain;
+	}
+
+	&__empty-message {
+		max-width: 36rem;
+		margin: 0;
+		color: #1e1e1e;
+		font-size: 1.25rem;
+		font-weight: 600;
+		line-height: 1.4;
+	}
+
+	&__empty-action {
+		margin-top: 1.5rem;
+	}
+
+	&__status {
+		display: inline-flex;
+		align-items: center;
+		min-height: 24px;
+		padding: 2px 8px;
+		border-radius: 999px;
+		font-size: 12px;
+		font-weight: 600;
+
+		&.is-available {
+			background: #edfaef;
+			color: #116329;
+		}
+
+		&.is-excluded {
+			background: #f0f0f0;
+			color: #50575e;
+		}
+
+		&.is-required {
+			background: #fcf0f1;
+			color: #8a2424;
+		}
+
+		&.is-optional {
+			background: #f0f0f0;
+			color: #50575e;
+		}
+	}
+
+	&__recurrence {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	&__recurrence-label {
+		font-size: 12px;
+		color: #50575e;
+	}
+
+	&__weekdays {
+		display: flex;
+		flex-wrap: nowrap;
+		gap: 4px;
+	}
+
+	&__weekday {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		box-sizing: border-box;
+		min-width: 28px;
+		min-height: 24px;
+		padding: 2px 5px;
+		border-radius: 2px;
+		font-size: 11px;
+		font-weight: 600;
+		line-height: 1;
+
+		&.is-active {
+			background: var(--wp-admin-theme-color, #3858e9);
+			color: #fff;
+		}
+
+		&.is-inactive {
+			background: #f0f0f0;
+			color: #757575;
+		}
+	}
+}
+
+.rrze-appointment-question-editor {
+
+	&__modal .components-modal__content > * + * {
+		margin-top: 1rem;
+	}
+
+	&__actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 0.5rem;
+		padding-top: 1rem;
+		border-top: 1px solid #dcdcde;
+	}
+}
+
+.rrze-appointment .rrze-appointment-block__calendar-preview {
+	margin-top: 1.5rem;
+	padding: 1.5rem;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	background: #fff;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+
+	&-header {
+		margin-bottom: 1.25rem;
+
+		h3 {
+			margin: 0 0 0.25rem;
+			color: #1e1e1e;
+			font-size: 1.25rem;
+		}
+
+		p {
+			margin: 0;
+			color: #50575e;
+		}
+	}
+}
+
+.rrze-appointment .rrze-appointment-block__date-calendar {
+	display: flex;
+	justify-content: center;
+	padding: 1rem;
+	border: 1px solid #e0e0e0;
+	border-radius: 6px;
+	background: #f6f7f7;
+}
+
+.rrze-appointment .rrze-appointment-editor-slots {
+	min-width: 0;
+	margin: 1.5rem 0 0;
+	padding: 1.5rem 0 0;
+	border: 0;
+	border-top: 1px solid #e0e0e0;
+
+	&__title {
+		width: 100%;
+		margin: 0;
+		padding: 0;
+		color: #1e1e1e;
+		font-size: 1.1rem;
+		font-weight: 600;
+		line-height: 1.4;
+	}
+
+	&__toolbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		margin-top: 0.75rem;
+	}
+
+	&__count {
+		color: #646970;
+		font-size: 0.8125rem;
+	}
+
+	&__add.components-button {
+		min-height: 36px;
+		background: #fff;
+	}
+
+	&__list {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+		gap: 0.75rem;
+		margin: 1rem 0 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	&__item {
+		display: flex;
+		align-items: center;
+		gap: 0.625rem;
+		box-sizing: border-box;
+		min-height: 54px;
+		margin: 0;
+		padding: 0.625rem 0.5rem 0.625rem 0.75rem;
+		border: 1px solid #dcdcde;
+		border-radius: 6px;
+		background: #fff;
+		transition:
+			border-color 0.15s ease,
+			box-shadow 0.15s ease;
+
+		&:hover,
+		&:focus-within {
+			border-color: var(--wp-admin-theme-color, #3858e9);
+			box-shadow: 0 0 0 1px var(--wp-admin-theme-color, #3858e9);
+		}
+
+		&::before {
+			display: none;
+		}
+	}
+
+	&__icon {
+		flex: 0 0 auto;
+		color: #646970;
+	}
+
+	&__time {
+		display: inline-flex;
+		align-items: baseline;
+		gap: 0.35rem;
+		color: #1e1e1e;
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+
+	&__item.is-excluded {
+		border-style: dashed;
+		background: #f6f7f7;
+
+		.rrze-appointment-editor-slots__icon,
+		.rrze-appointment-editor-slots__time {
+			opacity: 0.55;
+		}
+
+		.rrze-appointment-editor-slots__time {
+			text-decoration: line-through;
+		}
+	}
+
+	&__separator {
+		color: #8c8f94;
+	}
+
+	&__badge {
+		padding: 0.15rem 0.4rem;
+		border-radius: 999px;
+		background: #f0f0f0;
+		color: #50575e;
+		font-size: 0.6875rem;
+		font-weight: 600;
+		line-height: 1.4;
+		white-space: nowrap;
+
+		&.is-excluded {
+			background: #dcdcde;
+			color: #3c434a;
+		}
+	}
+
+	&__visibility.components-button {
+		flex: 0 0 auto;
+		margin-left: auto;
+		color: #50575e;
+
+		&:hover,
+		&:focus {
+			color: var(--wp-admin-theme-color, #3858e9);
+		}
+	}
+
+	&__empty {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.75rem;
+		margin-top: 1rem;
+		padding: 1rem;
+		border: 1px dashed #c3c4c7;
+		border-radius: 6px;
+		background: #f6f7f7;
+		color: #50575e;
+
+		> .dashicons {
+			margin-top: 0.1rem;
+			color: #8c8f94;
+		}
+
+		strong {
+			color: #1e1e1e;
+		}
+
+		p {
+			margin: 0.25rem 0 0;
+		}
+	}
+
+	@media (max-width: 600px) {
+
+		&__toolbar {
+			align-items: stretch;
+			flex-direction: column;
+		}
+
+		&__add.components-button {
+			justify-content: center;
+		}
+
+		&__list {
+			grid-template-columns: 1fr;
+		}
+	}
+}
