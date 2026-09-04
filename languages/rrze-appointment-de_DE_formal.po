@@ -2349,6 +2349,30 @@ msgstr "Bild auswählen"
 msgid "Use default illustration"
 msgstr "Standardillustration verwenden"
 
+#: src/render.php:84
+msgid "Calendar legend"
+msgstr "Kalenderlegende"
+
+#: src/render.php:88
+msgid "Available"
+msgstr "Verfügbar"
+
+#: src/render.php:92
+msgid "Selected"
+msgstr "Ausgewählt"
+
+#: src/render.php:97
+msgid "Not yet bookable"
+msgstr "Noch nicht buchbar"
+
+#: src/render.php:102
+msgid "Past or booked"
+msgstr "Vergangen oder ausgebucht"
+
+#: src/render.php:106
+msgid "Today"
+msgstr "Heute"
+
 #~ msgid "Message"
 #~ msgstr "Nachricht"
 

@@ -79,6 +79,33 @@ $locationIsUrl = preg_match('#^https?://#i', $location) === 1;
         <?php endif; ?>
 
         <?php if (!empty($slots)) : ?>
+            <ul
+                class="rrze-appointment__calendar-legend"
+                aria-label="<?php echo esc_attr__('Calendar legend', 'rrze-appointment'); ?>"
+            >
+                <li class="rrze-appointment__calendar-legend-item">
+                    <span class="rrze-appointment__calendar-legend-swatch is-available" aria-hidden="true"></span>
+                    <span><?php esc_html_e('Available', 'rrze-appointment'); ?></span>
+                </li>
+                <li class="rrze-appointment__calendar-legend-item">
+                    <span class="rrze-appointment__calendar-legend-swatch is-selected" aria-hidden="true"></span>
+                    <span><?php esc_html_e('Selected', 'rrze-appointment'); ?></span>
+                </li>
+                <?php if ($bookingMaxAdvance > 0) : ?>
+                    <li class="rrze-appointment__calendar-legend-item">
+                        <span class="rrze-appointment__calendar-legend-swatch is-not-open" aria-hidden="true"></span>
+                        <span><?php esc_html_e('Not yet bookable', 'rrze-appointment'); ?></span>
+                    </li>
+                <?php endif; ?>
+                <li class="rrze-appointment__calendar-legend-item">
+                    <span class="rrze-appointment__calendar-legend-swatch is-unavailable" aria-hidden="true"></span>
+                    <span><?php esc_html_e('Past or booked', 'rrze-appointment'); ?></span>
+                </li>
+                <li class="rrze-appointment__calendar-legend-item">
+                    <span class="rrze-appointment__calendar-legend-swatch is-today" aria-hidden="true"></span>
+                    <span><?php esc_html_e('Today', 'rrze-appointment'); ?></span>
+                </li>
+            </ul>
             <div class="rrze-appointment__calendar"></div>
 
             <p class="rrze-appointment__availability-status is-hidden" role="status" aria-live="polite"></p>

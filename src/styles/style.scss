@@ -1,3 +1,15 @@
+$cal-border-default: #c8c9c7; // Cool Gray 3 C
+$cal-bg-past: #dfe2e7; // Cool Gray
+$cal-bg-available: #10c000;
+$cal-text-available: #000;
+$cal-border-available: #10c000;
+$cal-bg-active: #0d6efd;
+$cal-bg-not-open: #f2a900;
+$cal-text-not-open: #2b1a00;
+$cal-border-not-open: #8a4b00;
+$cal-bg-booked: #e8e8e8;
+$cal-today-outline: #fddf35;
+
 .rrze-appointment,
 .rrze-appointment-block {
 	$border-radius: 0;
@@ -35,6 +47,69 @@
 		margin-bottom: 2rem;
 	}
 
+	&__calendar-legend {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		margin: 0 0 0.75rem;
+		padding: 0;
+		gap: 0.5rem 1rem;
+		list-style: none;
+		font-size: 0.8rem;
+		line-height: 1.35;
+
+		&-item {
+			display: inline-flex;
+			align-items: center;
+			margin: 0;
+			gap: 0.35rem;
+		}
+
+		&-swatch {
+			position: relative;
+			display: inline-flex;
+			flex: 0 0 auto;
+			align-items: center;
+			justify-content: center;
+			box-sizing: border-box;
+			width: 1rem;
+			height: 1rem;
+			border: 1px solid $cal-border-default;
+			background: #fff;
+
+			&.is-available {
+				border-color: $cal-border-available;
+				background: $cal-bg-available;
+			}
+
+			&.is-selected {
+				border-color: $cal-bg-active;
+				background: $cal-bg-active;
+				color: #fff;
+
+				&::after {
+					content: "✓";
+					font-size: 0.65rem;
+					font-weight: 700;
+					line-height: 1;
+				}
+			}
+
+			&.is-not-open {
+				border-color: $cal-border-not-open;
+				background: $cal-bg-not-open;
+			}
+
+			&.is-unavailable {
+				background: $cal-bg-booked;
+			}
+
+			&.is-today {
+				box-shadow: inset 0 0 0 3px $cal-today-outline;
+			}
+		}
+	}
+
 	&__calendar,
 	&__calendar-select {
 		margin-bottom: 1rem;
@@ -68,21 +143,6 @@
 			align-items: center;
 			justify-content: center;
 		}
-
-		$cal-border-default: #c8c9c7; // Cool Gray 3 C
-		$cal-bg-past: #dfe2e7; // Cool Gray
-		$cal-text-past: #04316a;
-		$cal-bg-available: #10c000;
-		$cal-text-available: #000;
-		$cal-border-available: #10c000;
-		$cal-bg-active: #0d6efd;
-		$cal-text-active: #fff;
-		$cal-bg-not-open: #f2a900;
-		$cal-text-not-open: #2b1a00;
-		$cal-border-not-open: #8a4b00;
-		$cal-today-outline: #fddf35;
-		$cal-hover-bg-available: #fff;
-		$cal-hover-text-available: $cal-bg-available;
 
 		&-day {
 			border: 1px solid $cal-border-default;
@@ -165,7 +225,7 @@
 			}
 
 			&.is-booked {
-				background-color: #e8e8e8 !important;
+				background-color: $cal-bg-booked !important;
 				border-color: #c8c9c7;
 				cursor: not-allowed;
 				text-decoration: line-through;

@@ -2196,3 +2196,27 @@ msgstr ""
 #: includes/Admin/SettingsPage.php:234
 msgid "Use default illustration"
 msgstr ""
+
+#: src/render.php:84
+msgid "Calendar legend"
+msgstr ""
+
+#: src/render.php:88
+msgid "Available"
+msgstr ""
+
+#: src/render.php:92
+msgid "Selected"
+msgstr ""
+
+#: src/render.php:97
+msgid "Not yet bookable"
+msgstr ""
+
+#: src/render.php:102
+msgid "Past or booked"
+msgstr ""
+
+#: src/render.php:106
+msgid "Today"
+msgstr ""
