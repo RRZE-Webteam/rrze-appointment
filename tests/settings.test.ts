@@ -6,8 +6,8 @@ type SettingsResult = {
 	storedReminderDays: number;
 	blankRetentionDays: number;
 	defaultCancellationReasonEnabled: boolean;
-	sanitized: Record< string, number | boolean >;
-	sanitizedEnabled: Record< string, number | boolean >;
+	sanitized: Record< string, unknown >;
+	sanitizedEnabled: Record< string, unknown >;
 	renderedTemplate: string;
 	successfulMail: Record< string, unknown >;
 	failedMail: Record< string, unknown >;
@@ -72,6 +72,8 @@ const getSettingsResult = (): SettingsResult => {
 			function sanitize_key( $value ) {
 				return preg_replace( '/[^a-z0-9_\\-]/', '', strtolower( $value ) );
 			}
+			function absint( $value ) { return abs( (int) $value ); }
+			function wp_attachment_is_image( $id ) { return $id === 42; }
 
 			require ${ JSON.stringify( pluginSettingsPath ) };
 			require ${ JSON.stringify( mailerPath ) };
@@ -94,6 +96,11 @@ const getSettingsResult = (): SettingsResult => {
 			$sanitized = $settings::sanitize( [ 'reminder_days' => 99, 'retention_days' => -5 ] );
 			$sanitizedEnabled = $settings::sanitize( [
 				'cancellation_reason_enabled' => '1',
+				'illustrations' => [
+					'confirmation_success' => '42',
+					'error' => '99',
+					'unknown_screen' => '42',
+				],
 			] );
 			$renderedTemplate = $mailerClass::render(
 				'[name]|[message]|[invalid]',
@@ -181,10 +188,14 @@ describe( 'plugin configuration and mail delivery', () => {
 			recurrence_limit: 1,
 			retention_days: 0,
 			cancellation_reason_enabled: false,
+			illustrations: [],
 		} );
 		expect( result.sanitizedEnabled.cancellation_reason_enabled ).toBe(
 			true
 		);
+		expect( result.sanitizedEnabled.illustrations ).toEqual( {
+			confirmation_success: 42,
+		} );
 	} );
 
 	it( 'renders scalar placeholders and cleans up multipart mail state', () => {

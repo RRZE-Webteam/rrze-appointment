@@ -16,6 +16,7 @@ final class SettingsPage
     private const SETTINGS_GROUP = 'rrze_appointment_settings_group';
     private const GENERAL_SECTION = 'rrze_appointment_general';
     private const ADMIN_CSS_PATH = 'assets/css/rrze-appointment-admin.css';
+    private const ADMIN_JS_PATH = 'assets/js/rrze-appointment-admin.js';
 
     public function __construct(private readonly MailTemplatesPage $mailTemplates)
     {
@@ -77,6 +78,13 @@ final class SettingsPage
             self::PAGE_SLUG,
             self::GENERAL_SECTION
         );
+        add_settings_field(
+            'illustrations',
+            __('Illustrations', 'rrze-appointment'),
+            [$this, 'renderIllustrationsField'],
+            self::PAGE_SLUG,
+            self::GENERAL_SECTION
+        );
     }
 
     /**
@@ -130,6 +138,89 @@ final class SettingsPage
         <p class="description">
             <?php esc_html_e('Applies to cancellations from email links and the appointment dashboard. Disable this option if the field is being abused.', 'rrze-appointment'); ?>
         </p>
+        <?php
+    }
+
+    /**
+     * Renders media-library selectors for public-page illustrations.
+     */
+    public function renderIllustrationsField(): void
+    {
+        $storedIllustrations = PluginSettings::get('illustrations');
+        $storedIllustrations = is_array($storedIllustrations) ? $storedIllustrations : [];
+        $labels = [
+            'confirmation_success' => __('Appointment confirmed', 'rrze-appointment'),
+            'confirmation_questions' => __('Additional questions', 'rrze-appointment'),
+            'cancellation_confirmation' => __('Cancellation confirmation', 'rrze-appointment'),
+            'cancellation_success' => __('Cancellation completed', 'rrze-appointment'),
+            'waitlist_preference' => __('Waitlist preference', 'rrze-appointment'),
+            'opening_notification' => __('Booking opening notification', 'rrze-appointment'),
+            'error' => __('Error page', 'rrze-appointment'),
+        ];
+        ?>
+        <p class="description rrze-appt-illustrations__intro">
+            <?php esc_html_e('Replace the bundled illustrations on public confirmation and information screens with images from the media library.', 'rrze-appointment'); ?>
+        </p>
+        <div class="rrze-appt-illustrations">
+            <?php foreach (PluginSettings::ILLUSTRATION_DEFAULTS as $key => $defaultFilename) :
+                $attachmentId = absint($storedIllustrations[$key] ?? 0);
+                $customUrl = $attachmentId > 0
+                    ? wp_get_attachment_image_url($attachmentId, 'medium')
+                    : false;
+                if (!is_string($customUrl) || $customUrl === '') {
+                    $attachmentId = 0;
+                    $customUrl = '';
+                }
+                $defaultUrl = plugin()->getUrl('assets/images') . $defaultFilename;
+                $previewUrl = $customUrl !== '' ? $customUrl : $defaultUrl;
+                $fieldId = 'rrze-appt-illustration-' . $key;
+                ?>
+                <section class="rrze-appt-illustration" data-illustration-field>
+                    <h3><?php echo esc_html($labels[$key] ?? $key); ?></h3>
+                    <div class="rrze-appt-illustration__preview">
+                        <img
+                            src="<?php echo esc_url($previewUrl); ?>"
+                            data-illustration-preview
+                            data-default-src="<?php echo esc_url($defaultUrl); ?>"
+                            alt=""
+                        >
+                    </div>
+                    <input
+                        type="hidden"
+                        id="<?php echo esc_attr($fieldId); ?>"
+                        name="<?php echo esc_attr(PluginSettings::OPTION_NAME); ?>[illustrations][<?php echo esc_attr($key); ?>]"
+                        value="<?php echo esc_attr($attachmentId); ?>"
+                        data-illustration-input
+                    >
+                    <p class="rrze-appt-illustration__status" data-illustration-status>
+                        <?php echo esc_html($attachmentId > 0
+                            ? __('Custom illustration', 'rrze-appointment')
+                            : __('Default illustration', 'rrze-appointment')); ?>
+                    </p>
+                    <div class="rrze-appt-illustration__actions">
+                        <button
+                            type="button"
+                            class="button"
+                            data-illustration-select
+                            data-dialog-title="<?php esc_attr_e('Select illustration', 'rrze-appointment'); ?>"
+                            data-dialog-button="<?php esc_attr_e('Use this image', 'rrze-appointment'); ?>"
+                            data-custom-label="<?php esc_attr_e('Custom illustration', 'rrze-appointment'); ?>"
+                        >
+                            <?php esc_html_e('Select image', 'rrze-appointment'); ?>
+                        </button>
+                        <button
+                            type="button"
+                            class="button-link-delete"
+                            data-illustration-remove
+                            data-default-label="<?php esc_attr_e('Default illustration', 'rrze-appointment'); ?>"
+                            <?php echo $attachmentId === 0 ? 'hidden' : ''; ?>
+                        >
+                            <?php esc_html_e('Use default illustration', 'rrze-appointment'); ?>
+                        </button>
+                    </div>
+                </section>
+            <?php endforeach; ?>
+        </div>
         <?php
     }
 
@@ -201,6 +292,22 @@ final class SettingsPage
                 plugin()->getUrl() . self::ADMIN_CSS_PATH,
                 [],
                 (string) filemtime($adminCss)
+            );
+        }
+
+        if ($hook !== self::screenHook()) {
+            return;
+        }
+
+        wp_enqueue_media();
+        $adminJs = plugin()->getPath() . self::ADMIN_JS_PATH;
+        if (is_readable($adminJs)) {
+            wp_enqueue_script(
+                'rrze-appointment-admin-js',
+                plugin()->getUrl() . self::ADMIN_JS_PATH,
+                ['media-editor'],
+                (string) filemtime($adminJs),
+                true
             );
         }
     }

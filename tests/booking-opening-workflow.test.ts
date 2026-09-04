@@ -15,6 +15,9 @@ describe( 'booking opening notification workflow', () => {
 	const renderer = readProjectFile(
 		'includes/Presentation/PublicPageRenderer.php'
 	);
+	const settings = readProjectFile(
+		'includes/Configuration/PluginSettings.php'
+	);
 	const templates = readProjectFile( 'includes/Mail/MailTemplatePost.php' );
 
 	it( 'registers subscriptions and schedules their opening email', () => {
@@ -40,7 +43,12 @@ describe( 'booking opening notification workflow', () => {
 		expect( templates ).toContain( "'booking_opening_notification'" );
 		expect( templates ).not.toContain( '[notification_image]' );
 		expect( notifier ).not.toContain( 'notification-36.png' );
-		expect( renderer ).toContain( "'notification-36.png'" );
+		expect( settings ).toContain(
+			"'opening_notification' => 'notification-36.png'"
+		);
+		expect( renderer ).toContain(
+			"getIllustrationUrl('opening_notification')"
+		);
 		expect( renderer ).toContain( 'renderOpeningNotificationSuccess' );
 	} );
 } );

@@ -2249,6 +2249,62 @@ msgstr "Eingabe eines Stornierungsgrunds erlauben."
 msgid "Applies to cancellations from email links and the appointment dashboard. Disable this option if the field is being abused."
 msgstr "Gilt für Stornierungen über E-Mail-Links und die Terminübersicht. Deaktivieren Sie diese Option, wenn das Feld missbraucht wird."
 
+#: includes/Admin/SettingsPage.php:85
+msgid "Illustrations"
+msgstr "Illustrationen"
+
+#: includes/Admin/SettingsPage.php:155
+msgid "Appointment confirmed"
+msgstr "Termin bestätigt"
+
+#: includes/Admin/SettingsPage.php:156
+msgid "Additional questions"
+msgstr "Zusätzliche Fragen"
+
+#: includes/Admin/SettingsPage.php:157
+msgid "Cancellation confirmation"
+msgstr "Stornierung bestätigen"
+
+#: includes/Admin/SettingsPage.php:158
+msgid "Cancellation completed"
+msgstr "Stornierung abgeschlossen"
+
+#: includes/Admin/SettingsPage.php:159
+msgid "Waitlist preference"
+msgstr "Wartelisten-Einstellung"
+
+#: includes/Admin/SettingsPage.php:161
+msgid "Error page"
+msgstr "Fehlerseite"
+
+#: includes/Admin/SettingsPage.php:165
+msgid "Replace the bundled illustrations on public confirmation and information screens with images from the media library."
+msgstr "Ersetzen Sie die mitgelieferten Illustrationen auf öffentlich sichtbaren Bestätigungs- und Informationsseiten durch Bilder aus der Mediathek."
+
+#: includes/Admin/SettingsPage.php:201 includes/Admin/SettingsPage.php:218
+msgid "Custom illustration"
+msgstr "Benutzerdefinierte Illustration"
+
+#: includes/Admin/SettingsPage.php:202 includes/Admin/SettingsPage.php:231
+msgid "Default illustration"
+msgstr "Standardillustration"
+
+#: includes/Admin/SettingsPage.php:216
+msgid "Select illustration"
+msgstr "Illustration auswählen"
+
+#: includes/Admin/SettingsPage.php:217
+msgid "Use this image"
+msgstr "Dieses Bild verwenden"
+
+#: includes/Admin/SettingsPage.php:221
+msgid "Select image"
+msgstr "Bild auswählen"
+
+#: includes/Admin/SettingsPage.php:234
+msgid "Use default illustration"
+msgstr "Standardillustration verwenden"
+
 #~ msgid "Message"
 #~ msgstr "Nachricht"
 
@@ -2475,9 +2531,6 @@ msgstr "Gilt für Stornierungen über E-Mail-Links und die Terminübersicht. Dea
 
 #~ msgid "Appointment booked! A confirmation has been sent."
 #~ msgstr "Termin gebucht! Eine Bestätigung wurde versendet."
-
-#~ msgid "Appointment confirmed"
-#~ msgstr "Termin bestätigt"
 
 #~ msgid "Back to homepage"
 #~ msgstr "Zurück zur Startseite"

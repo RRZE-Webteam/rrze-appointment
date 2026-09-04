@@ -87,4 +87,21 @@ describe( 'focused administration pages', () => {
 		expect( settings ).toContain( "'cancellation_reason_enabled'" );
 		expect( settings ).toContain( 'renderCancellationReasonField' );
 	} );
+
+	it( 'provides media-library controls for public illustrations', () => {
+		const settings = readFileSync(
+			resolve( process.cwd(), 'includes/Admin/SettingsPage.php' ),
+			'utf8'
+		);
+		const script = readFileSync(
+			resolve( process.cwd(), 'assets/js/rrze-appointment-admin.js' ),
+			'utf8'
+		);
+
+		expect( settings ).toContain( 'renderIllustrationsField' );
+		expect( settings ).toContain( 'wp_enqueue_media();' );
+		expect( settings ).toContain( '[illustrations][' );
+		expect( script ).toContain( "library: { type: 'image' }" );
+		expect( script ).toContain( "input.value = '0';" );
+	} );
 } );

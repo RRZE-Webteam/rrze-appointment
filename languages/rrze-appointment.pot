@@ -2096,3 +2096,59 @@ msgstr ""
 #: includes/Admin/SettingsPage.php:132
 msgid "Applies to cancellations from email links and the appointment dashboard. Disable this option if the field is being abused."
 msgstr ""
+
+#: includes/Admin/SettingsPage.php:85
+msgid "Illustrations"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:155
+msgid "Appointment confirmed"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:156
+msgid "Additional questions"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:157
+msgid "Cancellation confirmation"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:158
+msgid "Cancellation completed"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:159
+msgid "Waitlist preference"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:161
+msgid "Error page"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:165
+msgid "Replace the bundled illustrations on public confirmation and information screens with images from the media library."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:201 includes/Admin/SettingsPage.php:218
+msgid "Custom illustration"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:202 includes/Admin/SettingsPage.php:231
+msgid "Default illustration"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:216
+msgid "Select illustration"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:217
+msgid "Use this image"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:221
+msgid "Select image"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:234
+msgid "Use default illustration"
+msgstr ""

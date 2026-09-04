@@ -3,6 +3,7 @@
 namespace RRZE\Appointment\Presentation;
 
 use RRZE\Appointment\Booking\TokenManager;
+use RRZE\Appointment\Configuration\PluginSettings;
 use function RRZE\Appointment\plugin;
 
 defined('ABSPATH') || exit;
@@ -201,7 +202,7 @@ final class PublicPageRenderer
             'cancellationAction' => '',
             'cancellationNonce' => '',
             'showCancellationReason' => !empty($data['showCancellationReason']),
-            'illustrationUrl' => $this->getIllustrationUrl('order-confirmed-62.png'),
+            'illustrationUrl' => $this->getIllustrationUrl('confirmation_success'),
             'questions' => $questions,
             'submittedAnswers' => is_array($data['submittedAnswers'] ?? null)
                 ? $data['submittedAnswers']
@@ -218,21 +219,21 @@ final class PublicPageRenderer
         ];
 
         if ($isQuestionForm) {
-            $context['illustrationUrl'] = $this->getIllustrationUrl('financial-analyst-31.png');
+            $context['illustrationUrl'] = $this->getIllustrationUrl('confirmation_questions');
             $context['formAction'] = TokenManager::confirmUrl($token);
             $context['formNonce'] = wp_create_nonce(self::QUESTION_NONCE_PREFIX . $token);
         } elseif ($mode === self::MODE_CANCELLATION_SUCCESS) {
-            $context['illustrationUrl'] = $this->getIllustrationUrl('neutral-face-89.png');
+            $context['illustrationUrl'] = $this->getIllustrationUrl('cancellation_success');
         } elseif ($mode === self::MODE_CANCELLATION_CONFIRMATION) {
-            $context['illustrationUrl'] = $this->getIllustrationUrl('neutral-face-89.png');
+            $context['illustrationUrl'] = $this->getIllustrationUrl('cancellation_confirmation');
             $context['cancellationAction'] = TokenManager::cancelUrl($token);
             $context['cancellationNonce'] = wp_create_nonce(self::CANCELLATION_NONCE_PREFIX . $token);
         } elseif ($mode === self::MODE_WAITLIST) {
-            $context['illustrationUrl'] = $this->getIllustrationUrl('reminder-note-28.png');
+            $context['illustrationUrl'] = $this->getIllustrationUrl('waitlist_preference');
             $context['waitlistOptInAction'] = TokenManager::waitlistOptOutUrl($token);
             $context['waitlistOptInNonce'] = wp_create_nonce(self::WAITLIST_NONCE_PREFIX . $token);
         } elseif ($mode === self::MODE_OPENING_NOTIFICATION) {
-            $context['illustrationUrl'] = $this->getIllustrationUrl('notification-36.png');
+            $context['illustrationUrl'] = $this->getIllustrationUrl('opening_notification');
         }
 
         return $context;
@@ -277,10 +278,24 @@ final class PublicPageRenderer
     }
 
     /**
-     * Returns a bundled illustration URL.
+     * Returns a custom media-library illustration or its bundled fallback.
      */
-    private function getIllustrationUrl(string $filename): string
+    private function getIllustrationUrl(string $screen): string
     {
+        $illustrations = PluginSettings::get('illustrations');
+        $attachmentId = is_array($illustrations)
+            ? absint($illustrations[$screen] ?? 0)
+            : 0;
+        if ($attachmentId > 0) {
+            $attachmentUrl = wp_get_attachment_image_url($attachmentId, 'large');
+            if (is_string($attachmentUrl) && $attachmentUrl !== '') {
+                return $attachmentUrl;
+            }
+        }
+
+        $filename = PluginSettings::ILLUSTRATION_DEFAULTS[$screen]
+            ?? PluginSettings::ILLUSTRATION_DEFAULTS['error'];
+
         return plugin()->getUrl(self::ILLUSTRATION_PATH) . $filename;
     }
 
@@ -301,7 +316,7 @@ final class PublicPageRenderer
 
         $homeUrl = home_url('/');
         $siteName = get_bloginfo('name');
-        $illustrationUrl = $this->getIllustrationUrl('bug-fixing-71.png');
+        $illustrationUrl = $this->getIllustrationUrl('error');
         $errorMessage = $message;
 
         require $this->getTemplatePath(self::ERROR_TEMPLATE);

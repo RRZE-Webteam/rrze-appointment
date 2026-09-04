@@ -14,6 +14,7 @@ type RendererResult = {
 	cancellationConfirmation: ViewContext;
 	waitlist: ViewContext;
 	opening: ViewContext;
+	errorIllustration: string;
 };
 
 const getRendererResult = (): RendererResult => {
@@ -29,6 +30,25 @@ const getRendererResult = (): RendererResult => {
 				public static function waitlistOptOutUrl( string $token ): string { return 'waitlist:' . $token; }
 			}
 		}
+		namespace RRZE\\Appointment\\Configuration {
+			class PluginSettings {
+				public const ILLUSTRATION_DEFAULTS = [
+					'confirmation_success' => 'order-confirmed-62.png',
+					'confirmation_questions' => 'financial-analyst-31.png',
+					'cancellation_confirmation' => 'neutral-face-89.png',
+					'cancellation_success' => 'neutral-face-89.png',
+					'waitlist_preference' => 'reminder-note-28.png',
+					'opening_notification' => 'notification-36.png',
+					'error' => 'bug-fixing-71.png',
+				];
+				public static function get( string $key ): array {
+					return [
+						'confirmation_questions' => 88,
+						'cancellation_confirmation' => 77,
+					];
+				}
+			}
+		}
 		namespace RRZE\\Appointment {
 			function plugin() {
 				return new class {
@@ -40,6 +60,10 @@ const getRendererResult = (): RendererResult => {
 		namespace {
 			define( 'ABSPATH', __DIR__ );
 			function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
+			function absint( $value ) { return abs( (int) $value ); }
+			function wp_get_attachment_image_url( $id, $size ) {
+				return $id === 77 ? 'https://media.test/custom-cancellation.jpg' : false;
+			}
 			function wp_timezone() { return new \\DateTimeZone( 'Europe/Berlin' ); }
 			function get_option( $key ) { return 'd.m.Y'; }
 			function wp_date( $format, $timestamp, $timezone ) {
@@ -53,6 +77,7 @@ const getRendererResult = (): RendererResult => {
 			$renderer = new \\RRZE\\Appointment\\Presentation\\PublicPageRenderer();
 			$reflection = new ReflectionClass( $renderer );
 			$buildContext = $reflection->getMethod( 'buildConfirmationContext' );
+			$getIllustration = $reflection->getMethod( 'getIllustrationUrl' );
 			$build = static function ( string $mode, array $data ) use ( $renderer, $buildContext ): array {
 				return $buildContext->invoke( $renderer, $mode, $data );
 			};
@@ -81,6 +106,7 @@ const getRendererResult = (): RendererResult => {
 					'notificationsEnabled' => true,
 				] ),
 				'opening' => $build( 'opening_notification', [] ),
+				'errorIllustration' => $getIllustration->invoke( $renderer, 'error' ),
 			] );
 		}
 	`;
@@ -141,6 +167,7 @@ describe( 'public page renderer', () => {
 			cancellationAction: 'cancel:cancel-token',
 			cancellationNonce: 'nonce:rrze_appointment_cancel_cancel-token',
 			showCancellationReason: true,
+			illustrationUrl: 'https://media.test/custom-cancellation.jpg',
 		} );
 		expect( result.waitlist ).toMatchObject( {
 			isWaitlistOptOut: true,
@@ -155,5 +182,6 @@ describe( 'public page renderer', () => {
 		expect( result.opening.illustrationUrl ).toContain(
 			'notification-36.png'
 		);
+		expect( result.errorIllustration ).toContain( 'bug-fixing-71.png' );
 	} );
 } );
