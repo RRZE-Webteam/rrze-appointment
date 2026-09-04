@@ -99,6 +99,13 @@ describe( 'focused administration pages', () => {
 		);
 
 		expect( settings ).toContain( 'renderIllustrationsField' );
+		expect( settings ).toContain(
+			"'illustrations' => __('Illustrations', 'rrze-appointment')"
+		);
+		expect( settings ).toContain(
+			'do_settings_sections(self::ILLUSTRATIONS_PAGE);'
+		);
+		expect( settings ).toContain( 'value="illustrations"' );
 		expect( settings ).toContain( 'wp_enqueue_media();' );
 		expect( settings ).toContain( '[illustrations][' );
 		expect( script ).toContain( "library: { type: 'image' }" );

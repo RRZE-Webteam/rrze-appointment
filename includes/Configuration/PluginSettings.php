@@ -68,19 +68,35 @@ final class PluginSettings
         $storedOptions = get_option(self::OPTION_NAME, []);
         $currentOptions = is_array($storedOptions) ? $storedOptions : [];
         $recurrenceLimit = max(1, (int) ($currentOptions['recurrence_limit'] ?? 52));
+        $scope = is_string($input['_settings_scope'] ?? null)
+            ? $input['_settings_scope']
+            : '';
+
+        $reminderDays = $scope === 'illustrations'
+            ? self::get('reminder_days')
+            : ($input['reminder_days'] ?? 0);
+        $retentionDays = $scope === 'illustrations'
+            ? self::get('retention_days')
+            : ($input['retention_days'] ?? 30);
+        $cancellationReasonEnabled = $scope === 'illustrations'
+            ? self::get('cancellation_reason_enabled')
+            : !empty($input['cancellation_reason_enabled']);
+        $illustrations = $scope === 'general'
+            ? self::get('illustrations')
+            : ($input['illustrations'] ?? []);
 
         return [
             'reminder_days' => min(
                 self::MAX_REMINDER_DAYS,
-                max(0, (int) ($input['reminder_days'] ?? 0))
+                max(0, (int) $reminderDays)
             ),
             'recurrence_limit' => $recurrenceLimit,
             'retention_days' => min(
                 self::MAX_RETENTION_DAYS,
-                max(0, (int) ($input['retention_days'] ?? 30))
+                max(0, (int) $retentionDays)
             ),
-            'cancellation_reason_enabled' => !empty($input['cancellation_reason_enabled']),
-            'illustrations' => self::sanitizeIllustrations($input['illustrations'] ?? []),
+            'cancellation_reason_enabled' => (bool) $cancellationReasonEnabled,
+            'illustrations' => self::sanitizeIllustrations($illustrations),
         ];
     }
 

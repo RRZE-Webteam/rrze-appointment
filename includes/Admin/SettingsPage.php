@@ -15,6 +15,8 @@ final class SettingsPage
     public const PAGE_SLUG = 'rrze-appointment-settings';
     private const SETTINGS_GROUP = 'rrze_appointment_settings_group';
     private const GENERAL_SECTION = 'rrze_appointment_general';
+    private const ILLUSTRATIONS_SECTION = 'rrze_appointment_illustrations';
+    private const ILLUSTRATIONS_PAGE = self::PAGE_SLUG . '-illustrations';
     private const ADMIN_CSS_PATH = 'assets/css/rrze-appointment-admin.css';
     private const ADMIN_JS_PATH = 'assets/js/rrze-appointment-admin.js';
 
@@ -78,12 +80,18 @@ final class SettingsPage
             self::PAGE_SLUG,
             self::GENERAL_SECTION
         );
+        add_settings_section(
+            self::ILLUSTRATIONS_SECTION,
+            '',
+            '__return_false',
+            self::ILLUSTRATIONS_PAGE
+        );
         add_settings_field(
             'illustrations',
             __('Illustrations', 'rrze-appointment'),
             [$this, 'renderIllustrationsField'],
-            self::PAGE_SLUG,
-            self::GENERAL_SECTION
+            self::ILLUSTRATIONS_PAGE,
+            self::ILLUSTRATIONS_SECTION
         );
     }
 
@@ -235,9 +243,13 @@ final class SettingsPage
 
         $tab = Request::queryText('tab', true) ?: 'general';
         $tabs = [
-            'general'   => __('General', 'rrze-appointment'),
+            'general' => __('General', 'rrze-appointment'),
+            'illustrations' => __('Illustrations', 'rrze-appointment'),
             'templates' => __('Mail Templates', 'rrze-appointment'),
         ];
+        if (!isset($tabs[$tab])) {
+            $tab = 'general';
+        }
         ?>
         <div class="wrap rrze-appointment-settings-wrap">
             <h1 class="wp-heading-inline"><?php echo esc_html(get_admin_page_title()); ?></h1>
@@ -255,6 +267,8 @@ final class SettingsPage
             <div class="tab-content" style="margin-top:1.5rem;">
                 <?php if ($tab === 'general') : ?>
                     <?php $this->renderTabGeneral(); ?>
+                <?php elseif ($tab === 'illustrations') : ?>
+                    <?php $this->renderTabIllustrations(); ?>
                 <?php elseif ($tab === 'templates') : ?>
                     <?php $this->mailTemplates->render(); ?>
                 <?php endif; ?>
@@ -269,7 +283,34 @@ final class SettingsPage
         <form method="post" action="options.php">
             <?php
             settings_fields(self::SETTINGS_GROUP);
+            ?>
+            <input
+                type="hidden"
+                name="<?php echo esc_attr(PluginSettings::OPTION_NAME); ?>[_settings_scope]"
+                value="general"
+            >
+            <?php
             do_settings_sections(self::PAGE_SLUG);
+            submit_button();
+            ?>
+        </form>
+        <?php
+    }
+
+    private function renderTabIllustrations(): void
+    {
+        ?>
+        <form method="post" action="options.php">
+            <?php
+            settings_fields(self::SETTINGS_GROUP);
+            ?>
+            <input
+                type="hidden"
+                name="<?php echo esc_attr(PluginSettings::OPTION_NAME); ?>[_settings_scope]"
+                value="illustrations"
+            >
+            <?php
+            do_settings_sections(self::ILLUSTRATIONS_PAGE);
             submit_button();
             ?>
         </form>
@@ -296,6 +337,11 @@ final class SettingsPage
         }
 
         if ($hook !== self::screenHook()) {
+            return;
+        }
+
+        $tab = Request::queryText('tab', true) ?: 'general';
+        if ($tab !== 'illustrations') {
             return;
         }
 

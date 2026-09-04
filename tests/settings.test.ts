@@ -8,6 +8,8 @@ type SettingsResult = {
 	defaultCancellationReasonEnabled: boolean;
 	sanitized: Record< string, unknown >;
 	sanitizedEnabled: Record< string, unknown >;
+	sanitizedIllustrationsTab: Record< string, unknown >;
+	sanitizedGeneralTab: Record< string, unknown >;
 	renderedTemplate: string;
 	successfulMail: Record< string, unknown >;
 	failedMail: Record< string, unknown >;
@@ -102,6 +104,22 @@ const getSettingsResult = (): SettingsResult => {
 					'unknown_screen' => '42',
 				],
 			] );
+			$GLOBALS['options'][ $settings::OPTION_NAME ] = [
+				'reminder_days' => 3,
+				'recurrence_limit' => 12,
+				'retention_days' => 45,
+				'cancellation_reason_enabled' => true,
+				'illustrations' => [ 'confirmation_success' => 42 ],
+			];
+			$sanitizedIllustrationsTab = $settings::sanitize( [
+				'_settings_scope' => 'illustrations',
+				'illustrations' => [ 'error' => 42 ],
+			] );
+			$sanitizedGeneralTab = $settings::sanitize( [
+				'_settings_scope' => 'general',
+				'reminder_days' => 2,
+				'retention_days' => 10,
+			] );
 			$renderedTemplate = $mailerClass::render(
 				'[name]|[message]|[invalid]',
 				[ '[name]' => 'Ada', '[invalid]' => [ 'ignored' ] ]
@@ -154,6 +172,8 @@ const getSettingsResult = (): SettingsResult => {
 				'defaultCancellationReasonEnabled',
 				'sanitized',
 				'sanitizedEnabled',
+				'sanitizedIllustrationsTab',
+				'sanitizedGeneralTab',
 				'renderedTemplate',
 				'successfulMail',
 				'failedMail',
@@ -195,6 +215,20 @@ describe( 'plugin configuration and mail delivery', () => {
 		);
 		expect( result.sanitizedEnabled.illustrations ).toEqual( {
 			confirmation_success: 42,
+		} );
+		expect( result.sanitizedIllustrationsTab ).toEqual( {
+			reminder_days: 3,
+			recurrence_limit: 12,
+			retention_days: 45,
+			cancellation_reason_enabled: true,
+			illustrations: { error: 42 },
+		} );
+		expect( result.sanitizedGeneralTab ).toEqual( {
+			reminder_days: 2,
+			recurrence_limit: 12,
+			retention_days: 10,
+			cancellation_reason_enabled: false,
+			illustrations: { confirmation_success: 42 },
 		} );
 	} );
 
