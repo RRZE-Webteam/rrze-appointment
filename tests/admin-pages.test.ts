@@ -106,6 +106,28 @@ describe( 'focused administration pages', () => {
 		expect( bookings ).toContain( "!empty($b['admin_anonymized'])" );
 	} );
 
+	it( 'delegates appointment management through a server-validated user list', () => {
+		const settings = readFileSync(
+			resolve( process.cwd(), 'includes/Admin/SettingsPage.php' ),
+			'utf8'
+		);
+		const bookings = readFileSync(
+			resolve( process.cwd(), 'includes/Admin/BookingsPage.php' ),
+			'utf8'
+		);
+
+		expect( settings ).toContain( "'appointment_manager_user_ids'" );
+		expect( settings ).toContain( 'renderAppointmentManagersField' );
+		expect( settings ).toContain( 'data-appointment-permissions' );
+		expect( bookings ).toContain(
+			'AppointmentPermissions::currentUserCanManage()'
+		);
+		expect( bookings ).toContain( "'read'," );
+		expect( bookings ).not.toContain(
+			"|| !current_user_can('manage_options')"
+		);
+	} );
+
 	it( 'provides media-library controls for public illustrations', () => {
 		const settings = readFileSync(
 			resolve( process.cwd(), 'includes/Admin/SettingsPage.php' ),

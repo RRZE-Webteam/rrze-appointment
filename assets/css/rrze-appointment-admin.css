@@ -97,6 +97,45 @@
 	gap: 8px 12px;
 }
 
+.rrze-appt-permissions {
+	max-width: 760px;
+}
+
+.rrze-appt-permissions__picker {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	margin-top: 12px;
+	gap: 8px;
+}
+
+.rrze-appt-permissions__picker select {
+	min-width: min(100%, 360px);
+}
+
+.rrze-appt-permissions__list {
+	display: grid;
+	max-width: 620px;
+	margin: 16px 0 0;
+	gap: 8px;
+}
+
+.rrze-appt-permissions__list li {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 10px 12px;
+	border: 1px solid #dcdcde;
+	background: #fff;
+	gap: 16px;
+}
+
+.rrze-appt-permissions__list li[hidden] {
+	display: none;
+}
+
 /* Mail template editor */
 .rrze-appt-template-back {
 	display: inline-flex;

@@ -24,10 +24,14 @@ final class BookingsPage
 
     public function addMenuPage(): void
     {
+        if (!AppointmentPermissions::currentUserCanManage()) {
+            return;
+        }
+
         add_menu_page(
             __('Appointments', 'rrze-appointment'),
             __('Appointments', 'rrze-appointment'),
-            'manage_options',
+            'read',
             self::PAGE_SLUG,
             [$this, 'render'],
             self::getAdminMenuIcon(),
@@ -62,7 +66,7 @@ final class BookingsPage
     {
         if (
             Request::postText('rrze_appt_action', true) !== 'cancel'
-            || !current_user_can('manage_options')
+            || !AppointmentPermissions::currentUserCanManage()
         ) {
             return;
         }
@@ -87,7 +91,9 @@ final class BookingsPage
      */
     public function render(): void
     {
-        if (!current_user_can('manage_options')) return;
+        if (!AppointmentPermissions::currentUserCanManage()) {
+            return;
+        }
         ?>
         <div class="wrap rrze-appointment-settings-wrap">
             <h1 class="wp-heading-inline"><?php esc_html_e('Appointments', 'rrze-appointment'); ?></h1>

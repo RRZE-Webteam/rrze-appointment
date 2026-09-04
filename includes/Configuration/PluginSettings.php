@@ -29,6 +29,7 @@ final class PluginSettings
      *     retention_days: int,
      *     cancellation_reason_enabled: bool,
      *     sensitive_mode_enabled: bool,
+     *     appointment_manager_user_ids: array<int, int>,
      *     illustrations: array<string, int>
      * }
      */
@@ -40,6 +41,7 @@ final class PluginSettings
             'retention_days' => 30,
             'cancellation_reason_enabled' => true,
             'sensitive_mode_enabled' => false,
+            'appointment_manager_user_ids' => [],
             'illustrations' => [],
         ];
     }
@@ -63,6 +65,7 @@ final class PluginSettings
      *     retention_days: int,
      *     cancellation_reason_enabled: bool,
      *     sensitive_mode_enabled: bool,
+     *     appointment_manager_user_ids: array<int, int>,
      *     illustrations: array<string, int>
      * }
      */
@@ -87,6 +90,9 @@ final class PluginSettings
         $sensitiveModeEnabled = $scope === 'illustrations'
             ? self::get('sensitive_mode_enabled')
             : !empty($input['sensitive_mode_enabled']);
+        $appointmentManagerUserIds = $scope === 'illustrations'
+            ? self::get('appointment_manager_user_ids')
+            : ($input['appointment_manager_user_ids'] ?? []);
         $illustrations = $scope === 'general'
             ? self::get('illustrations')
             : ($input['illustrations'] ?? []);
@@ -103,8 +109,42 @@ final class PluginSettings
             ),
             'cancellation_reason_enabled' => (bool) $cancellationReasonEnabled,
             'sensitive_mode_enabled' => (bool) $sensitiveModeEnabled,
+            'appointment_manager_user_ids' => self::sanitizeAppointmentManagerUserIds(
+                $appointmentManagerUserIds
+            ),
             'illustrations' => self::sanitizeIllustrations($illustrations),
         ];
+    }
+
+    /**
+     * Keeps eligible, non-administrator users belonging to the current site.
+     *
+     * @param mixed $input Submitted user IDs.
+     * @return array<int, int>
+     */
+    private static function sanitizeAppointmentManagerUserIds($input): array
+    {
+        if (!is_array($input)) {
+            return [];
+        }
+
+        $userIds = [];
+        foreach ($input as $value) {
+            $userId = absint($value);
+            $user = $userId > 0 ? get_userdata($userId) : false;
+            if (
+                !$user
+                || !is_user_member_of_blog($userId, get_current_blog_id())
+                || user_can($user, 'manage_options')
+            ) {
+                continue;
+            }
+
+            $userIds[$userId] = $userId;
+        }
+
+        ksort($userIds, SORT_NUMERIC);
+        return array_values($userIds);
     }
 
     /**

@@ -2249,6 +2249,30 @@ msgid "Applies to cancellations from email links and the appointment dashboard. 
 msgstr "Gilt für Stornierungen über E-Mail-Links und die Terminübersicht. Deaktivieren Sie diese Option, wenn das Feld missbraucht wird."
 
 #: includes/Admin/SettingsPage.php:85
+msgid "Lock Appointment Management View to these users"
+msgstr "Zugriff auf die Terminverwaltung auf diese Benutzer beschränken"
+
+#: includes/Admin/SettingsPage.php:222
+msgid "Selected users can open the Appointments page and cancel appointments. Administrators always have access and do not need to be added."
+msgstr "Ausgewählte Benutzer können die Seite „Termine“ öffnen und Termine stornieren. Administratoren haben immer Zugriff und müssen nicht hinzugefügt werden."
+
+#: includes/Admin/SettingsPage.php:226 includes/Admin/SettingsPage.php:229
+msgid "Select user"
+msgstr "Benutzer auswählen"
+
+#: includes/Admin/SettingsPage.php:245
+msgid "Add user to permission list"
+msgstr "Benutzer zur Berechtigungsliste hinzufügen"
+
+#: includes/Admin/SettingsPage.php:219 includes/Admin/SettingsPage.php:262
+msgid "Remove"
+msgstr "Entfernen"
+
+#: includes/Admin/SettingsPage.php:267
+msgid "No additional users have access."
+msgstr "Keine weiteren Benutzer haben Zugriff."
+
+#: includes/Admin/SettingsPage.php:85
 msgid "Sensitive appointment mode"
 msgstr "Modus für sensible Sprechstunden"
 

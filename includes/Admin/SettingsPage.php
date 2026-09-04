@@ -87,6 +87,13 @@ final class SettingsPage
             self::PAGE_SLUG,
             self::GENERAL_SECTION
         );
+        add_settings_field(
+            'appointment_manager_user_ids',
+            __('Lock Appointment Management View to these users', 'rrze-appointment'),
+            [$this, 'renderAppointmentManagersField'],
+            self::PAGE_SLUG,
+            self::GENERAL_SECTION
+        );
         add_settings_section(
             self::ILLUSTRATIONS_SECTION,
             '',
@@ -175,6 +182,92 @@ final class SettingsPage
         <p class="description">
             <?php esc_html_e('While enabled, the appointment overview only shows dates and times. Appointments confirmed in this mode remain anonymized in the administration area after it is disabled. Existing appointments become visible again. Email delivery and content are unaffected.', 'rrze-appointment'); ?>
         </p>
+        <?php
+    }
+
+    /**
+     * Renders the delegated appointment-management permission list.
+     */
+    public function renderAppointmentManagersField(): void
+    {
+        $storedUserIds = PluginSettings::get('appointment_manager_user_ids');
+        $storedUserIds = is_array($storedUserIds)
+            ? array_values(array_unique(array_map('absint', $storedUserIds)))
+            : [];
+        $users = get_users([
+            'blog_id' => get_current_blog_id(),
+            'orderby' => 'display_name',
+            'order' => 'ASC',
+        ]);
+        $eligibleUsers = [];
+        foreach ($users as $user) {
+            if (!$user instanceof \WP_User || user_can($user, 'manage_options')) {
+                continue;
+            }
+            $eligibleUsers[(int) $user->ID] = $user;
+        }
+        $storedUserIds = array_values(array_filter(
+            $storedUserIds,
+            static fn(int $userId): bool => isset($eligibleUsers[$userId])
+        ));
+        $inputName = PluginSettings::OPTION_NAME . '[appointment_manager_user_ids][]';
+        ?>
+        <div
+            class="rrze-appt-permissions"
+            data-appointment-permissions
+            data-input-name="<?php echo esc_attr($inputName); ?>"
+            data-remove-label="<?php esc_attr_e('Remove', 'rrze-appointment'); ?>"
+        >
+            <p class="description">
+                <?php esc_html_e('Selected users can open the Appointments page and cancel appointments. Administrators always have access and do not need to be added.', 'rrze-appointment'); ?>
+            </p>
+            <div class="rrze-appt-permissions__picker">
+                <label class="screen-reader-text" for="rrze-appt-permission-user">
+                    <?php esc_html_e('Select user', 'rrze-appointment'); ?>
+                </label>
+                <select id="rrze-appt-permission-user" data-permission-user-select>
+                    <option value=""><?php esc_html_e('Select user', 'rrze-appointment'); ?></option>
+                    <?php foreach ($eligibleUsers as $userId => $user) :
+                        $label = sprintf(
+                            '%s (%s, %s)',
+                            $user->display_name,
+                            $user->user_login,
+                            $user->user_email
+                        );
+                        ?>
+                        <option
+                            value="<?php echo esc_attr($userId); ?>"
+                            <?php disabled(in_array($userId, $storedUserIds, true)); ?>
+                        ><?php echo esc_html($label); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <button type="button" class="button" data-permission-add disabled>
+                    <?php esc_html_e('Add user to permission list', 'rrze-appointment'); ?>
+                </button>
+            </div>
+            <ul class="rrze-appt-permissions__list" data-permission-list>
+                <?php foreach ($storedUserIds as $userId) :
+                    $user = $eligibleUsers[$userId];
+                    $label = sprintf(
+                        '%s (%s, %s)',
+                        $user->display_name,
+                        $user->user_login,
+                        $user->user_email
+                    );
+                    ?>
+                    <li data-permission-user data-user-id="<?php echo esc_attr($userId); ?>">
+                        <span><?php echo esc_html($label); ?></span>
+                        <input type="hidden" name="<?php echo esc_attr($inputName); ?>" value="<?php echo esc_attr($userId); ?>">
+                        <button type="button" class="button-link-delete" data-permission-remove>
+                            <?php esc_html_e('Remove', 'rrze-appointment'); ?>
+                        </button>
+                    </li>
+                <?php endforeach; ?>
+                <li data-permission-empty <?php echo $storedUserIds !== [] ? 'hidden' : ''; ?>>
+                    <?php esc_html_e('No additional users have access.', 'rrze-appointment'); ?>
+                </li>
+            </ul>
+        </div>
         <?php
     }
 
@@ -370,17 +463,21 @@ final class SettingsPage
         }
 
         $tab = Request::queryText('tab', true) ?: 'general';
-        if ($tab !== 'illustrations') {
+        if (!in_array($tab, ['general', 'illustrations'], true)) {
             return;
         }
 
-        wp_enqueue_media();
+        $dependencies = [];
+        if ($tab === 'illustrations') {
+            wp_enqueue_media();
+            $dependencies[] = 'media-editor';
+        }
         $adminJs = plugin()->getPath() . self::ADMIN_JS_PATH;
         if (is_readable($adminJs)) {
             wp_enqueue_script(
                 'rrze-appointment-admin-js',
                 plugin()->getUrl() . self::ADMIN_JS_PATH,
-                ['media-editor'],
+                $dependencies,
                 (string) filemtime($adminJs),
                 true
             );

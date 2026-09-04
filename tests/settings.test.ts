@@ -77,6 +77,13 @@ const getSettingsResult = (): SettingsResult => {
 			}
 			function absint( $value ) { return abs( (int) $value ); }
 			function wp_attachment_is_image( $id ) { return $id === 42; }
+			function get_current_blog_id() { return 1; }
+			function get_userdata( $id ) {
+				if ( ! in_array( $id, [ 1, 2, 3 ], true ) ) { return false; }
+				return (object) [ 'ID' => $id, 'administrator' => $id === 2 ];
+			}
+			function is_user_member_of_blog( $id, $blogId ) { return $id !== 3; }
+			function user_can( $user, $capability ) { return ! empty( $user->administrator ); }
 
 			require ${ JSON.stringify( pluginSettingsPath ) };
 			require ${ JSON.stringify( mailerPath ) };
@@ -101,6 +108,7 @@ const getSettingsResult = (): SettingsResult => {
 			$sanitizedEnabled = $settings::sanitize( [
 				'cancellation_reason_enabled' => '1',
 				'sensitive_mode_enabled' => '1',
+				'appointment_manager_user_ids' => [ '3', '2', '1', '1', 'invalid' ],
 				'illustrations' => [
 					'confirmation_success' => '42',
 					'error' => '99',
@@ -113,6 +121,7 @@ const getSettingsResult = (): SettingsResult => {
 				'retention_days' => 45,
 				'cancellation_reason_enabled' => true,
 				'sensitive_mode_enabled' => true,
+				'appointment_manager_user_ids' => [ 1 ],
 				'illustrations' => [ 'confirmation_success' => 42 ],
 			];
 			$sanitizedIllustrationsTab = $settings::sanitize( [
@@ -215,12 +224,16 @@ describe( 'plugin configuration and mail delivery', () => {
 			retention_days: 0,
 			cancellation_reason_enabled: false,
 			sensitive_mode_enabled: false,
+			appointment_manager_user_ids: [],
 			illustrations: [],
 		} );
 		expect( result.sanitizedEnabled.cancellation_reason_enabled ).toBe(
 			true
 		);
 		expect( result.sanitizedEnabled.sensitive_mode_enabled ).toBe( true );
+		expect( result.sanitizedEnabled.appointment_manager_user_ids ).toEqual(
+			[ 1 ]
+		);
 		expect( result.sanitizedEnabled.illustrations ).toEqual( {
 			confirmation_success: 42,
 		} );
@@ -230,6 +243,7 @@ describe( 'plugin configuration and mail delivery', () => {
 			retention_days: 45,
 			cancellation_reason_enabled: true,
 			sensitive_mode_enabled: true,
+			appointment_manager_user_ids: [ 1 ],
 			illustrations: { error: 42 },
 		} );
 		expect( result.sanitizedGeneralTab ).toEqual( {
@@ -238,6 +252,7 @@ describe( 'plugin configuration and mail delivery', () => {
 			retention_days: 10,
 			cancellation_reason_enabled: false,
 			sensitive_mode_enabled: false,
+			appointment_manager_user_ids: [],
 			illustrations: { confirmation_success: 42 },
 		} );
 	} );

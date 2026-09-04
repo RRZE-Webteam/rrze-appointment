@@ -1,11 +1,103 @@
 /**
- * Connects the illustration settings to the WordPress media library.
+ * Connects interactive controls on the plugin settings page.
  */
 document.addEventListener( 'DOMContentLoaded', () => {
-	if ( ! window.wp?.media ) {
-		return;
-	}
+	document
+		.querySelectorAll( '[data-appointment-permissions]' )
+		.forEach( ( permissions ) => {
+			const select = permissions.querySelector(
+				'[data-permission-user-select]'
+			);
+			const addButton = permissions.querySelector(
+				'[data-permission-add]'
+			);
+			const list = permissions.querySelector( '[data-permission-list]' );
+			const empty = permissions.querySelector(
+				'[data-permission-empty]'
+			);
 
+			if (
+				! select ||
+				! addButton ||
+				! list ||
+				! empty ||
+				! permissions.dataset.inputName
+			) {
+				return;
+			}
+
+			const findOption = ( userId ) =>
+				Array.from( select.options ).find(
+					( option ) => option.value === userId
+				);
+			const updateState = () => {
+				const option = select.selectedOptions[ 0 ];
+				addButton.disabled =
+					! option || option.value === '' || option.disabled;
+				empty.hidden = Boolean(
+					list.querySelector( '[data-permission-user]' )
+				);
+			};
+			const removeUser = ( item ) => {
+				const option = findOption( item.dataset.userId );
+				if ( option ) {
+					option.disabled = false;
+				}
+				item.remove();
+				updateState();
+			};
+			const bindRemoveButton = ( item ) => {
+				item.querySelector(
+					'[data-permission-remove]'
+				)?.addEventListener( 'click', () => removeUser( item ) );
+			};
+
+			list.querySelectorAll( '[data-permission-user]' ).forEach(
+				bindRemoveButton
+			);
+			select.addEventListener( 'change', updateState );
+			addButton.addEventListener( 'click', () => {
+				const option = select.selectedOptions[ 0 ];
+				if ( ! option || option.value === '' || option.disabled ) {
+					return;
+				}
+
+				const item = document.createElement( 'li' );
+				item.dataset.permissionUser = '';
+				item.dataset.userId = option.value;
+
+				const label = document.createElement( 'span' );
+				label.textContent = option.textContent.trim();
+				item.append( label );
+
+				const input = document.createElement( 'input' );
+				input.type = 'hidden';
+				input.name = permissions.dataset.inputName;
+				input.value = option.value;
+				item.append( input );
+
+				const removeButton = document.createElement( 'button' );
+				removeButton.type = 'button';
+				removeButton.className = 'button-link-delete';
+				removeButton.dataset.permissionRemove = '';
+				removeButton.textContent = permissions.dataset.removeLabel;
+				item.append( removeButton );
+
+				bindRemoveButton( item );
+				list.append( item );
+				option.disabled = true;
+				select.value = '';
+				updateState();
+			} );
+			updateState();
+		} );
+
+	if ( window.wp?.media ) {
+		initializeIllustrationFields();
+	}
+} );
+
+const initializeIllustrationFields = () => {
 	document
 		.querySelectorAll( '[data-illustration-field]' )
 		.forEach( ( field ) => {
@@ -64,4 +156,4 @@ document.addEventListener( 'DOMContentLoaded', () => {
 				removeButton.hidden = true;
 			} );
 		} );
-} );
+};
