@@ -54,6 +54,7 @@ final class MailTemplatesPage
             '[confirmation_link]' => __('Link to booking confirmation', 'rrze-appointment'),
             '[booking_link]'      => __('Link to book an appointment when booking opens', 'rrze-appointment'),
             '[cancel_link]'       => __('Link to cancel', 'rrze-appointment'),
+            '[cancellation_reason]' => __('Reason for cancellation (empty if none was provided)', 'rrze-appointment'),
             '[waitlist_optout_link]' => __('Link to stop earlier appointment notifications', 'rrze-appointment'),
             '[imprint_link]'      => __('Link to imprint', 'rrze-appointment'),
             '[post_link]'         => __('Link to post or page', 'rrze-appointment'),
@@ -147,6 +148,8 @@ final class MailTemplatesPage
             '[confirmation_link]' => home_url('/'),
             '[booking_link]'      => home_url('/'),
             '[cancel_link]'       => home_url('/'),
+            '[cancellation_reason]' => __('Reason for cancellation', 'rrze-appointment') . ': '
+                . __('The host is unavailable.', 'rrze-appointment'),
             '[waitlist_optout_link]' => home_url('/'),
             '[imprint_link]'      => TokenManager::imprintUrl(),
             '[post_link]'         => home_url('/'),
@@ -166,6 +169,11 @@ final class MailTemplatesPage
                 . MailTemplate::detailsTable([
                     __('Preferred format', 'rrze-appointment') => esc_html__('Video call', 'rrze-appointment'),
                 ]),
+            '[cancellation_reason]' => '<h2 style="margin:28px 0 8px;color:#1f2937;font-size:20px;line-height:28px;">'
+                . esc_html__('Reason for cancellation', 'rrze-appointment')
+                . '</h2><p style="margin:0;">'
+                . esc_html__('The host is unavailable.', 'rrze-appointment')
+                . '</p>',
         ]);
 
         foreach (self::TEMPLATE_TYPES as $type) {

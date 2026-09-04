@@ -6,6 +6,7 @@ type ScenarioResult = {
 	deletedPending: string[];
 	deletedCancel: string[];
 	cancelledSlots: string[];
+	cancellationReasons: string[];
 	enabledSlots: string[];
 	disabledSlots: string[];
 };
@@ -30,8 +31,17 @@ const runCancellationScenarios = (): CancellationResults => {
 				public function renderError( string $message, int $status ): void {
 					$this->events[] = [ 'error', $status ];
 				}
-				public function renderCancellationConfirmation( string $token, array $details ): void {
-					$this->events[] = [ 'confirmation', $token, $details['name'] ];
+				public function renderCancellationConfirmation(
+					string $token,
+					array $details,
+					bool $showCancellationReason = true
+				): void {
+					$this->events[] = [
+						'confirmation',
+						$token,
+						$details['name'],
+						$showCancellationReason,
+					];
 				}
 				public function renderCancellationSuccess( array $details ): void {
 					$this->events[] = [ 'cancelled', $details['slot'] ];
@@ -75,10 +85,12 @@ const runCancellationScenarios = (): CancellationResults => {
 			class Bookings {
 				public const META_OPTION = 'booking_meta';
 				public static array $cancelledSlots = [];
+				public static array $cancellationReasons = [];
 				public static array $enabledSlots = [];
 				public static array $disabledSlots = [];
-				public static function cancel( string $slot ): void {
+				public static function cancel( string $slot, string $reason = '' ): void {
 					self::$cancelledSlots[] = $slot;
+					self::$cancellationReasons[] = $reason;
 				}
 				public static function enableWaitlistNotifications( string $slot ): bool {
 					self::$enabledSlots[] = $slot;
@@ -102,6 +114,7 @@ const runCancellationScenarios = (): CancellationResults => {
 			function wp_die( $message, $title, $args ) { throw new \\RuntimeException( $message ); }
 			function wp_unslash( $value ) { return is_string( $value ) ? stripslashes( $value ) : $value; }
 			function sanitize_text_field( $value ) { return trim( strip_tags( $value ) ); }
+			function sanitize_textarea_field( $value ) { return trim( strip_tags( $value ) ); }
 			function sanitize_key( $value ) { return strtolower( preg_replace( '/[^a-z0-9_\\-]/i', '', $value ) ); }
 			function wp_verify_nonce( $nonce, $action ) { return $nonce === 'valid:' . $action; }
 			function get_option( $key, $default = false ) { return $GLOBALS['options'][ $key ] ?? $default; }
@@ -114,6 +127,7 @@ const runCancellationScenarios = (): CancellationResults => {
 				\\RRZE\\Appointment\\Booking\\TokenManager::$deletedPending = [];
 				\\RRZE\\Appointment\\Booking\\TokenManager::$deletedCancel = [];
 				\\RRZE\\Appointment\\Booking\\Bookings::$cancelledSlots = [];
+				\\RRZE\\Appointment\\Booking\\Bookings::$cancellationReasons = [];
 				\\RRZE\\Appointment\\Booking\\Bookings::$enabledSlots = [];
 				\\RRZE\\Appointment\\Booking\\Bookings::$disabledSlots = [];
 				$renderer = new \\RRZE\\Appointment\\Presentation\\PublicPageRenderer();
@@ -124,6 +138,7 @@ const runCancellationScenarios = (): CancellationResults => {
 					'deletedPending' => \\RRZE\\Appointment\\Booking\\TokenManager::$deletedPending,
 					'deletedCancel' => \\RRZE\\Appointment\\Booking\\TokenManager::$deletedCancel,
 					'cancelledSlots' => \\RRZE\\Appointment\\Booking\\Bookings::$cancelledSlots,
+					'cancellationReasons' => \\RRZE\\Appointment\\Booking\\Bookings::$cancellationReasons,
 					'enabledSlots' => \\RRZE\\Appointment\\Booking\\Bookings::$enabledSlots,
 					'disabledSlots' => \\RRZE\\Appointment\\Booking\\Bookings::$disabledSlots,
 				];
@@ -133,6 +148,9 @@ const runCancellationScenarios = (): CancellationResults => {
 			echo json_encode( [
 				'confirmation' => run_scenario(
 					[ 'rrze_appt_cancel' => 'confirmed-token' ], [], 'GET', 'handleCancellation'
+				),
+				'pendingConfirmation' => run_scenario(
+					[ 'rrze_appt_cancel' => 'pending-token' ], [], 'GET', 'handleCancellation'
 				),
 				'pending' => run_scenario(
 					[ 'rrze_appt_cancel' => 'pending-token' ],
@@ -148,7 +166,10 @@ const runCancellationScenarios = (): CancellationResults => {
 				),
 				'confirmed' => run_scenario(
 					[ 'rrze_appt_cancel' => 'confirmed-token' ],
-					$cancelAction + [ 'rrze_appt_cancel_nonce' => 'valid:rrze_appointment_cancel_confirmed-token' ],
+					$cancelAction + [
+						'rrze_appt_cancel_nonce' => 'valid:rrze_appointment_cancel_confirmed-token',
+						'cancellation_reason' => "  Host <b>unavailable</b>\nPlease rebook.  ",
+					],
 					'POST',
 					'handleCancellation'
 				),
@@ -181,9 +202,12 @@ describe( 'cancellation controller', () => {
 		const results = runCancellationScenarios();
 
 		expect( results.confirmation.events ).toEqual( [
-			[ 'confirmation', 'confirmed-token', 'Confirmed' ],
+			[ 'confirmation', 'confirmed-token', 'Confirmed', true ],
 		] );
 		expect( results.confirmation.cancelledSlots ).toEqual( [] );
+		expect( results.pendingConfirmation.events ).toEqual( [
+			[ 'confirmation', 'pending-token', 'Pending', false ],
+		] );
 		expect( results.invalidNonce.events ).toEqual( [ [ 'error', 403 ] ] );
 		expect( results.invalidNonce.cancelledSlots ).toEqual( [] );
 		expect( results.invalidQueryValue.events ).toEqual( [] );
@@ -203,6 +227,9 @@ describe( 'cancellation controller', () => {
 		] );
 		expect( results.confirmed.cancelledSlots ).toEqual( [
 			'2026-08-22 10:00-10:30',
+		] );
+		expect( results.confirmed.cancellationReasons ).toEqual( [
+			'Host unavailable\nPlease rebook.',
 		] );
 	} );
 

@@ -95,11 +95,16 @@ final class PublicPageRenderer
      *
      * @param array<string, string> $appointmentDetails Public appointment details.
      */
-    public function renderCancellationConfirmation(string $token, array $appointmentDetails): void
+    public function renderCancellationConfirmation(
+        string $token,
+        array $appointmentDetails,
+        bool $showCancellationReason = true
+    ): void
     {
         $this->renderConfirmationPage(self::MODE_CANCELLATION_CONFIRMATION, [
             'token' => $token,
             'appointmentDetails' => $appointmentDetails,
+            'showCancellationReason' => $showCancellationReason,
         ]);
     }
 
@@ -154,6 +159,7 @@ final class PublicPageRenderer
         $waitlistOptInNonce = $context['waitlistOptInNonce'];
         $cancellationAction = $context['cancellationAction'];
         $cancellationNonce = $context['cancellationNonce'];
+        $showCancellationReason = $context['showCancellationReason'];
         $illustrationUrl = $context['illustrationUrl'];
         $questions = $context['questions'];
         $submittedAnswers = $context['submittedAnswers'];
@@ -194,6 +200,7 @@ final class PublicPageRenderer
             'waitlistOptInNonce' => '',
             'cancellationAction' => '',
             'cancellationNonce' => '',
+            'showCancellationReason' => !empty($data['showCancellationReason']),
             'illustrationUrl' => $this->getIllustrationUrl('order-confirmed-62.png'),
             'questions' => $questions,
             'submittedAnswers' => is_array($data['submittedAnswers'] ?? null)

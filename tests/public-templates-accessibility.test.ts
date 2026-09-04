@@ -24,6 +24,12 @@ describe( 'public confirmation templates accessibility', () => {
 		expect( confirmationTemplate ).toContain(
 			'name="rrze_appt_cancel_action" value="cancel"'
 		);
+		expect( confirmationTemplate ).toContain(
+			'name="cancellation_reason"'
+		);
+		expect( confirmationTemplate ).toContain(
+			'<?php if ($showCancellationReason) : ?>'
+		);
 	} );
 
 	it( 'uses one predictable focus target for server-side errors', () => {

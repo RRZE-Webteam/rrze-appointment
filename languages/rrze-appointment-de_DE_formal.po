@@ -634,6 +634,8 @@ msgid ""
 "%s: [time]\n"
 "%s: [location]\n"
 "\n"
+"[cancellation_reason]\n"
+"\n"
 "%s: [imprint_link]"
 msgstr ""
 "%s\n"
@@ -642,6 +644,8 @@ msgstr ""
 "%s: [date]\n"
 "%s: [time]\n"
 "%s: [location]\n"
+"\n"
+"[cancellation_reason]\n"
 "\n"
 "%s: [imprint_link]"
 
@@ -2208,6 +2212,30 @@ msgstr "Benachrichtigung zum Buchungsstart"
 #: includes/Settings.php:500
 msgid "Sent when a requested appointment opens for booking."
 msgstr "Wird versendet, sobald ein vorgemerkter Termin gebucht werden kann."
+
+#: includes/Admin/BookingsPage.php:198
+#: includes/Admin/MailTemplatesPage.php:151
+#: includes/Booking/Bookings.php:635 includes/Booking/Bookings.php:642
+#: templates/confirmation-page.php:597
+msgid "Reason for cancellation"
+msgstr "Grund für die Stornierung"
+
+#: includes/Admin/BookingsPage.php:199
+msgid "(optional)"
+msgstr "(optional)"
+
+#: includes/Admin/BookingsPage.php:210 templates/confirmation-page.php:610
+msgid "This reason will be included in the cancellation email."
+msgstr "Dieser Grund wird in die Stornierungs-E-Mail aufgenommen."
+
+#: includes/Admin/MailTemplatesPage.php:57
+msgid "Reason for cancellation (empty if none was provided)"
+msgstr "Grund für die Stornierung (leer, wenn keiner angegeben wurde)"
+
+#: includes/Admin/MailTemplatesPage.php:152
+#: includes/Admin/MailTemplatesPage.php:175
+msgid "The host is unavailable."
+msgstr "Die verantwortliche Person ist verhindert."
 
 #~ msgid "Message"
 #~ msgstr "Nachricht"

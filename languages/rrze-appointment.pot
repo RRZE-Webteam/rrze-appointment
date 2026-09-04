@@ -575,6 +575,8 @@ msgid ""
 "%s: [time]\n"
 "%s: [location]\n"
 "\n"
+"[cancellation_reason]\n"
+"\n"
 "%s: [imprint_link]"
 msgstr ""
 
@@ -2057,4 +2059,28 @@ msgstr ""
 
 #: includes/Settings.php:500
 msgid "Sent when a requested appointment opens for booking."
+msgstr ""
+
+#: includes/Admin/BookingsPage.php:198
+#: includes/Admin/MailTemplatesPage.php:151
+#: includes/Booking/Bookings.php:635 includes/Booking/Bookings.php:642
+#: templates/confirmation-page.php:597
+msgid "Reason for cancellation"
+msgstr ""
+
+#: includes/Admin/BookingsPage.php:199
+msgid "(optional)"
+msgstr ""
+
+#: includes/Admin/BookingsPage.php:210 templates/confirmation-page.php:610
+msgid "This reason will be included in the cancellation email."
+msgstr ""
+
+#: includes/Admin/MailTemplatesPage.php:57
+msgid "Reason for cancellation (empty if none was provided)"
+msgstr ""
+
+#: includes/Admin/MailTemplatesPage.php:152
+#: includes/Admin/MailTemplatesPage.php:175
+msgid "The host is unavailable."
 msgstr ""

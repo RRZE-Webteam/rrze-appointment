@@ -19,6 +19,7 @@ type MailTemplatePostResult = {
 	allTemplates: Array< Record< string, unknown > >;
 	unknownDefault: Record< string, string >;
 	pendingDefault: Record< string, string >;
+	cancellationDefault: Record< string, string >;
 };
 
 const getMailTemplatePostResult = (): MailTemplatePostResult => {
@@ -160,6 +161,7 @@ const getMailTemplatePostResult = (): MailTemplatePostResult => {
 				'allTemplates' => $class::getAll(),
 				'unknownDefault' => $class::getDefault( 'unknown' ),
 				'pendingDefault' => $class::getDefault( 'booking_pending' ),
+				'cancellationDefault' => $class::getDefault( 'cancellation' ),
 			] );
 		}
 	`;
@@ -215,6 +217,12 @@ describe( 'mail template posts', () => {
 		} );
 		expect( result.pendingDefault.subject ).toContain(
 			'Confirm appointment request'
+		);
+		expect( result.cancellationDefault.body ).toContain(
+			'[cancellation_reason]'
+		);
+		expect( result.cancellationDefault.body_html ).toContain(
+			'[cancellation_reason]'
 		);
 	} );
 } );

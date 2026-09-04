@@ -1,3 +1,46 @@
+/* Appointment cancellation */
+.rrze-appt-cancellation {
+	position: relative;
+}
+
+.rrze-appt-cancellation > summary {
+	display: inline-block;
+	cursor: pointer;
+	list-style: none;
+}
+
+.rrze-appt-cancellation > summary::-webkit-details-marker {
+	display: none;
+}
+
+.rrze-appt-cancellation__form {
+	display: grid;
+	width: min(24rem, 70vw);
+	margin-top: 8px;
+	padding: 12px;
+	border: 1px solid #c3c4c7;
+	background: #fff;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+	gap: 8px;
+}
+
+.rrze-appt-cancellation__form label {
+	font-weight: 600;
+}
+
+.rrze-appt-cancellation__form textarea {
+	width: 100%;
+	resize: vertical;
+}
+
+.rrze-appt-cancellation__form .description {
+	margin: 0;
+}
+
+.rrze-appt-cancellation__form .button {
+	width: fit-content;
+}
+
 /* Mail template editor */
 .rrze-appt-template-back {
 	display: inline-flex;

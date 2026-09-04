@@ -25,6 +25,9 @@ final class Bookings
     /** Option containing booking metadata keyed by slot string. */
     public const META_OPTION = 'rrze_appointment_booked_slots_meta';
 
+    /** Maximum number of characters accepted for a cancellation reason. */
+    public const MAX_CANCELLATION_REASON_LENGTH = 2000;
+
     private const MAX_RETENTION_DAYS = 3650;
     private const WAITLIST_LOCK_TTL = 5 * MINUTE_IN_SECONDS;
     private const WAITLIST_NOTIFIED_SLOTS_KEY = 'waitlist_notified_slots';
@@ -117,7 +120,7 @@ final class Bookings
      * @return bool False when the requested slot is not booked.
      * @throws AppointmentException When the cancellation cannot be completed.
      */
-    public static function cancel(string $slot): bool
+    public static function cancel(string $slot, string $reason = ''): bool
     {
         try {
             $slots = self::getStoredSlots();
@@ -129,7 +132,7 @@ final class Bookings
             $meta = self::getSlotMetadata($allMeta, $slot);
 
             wp_clear_scheduled_hook(Reminder::CRON_HOOK, [$slot]);
-            self::sendCancellationMail($slot, $meta);
+            self::sendCancellationMail($slot, $meta, $reason);
             $remainingMeta = self::removeStoredBooking($slot, $slots, $allMeta);
             self::notifyWaitlist($slot, $meta, $remainingMeta);
 
@@ -608,12 +611,13 @@ final class Bookings
     /**
      * @param array<string, mixed> $meta
      */
-    private static function sendCancellationMail(string $slot, array $meta): void
+    private static function sendCancellationMail(string $slot, array $meta, string $reason): void
     {
         try {
             $parts = self::parseSlot($slot) ?? ['date' => '', 'start' => '', 'end' => ''];
             $personId = (int) ($meta['person_id'] ?? 0);
             $bookerEmail = (string) ($meta['booker_email'] ?? '');
+            $reason = self::normalizeCancellationReason($reason);
             $variables = [
                 '[title]' => $meta['title'] ?? __('Appointment', 'rrze-appointment'),
                 '[date]' => self::formatDate($parts['date']),
@@ -626,11 +630,32 @@ final class Bookings
                 '[cancel_link]' => '',
                 '[imprint_link]' => TokenManager::imprintUrl(),
                 '[post_link]' => esc_url_raw($meta['post_link'] ?? home_url('/')),
+                '[cancellation_reason]' => $reason === ''
+                    ? ''
+                    : __('Reason for cancellation', 'rrze-appointment') . ': ' . $reason,
             ];
+            $htmlVariables = array_merge($variables, [
+                '[cancellation_reason]' => $reason === ''
+                    ? ''
+                    : '<h2 style="margin:28px 0 8px;color:#1f2937;font-size:20px;line-height:28px;">'
+                        . esc_html__('Reason for cancellation', 'rrze-appointment')
+                        . '</h2><p style="margin:0;">'
+                        . nl2br(esc_html($reason))
+                        . '</p>',
+            ]);
 
             $template = self::getMailTemplate(
                 (int) ($meta['tpl_id'] ?? 0),
                 self::CANCELLATION_TEMPLATE_TYPE
+            );
+            $template['body'] = self::ensureTemplatePlaceholder(
+                $template['body'],
+                '[cancellation_reason]',
+                "\n\n"
+            );
+            $template['body_html'] = self::ensureTemplatePlaceholder(
+                $template['body_html'],
+                '[cancellation_reason]'
             );
             $template['body'] = self::ensurePlainTemplateLink(
                 $template['body'],
@@ -657,7 +682,8 @@ final class Bookings
                     $recipient,
                     $template,
                     $variables,
-                    MailTemplate::STATUS_DANGER
+                    MailTemplate::STATUS_DANGER,
+                    $htmlVariables
                 );
             }
         } catch (\Exception $exception) {
@@ -735,6 +761,34 @@ final class Bookings
     }
 
     /**
+     * Appends a placeholder when an older custom template does not contain it.
+     */
+    private static function ensureTemplatePlaceholder(
+        string $template,
+        string $placeholder,
+        string $separator = ''
+    ): string {
+        if (strpos($template, $placeholder) !== false) {
+            return $template;
+        }
+
+        return $template . $separator . $placeholder;
+    }
+
+    /**
+     * Sanitizes and limits a user-provided cancellation reason.
+     */
+    private static function normalizeCancellationReason(string $reason): string
+    {
+        $reason = sanitize_textarea_field($reason);
+        if (function_exists('mb_substr')) {
+            return mb_substr($reason, 0, self::MAX_CANCELLATION_REASON_LENGTH);
+        }
+
+        return substr($reason, 0, self::MAX_CANCELLATION_REASON_LENGTH);
+    }
+
+    /**
      * Appends a required placeholder link to an HTML template.
      */
     private static function ensureHtmlTemplateLink(
@@ -757,11 +811,12 @@ final class Bookings
         string $recipient,
         array $template,
         array $variables,
-        string $status = MailTemplate::STATUS_NEUTRAL
+        string $status = MailTemplate::STATUS_NEUTRAL,
+        ?array $htmlVariables = null
     ): bool {
         $subject = Mailer::render($template['subject'], $variables);
         $plain = Mailer::render($template['body'], $variables);
-        $html = Mailer::render($template['body_html'], $variables);
+        $html = Mailer::render($template['body_html'], $htmlVariables ?? $variables);
 
         return Mailer::send($recipient, $subject, $plain, $html, [], $status);
     }

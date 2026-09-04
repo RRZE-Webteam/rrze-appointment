@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 type AdminPagesResult = {
@@ -62,5 +63,18 @@ describe( 'focused administration pages', () => {
 		expect( result.bookingsScreen ).toBe(
 			'toplevel_page_rrze-appointment-bookings'
 		);
+	} );
+
+	it( 'collects and forwards an optional cancellation reason', () => {
+		const page = readFileSync(
+			resolve( process.cwd(), 'includes/Admin/BookingsPage.php' ),
+			'utf8'
+		);
+
+		expect( page ).toContain( 'name="cancellation_reason"' );
+		expect( page ).toContain(
+			"$reason = Request::postTextarea('cancellation_reason');"
+		);
+		expect( page ).toContain( 'Bookings::cancel($slot, $reason);' );
 	} );
 } );

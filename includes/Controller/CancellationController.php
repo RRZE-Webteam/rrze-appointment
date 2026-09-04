@@ -17,6 +17,7 @@ final class CancellationController
     private const CANCELLATION_QUERY_KEY = 'rrze_appt_cancel';
     private const CANCELLATION_ACTION_FIELD = 'rrze_appt_cancel_action';
     private const CANCELLATION_NONCE_FIELD = 'rrze_appt_cancel_nonce';
+    private const CANCELLATION_REASON_FIELD = 'cancellation_reason';
     private const CANCELLATION_ACTION = 'cancel';
     private const CANCELLATION_NONCE_PREFIX = 'rrze_appointment_cancel_';
 
@@ -61,7 +62,11 @@ final class CancellationController
             $appointmentDetails = $this->renderer->getAppointmentDetails($slot, $appointmentMeta);
 
             if (!$this->isCancellationRequest()) {
-                $this->renderer->renderCancellationConfirmation($token, $appointmentDetails);
+                $this->renderer->renderCancellationConfirmation(
+                    $token,
+                    $appointmentDetails,
+                    ($entry['type'] ?? '') !== 'pending'
+                );
                 return;
             }
 
@@ -76,7 +81,8 @@ final class CancellationController
                 return;
             }
 
-            $this->cancelAppointment($entry, $slot, $token);
+            $reason = $this->getPostValue(self::CANCELLATION_REASON_FIELD, 'textarea');
+            $this->cancelAppointment($entry, $slot, $token, $reason);
             $this->renderer->renderCancellationSuccess($appointmentDetails);
         } catch (AppointmentException $exception) {
             wp_die(esc_html($exception->getMessage()), '', ['response' => 500]);
@@ -157,7 +163,7 @@ final class CancellationController
      *
      * @param array<string, mixed> $entry Validated cancellation token entry.
      */
-    private function cancelAppointment(array $entry, string $slot, string $token): void
+    private function cancelAppointment(array $entry, string $slot, string $token, string $reason): void
     {
         if (($entry['type'] ?? '') === 'pending') {
             TokenManager::deletePending((string) ($entry['pending_token'] ?? ''));
@@ -165,7 +171,7 @@ final class CancellationController
         }
 
         TokenManager::deleteCancelToken($token);
-        Bookings::cancel($slot);
+        Bookings::cancel($slot, $reason);
     }
 
     /**
@@ -209,7 +215,7 @@ final class CancellationController
     /**
      * Reads and sanitizes a scalar form value.
      *
-     * @param 'key'|'text' $format Sanitization format.
+     * @param 'key'|'text'|'textarea' $format Sanitization format.
      */
     private function getPostValue(string $key, string $format = 'text'): string
     {
@@ -218,7 +224,13 @@ final class CancellationController
             return '';
         }
 
-        return $format === 'key' ? sanitize_key($value) : sanitize_text_field($value);
+        if ($format === 'key') {
+            return sanitize_key($value);
+        }
+
+        return $format === 'textarea'
+            ? sanitize_textarea_field($value)
+            : sanitize_text_field($value);
     }
 
     /**

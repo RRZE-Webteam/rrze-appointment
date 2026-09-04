@@ -245,13 +245,14 @@ final class MailTemplatePost
             'cancellation' => [
                 'subject'   => __('Cancellation: [title] on [date]', 'rrze-appointment'),
                 'body'      => sprintf(
-                    __("%s\n\n%s: [title]\n%s: [date]\n%s: [time]\n%s: [location]\n\n%s: [imprint_link]", 'rrze-appointment'),
+                    __("%s\n\n%s: [title]\n%s: [date]\n%s: [time]\n%s: [location]\n\n[cancellation_reason]\n\n%s: [imprint_link]", 'rrze-appointment'),
                     __('Your appointment has been cancelled:', 'rrze-appointment'),
                     $appointment, $date, $time, $location, $legal
                 ),
                 'body_html'  =>
                     '<p>' . __('Your appointment has been cancelled:', 'rrze-appointment') . '</p>'
                     . $baseTable
+                    . '[cancellation_reason]'
                     . $legalLink,
             ],
             'waitlist_earlier_slot' => [

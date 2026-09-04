@@ -14,6 +14,13 @@ final class Request
         return self::text($_POST, $key, $sanitizeAsKey);
     }
 
+    public static function postTextarea(string $key): string
+    {
+        $value = wp_unslash($_POST[$key] ?? '');
+
+        return is_string($value) ? sanitize_textarea_field($value) : '';
+    }
+
     public static function postInt(string $key): int
     {
         return self::integer($_POST, $key);

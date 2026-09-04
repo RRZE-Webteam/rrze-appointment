@@ -74,6 +74,7 @@ const getRendererResult = (): RendererResult => {
 				'cancellationSuccess' => $build( 'cancellation_success', [] ),
 				'cancellationConfirmation' => $build( 'cancellation_confirmation', [
 					'token' => 'cancel-token',
+					'showCancellationReason' => true,
 				] ),
 				'waitlist' => $build( 'waitlist', [
 					'token' => 'waitlist-token',
@@ -139,6 +140,7 @@ describe( 'public page renderer', () => {
 			isCancellationConfirmation: true,
 			cancellationAction: 'cancel:cancel-token',
 			cancellationNonce: 'nonce:rrze_appointment_cancel_cancel-token',
+			showCancellationReason: true,
 		} );
 		expect( result.waitlist ).toMatchObject( {
 			isWaitlistOptOut: true,
