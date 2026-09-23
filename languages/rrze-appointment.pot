@@ -2220,3 +2220,15 @@ msgstr ""
 #: src/render.php:106
 msgid "Today"
 msgstr ""
+
+msgid "Booking identity requests must come from this website."
+msgstr ""
+
+msgid "RRZE Appointment: booking login"
+msgstr ""
+
+msgid "Returns the visitor’s SSO identity or login URL for appointment booking. Requires a same-origin request."
+msgstr ""
+
+msgid "Unable to load your booking details. Please reload the page and try again. If the problem persists, contact the website administrator."
+msgstr ""

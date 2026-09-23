@@ -1,5 +1,5 @@
 import type { Booker, FrontendSlot } from './types';
-import { loadCurrentBooker, requestBooker } from './api';
+import { bookerErrorMessage, loadCurrentBooker, requestBooker } from './api';
 import { openBookingDialog } from './booking-dialog';
 import { buildSlotsByDate, parseSlotValue } from './slot-parser';
 import {
@@ -320,10 +320,6 @@ export function initializeAppointmentForms(): void {
 						form.removeAttribute( 'aria-busy' );
 						setInteractionStatus();
 
-						if ( ! bookerResponse ) {
-							return;
-						}
-
 						if ( bookerResponse.needsLogin ) {
 							const loginUrl = (
 								bookerResponse.loginUrl || ''
@@ -351,9 +347,7 @@ export function initializeAppointmentForms(): void {
 						button.disabled = false;
 						button.removeAttribute( 'aria-busy' );
 						form.removeAttribute( 'aria-busy' );
-						setInteractionStatus();
-
-						showBookingDialog( slot.value, {}, button );
+						setInteractionStatus( bookerErrorMessage() );
 					} );
 			} );
 			return button;
@@ -715,8 +709,7 @@ export function initializeAppointmentForms(): void {
 				} )
 				.catch( () => {
 					form.removeAttribute( 'aria-busy' );
-					setInteractionStatus();
-					showBookingDialog( storedSlotValue, {} );
+					setInteractionStatus( bookerErrorMessage() );
 				} );
 		}
 	}

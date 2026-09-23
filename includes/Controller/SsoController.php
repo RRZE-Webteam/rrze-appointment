@@ -17,6 +17,7 @@ final class SsoController
     private const LOGIN_FLAG = 'rrze_appt_sso';
     private const RETURN_URL_PARAMETER = 'rrze_appt_return';
     private const REQUEST_RETURN_URL_PARAMETER = 'returnTo';
+    private const CACHE_CONTROL = 'private, no-store, no-cache, must-revalidate, max-age=0';
 
     /**
      * Returns the authenticated booking identity or a login URL.
@@ -29,6 +30,15 @@ final class SsoController
     public function handleBookerRequest($request = null): ?WP_REST_Response
     {
         $isRestRequest = $request instanceof WP_REST_Request;
+
+        // SSO sessions are independent of WordPress REST cookie authentication.
+        // Protect both REST and legacy AJAX before reading any identity data.
+        if (!$this->isSameOriginPost($request)) {
+            return $this->sendResponse([
+                'error' => __('Booking identity requests must come from this website.', 'rrze-appointment'),
+                'data' => null,
+            ], $isRestRequest, false, 403);
+        }
 
         try {
             $loginUrl = $this->buildLoginUrl($this->getReturnUrl($request));
@@ -64,6 +74,73 @@ final class SsoController
                 'data' => null,
             ], $isRestRequest, false);
         }
+    }
+
+    /**
+     * Require a POST from this site's origin, including scheme and port.
+     * Fetch Metadata or Referer supports browsers that omit Origin; missing
+     * evidence fails closed. Same-site sibling hosts are not same-origin.
+     *
+     * @param mixed $request REST request or null for AJAX.
+     */
+    private function isSameOriginPost($request): bool
+    {
+        $isRest = $request instanceof WP_REST_Request;
+        $method = $isRest ? $request->get_method() : ($_SERVER['REQUEST_METHOD'] ?? '');
+        if ($method !== 'POST') {
+            return false;
+        }
+
+        $header = static function (string $name) use ($request, $isRest): string {
+            $value = $isRest
+                ? $request->get_header($name)
+                : ($_SERVER['HTTP_' . strtoupper(str_replace('-', '_', $name))] ?? '');
+            return is_string($value) ? trim($value) : '';
+        };
+        $fetchSite = $header('sec-fetch-site');
+        if ($fetchSite !== '' && $fetchSite !== 'same-origin') {
+            return false;
+        }
+
+        $expected = self::urlOrigin(home_url('/'));
+        if ($expected === '') {
+            return false;
+        }
+        $origin = $header('origin');
+        if ($origin !== '') {
+            $parts = wp_parse_url($origin);
+            if (!is_array($parts) || isset($parts['query']) || isset($parts['fragment'])
+                || !in_array($parts['path'] ?? '', ['', '/'], true)) {
+                return false;
+            }
+            return self::urlOrigin($origin) === $expected;
+        }
+
+        if ($fetchSite === 'same-origin') {
+            return true;
+        }
+
+        return self::urlOrigin($header('referer')) === $expected;
+    }
+
+    /**
+     * Normalize an HTTP(S) URL to its origin without trusting the Host header.
+     */
+    private static function urlOrigin(string $url): string
+    {
+        if ($url === '' || preg_match('/[\s,\\\\]/', $url)) {
+            return '';
+        }
+        $parts = wp_parse_url($url);
+        if (!is_array($parts) || empty($parts['host']) || isset($parts['user']) || isset($parts['pass'])) {
+            return '';
+        }
+        $scheme = strtolower($parts['scheme'] ?? '');
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            return '';
+        }
+        $port = $parts['port'] ?? ($scheme === 'https' ? 443 : 80);
+        return $scheme . '://' . strtolower($parts['host']) . ':' . $port;
     }
 
     /**
@@ -165,18 +242,24 @@ final class SsoController
     private function sendResponse(
         array $response,
         bool $isRestRequest,
-        bool $success
+        bool $success,
+        int $status = 200
     ): ?WP_REST_Response {
         if ($isRestRequest) {
-            return new WP_REST_Response($response, 200);
+            return new WP_REST_Response($response, $status, [
+                'Cache-Control' => self::CACHE_CONTROL,
+                'Vary' => 'Origin, Cookie, Sec-Fetch-Site, Referer',
+            ]);
         }
 
+        nocache_headers();
+        header('Cache-Control: ' . self::CACHE_CONTROL);
         if ($success) {
-            wp_send_json_success($response['data']);
+            wp_send_json_success($response['data'], $status);
             return null;
         }
 
-        wp_send_json_error($response);
+        wp_send_json_error($response, $status);
         return null;
     }
 
@@ -192,6 +275,11 @@ final class SsoController
         $auth = method_exists($permissions, 'simplesamlAuth')
             ? $permissions->simplesamlAuth()
             : null;
+        // AccessControl returns a boolean and exposes the initialized client
+        // through its public property. Also accept clients returned directly.
+        if ($auth === true) {
+            $auth = $permissions->simplesamlAuth ?? null;
+        }
         if (is_object($auth)) {
             if (method_exists($auth, 'isAuthenticated') && $auth->isAuthenticated()) {
                 return true;
@@ -206,8 +294,7 @@ final class SsoController
             return false;
         }
 
-        $permissions->checkSSOLoggedIn();
-        return true;
+        return (bool) $permissions->checkSSOLoggedIn(true);
     }
 
     /**

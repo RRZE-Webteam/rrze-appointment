@@ -31,6 +31,7 @@ export interface BookingResponse {
 }
 
 export interface BookerResponse {
+	error?: string;
 	needsLogin?: boolean;
 	loginUrl?: string;
 	data?: Booker;

@@ -64,3 +64,25 @@ Users booking appointments log in via SSO using their IdM credentials.
 Person data can be conveniently imported into the calendar when the FAUdir WordPress plugin is active.
 For example, office hours or consultation appointments are automatically generated in the calendar if they are defined in FAUdir as "office hours" or "consultation hours".
 
+
+### Public booking endpoint and REST restrictions
+
+When RRZE Settings controls REST access, visit an Appointment site once so the
+endpoint is discovered. In Network Admin → RRZE Settings → REST API → Registered
+public endpoints, approve **RRZE Appointment: booking login**. This grants access
+only to `POST /rrze/v2/appointment/booker`. Registration alone grants no access;
+with the current RRZE Settings registry, a namespace allowlist does not replace
+this explicit approval. Keep the editor-only `/persons` endpoint restricted.
+
+For older RRZE Settings versions without the endpoint registry, allow only
+`/rrze/v2/appointment/booker` in the REST route allowlist.
+
+The identity endpoint and its legacy AJAX equivalent accept only same-origin
+POST requests (scheme, host, and port must match the site's configured home URL).
+They return only the current SSO visitor's name/email or a login URL and use
+`private, no-store` cache controls. SSO login itself uses a normal page redirect.
+A valid SSO session is still required when submitting an SSO-enabled booking.
+
+After deployment, test a logged-out browser: select a slot, complete SSO login,
+verify the restored identity, and submit the booking. If the REST endpoint is
+blocked or SSO fails, the page displays an error instead of an empty booking form.

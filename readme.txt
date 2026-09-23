@@ -4,7 +4,7 @@ Tags: appointments, calendar, booking
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 2.1.0
+Stable tag: 2.2.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Plugin URI: https://github.com/RRZE-Webteam/rrze-appointment
@@ -52,6 +52,12 @@ With these plugins, integration with SSO and FAUdir is enabled.
 Users booking appointments log in via SSO using their IdM credentials. 
 Person data can be imported automatically from FAUdir. 
 For example, office hours or consultation appointments are generated if defined in FAUdir.
+
+== Public booking endpoint ==
+
+When RRZE Settings controls REST access, visit an Appointment site once, then approve "RRZE Appointment: booking login" under Network Admin > RRZE Settings > REST API > Registered public endpoints. This declares only POST /rrze/v2/appointment/booker; registration alone does not grant access. A namespace allowlist does not replace the checkbox approval in current RRZE Settings versions. On older versions without this registry, allow only /rrze/v2/appointment/booker.
+
+Identity requests require the same origin as the configured site home URL and responses must not be cached. Booking submission still validates the SSO session. Test login, return to the selected slot, and booking submission after deployment.
 
 == License ==
 
