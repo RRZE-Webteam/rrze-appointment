@@ -40,6 +40,7 @@ export interface FrontendI18n {
 	unavailable?: string;
 	notOpen?: string;
 	bookingDetailsLoading?: string;
+	bookingDetailsError?: string;
 	waitlist?: string;
 	yourAppointment?: string;
 	yourEmail?: string;

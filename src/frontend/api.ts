@@ -15,37 +15,82 @@ export async function submitAppointment(
 	return response.json() as Promise< BookingResponse >;
 }
 
+/** Returns a localized message for an unavailable booking identity. */
+export function bookerErrorMessage(): string {
+	return (
+		window.rrze_appointment?.i18n?.bookingDetailsError ||
+		'Unable to load your booking details. Please reload the page and try again. If the problem persists, contact the website administrator.'
+	);
+}
+
+function isBooker( value: unknown ): value is Booker {
+	if ( ! value || typeof value !== 'object' ) {
+		return false;
+	}
+	const booker = value as Booker;
+	return (
+		typeof booker.bookerEmail === 'string' &&
+		booker.bookerEmail.trim() !== '' &&
+		typeof booker.bookerName === 'string' &&
+		booker.bookerName.trim() !== ''
+	);
+}
+
 /**
- * Loads the current visitor before opening the booking dialog. An HTML response
- * is an SSO hand-off page, so it replaces the current document and returns null.
+ * Loads the current SSO identity or an explicit same-origin login URL.
  * @param returnTo URL to restore after the SSO flow finishes.
  */
 export async function requestBooker(
 	returnTo: string
-): Promise< BookerResponse | null > {
+): Promise< BookerResponse > {
 	const response = await fetch(
 		window.rrze_appointment?.restUrl ||
 			'/wp-json/rrze/v2/appointment/booker',
 		{
 			method: 'POST',
+			credentials: 'same-origin',
+			mode: 'same-origin',
+			cache: 'no-store',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify( { returnTo } ),
 		}
 	);
-	const responseBody = await response.text();
-	const trimmedResponseBody = responseBody.trim();
-
-	if (
-		trimmedResponseBody.startsWith( '<!DOCTYPE' ) ||
-		trimmedResponseBody.startsWith( '<html' )
-	) {
-		document.open();
-		document.write( responseBody );
-		document.close();
-		return null;
+	if ( ! response.ok ) {
+		throw new Error( bookerErrorMessage() );
 	}
-
-	return JSON.parse( responseBody ) as BookerResponse;
+	const payload: unknown = await response.json();
+	if ( ! payload || typeof payload !== 'object' ) {
+		throw new Error( bookerErrorMessage() );
+	}
+	const bookerResponse = payload as BookerResponse;
+	if (
+		bookerResponse.error ||
+		typeof bookerResponse.needsLogin !== 'boolean'
+	) {
+		throw new Error( bookerErrorMessage() );
+	}
+	if ( bookerResponse.needsLogin ) {
+		if (
+			typeof bookerResponse.loginUrl !== 'string' ||
+			! bookerResponse.loginUrl.trim()
+		) {
+			throw new Error( bookerErrorMessage() );
+		}
+		const loginUrl = new URL(
+			bookerResponse.loginUrl,
+			window.location.href
+		);
+		if (
+			loginUrl.origin !== window.location.origin ||
+			loginUrl.username ||
+			loginUrl.password
+		) {
+			throw new Error( bookerErrorMessage() );
+		}
+	} else if ( ! isBooker( bookerResponse.data ) ) {
+		throw new Error( bookerErrorMessage() );
+	}
+	return bookerResponse;
 }
 
 export async function loadCurrentBooker(): Promise< Booker > {
@@ -53,8 +98,27 @@ export async function loadCurrentBooker(): Promise< Booker > {
 	requestData.append( 'action', 'rrze_appointment_get_booker' );
 	const response = await fetch(
 		window.rrze_appointment?.ajaxUrl || '/wp-admin/admin-ajax.php',
-		{ method: 'POST', body: requestData }
+		{
+			method: 'POST',
+			credentials: 'same-origin',
+			mode: 'same-origin',
+			cache: 'no-store',
+			body: requestData,
+		}
 	);
-	const bookerResponse = ( await response.json() ) as BookerAjaxResponse;
-	return bookerResponse.success ? bookerResponse.data || {} : {};
+	if ( ! response.ok ) {
+		throw new Error( bookerErrorMessage() );
+	}
+	const payload: unknown = await response.json();
+	if ( ! payload || typeof payload !== 'object' ) {
+		throw new Error( bookerErrorMessage() );
+	}
+	const bookerResponse = payload as BookerAjaxResponse;
+	if (
+		bookerResponse.success !== true ||
+		! isBooker( bookerResponse.data )
+	) {
+		throw new Error( bookerErrorMessage() );
+	}
+	return bookerResponse.data;
 }

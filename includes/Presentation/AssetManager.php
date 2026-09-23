@@ -154,6 +154,7 @@ final class AssetManager
             'selected' => __('selected', 'rrze-appointment'),
             'today' => __('today', 'rrze-appointment'),
             'noSlotsAvailable' => __('No time slots available.', 'rrze-appointment'),
+            'bookingDetailsError' => __('Unable to load your booking details. Please reload the page and try again. If the problem persists, contact the website administrator.', 'rrze-appointment'),
             'bookingDetailsLoading' => __('Loading booking details…', 'rrze-appointment'),
             'required' => __('required', 'rrze-appointment'),
             'dialogTitle' => __('Request appointment', 'rrze-appointment'),

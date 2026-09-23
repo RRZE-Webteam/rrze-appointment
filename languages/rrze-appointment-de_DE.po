@@ -2754,3 +2754,15 @@ msgstr "Heute"
 
 #~ msgid "dates"
 #~ msgstr "Termine"
+
+msgid "Booking identity requests must come from this website."
+msgstr "Anfragen zu Buchungsdaten müssen von dieser Website stammen."
+
+msgid "RRZE Appointment: booking login"
+msgstr "RRZE Appointment: Anmeldung zur Terminbuchung"
+
+msgid "Returns the visitor’s SSO identity or login URL for appointment booking. Requires a same-origin request."
+msgstr "Gibt die SSO-Identität des Besuchers oder die Anmelde-URL für die Terminbuchung zurück. Erfordert eine Anfrage von derselben Herkunft (Same-Origin)."
+
+msgid "Unable to load your booking details. Please reload the page and try again. If the problem persists, contact the website administrator."
+msgstr "Ihre Buchungsdaten konnten nicht geladen werden. Bitte laden Sie die Seite neu und versuchen Sie es erneut. Falls das Problem weiterhin besteht, wenden Sie sich an die Website-Administration."

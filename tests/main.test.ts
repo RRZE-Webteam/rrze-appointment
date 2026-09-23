@@ -18,6 +18,7 @@ type MainResult = {
 		permissionCallback: string;
 	} >;
 	maintenance: Record< string, number >;
+	publicEndpoints: Record< string, { route: string; methods: string[] } >;
 	bookerAllowed: boolean;
 	personsDenied: boolean;
 	personsAllowed: boolean;
@@ -116,6 +117,7 @@ const getMainResult = (): MainResult => {
 					'acceptedArgs' => $acceptedArgs,
 				];
 			}
+			function add_filter( $hook, $callback ) { add_action( $hook, $callback ); }
 			function register_rest_route( $namespace, $route, $arguments ) {
 				$GLOBALS['routes'][] = [
 					'namespace' => $namespace,
@@ -138,6 +140,7 @@ const getMainResult = (): MainResult => {
 			$GLOBALS['can_edit_posts'] = true;
 			$personsAllowed = $main->allowPersonsRequest( null );
 			echo json_encode( [
+				'publicEndpoints' => $main->registerPublicRestEndpoints( [ 'existing' => [ 'route' => '/existing', 'methods' => [ 'GET' ] ] ] ),
 				'actions' => $GLOBALS['actions'],
 				'routes' => $GLOBALS['routes'],
 				'maintenance' => [
@@ -185,6 +188,7 @@ describe( 'plugin bootstrap', () => {
 				'opening_cron',
 				'post_updated',
 				'rest_api_init',
+				'rrze_rest_api_public_endpoints',
 			] )
 		);
 		const postUpdated = result.actions.find(
@@ -222,5 +226,21 @@ describe( 'plugin bootstrap', () => {
 		expect( result.bookerAllowed ).toBe( true );
 		expect( result.personsDenied ).toBe( true );
 		expect( result.personsAllowed ).toBe( true );
+	} );
+} );
+
+it( 'declares only the exact POST identity route and preserves other plugins', () => {
+	const endpoints = getMainResult().publicEndpoints;
+	expect( Object.keys( endpoints ) ).toEqual( [
+		'existing',
+		'rrze-appointment-booker',
+	] );
+	expect( endpoints[ 'rrze-appointment-booker' ] ).toMatchObject( {
+		route: '/rrze/v2/appointment/booker',
+		methods: [ 'POST' ],
+	} );
+	expect( endpoints.existing ).toEqual( {
+		route: '/existing',
+		methods: [ 'GET' ],
 	} );
 } );

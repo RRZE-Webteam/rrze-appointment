@@ -63,6 +63,7 @@ final class Main
 
         add_action('init', [MailTemplatePost::class, 'register'], 5);
         add_action('init', [$this, 'onInit']);
+        add_filter('rrze_rest_api_public_endpoints', [$this, 'registerPublicRestEndpoints']);
     }
 
     /**
@@ -172,6 +173,24 @@ final class Main
             'callback' => [$this->faudirPersons, 'handleRequest'],
             'permission_callback' => [$this, 'allowPersonsRequest'],
         ]);
+    }
+
+    /**
+     * Offer the exact identity route for explicit network administrator approval.
+     * Declaring it does not grant public access in RRZE Settings.
+     *
+     * @param array<string, mixed> $endpoints Existing plugin declarations.
+     * @return array<string, mixed>
+     */
+    public function registerPublicRestEndpoints(array $endpoints): array
+    {
+        $endpoints['rrze-appointment-booker'] = [
+            'label' => __('RRZE Appointment: booking login', 'rrze-appointment'),
+            'route' => '/' . self::REST_NAMESPACE . self::BOOKER_ROUTE,
+            'methods' => ['POST'],
+            'description' => __('Returns the visitor’s SSO identity or login URL for appointment booking. Requires a same-origin request.', 'rrze-appointment'),
+        ];
+        return $endpoints;
     }
 
     /**

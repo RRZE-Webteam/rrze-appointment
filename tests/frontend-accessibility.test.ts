@@ -1,11 +1,12 @@
 function renderAppointment(
 	bookedSlots: string[] = [],
-	bookingMaxAdvance = 0
+	bookingMaxAdvance = 0,
+	disableSso = true
 ): HTMLFormElement {
 	document.body.innerHTML = `
 		<form
 			class="rrze-appointment"
-			data-disable-sso="1"
+			data-disable-sso="${ disableSso ? 1 : 0 }"
 			data-hide-weekends="0"
 			data-post-id="1"
 			data-block-id="test"
@@ -275,5 +276,51 @@ describe( 'frontend calendar accessibility', () => {
 		);
 		expect( form.hasAttribute( 'inert' ) ).toBe( false );
 		expect( slotButton.ownerDocument.activeElement ).toBe( slotButton );
+	} );
+} );
+
+describe( 'SSO booking failures', () => {
+	afterEach( () => {
+		document.body.innerHTML = '';
+		delete window.rrze_appointment;
+		delete global.fetch;
+		sessionStorage.clear();
+	} );
+
+	it( 'shows an error without opening an empty form when REST is blocked', async () => {
+		global.fetch = jest.fn().mockResolvedValue( { ok: false } );
+		const form = renderAppointment( [], 0, false );
+		const button = form.querySelector< HTMLButtonElement >(
+			'.rrze-appointment__slot-button'
+		)!;
+		button.click();
+		await new Promise( ( resolve ) => setTimeout( resolve, 0 ) );
+		expect( document.querySelector( '[role="dialog"]' ) ).toBeNull();
+		expect(
+			form.querySelector( '.rrze-appointment__selected-info' )
+				?.textContent
+		).toContain( 'Unable to load your booking details' );
+		expect( button.disabled ).toBe( false );
+		expect( form.hasAttribute( 'aria-busy' ) ).toBe( false );
+	} );
+
+	it( 'shows an error without opening an empty form when the SSO session is missing after return', async () => {
+		sessionStorage.setItem( 'rrze_appt_slot', '2099-01-20 10:00-10:30' );
+		sessionStorage.setItem(
+			'rrze_appt_page',
+			window.location.href.split( '#' )[ 0 ]
+		);
+		global.fetch = jest.fn().mockResolvedValue( {
+			ok: true,
+			json: async () => ( { success: false } ),
+		} );
+		const form = renderAppointment( [], 0, false );
+		await new Promise( ( resolve ) => setTimeout( resolve, 0 ) );
+		expect( document.querySelector( '[role="dialog"]' ) ).toBeNull();
+		expect(
+			form.querySelector( '.rrze-appointment__selected-info' )
+				?.textContent
+		).toContain( 'Unable to load your booking details' );
+		expect( form.hasAttribute( 'aria-busy' ) ).toBe( false );
 	} );
 } );
