@@ -8,6 +8,8 @@ type SettingsResult = {
 	defaultCancellationReasonEnabled: boolean;
 	defaultSensitiveModeEnabled: boolean;
 	sanitized: Record< string, unknown >;
+	independentReminders: Record< string, unknown >;
+	preservedReminders: Record< string, unknown >;
 	sanitizedEnabled: Record< string, unknown >;
 	sanitizedIllustrationsTab: Record< string, unknown >;
 	sanitizedGeneralTab: Record< string, unknown >;
@@ -94,7 +96,7 @@ const getSettingsResult = (): SettingsResult => {
 			$request = \\RRZE\\Appointment\\Admin\\Request::class;
 
 			$GLOBALS['options'][ $settings::OPTION_NAME ] = 'invalid';
-			$defaultReminderDays = $settings::get( 'reminder_days' );
+			$defaultReminderDays = $settings::get( 'reminder_booker_days' );
 			$defaultCancellationReasonEnabled = $settings::get( 'cancellation_reason_enabled' );
 			$defaultSensitiveModeEnabled = $settings::get( 'sensitive_mode_enabled' );
 			$GLOBALS['options'][ $settings::OPTION_NAME ] = [
@@ -102,7 +104,7 @@ const getSettingsResult = (): SettingsResult => {
 				'retention_days' => '',
 				'recurrence_limit' => 0,
 			];
-			$storedReminderDays = $settings::get( 'reminder_days' );
+			$storedReminderDays = $settings::get( 'reminder_booker_days' );
 			$blankRetentionDays = $settings::get( 'retention_days' );
 			$sanitized = $settings::sanitize( [ 'reminder_days' => 99, 'retention_days' => -5 ] );
 			$sanitizedEnabled = $settings::sanitize( [
@@ -130,9 +132,16 @@ const getSettingsResult = (): SettingsResult => {
 			] );
 			$sanitizedGeneralTab = $settings::sanitize( [
 				'_settings_scope' => 'general',
-				'reminder_days' => 2,
+				'reminder_booker_days' => 2,
+				'reminder_host_days' => 0,
 				'retention_days' => 10,
 			] );
+			$independentReminders = $settings::sanitize( [
+				'reminder_booker_days' => -2,
+				'reminder_host_days' => 99,
+			] );
+			$GLOBALS['options'][ $settings::OPTION_NAME ] = $independentReminders;
+			$preservedReminders = $settings::sanitize( [ '_settings_scope' => 'illustrations' ] );
 			$renderedTemplate = $mailerClass::render(
 				'[name]|[message]|[invalid]',
 				[ '[name]' => 'Ada', '[invalid]' => [ 'ignored' ] ]
@@ -185,6 +194,8 @@ const getSettingsResult = (): SettingsResult => {
 				'defaultCancellationReasonEnabled',
 				'defaultSensitiveModeEnabled',
 				'sanitized',
+				'independentReminders',
+				'preservedReminders',
 				'sanitizedEnabled',
 				'sanitizedIllustrationsTab',
 				'sanitizedGeneralTab',
@@ -219,7 +230,8 @@ describe( 'plugin configuration and mail delivery', () => {
 		expect( result.defaultCancellationReasonEnabled ).toBe( true );
 		expect( result.defaultSensitiveModeEnabled ).toBe( false );
 		expect( result.sanitized ).toEqual( {
-			reminder_days: 7,
+			reminder_booker_days: 7,
+			reminder_host_days: 7,
 			recurrence_limit: 1,
 			retention_days: 0,
 			cancellation_reason_enabled: false,
@@ -238,7 +250,8 @@ describe( 'plugin configuration and mail delivery', () => {
 			confirmation_success: 42,
 		} );
 		expect( result.sanitizedIllustrationsTab ).toEqual( {
-			reminder_days: 3,
+			reminder_booker_days: 3,
+			reminder_host_days: 3,
 			recurrence_limit: 12,
 			retention_days: 45,
 			cancellation_reason_enabled: true,
@@ -247,7 +260,8 @@ describe( 'plugin configuration and mail delivery', () => {
 			illustrations: { error: 42 },
 		} );
 		expect( result.sanitizedGeneralTab ).toEqual( {
-			reminder_days: 2,
+			reminder_booker_days: 2,
+			reminder_host_days: 0,
 			recurrence_limit: 12,
 			retention_days: 10,
 			cancellation_reason_enabled: false,
@@ -255,6 +269,17 @@ describe( 'plugin configuration and mail delivery', () => {
 			appointment_manager_user_ids: [],
 			illustrations: { confirmation_success: 42 },
 		} );
+	} );
+
+	it( 'validates independent reminder days and preserves them on the illustrations tab', () => {
+		const result = getSettingsResult();
+		expect( result.independentReminders ).toMatchObject( {
+			reminder_booker_days: 0,
+			reminder_host_days: 7,
+		} );
+		expect( result.preservedReminders ).toEqual(
+			result.independentReminders
+		);
 	} );
 
 	it( 'renders scalar placeholders and cleans up multipart mail state', () => {

@@ -60,11 +60,20 @@ final class SettingsPage
         );
         add_settings_section(self::GENERAL_SECTION, '', '__return_false', self::PAGE_SLUG);
         add_settings_field(
-            'reminder_days',
-            __('Reminder Email', 'rrze-appointment'),
+            'reminder_booker_days',
+            __('Reminder email to booking person', 'rrze-appointment'),
             [$this, 'renderReminderDaysField'],
             self::PAGE_SLUG,
-            self::GENERAL_SECTION
+            self::GENERAL_SECTION,
+            ['label_for' => 'reminder_booker_days']
+        );
+        add_settings_field(
+            'reminder_host_days',
+            __('Reminder email to the appointment email address', 'rrze-appointment'),
+            [$this, 'renderReminderDaysField'],
+            self::PAGE_SLUG,
+            self::GENERAL_SECTION,
+            ['label_for' => 'reminder_host_days']
         );
         add_settings_field(
             'retention_days',
@@ -112,14 +121,20 @@ final class SettingsPage
     /**
      * Renders the reminder-days settings field.
      */
-    public function renderReminderDaysField(): void
+    public function renderReminderDaysField(array $args): void
     {
-        $value   = (int) PluginSettings::get('reminder_days');
+        $key = $args['label_for'];
+        $value = (int) PluginSettings::get($key);
         $options = [0 => __('Disabled', 'rrze-appointment')];
         for ($i = 1; $i <= PluginSettings::MAX_REMINDER_DAYS; $i++) {
             $options[$i] = $i;
         }
-        echo '<select name="' . esc_attr(PluginSettings::OPTION_NAME) . '[reminder_days]">';
+        printf(
+            '<select id="%s" name="%s[%s]">',
+            esc_attr($key),
+            esc_attr(PluginSettings::OPTION_NAME),
+            esc_attr($key)
+        );
         foreach ($options as $val => $label) {
             printf('<option value="%d"%s>%s</option>', $val, selected($value, $val, false), esc_html($label));
         }

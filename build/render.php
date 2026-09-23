@@ -62,7 +62,7 @@ $locationIsUrl = preg_match('#^https?://#i', $location) === 1;
         </legend>
 
         <?php if ($description !== '') : ?>
-            <p class="rrze-appointment__description"><?php echo esc_html($description); ?></p>
+            <p class="rrze-appointment__description"><?php echo wp_kses($description, ['br' => []]); ?></p>
         <?php endif; ?>
 
         <?php if ($location !== '') : ?>

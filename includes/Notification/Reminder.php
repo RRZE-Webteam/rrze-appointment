@@ -58,17 +58,22 @@ final class Reminder
             $allMeta[$slot] = $meta;
             update_option(Bookings::META_OPTION, $allMeta, false);
 
-            $days = (int) PluginSettings::get('reminder_days');
-            if ($days < 1) {
-                return;
-            }
+            $reminderDays = array_unique([
+                (int) PluginSettings::get('reminder_booker_days'),
+                (int) PluginSettings::get('reminder_host_days'),
+            ]);
+            foreach ($reminderDays as $days) {
+                if ($days < 1) {
+                    continue;
+                }
 
-            $reminderTimestamp = self::getReminderTimestamp($slot, $days);
-            if ($reminderTimestamp === null || $reminderTimestamp <= time()) {
-                return;
-            }
+                $reminderTimestamp = self::getReminderTimestamp($slot, $days);
+                if ($reminderTimestamp === null || $reminderTimestamp <= time()) {
+                    continue;
+                }
 
-            wp_schedule_single_event($reminderTimestamp, self::CRON_HOOK, [$slot]);
+                wp_schedule_single_event($reminderTimestamp, self::CRON_HOOK, [$slot]);
+            }
         } catch (\Exception $exception) {
             throw self::createException($exception);
         }
@@ -80,8 +85,9 @@ final class Reminder
     public function sendReminder(string $slot): void
     {
         try {
-            $days = (int) PluginSettings::get('reminder_days');
-            if ($days < 1) {
+            $hostDue = self::isReminderDue($slot, (int) PluginSettings::get('reminder_host_days'));
+            $bookerDue = self::isReminderDue($slot, (int) PluginSettings::get('reminder_booker_days'));
+            if (!$hostDue && !$bookerDue) {
                 return;
             }
 
@@ -93,25 +99,28 @@ final class Reminder
             $templateId = (int) ($meta['tpl_id'] ?? 0);
             $variables = $this->buildTemplateVariables($slot, $meta);
 
-            $adminMail = $this->renderMail(
-                $this->resolveTemplate($templateId, self::ADMIN_TEMPLATE_TYPE),
-                $variables
-            );
-            $bookerMail = $this->renderMail(
-                $this->resolveTemplate($templateId, self::BOOKER_TEMPLATE_TYPE),
-                $variables
-            );
-
-            $this->sendRenderedMail(
-                sanitize_email((string) ($meta['person_email'] ?? '')),
-                $adminMail,
-                self::ADMIN_TEMPLATE_TYPE
-            );
-            $this->sendRenderedMail(
-                sanitize_email((string) ($meta['booker_email'] ?? '')),
-                $bookerMail,
-                self::BOOKER_TEMPLATE_TYPE
-            );
+            if ($hostDue) {
+                $adminMail = $this->renderMail(
+                    $this->resolveTemplate($templateId, self::ADMIN_TEMPLATE_TYPE),
+                    $variables
+                );
+                $this->sendRenderedMail(
+                    sanitize_email((string) ($meta['person_email'] ?? '')),
+                    $adminMail,
+                    self::ADMIN_TEMPLATE_TYPE
+                );
+            }
+            if ($bookerDue) {
+                $bookerMail = $this->renderMail(
+                    $this->resolveTemplate($templateId, self::BOOKER_TEMPLATE_TYPE),
+                    $variables
+                );
+                $this->sendRenderedMail(
+                    sanitize_email((string) ($meta['booker_email'] ?? '')),
+                    $bookerMail,
+                    self::BOOKER_TEMPLATE_TYPE
+                );
+            }
         } catch (\Exception $exception) {
             throw self::createException($exception);
         }
@@ -247,27 +256,38 @@ final class Reminder
         try {
             Bookings::cleanupExpired((int) PluginSettings::get('retention_days'));
 
-            $days = (int) PluginSettings::get('reminder_days');
-            if ($days < 1) {
+            if (
+                (int) PluginSettings::get('reminder_booker_days') < 1
+                && (int) PluginSettings::get('reminder_host_days') < 1
+            ) {
                 return;
             }
 
             $allMeta = (array) get_option(Bookings::META_OPTION, []);
-            $targetDate = current_datetime()->modify("+{$days} days")->format('Y-m-d');
 
             foreach ($allMeta as $slot => $meta) {
                 if (!is_string($slot) || !is_array($meta)) {
                     continue;
                 }
 
-                [$datePart] = self::parseSlot($slot);
-                if ($datePart === $targetDate) {
-                    $this->sendReminder($slot);
-                }
+                $this->sendReminder($slot);
             }
         } catch (\Exception $exception) {
             throw self::createException($exception);
         }
+    }
+
+    /**
+     * Checks the current recipient setting, including for previously scheduled events.
+     */
+    private static function isReminderDue(string $slot, int $days): bool
+    {
+        if ($days < 1) {
+            return false;
+        }
+
+        [$datePart] = self::parseSlot($slot);
+        return $datePart === current_datetime()->modify("+{$days} days")->format('Y-m-d');
     }
 
     /**

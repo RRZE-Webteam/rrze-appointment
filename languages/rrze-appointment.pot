@@ -683,8 +683,12 @@ msgstr ""
 msgid "Appointments"
 msgstr ""
 
-#: includes/Settings.php:145
-msgid "Reminder Email"
+#: includes/Admin/SettingsPage.php:64
+msgid "Reminder email to booking person"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php:73
+msgid "Reminder email to the appointment email address"
 msgstr ""
 
 #: includes/Settings.php:146
