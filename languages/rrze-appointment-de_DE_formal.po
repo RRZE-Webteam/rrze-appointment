@@ -752,9 +752,13 @@ msgstr "Link zum Beitrag oder zur Seite"
 msgid "Appointments"
 msgstr "Appointments"
 
-#: includes/Settings.php:145
-msgid "Reminder Email"
-msgstr "Erinnerungsmail"
+#: includes/Admin/SettingsPage.php:64
+msgid "Reminder email to booking person"
+msgstr "Erinnerungsmail an die buchende Person"
+
+#: includes/Admin/SettingsPage.php:73
+msgid "Reminder email to the appointment email address"
+msgstr "Erinnerungsmail an die E-Mail-Adresse der Sprechstunde"
 
 #: includes/Settings.php:146
 msgid "Booking data retention"

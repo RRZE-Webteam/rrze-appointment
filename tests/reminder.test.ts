@@ -12,14 +12,24 @@ type Mail = {
 type ReminderResult = {
 	actions: string[];
 	dailySchedule: { timestamp: number; recurrence: string; hook: string };
-	singleSchedule: { timestamp: number; hook: string; args: string[] };
+	singleSchedules: { timestamp: number; hook: string; args: string[] }[];
 	storedFutureMeta: Record< string, unknown >;
 	mails: Mail[];
 	dailyMails: Mail[];
 	cleanupRetention: number;
 };
 
-const getReminderResult = (): ReminderResult => {
+const getReminderResult = (
+	settings: Record< string, number > = {
+		reminder_booker_days: 2,
+		reminder_host_days: 2,
+	},
+	now = '2026-08-21 06:00:00'
+): ReminderResult => {
+	const pluginSettingsPath = resolve(
+		process.cwd(),
+		'includes/Configuration/PluginSettings.php'
+	);
 	const reminderPath = resolve(
 		process.cwd(),
 		'includes/Notification/Reminder.php'
@@ -42,13 +52,6 @@ const getReminderResult = (): ReminderResult => {
 					return 'https://example.test/cancel?a=1&slot=' . rawurlencode( $slot );
 				}
 				public static function imprintUrl(): string { return 'https://example.test/legal'; }
-			}
-		}
-		namespace RRZE\\Appointment\\Configuration {
-			class PluginSettings {
-				public static function get( string $key ) {
-					return [ 'reminder_days' => 2, 'retention_days' => 30 ][ $key ] ?? null;
-				}
 			}
 		}
 		namespace RRZE\\Appointment\\Mail {
@@ -95,8 +98,11 @@ const getReminderResult = (): ReminderResult => {
 			define( 'ABSPATH', __DIR__ );
 			$GLOBALS['actions'] = [];
 			$GLOBALS['daily_schedule'] = null;
-			$GLOBALS['single_schedule'] = null;
+			$GLOBALS['single_schedules'] = [];
 			$GLOBALS['options'] = [
+				'rrze_appointment_settings' => json_decode( ${ JSON.stringify(
+					JSON.stringify( settings )
+				) }, true ),
 				'booking_meta' => [
 					'2026-08-23 10:00-10:30' => [
 						'title' => '<b>Security review</b>',
@@ -118,10 +124,12 @@ const getReminderResult = (): ReminderResult => {
 				$GLOBALS['daily_schedule'] = compact( 'timestamp', 'recurrence', 'hook' );
 			}
 			function wp_schedule_single_event( $timestamp, $hook, $args ) {
-				$GLOBALS['single_schedule'] = compact( 'timestamp', 'hook', 'args' );
+				$GLOBALS['single_schedules'][] = compact( 'timestamp', 'hook', 'args' );
 			}
 			function current_datetime() {
-				return new \\DateTimeImmutable( '2026-08-21 06:00:00', new \\DateTimeZone( 'Europe/Berlin' ) );
+				return new \\DateTimeImmutable( ${ JSON.stringify(
+					now
+				) }, new \\DateTimeZone( 'Europe/Berlin' ) );
 			}
 			function wp_timezone() { return new \\DateTimeZone( 'Europe/Berlin' ); }
 			function get_option( $key, $default = false ) {
@@ -147,6 +155,7 @@ const getReminderResult = (): ReminderResult => {
 					'person_familyName' => 'Hopper',
 				][ $key ] ?? '';
 			}
+			require ${ JSON.stringify( pluginSettingsPath ) };
 			require ${ JSON.stringify( reminderPath ) };
 
 			$reminder = new \\RRZE\\Appointment\\Notification\\Reminder();
@@ -162,7 +171,7 @@ const getReminderResult = (): ReminderResult => {
 			echo json_encode( [
 				'actions' => $GLOBALS['actions'],
 				'dailySchedule' => $GLOBALS['daily_schedule'],
-				'singleSchedule' => $GLOBALS['single_schedule'],
+				'singleSchedules' => $GLOBALS['single_schedules'],
 				'storedFutureMeta' => $GLOBALS['options']['booking_meta']['2099-09-01 08:00-08:30'],
 				'mails' => $mails,
 				'dailyMails' => \\RRZE\\Appointment\\Mail\\Mailer::$mails,
@@ -188,7 +197,8 @@ describe( 'appointment reminders', () => {
 			recurrence: 'daily',
 			hook: 'rrze_appointment_daily_check',
 		} );
-		expect( result.singleSchedule ).toMatchObject( {
+		expect( result.singleSchedules ).toHaveLength( 1 );
+		expect( result.singleSchedules[ 0 ] ).toMatchObject( {
 			hook: 'rrze_appointment_send_reminder',
 			args: [ '2099-09-01 08:00-08:30' ],
 		} );
@@ -219,5 +229,87 @@ describe( 'appointment reminders', () => {
 
 		expect( result.cleanupRetention ).toBe( 30 );
 		expect( result.dailyMails ).toHaveLength( 2 );
+	} );
+} );
+
+describe( 'independent reminder recipients', () => {
+	it.each< [ number, number, string[] ] >( [
+		[ 2, 0, [ 'booker@example.test' ] ],
+		[ 0, 2, [ 'host@example.test' ] ],
+		[ 0, 0, [] ],
+	] )(
+		'respects booker=%i and host=%i for cron and daily fallback',
+		( booker, host, recipients ) => {
+			const result = getReminderResult( {
+				reminder_booker_days: booker,
+				reminder_host_days: host,
+			} );
+			expect( result.mails.map( ( mail ) => mail.to ) ).toEqual(
+				recipients
+			);
+			expect( result.dailyMails.map( ( mail ) => mail.to ) ).toEqual(
+				recipients
+			);
+			expect( result.singleSchedules ).toHaveLength( recipients.length );
+			expect( result.cleanupRetention ).toBe( 30 );
+			expect( result.storedFutureMeta ).toEqual( { title: 'Future' } );
+		}
+	);
+
+	it( 'schedules separate dates and only sends to the recipient due that day', () => {
+		const settings = { reminder_booker_days: 2, reminder_host_days: 1 };
+		const firstDay = getReminderResult( settings );
+		expect( firstDay.singleSchedules ).toHaveLength( 2 );
+		expect(
+			firstDay.singleSchedules.map( ( event ) => event.timestamp )
+		).toEqual( [
+			Date.parse( '2099-08-30T08:00:00+02:00' ) / 1000,
+			Date.parse( '2099-08-31T08:00:00+02:00' ) / 1000,
+		] );
+		expect( firstDay.mails.map( ( mail ) => mail.to ) ).toEqual( [
+			'booker@example.test',
+		] );
+		expect( firstDay.dailyMails.map( ( mail ) => mail.to ) ).toEqual( [
+			'booker@example.test',
+		] );
+		const secondDay = getReminderResult( settings, '2026-08-22 08:00:00' );
+		expect( secondDay.mails.map( ( mail ) => mail.to ) ).toEqual( [
+			'host@example.test',
+		] );
+		expect( secondDay.dailyMails.map( ( mail ) => mail.to ) ).toEqual( [
+			'host@example.test',
+		] );
+	} );
+
+	it( 'ignores an old cron event when neither recipient is due', () => {
+		const result = getReminderResult( {
+			reminder_booker_days: 1,
+			reminder_host_days: 3,
+		} );
+		expect( result.mails ).toEqual( [] );
+		expect( result.dailyMails ).toEqual( [] );
+	} );
+
+	it( 'preserves delivery to both recipients for legacy settings', () => {
+		const result = getReminderResult( { reminder_days: 2 } );
+		expect( result.mails.map( ( mail ) => mail.to ) ).toEqual( [
+			'host@example.test',
+			'booker@example.test',
+		] );
+		expect( result.dailyMails ).toHaveLength( 2 );
+		expect( result.singleSchedules ).toHaveLength( 1 );
+	} );
+
+	it( 'honors an explicit disabled recipient over the legacy setting', () => {
+		const result = getReminderResult( {
+			reminder_days: 2,
+			reminder_host_days: 0,
+		} );
+		expect( result.mails.map( ( mail ) => mail.to ) ).toEqual( [
+			'booker@example.test',
+		] );
+		expect( result.dailyMails.map( ( mail ) => mail.to ) ).toEqual( [
+			'booker@example.test',
+		] );
 	} );
 } );

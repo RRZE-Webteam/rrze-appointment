@@ -24,7 +24,8 @@ final class PluginSettings
 
     /**
      * @return array{
-     *     reminder_days: int,
+     *     reminder_booker_days: int,
+     *     reminder_host_days: int,
      *     recurrence_limit: int,
      *     retention_days: int,
      *     cancellation_reason_enabled: bool,
@@ -36,7 +37,8 @@ final class PluginSettings
     public static function defaults(): array
     {
         return [
-            'reminder_days' => 0,
+            'reminder_booker_days' => 0,
+            'reminder_host_days' => 0,
             'recurrence_limit' => 52,
             'retention_days' => 30,
             'cancellation_reason_enabled' => true,
@@ -52,6 +54,14 @@ final class PluginSettings
         $options = is_array($storedOptions) ? $storedOptions : [];
         $defaults = self::defaults();
 
+        // Preserve the shared setting until each recipient has its own value.
+        if (in_array($key, ['reminder_booker_days', 'reminder_host_days'], true)) {
+            $value = isset($options[$key]) && $options[$key] !== ''
+                ? $options[$key]
+                : ($options['reminder_days'] ?? 0);
+            return min(self::MAX_REMINDER_DAYS, max(0, (int) $value));
+        }
+
         return isset($options[$key]) && $options[$key] !== ''
             ? $options[$key]
             : ($defaults[$key] ?? null);
@@ -60,7 +70,8 @@ final class PluginSettings
     /**
      * @param array<string, mixed> $input
      * @return array{
-     *     reminder_days: int,
+     *     reminder_booker_days: int,
+     *     reminder_host_days: int,
      *     recurrence_limit: int,
      *     retention_days: int,
      *     cancellation_reason_enabled: bool,
@@ -78,9 +89,12 @@ final class PluginSettings
             ? $input['_settings_scope']
             : '';
 
-        $reminderDays = $scope === 'illustrations'
-            ? self::get('reminder_days')
-            : ($input['reminder_days'] ?? 0);
+        $reminderBookerDays = $scope === 'illustrations'
+            ? self::get('reminder_booker_days')
+            : ($input['reminder_booker_days'] ?? $input['reminder_days'] ?? 0);
+        $reminderHostDays = $scope === 'illustrations'
+            ? self::get('reminder_host_days')
+            : ($input['reminder_host_days'] ?? $input['reminder_days'] ?? 0);
         $retentionDays = $scope === 'illustrations'
             ? self::get('retention_days')
             : ($input['retention_days'] ?? 30);
@@ -98,9 +112,13 @@ final class PluginSettings
             : ($input['illustrations'] ?? []);
 
         return [
-            'reminder_days' => min(
+            'reminder_booker_days' => min(
                 self::MAX_REMINDER_DAYS,
-                max(0, (int) $reminderDays)
+                max(0, (int) $reminderBookerDays)
+            ),
+            'reminder_host_days' => min(
+                self::MAX_REMINDER_DAYS,
+                max(0, (int) $reminderHostDays)
             ),
             'recurrence_limit' => $recurrenceLimit,
             'retention_days' => min(
