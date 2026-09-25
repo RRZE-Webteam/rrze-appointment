@@ -65,7 +65,10 @@ const getMainResult = (): MainResult => {
 			}
 		}
 		namespace RRZE\\Appointment\\Controller {
-			class BookingOpeningController {
+			class AdminBookingsController {
+                public function registerRoutes(): void {}
+            }
+            class BookingOpeningController {
 				public function __construct( \\RRZE\\Appointment\\Presentation\\PublicPageRenderer $renderer ) {}
 				public function handleSubscription(): void {}
 				public function handleClaim(): void {}

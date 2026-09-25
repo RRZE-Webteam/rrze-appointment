@@ -1,0 +1,52 @@
+@import "../../node_modules/@wordpress/dataviews/build-style/style.css";
+
+.rrze-appointment-admin {
+	margin-top: 24px;
+
+	&__toolbar,
+	&__views,
+	&__filters {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 12px;
+	}
+
+	&__toolbar {
+		justify-content: space-between;
+	}
+
+	&__filters {
+		align-items: flex-end;
+		margin: 24px 0 16px;
+	}
+
+	&__table {
+		background: #fff;
+		border: 1px solid #dcdcde;
+		border-radius: 4px;
+		overflow: hidden;
+	}
+
+	&__loading {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 32px 0;
+	}
+
+	.components-notice {
+		margin: 16px 0;
+	}
+
+	.dataviews-wrapper {
+		min-height: 250px;
+	}
+}
+
+.rrze-appointment-admin-cancel__actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 12px;
+	margin-top: 24px;
+}

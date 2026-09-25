@@ -54,7 +54,7 @@ describe( 'focused administration pages', () => {
 			'admin_init',
 			'admin_print_footer_scripts',
 			'admin_menu',
-			'admin_init',
+			'admin_enqueue_scripts',
 		] );
 		expect( result.mailTemplateMethods ).toContain( 'render' );
 		expect( result.settingsScreen ).toBe(
@@ -65,17 +65,15 @@ describe( 'focused administration pages', () => {
 		);
 	} );
 
-	it( 'collects and forwards an optional cancellation reason', () => {
+	it( 'mounts the React administration screen and loads its own bundle', () => {
 		const page = readFileSync(
 			resolve( process.cwd(), 'includes/Admin/BookingsPage.php' ),
 			'utf8'
 		);
-
-		expect( page ).toContain( 'name="cancellation_reason"' );
-		expect( page ).toContain(
-			"$reason = Request::postTextarea('cancellation_reason');"
-		);
-		expect( page ).toContain( 'Bookings::cancel($slot, $reason);' );
+		expect( page ).toContain( 'id="rrze-appointment-admin"' );
+		expect( page ).toContain( 'build/admin-bookings.js' );
+		expect( page ).toContain( 'wp_set_script_translations(' );
+		expect( page ).not.toContain( 'private function renderBookings' );
 	} );
 
 	it( 'registers a switch for the cancellation-reason field', () => {
@@ -94,7 +92,7 @@ describe( 'focused administration pages', () => {
 			'utf8'
 		);
 		const bookings = readFileSync(
-			resolve( process.cwd(), 'includes/Admin/BookingsPage.php' ),
+			resolve( process.cwd(), 'includes/Booking/Bookings.php' ),
 			'utf8'
 		);
 
@@ -103,7 +101,9 @@ describe( 'focused administration pages', () => {
 		expect( bookings ).toContain(
 			"PluginSettings::get('sensitive_mode_enabled')"
 		);
-		expect( bookings ).toContain( "!empty($b['admin_anonymized'])" );
+		expect( bookings ).toContain(
+			'!empty($meta[self::ADMIN_ANONYMIZED_META_KEY])'
+		);
 	} );
 
 	it( 'delegates appointment management through a server-validated user list', () => {

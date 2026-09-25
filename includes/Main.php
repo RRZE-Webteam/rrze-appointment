@@ -6,6 +6,7 @@ use RRZE\Appointment\Admin\BookingsPage;
 use RRZE\Appointment\Admin\MailTemplatesPage;
 use RRZE\Appointment\Admin\SettingsPage;
 use RRZE\Appointment\Booking\TokenManager;
+use RRZE\Appointment\Controller\AdminBookingsController;
 use RRZE\Appointment\Controller\BookingOpeningController;
 use RRZE\Appointment\Controller\BookingRequestController;
 use RRZE\Appointment\Controller\CancellationController;
@@ -159,10 +160,11 @@ final class Main
     }
 
     /**
-     * Registers REST endpoints used by the public dialog and block editor.
+     * Registers REST endpoints for booking, the editor and appointment administration.
      */
     public function registerRestRoutes(): void
     {
+        (new AdminBookingsController())->registerRoutes();
         register_rest_route(self::REST_NAMESPACE, self::BOOKER_ROUTE, [
             'methods' => 'POST',
             'callback' => [$this->sso, 'handleBookerRequest'],
