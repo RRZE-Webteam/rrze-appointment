@@ -2236,3 +2236,15 @@ msgstr ""
 
 msgid "Unable to load your booking details. Please reload the page and try again. If the problem persists, contact the website administrator."
 msgstr ""
+
+#: build/index.js
+msgid "Appointment display"
+msgstr ""
+
+#: includes/Presentation/AssetManager.php build/index.js
+msgid "Show available slots as a list"
+msgstr ""
+
+#: includes/Presentation/AssetManager.php build/index.js
+msgid "Hide the calendar on the website and group available times under date headings."
+msgstr ""

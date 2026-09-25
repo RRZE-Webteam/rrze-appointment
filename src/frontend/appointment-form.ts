@@ -27,6 +27,10 @@ export function initializeAppointmentForms(): void {
 		form: HTMLFormElement,
 		instanceId: string
 	): void {
+		const showSlotsAsList = form.dataset.showSlotsAsList === '1';
+		const dateList = form.querySelector< HTMLElement >(
+			'.rrze-appointment__date-list'
+		);
 		const calendar = form.querySelector< HTMLElement >(
 			'.rrze-appointment__calendar'
 		);
@@ -40,10 +44,10 @@ export function initializeAppointmentForms(): void {
 			'.rrze-appointment__slot-data'
 		);
 		if (
-			! calendar ||
-			! daySlotsContainer ||
-			! daySlotsList ||
-			! slotData
+			! slotData ||
+			( showSlotsAsList
+				? ! dateList
+				: ! calendar || ! daySlotsContainer || ! daySlotsList )
 		) {
 			return;
 		}
@@ -58,10 +62,12 @@ export function initializeAppointmentForms(): void {
 		const selectedInfoElement = form.querySelector< HTMLElement >(
 			'.rrze-appointment__selected-info'
 		);
-		daySlotsListElement.id = `${ instanceId }-slots`;
+		if ( daySlotsListElement ) {
+			daySlotsListElement.id = `${ instanceId }-slots`;
+		}
 
-		calendarElement.setAttribute( 'role', 'group' );
-		calendarElement.setAttribute(
+		calendarElement?.setAttribute( 'role', 'group' );
+		calendarElement?.setAttribute(
 			'aria-label',
 			i18n.chooseDate || 'Choose an appointment date'
 		);
@@ -204,7 +210,14 @@ export function initializeAppointmentForms(): void {
 				( slot ) => ! isSlotUnavailable( slot.value )
 			);
 			if ( availableSlots.length > 0 ) {
-				slotsByDate.set( date, availableSlots );
+				slotsByDate.set(
+					date,
+					availableSlots.sort( ( left, right ) =>
+						left.time
+							.padStart( 5, '0' )
+							.localeCompare( right.time.padStart( 5, '0' ) )
+					)
+				);
 			} else {
 				slotsByDate.delete( date );
 			}
@@ -212,8 +225,8 @@ export function initializeAppointmentForms(): void {
 
 		availableDates = Array.from( slotsByDate.keys() ).sort();
 		if ( availableDates.length === 0 ) {
-			calendarElement.innerHTML = '';
-			daySlotsContainerElement.classList.add( 'is-hidden' );
+			calendarElement?.replaceChildren();
+			daySlotsContainerElement?.classList.add( 'is-hidden' );
 			showAvailabilityMessage(
 				i18n.noSlotsAvailable || 'No time slots available.'
 			);
@@ -249,9 +262,7 @@ export function initializeAppointmentForms(): void {
 				isSlotUnavailable,
 				onBookingSucceeded: ( bookedSlotValue ) => {
 					bookedSlots.add( bookedSlotValue );
-					renderCalendar();
-					renderDaySlots( activeDate );
-					refreshAvailabilityMessage();
+					renderAvailability();
 				},
 				onSlotSelected: ( selectedValue ) => {
 					selectedSlotValue = selectedValue;
@@ -353,16 +364,21 @@ export function initializeAppointmentForms(): void {
 			return button;
 		}
 
-		function renderDaySlots( date: string, focusTitle = false ): void {
+		function renderDateSlots(
+			date: string,
+			container: HTMLElement,
+			list: HTMLElement,
+			focusTitle = false
+		): void {
 			const slots = ( slotsByDate.get( date ) || [] ).filter(
 				( slot ) => ! isSlotUnavailable( slot.value )
 			);
-			daySlotsListElement.innerHTML = '';
-			daySlotsListElement.className =
+			list.innerHTML = '';
+			list.className =
 				'rrze-appointment__day-slots-list rrze-appointment__slot-grid';
 
 			if ( slots.length === 0 ) {
-				daySlotsContainerElement.classList.add( 'is-hidden' );
+				container.classList.add( 'is-hidden' );
 				return;
 			}
 			const hasNotOpenSlots = slots.some( ( slot ) =>
@@ -372,8 +388,8 @@ export function initializeAppointmentForms(): void {
 				( slot ) => ! isSlotTooFarInAdvance( slot.value )
 			);
 
-			daySlotsContainerElement.classList.remove( 'is-hidden' );
-			const slotsTitleElement = daySlotsContainerElement.querySelector(
+			container.classList.remove( 'is-hidden' );
+			const slotsTitleElement = container.querySelector< HTMLElement >(
 				'.rrze-appointment__day-slots-title'
 			);
 			if ( slotsTitleElement ) {
@@ -382,10 +398,10 @@ export function initializeAppointmentForms(): void {
 						? i18n.availableOn || 'Available appointments on %s'
 						: i18n.appointmentsOn || 'Appointments on %s'
 				).replace( '%s', formatDateDisplay( date, frontendLocale ) );
-				( slotsTitleElement as HTMLElement ).tabIndex = -1;
+				slotsTitleElement.tabIndex = -1;
 			}
 
-			const existingNotice = daySlotsContainerElement.querySelector(
+			const existingNotice = container.querySelector(
 				'.rrze-appointment__booking-window-notice'
 			);
 			existingNotice?.remove();
@@ -394,11 +410,11 @@ export function initializeAppointmentForms(): void {
 				bookingWindowNotice.className =
 					'rrze-appointment__booking-window-notice';
 				bookingWindowNotice.textContent = getBookingAdvanceMessage();
-				daySlotsListElement.before( bookingWindowNotice );
+				list.before( bookingWindowNotice );
 			}
 
 			slots.forEach( ( slot ) => {
-				daySlotsListElement.appendChild( createSlotButton( slot ) );
+				list.appendChild( createSlotButton( slot ) );
 			} );
 
 			if ( focusTitle && slotsTitleElement instanceof HTMLElement ) {
@@ -406,9 +422,63 @@ export function initializeAppointmentForms(): void {
 			}
 		}
 
+		function renderDaySlots( date: string, focusTitle = false ): void {
+			if ( daySlotsContainerElement && daySlotsListElement ) {
+				renderDateSlots(
+					date,
+					daySlotsContainerElement,
+					daySlotsListElement,
+					focusTitle
+				);
+			}
+		}
+
+		function renderDateList(): void {
+			if ( ! dateList ) {
+				return;
+			}
+			const dateGroups = document.createDocumentFragment();
+			availableDates.forEach( ( date ) => {
+				const slots = slotsByDate.get( date ) || [];
+				if (
+					! slots.some(
+						( slot ) => ! isSlotUnavailable( slot.value )
+					)
+				) {
+					return;
+				}
+				const section = document.createElement( 'section' );
+				section.className = 'rrze-appointment__day-slots';
+				section.dataset.date = date;
+				const heading = document.createElement( 'h3' );
+				heading.className = 'rrze-appointment__day-slots-title';
+				heading.id = `${ instanceId }-date-${ date }`;
+				section.setAttribute( 'aria-labelledby', heading.id );
+				const list = document.createElement( 'div' );
+				section.append( heading, list );
+				renderDateSlots( date, section, list );
+				dateGroups.appendChild( section );
+			} );
+			dateList.replaceChildren( dateGroups );
+		}
+
+		function renderAvailability(): void {
+			if ( showSlotsAsList ) {
+				renderDateList();
+			} else {
+				renderCalendar();
+				renderDaySlots( activeDate );
+			}
+			refreshAvailabilityMessage();
+		}
+
 		function renderCalendar(
 			focusNavigation: 'previous' | 'next' | null = null
 		): void {
+			if ( ! calendarElement || ! daySlotsListElement ) {
+				return;
+			}
+			const daySlotsListId = daySlotsListElement.id;
 			calendarElement.innerHTML = '';
 
 			const monthDate = new Date( currentYear, currentMonth, 1 );
@@ -561,10 +631,7 @@ export function initializeAppointmentForms(): void {
 					}
 
 					if ( isSelectable ) {
-						button.setAttribute(
-							'aria-controls',
-							daySlotsListElement.id
-						);
+						button.setAttribute( 'aria-controls', daySlotsListId );
 						button.addEventListener( 'click', () => {
 							activeDate = dateString;
 							renderCalendar();
@@ -669,8 +736,7 @@ export function initializeAppointmentForms(): void {
 			}
 		}
 
-		renderCalendar();
-		renderDaySlots( activeDate );
+		renderAvailability();
 
 		const storedSlotValue = sessionStorage.getItem( 'rrze_appt_slot' );
 		const storedPageUrl = sessionStorage.getItem( 'rrze_appt_page' );
@@ -693,8 +759,7 @@ export function initializeAppointmentForms(): void {
 				activeDate = storedSlotDate;
 				currentYear = storedAppointmentDate.getFullYear();
 				currentMonth = storedAppointmentDate.getMonth();
-				renderCalendar();
-				renderDaySlots( activeDate );
+				renderAvailability();
 			}
 
 			form.setAttribute( 'aria-busy', 'true' );

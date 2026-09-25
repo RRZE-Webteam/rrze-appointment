@@ -190,6 +190,8 @@ final class AssetManager
     private function getEditorTranslations(): array
     {
         return [
+            'showSlotsAsListField' => __('Show available slots as a list', 'rrze-appointment'),
+            'showSlotsAsListHelp' => __('Hide the calendar on the website and group available times under date headings.', 'rrze-appointment'),
             'hideWeekendsField' => __('Hide weekends', 'rrze-appointment'),
             'hideWeekendsHelp' => __('Only show Monday through Friday in the calendar.', 'rrze-appointment'),
         ];

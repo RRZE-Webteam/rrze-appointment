@@ -101,6 +101,7 @@ export interface AppointmentAttributes {
 	questions: AppointmentQuestion[];
 	disableSso: boolean;
 	hideWeekends: boolean;
+	showSlotsAsList: boolean;
 	color?: string;
 	style: string;
 }

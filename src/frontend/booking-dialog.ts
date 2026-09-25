@@ -289,6 +289,9 @@ export function openBookingDialog( {
 			) ||
 			form.querySelector< HTMLElement >(
 				'.rrze-appointment__calendar-month-title'
+			) ||
+			form.querySelector< HTMLElement >(
+				'.rrze-appointment__availability-status:not(.is-hidden)'
 			);
 		focusFallback?.focus();
 	}

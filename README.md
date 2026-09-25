@@ -48,7 +48,17 @@ RRZE Appointment lets you manage appointments and office hours directly in WordP
 - Adapted to the layouts of the "FAU Einrichtungen" and "FAU Elemental" themes
 - Supports FAU faculty color schemes
 - Can be inserted as a Gutenberg block in posts and pages for flexible placement
+- Optional list view groups available times under date headings without a calendar
 - Site Editor templates and template parts are not supported
+
+### List view
+
+In the appointment block's Inspector, open **Appointment display** and enable
+**Show available slots as a list**. The website then shows all available dates
+in chronological order, with time buttons beneath each date heading. Booked,
+past, and closed slots are omitted. Future slots whose booking window has not
+opened retain the **Notify me** option. The editor's planning calendar remains
+available; existing blocks use the calendar view by default.
 
 
 ## Dependencies

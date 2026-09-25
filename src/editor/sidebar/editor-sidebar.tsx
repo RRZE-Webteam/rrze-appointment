@@ -43,6 +43,7 @@ export function EditorSidebar( {
 		bookingCutoff: bookingCutoffMinutes,
 		disableSso: allowBookingsWithoutSso,
 		hideWeekends,
+		showSlotsAsList,
 		location,
 		locationUrl,
 		personEmail,
@@ -302,10 +303,31 @@ export function EditorSidebar( {
 			</PanelBody>
 
 			<PanelBody
-				title={ __( 'Calendar display', 'rrze-appointment' ) }
+				title={ __( 'Appointment display', 'rrze-appointment' ) }
 				icon="calendar-alt"
 				initialOpen={ false }
 			>
+				<ToggleControl
+					label={
+						editorI18n.showSlotsAsListField ||
+						__(
+							'Show available slots as a list',
+							'rrze-appointment'
+						)
+					}
+					help={
+						editorI18n.showSlotsAsListHelp ||
+						__(
+							'Hide the calendar on the website and group available times under date headings.',
+							'rrze-appointment'
+						)
+					}
+					checked={ !! showSlotsAsList }
+					onChange={ ( value ) =>
+						setAttributes( { showSlotsAsList: !! value } )
+					}
+					__nextHasNoMarginBottom
+				/>
 				<ToggleControl
 					label={
 						editorI18n.hideWeekendsField ||

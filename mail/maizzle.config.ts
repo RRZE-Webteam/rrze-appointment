@@ -8,7 +8,10 @@ export default defineConfig( {
 	},
 	css: {
 		inline: true,
-		purge: true,
+		purge: {
+			// These elements are inserted by PHP after the Maizzle build.
+			safelist: [ '.rrze-email-button-cell', '.rrze-email-button-link' ],
+		},
 		safe: true,
 		shorthand: true,
 	},

@@ -33,6 +33,7 @@ $bookingCutoff = (int) ($attributes['bookingCutoff'] ?? 0);
 $bookingMaxAdvance = max(0, (int) ($attributes['bookingMaxAdvance'] ?? 0));
 $disableSso = !empty($attributes['disableSso']);
 $hideWeekends = !empty($attributes['hideWeekends']);
+$showSlotsAsList = !empty($attributes['showSlotsAsList']);
 $locationUrl = (string) ($attributes['locationUrl'] ?? '');
 $color = (string) ($attributes['color'] ?? '');
 $style = (string) ($attributes['style'] ?? 'light');
@@ -55,6 +56,7 @@ $locationIsUrl = preg_match('#^https?://#i', $location) === 1;
     data-booking-max-advance="<?php echo esc_attr((string) $bookingMaxAdvance); ?>"
     data-disable-sso="<?php echo $disableSso ? '1' : '0'; ?>"
     data-hide-weekends="<?php echo $hideWeekends ? '1' : '0'; ?>"
+    data-show-slots-as-list="<?php echo $showSlotsAsList ? '1' : '0'; ?>"
 >
     <fieldset class="rrze-appointment__fieldset">
         <legend class="<?php echo $title !== '' ? 'rrze-appointment__title' : 'rrze-appointment__visually-hidden'; ?>">
@@ -79,41 +81,47 @@ $locationIsUrl = preg_match('#^https?://#i', $location) === 1;
         <?php endif; ?>
 
         <?php if (!empty($slots)) : ?>
-            <ul
-                class="rrze-appointment__calendar-legend"
-                aria-label="<?php echo esc_attr__('Calendar legend', 'rrze-appointment'); ?>"
-            >
-                <li class="rrze-appointment__calendar-legend-item">
-                    <span class="rrze-appointment__calendar-legend-swatch is-available" aria-hidden="true"></span>
-                    <span><?php esc_html_e('Available', 'rrze-appointment'); ?></span>
-                </li>
-                <li class="rrze-appointment__calendar-legend-item">
-                    <span class="rrze-appointment__calendar-legend-swatch is-selected" aria-hidden="true"></span>
-                    <span><?php esc_html_e('Selected', 'rrze-appointment'); ?></span>
-                </li>
-                <?php if ($bookingMaxAdvance > 0) : ?>
+            <?php if (!$showSlotsAsList) : ?>
+                <ul
+                    class="rrze-appointment__calendar-legend"
+                    aria-label="<?php echo esc_attr__('Calendar legend', 'rrze-appointment'); ?>"
+                >
                     <li class="rrze-appointment__calendar-legend-item">
-                        <span class="rrze-appointment__calendar-legend-swatch is-not-open" aria-hidden="true"></span>
-                        <span><?php esc_html_e('Not yet bookable', 'rrze-appointment'); ?></span>
+                        <span class="rrze-appointment__calendar-legend-swatch is-available" aria-hidden="true"></span>
+                        <span><?php esc_html_e('Available', 'rrze-appointment'); ?></span>
                     </li>
-                <?php endif; ?>
-                <li class="rrze-appointment__calendar-legend-item">
-                    <span class="rrze-appointment__calendar-legend-swatch is-unavailable" aria-hidden="true"></span>
-                    <span><?php esc_html_e('Past or booked', 'rrze-appointment'); ?></span>
-                </li>
-                <li class="rrze-appointment__calendar-legend-item">
-                    <span class="rrze-appointment__calendar-legend-swatch is-today" aria-hidden="true"></span>
-                    <span><?php esc_html_e('Today', 'rrze-appointment'); ?></span>
-                </li>
-            </ul>
-            <div class="rrze-appointment__calendar"></div>
+                    <li class="rrze-appointment__calendar-legend-item">
+                        <span class="rrze-appointment__calendar-legend-swatch is-selected" aria-hidden="true"></span>
+                        <span><?php esc_html_e('Selected', 'rrze-appointment'); ?></span>
+                    </li>
+                    <?php if ($bookingMaxAdvance > 0) : ?>
+                        <li class="rrze-appointment__calendar-legend-item">
+                            <span class="rrze-appointment__calendar-legend-swatch is-not-open" aria-hidden="true"></span>
+                            <span><?php esc_html_e('Not yet bookable', 'rrze-appointment'); ?></span>
+                        </li>
+                    <?php endif; ?>
+                    <li class="rrze-appointment__calendar-legend-item">
+                        <span class="rrze-appointment__calendar-legend-swatch is-unavailable" aria-hidden="true"></span>
+                        <span><?php esc_html_e('Past or booked', 'rrze-appointment'); ?></span>
+                    </li>
+                    <li class="rrze-appointment__calendar-legend-item">
+                        <span class="rrze-appointment__calendar-legend-swatch is-today" aria-hidden="true"></span>
+                        <span><?php esc_html_e('Today', 'rrze-appointment'); ?></span>
+                    </li>
+                </ul>
+                <div class="rrze-appointment__calendar"></div>
+            <?php endif; ?>
 
-            <p class="rrze-appointment__availability-status is-hidden" role="status" aria-live="polite"></p>
+            <p class="rrze-appointment__availability-status is-hidden" role="status" aria-live="polite" tabindex="-1"></p>
 
-            <div class="rrze-appointment__day-slots is-hidden">
-                <h3 class="rrze-appointment__day-slots-title"><?php echo esc_html__('Times on selected day', 'rrze-appointment'); ?></h3>
-                <div class="rrze-appointment__day-slots-list"></div>
-            </div>
+            <?php if ($showSlotsAsList) : ?>
+                <div class="rrze-appointment__date-list"></div>
+            <?php else : ?>
+                <div class="rrze-appointment__day-slots is-hidden">
+                    <h3 class="rrze-appointment__day-slots-title"><?php echo esc_html__('Times on selected day', 'rrze-appointment'); ?></h3>
+                    <div class="rrze-appointment__day-slots-list"></div>
+                </div>
+            <?php endif; ?>
 
             <div class="rrze-appointment__slot-data" hidden aria-hidden="true">
                 <?php foreach ($slots as $slotValue) : ?>
