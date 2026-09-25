@@ -6,7 +6,7 @@ use RRZE\Appointment\AppointmentException;
 
 defined('ABSPATH') || exit;
 
-/** Validates a recipient without rewriting its mailbox or domain. */
+/** Validates a recipient and normalizes its domain, preserving the local part. */
 final class EmailAddress
 {
     private const MAX_LENGTH = 254;
@@ -16,6 +16,7 @@ final class EmailAddress
     /**
      * Only surrounding ASCII spaces are removed. In particular, control
      * characters must be rejected rather than silently stripped by trim().
+     * Domains use lowercase ASCII/Punycode; local-part case and plus tags stay intact.
      *
      * @throws AppointmentException If the address is missing or invalid.
      */
@@ -27,17 +28,22 @@ final class EmailAddress
         }
 
         if (
-            strlen($email) > self::MAX_LENGTH
-            || preg_match('/[\x00-\x1F\x7F]/', $email)
-            || !is_email($email)
+            preg_match('/[\x00-\x1F\x7F]/', $email)
+            || substr_count($email, '@') !== 1
         ) {
             throw new AppointmentException(__('Enter a valid email address.', 'rrze-appointment'));
         }
 
         [$local, $domain] = explode('@', $email, 2);
+        $domain = self::normalizeDomain($domain);
+        $email = $local . '@' . $domain;
+
+        // Check wire-format lengths after IDNA conversion, not UTF-8 input lengths.
         // WordPress does not check these length and local-part dot rules.
         if (
-            strlen($local) > self::MAX_LOCAL_LENGTH
+            strlen($email) > self::MAX_LENGTH
+            || !is_email($email)
+            || strlen($local) > self::MAX_LOCAL_LENGTH
             || str_starts_with($local, '.')
             || str_ends_with($local, '.')
             || str_contains($local, '..')
@@ -47,5 +53,42 @@ final class EmailAddress
         }
 
         return $email;
+    }
+
+    private static function normalizeDomain(string $domain): string
+    {
+        $domain = strtolower($domain);
+        $isUnicode = (bool) preg_match('/[^\x00-\x7F]/', $domain);
+
+        // Do not let IDNA silently discard whitespace or invisible control characters.
+        if ($isUnicode && (preg_match('//u', $domain) !== 1 || preg_match('/[\p{C}\p{Z}]/u', $domain))) {
+            throw new AppointmentException(__('Enter a valid email address.', 'rrze-appointment'));
+        }
+
+        // Ordinary ASCII domains only need lowercasing. Check domains containing
+        // existing Punycode (ACE) labels through IDNA too when available.
+        if (!$isUnicode && !preg_match('/(?:^|\.)xn--/', $domain)) {
+            return $domain;
+        }
+
+        if (!function_exists('idn_to_ascii')) {
+            if (!$isUnicode) {
+                return $domain;
+            }
+            throw new AppointmentException(__('Please enter the email domain in Punycode format; this server cannot convert internationalized domains.', 'rrze-appointment'));
+        }
+
+        // Nontransitional conversion keeps distinct domains such as faß.de and fass.de.
+        $ascii = idn_to_ascii(
+            $domain,
+            IDNA_NONTRANSITIONAL_TO_ASCII | IDNA_USE_STD3_RULES | IDNA_CHECK_BIDI | IDNA_CHECK_CONTEXTJ,
+            INTL_IDNA_VARIANT_UTS46,
+            $info
+        );
+        if ($ascii === false || !empty($info['errors'])) {
+            throw new AppointmentException(__('Enter a valid email address.', 'rrze-appointment'));
+        }
+
+        return $ascii;
     }
 }

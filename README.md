@@ -64,10 +64,18 @@ available; existing blocks use the calendar view by default.
 
 Guest bookings and booking-opening notifications validate the submitted email
 address on the server before reserving a slot, storing a subscription, or
-sending mail. Surrounding spaces are removed; malformed addresses, control
-characters, and addresses exceeding 254 bytes are rejected. Invalid characters
-are never silently deleted. Valid addresses retain their spelling and plus
-tags. Unicode domains currently require their ASCII (Punycode) form.
+sending mail. Surrounding ASCII spaces are removed; malformed addresses and
+control characters are rejected. Domains are lowercased and internationalized
+domains are converted to ASCII (Punycode) using nontransitional UTS #46. For
+example, `Max+Termin@MÜLLER.DE` becomes `Max+Termin@xn--mller-kva.de`. The local
+part before `@` retains its spelling, case, dots, and plus tags. Unicode local
+parts are not supported. Address and domain-label length limits are checked
+after conversion; the resulting address must not exceed 254 bytes.
+
+Automatic IDN conversion requires PHP's `intl` extension (`idn_to_ascii`). If
+unavailable, ASCII addresses (including Punycode domains) still work, and users
+entering a Unicode domain are asked to use its Punycode form. The normalization
+applies to new guest submissions; existing stored addresses are not migrated.
 
 ### Appointment administration
 

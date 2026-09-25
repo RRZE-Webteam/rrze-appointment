@@ -216,6 +216,10 @@ msgstr "Geben Sie Ihren Namen ein."
 msgid "Enter a valid email address."
 msgstr "Geben Sie eine gültige E-Mail-Adresse ein."
 
+#: includes/Mail/EmailAddress.php
+msgid "Please enter the email domain in Punycode format; this server cannot convert internationalized domains."
+msgstr "Bitte geben Sie die Domain Ihrer E-Mail-Adresse in Punycode-Schreibweise ein. Dieser Server kann internationalisierte Domains nicht umwandeln."
+
 #: includes/AssetManager.php:105 includes/ConfirmationController.php:451
 #: includes/MailTemplatePost.php:106 includes/MailTemplatePost.php:124
 #: includes/Settings.php:588 build/index.js:1 build/index.js:191

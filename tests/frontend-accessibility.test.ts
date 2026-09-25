@@ -219,7 +219,8 @@ describe( 'frontend calendar accessibility', () => {
 			'.rrze-appointment__overlay-email'
 		) as HTMLInputElement;
 		nameInput.value = 'Ada Lovelace';
-		emailInput.value = 'ada@example.org';
+		emailInput.value = 'Ada+Termin@MÜLLER.DE';
+		expect( emailInput.form?.noValidate ).toBe( true );
 		document
 			.querySelector< HTMLFormElement >(
 				'.rrze-appointment__overlay-form'
@@ -235,6 +236,48 @@ describe( 'frontend calendar accessibility', () => {
 			'rrze_appointment_notify_opening'
 		);
 		expect( requestBody.get( 'slot' ) ).toBe( '2099-02-02 14:00-14:30' );
+		expect( requestBody.get( 'booker_email' ) ).toBe(
+			'Ada+Termin@MÜLLER.DE'
+		);
+	} );
+
+	it( 'submits Unicode email domains for server normalization when booking', async () => {
+		const form = renderAppointment();
+		form
+			.querySelector< HTMLButtonElement >(
+				'.rrze-appointment__slot-button'
+			)
+			?.click();
+		const fetchMock = jest.fn().mockImplementation(
+			() =>
+				new Promise( () => {
+					// Keep the request pending; this test only inspects its payload.
+				} )
+		);
+		global.fetch = fetchMock as typeof fetch;
+		const dialogForm = document.querySelector< HTMLFormElement >(
+			'.rrze-appointment__overlay-form'
+		) as HTMLFormElement;
+		const nameInput = dialogForm.querySelector< HTMLInputElement >(
+			'.rrze-appointment__overlay-name'
+		) as HTMLInputElement;
+		const emailInput = dialogForm.querySelector< HTMLInputElement >(
+			'.rrze-appointment__overlay-email'
+		) as HTMLInputElement;
+		nameInput.value = 'Ada Lovelace';
+		emailInput.value = 'Ada+Termin@MÜLLER.DE';
+		expect( dialogForm.noValidate ).toBe( true );
+		dialogForm.dispatchEvent(
+			new Event( 'submit', { bubbles: true, cancelable: true } )
+		);
+		await Promise.resolve();
+		await Promise.resolve();
+		expect( fetchMock ).toHaveBeenCalledTimes( 1 );
+		const requestBody = fetchMock.mock.calls[ 0 ][ 1 ].body as FormData;
+		expect( requestBody.get( 'action' ) ).toBe( 'rrze_appointment_book' );
+		expect( requestBody.get( 'booker_email' ) ).toBe(
+			'Ada+Termin@MÜLLER.DE'
+		);
 	} );
 
 	it( 'isolates the modal, associates errors, and restores focus', () => {
