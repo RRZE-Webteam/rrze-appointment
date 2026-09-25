@@ -10,9 +10,12 @@ type MailTemplateResult = {
 	unsafeButton: string;
 	compiledLayoutValid: boolean;
 	incompleteLayoutValid: boolean;
+	fallbackLayout: string;
 };
 
-const getMailTemplateResult = (): MailTemplateResult => {
+const getMailTemplateResult = (
+	logo: false | [ string, number, number ] = false
+): MailTemplateResult => {
 	const templatePath = resolve(
 		process.cwd(),
 		'includes/Mail/MailTemplate.php'
@@ -38,9 +41,10 @@ const getMailTemplateResult = (): MailTemplateResult => {
 			function esc_url( $value ) {
 				return preg_match( '#^https?://#', $value ) ? esc_attr( $value ) : '';
 			}
-			function has_custom_logo() { return false; }
+			$GLOBALS['test_logo'] = json_decode( '${ JSON.stringify( logo ) }', true );
+			function has_custom_logo() { return $GLOBALS['test_logo'] !== false; }
 			function get_theme_mod( $key ) { return 0; }
-			function wp_get_attachment_image_url( $id, $size ) { return false; }
+			function wp_get_attachment_image_src( $id, $size ) { return $GLOBALS['test_logo']; }
 			function get_privacy_policy_url() { return 'https://example.test/privacy'; }
 			function __( $value, $domain ) { return $value; }
 			require ${ JSON.stringify( templatePath ) };
@@ -74,6 +78,7 @@ const getMailTemplateResult = (): MailTemplateResult => {
 				'unsafeButton' => $class::actionButton( 'javascript:alert(1)', 'Unsafe' ),
 				'compiledLayoutValid' => $validateLayout->invoke( null, $compiledLayout ),
 				'incompleteLayoutValid' => $validateLayout->invoke( null, $incompleteLayout ),
+				'fallbackLayout' => $reflection->getMethod( 'getFallbackLayout' )->invoke( null ),
 			] );
 		}
 	`;
@@ -129,5 +134,129 @@ describe( 'mail template', () => {
 
 		expect( result.compiledLayoutValid ).toBe( true );
 		expect( result.incompleteLayoutValid ).toBe( false );
+	} );
+
+	it( 'keeps structural padding and colored surfaces on table cells', () => {
+		const doc = new DOMParser().parseFromString(
+			getMailTemplateResult().wrapped,
+			'text/html'
+		);
+
+		for ( const name of [ 'header', 'heading', 'content', 'footer' ] ) {
+			const cell = doc.querySelector< HTMLTableCellElement >(
+				`.rrze-email-${ name }`
+			)!;
+			expect( cell.tagName ).toBe( 'TD' );
+			expect( cell.style.paddingLeft ).not.toBe( '' );
+			expect( cell.style.backgroundColor ).not.toBe( '' );
+			expect( cell.getAttribute( 'bgcolor' ) ).toMatch(
+				/^#[a-f\d]{6}$/i
+			);
+			expect( cell.closest( 'table' )?.getAttribute( 'role' ) ).toBe(
+				'presentation'
+			);
+		}
+
+		const status = doc.querySelector< HTMLTableCellElement >(
+			'td[bgcolor="#e8f5e9"]'
+		)!;
+		expect( status.textContent ).toContain( 'Booking confirmed' );
+		expect( status.style.paddingLeft ).not.toBe( '' );
+
+		const shell =
+			doc.querySelector< HTMLTableCellElement >( '.rrze-email-shell' )!;
+		expect( shell.tagName ).toBe( 'TD' );
+		expect( shell.style.width ).toBe( '' );
+		expect( shell.closest( 'table' )?.getAttribute( 'width' ) ).toBe(
+			'100%'
+		);
+	} );
+
+	it( 'preserves the Outlook-only rules needed by runtime buttons after compilation', () => {
+		const result = getMailTemplateResult();
+		for ( const html of [ result.wrapped, result.fallbackLayout ] ) {
+			const outlookRules = [
+				...html.matchAll( /<!--\[if mso\]>([\s\S]*?)<!\[endif\]-->/g ),
+			]
+				.map( ( match ) => match[ 1 ] )
+				.join( '\n' );
+			expect( outlookRules ).toMatch(
+				/\.rrze-email-button-cell\s*\{\s*padding:\s*12px 20px\s*!important/
+			);
+			expect( outlookRules ).toMatch(
+				/\.rrze-email-button-link\s*\{\s*padding:\s*0\s*!important/
+			);
+		}
+	} );
+
+	it( 'spaces runtime tables using presentation cells and preserves data semantics', () => {
+		const result = getMailTemplateResult();
+		const doc = new DOMParser().parseFromString(
+			result.detailsTable + result.placeholderButton,
+			'text/html'
+		);
+		for ( const table of doc.querySelectorAll( 'table' ) ) {
+			expect( table.style.margin ).toBe( '' );
+		}
+		const details = doc.querySelector( '.rrze-email-details' )!;
+		expect( details.getAttribute( 'role' ) ).toBeNull();
+		expect( details.querySelector( 'th' )?.getAttribute( 'scope' ) ).toBe(
+			'row'
+		);
+		expect( ( details.parentElement as HTMLElement ).style.padding ).toBe(
+			'20px 0px'
+		);
+		const button = doc.querySelector< HTMLAnchorElement >(
+			'.rrze-email-button-link'
+		)!;
+		expect( button.getAttribute( 'href' ) ).toBe( '[confirmation_link]' );
+		expect( button.style.padding ).toBe( '12px 20px' );
+		expect( button.parentElement?.className ).toBe(
+			'rrze-email-button-cell'
+		);
+	} );
+
+	it.each( [
+		[ 1000, 200, 200, 40 ],
+		[ 200, 1000, 13, 64 ],
+		[ 300, 300, 64, 64 ],
+		[ 40, 20, 40, 20 ],
+	] )(
+		'bounds a %i × %i logo without stretching or upscaling it',
+		( width, height, expectedWidth, expectedHeight ) => {
+			const result = getMailTemplateResult( [
+				'https://example.test/logo.png',
+				width,
+				height,
+			] );
+			const doc = new DOMParser().parseFromString(
+				result.wrapped,
+				'text/html'
+			);
+			const logo = doc.querySelector( 'img' )!;
+			expect( logo.getAttribute( 'width' ) ).toBe(
+				String( expectedWidth )
+			);
+			expect( logo.getAttribute( 'height' ) ).toBe(
+				String( expectedHeight )
+			);
+			expect( logo.getAttribute( 'alt' ) ).toBe( '<Example & Site>' );
+		}
+	);
+
+	it( 'falls back to the site name if logo dimensions are unavailable', () => {
+		const result = getMailTemplateResult( [
+			'https://example.test/logo.png',
+			0,
+			0,
+		] );
+		const doc = new DOMParser().parseFromString(
+			result.wrapped,
+			'text/html'
+		);
+		expect( doc.querySelector( 'img' ) ).toBeNull();
+		expect(
+			doc.querySelector( '.rrze-email-header' )?.textContent
+		).toContain( '<Example & Site>' );
 	} );
 } );

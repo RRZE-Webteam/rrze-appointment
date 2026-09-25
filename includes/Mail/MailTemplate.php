@@ -106,18 +106,22 @@ final class MailTemplate
         $body = '';
         foreach ($rows as $label => $value) {
             $body .= '<tr>'
-                . '<th scope="row" style="width:34%;padding:10px 12px;border-bottom:1px solid #e5e9ef;color:#5f6b7a;font-size:13px;font-weight:600;line-height:20px;text-align:left;vertical-align:top;">'
+                . '<th scope="row" style="width:34%;padding:10px 12px;border-bottom:1px solid #e5e9ef;color:#5f6b7a;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:600;line-height:20px;text-align:left;vertical-align:top;">'
                 . esc_html($label)
                 . '</th>'
-                . '<td style="padding:10px 12px;border-bottom:1px solid #e5e9ef;color:#1f2937;font-size:15px;line-height:22px;text-align:left;vertical-align:top;">'
+                . '<td style="padding:10px 12px;border-bottom:1px solid #e5e9ef;color:#1f2937;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:22px;text-align:left;vertical-align:top;">'
                 . $value
                 . '</td>'
                 . '</tr>';
         }
 
-        return '<table class="rrze-email-details" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:20px 0;border-collapse:collapse;">'
+        // Word handles table margins inconsistently. Keep the spacing outside
+        // the data table, on a presentation cell instead.
+        return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;">'
+            . '<tr><td style="padding:20px 0;">'
+            . '<table class="rrze-email-details" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;">'
             . $body
-            . '</table>';
+            . '</table></td></tr></table>';
     }
 
     /**
@@ -128,11 +132,15 @@ final class MailTemplate
      */
     public static function actionButton(string $url, string $label): string
     {
-        return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 16px;">'
-            . '<tr><td bgcolor="#04316a" style="border-radius:4px;background:#04316a;">'
-            . '<a href="' . self::escapeActionUrl($url) . '" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 20px;color:#ffffff;font-size:15px;font-weight:700;line-height:20px;text-decoration:none;">'
+        // The layout's Outlook-only CSS moves padding to the cell. Other
+        // clients keep it on the link so the full button remains clickable.
+        return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;">'
+            . '<tr><td style="padding:24px 0 16px;">'
+            . '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;mso-table-lspace:0pt;mso-table-rspace:0pt;">'
+            . '<tr><td class="rrze-email-button-cell" bgcolor="#04316a" style="border-radius:4px;background-color:#04316a;mso-padding-alt:12px 20px;">'
+            . '<a class="rrze-email-button-link" href="' . self::escapeActionUrl($url) . '" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 20px;mso-padding-alt:0;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:700;line-height:20px;text-decoration:none;">'
             . esc_html($label)
-            . '</a></td></tr></table>';
+            . '</a></td></tr></table></td></tr></table>';
     }
 
     /**
@@ -178,9 +186,15 @@ final class MailTemplate
     {
         if (has_custom_logo()) {
             $logoId = (int) get_theme_mod('custom_logo');
-            $logoSrc = wp_get_attachment_image_url($logoId, 'medium');
-            if ($logoSrc) {
-                return '<img src="' . esc_url($logoSrc) . '" width="200" alt="' . esc_attr($siteName) . '" style="display:block;width:auto;max-width:200px;height:auto;max-height:64px;border:0;outline:none;text-decoration:none;">';
+            $logo = wp_get_attachment_image_src($logoId, 'medium');
+            if (is_array($logo) && !empty($logo[0]) && $logo[1] > 0 && $logo[2] > 0) {
+                // Outlook needs explicit dimensions; max-width/max-height
+                // alone do not reliably constrain an image there.
+                $scale = min(1, 200 / $logo[1], 64 / $logo[2]);
+                $width = max(1, (int) round($logo[1] * $scale));
+                $height = max(1, (int) round($logo[2] * $scale));
+
+                return '<img src="' . esc_url($logo[0]) . '" width="' . $width . '" height="' . $height . '" alt="' . esc_attr($siteName) . '" style="display:block;width:' . $width . 'px;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;">';
             }
         }
 
@@ -252,15 +266,17 @@ final class MailTemplate
     {
         return '<!DOCTYPE html><html lang="___RRZE_EMAIL_LANG___" dir="___RRZE_EMAIL_DIR___"><head>'
             . '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-            . '<title>___RRZE_EMAIL_SUBJECT___</title></head>'
+            . '<title>___RRZE_EMAIL_SUBJECT___</title>'
+            . '<!--[if mso]><style>.rrze-email-button-cell{padding:12px 20px!important;}.rrze-email-button-link{padding:0!important;}body,table,td,th,p,a,h1{font-family:Arial,Helvetica,sans-serif!important;}</style><![endif]--></head>'
             . '<body style="margin:0;padding:0;background:#f3f5f7;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">'
             . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;background:#f3f5f7;">'
             . '<tr><td align="center" style="padding:32px 16px;"><table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:640px;">'
             . '<tr><td style="padding:28px 32px 24px;border:1px solid #d7dde5;border-bottom:0;background:#ffffff;">'
             . '<a href="___RRZE_EMAIL_SITE_URL___" style="text-decoration:none;">___RRZE_EMAIL_LOGO___</a></td></tr>'
             . '<tr><td style="padding:28px 32px 32px;border:1px solid #d7dde5;border-top:4px solid ___RRZE_EMAIL_STATUS_ACCENT___;background:#ffffff;">'
-            . '<div style="margin:0 0 24px;padding:10px 14px;border-left:4px solid ___RRZE_EMAIL_STATUS_ACCENT___;background:___RRZE_EMAIL_STATUS_SURFACE___;color:___RRZE_EMAIL_STATUS_TEXT___;font-size:13px;font-weight:700;line-height:20px;">'
-            . '___RRZE_EMAIL_STATUS_LABEL___</div>'
+            . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;"><tr><td style="padding:0 0 24px;">'
+            . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;"><tr><td bgcolor="___RRZE_EMAIL_STATUS_SURFACE___" style="padding:10px 14px;border-left:4px solid ___RRZE_EMAIL_STATUS_ACCENT___;background-color:___RRZE_EMAIL_STATUS_SURFACE___;color:___RRZE_EMAIL_STATUS_TEXT___;font-size:13px;font-weight:700;line-height:20px;">'
+            . '___RRZE_EMAIL_STATUS_LABEL___</td></tr></table></td></tr></table>'
             . '<p style="margin:0 0 8px;color:#04316a;font-size:12px;font-weight:700;text-transform:uppercase;">___RRZE_EMAIL_SITE_NAME___</p>'
             . '<h1 style="margin:0 0 24px;color:#1f2937;font-size:28px;line-height:36px;">___RRZE_EMAIL_SUBJECT___</h1>'
             . '<div style="font-size:15px;line-height:24px;">___RRZE_EMAIL_CONTENT___</div></td></tr>'
