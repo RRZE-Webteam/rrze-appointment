@@ -211,6 +211,7 @@ msgstr "Vor- und Nachname"
 msgid "Enter your name."
 msgstr "Geben Sie Ihren Namen ein."
 
+#: includes/Mail/EmailAddress.php
 #: includes/AssetManager.php:103 build/index.js:194
 msgid "Enter a valid email address."
 msgstr "Geben Sie eine gültige E-Mail-Adresse ein."
@@ -273,6 +274,7 @@ msgstr "Bitte bestätigen Sie Ihren Termin per E-Mail."
 msgid "No authenticated email address found."
 msgstr "Keine authentifizierte E-Mail-Adresse gefunden."
 
+#: includes/Mail/EmailAddress.php
 #: includes/BookingRequestController.php:107
 msgid "Please provide an email address."
 msgstr "Bitte eine E-Mail-Adresse angeben."

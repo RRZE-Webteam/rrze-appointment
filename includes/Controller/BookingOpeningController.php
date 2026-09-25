@@ -5,6 +5,7 @@ namespace RRZE\Appointment\Controller;
 use RRZE\Appointment\Booking\AppointmentBlock;
 use RRZE\Appointment\Booking\Bookings;
 use RRZE\Appointment\AppointmentException;
+use RRZE\Appointment\Mail\EmailAddress;
 use RRZE\Appointment\Notification\BookingOpeningNotifier;
 use RRZE\Appointment\Presentation\PublicPageRenderer;
 use RRZE\Appointment\Rights;
@@ -120,7 +121,7 @@ final class BookingOpeningController
     }
 
     /**
-     * Reads and sanitizes the public subscription request.
+     * Reads the original email address and sanitizes the other request values.
      *
      * @return array{slot: string, postId: int, blockFingerprint: string, email: string, name: string}
      */
@@ -130,7 +131,7 @@ final class BookingOpeningController
             'slot' => sanitize_text_field($this->getPostValue('slot')),
             'postId' => absint($this->getPostValue('post_id')),
             'blockFingerprint' => sanitize_text_field($this->getPostValue('block_id')),
-            'email' => sanitize_email($this->getPostValue('booker_email')),
+            'email' => $this->getPostValue('booker_email'),
             'name' => sanitize_text_field($this->getPostValue('booker_name')),
         ];
     }
@@ -171,14 +172,14 @@ final class BookingOpeningController
     }
 
     /**
-     * @param array<string, mixed> $request Sanitized request data.
+     * @param array<string, mixed> $request Request values; the email is still unvalidated.
      * @param array<string, mixed> $context Published appointment context.
      * @return array{0: string, 1: string}
      */
     private function resolveBooker(array $request, array $context): array
     {
         if (!empty($context['disable_sso'])) {
-            return [$request['email'], $request['name']];
+            return [EmailAddress::validate($request['email']), $request['name']];
         }
 
         $serverBooker = Rights::get();

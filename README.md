@@ -60,6 +60,15 @@ past, and closed slots are omitted. Future slots whose booking window has not
 opened retain the **Notify me** option. The editor's planning calendar remains
 available; existing blocks use the calendar view by default.
 
+### Email addresses for bookings without SSO
+
+Guest bookings and booking-opening notifications validate the submitted email
+address on the server before reserving a slot, storing a subscription, or
+sending mail. Surrounding spaces are removed; malformed addresses, control
+characters, and addresses exceeding 254 bytes are rejected. Invalid characters
+are never silently deleted. Valid addresses retain their spelling and plus
+tags. Unicode domains currently require their ASCII (Punycode) form.
+
 ### Appointment administration
 
 The **Appointments** overview uses WordPress DataViews with search, sorting,

@@ -207,6 +207,7 @@ msgstr ""
 msgid "Enter your name."
 msgstr ""
 
+#: includes/Mail/EmailAddress.php
 #: includes/AssetManager.php:103 build/index.js:194
 msgid "Enter a valid email address."
 msgstr ""
@@ -265,6 +266,7 @@ msgstr ""
 msgid "No authenticated email address found."
 msgstr ""
 
+#: includes/Mail/EmailAddress.php
 #: includes/BookingRequestController.php:107
 msgid "Please provide an email address."
 msgstr ""
