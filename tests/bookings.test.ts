@@ -204,7 +204,7 @@ describe( 'bookings persistence', () => {
 			slot: '2026-08-23 12:00-12:30',
 			date: '2026-08-23',
 			time: '12:00-12:30',
-			title: '',
+			title: 'Sensitive topic',
 			location: '',
 			person_id: 0,
 			person_name: '',

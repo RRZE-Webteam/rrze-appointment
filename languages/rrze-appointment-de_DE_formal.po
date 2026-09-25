@@ -16,6 +16,7 @@ msgstr ""
 "X-Domain: rrze-appointment\n"
 "X-Generator: Poedit 3.9\n"
 
+#: includes/Admin/SettingsPage.php
 #. Plugin Name of the plugin
 #: rrze-appointment.php includes/Settings.php:99 includes/Settings.php:100
 msgid "RRZE Appointment"
@@ -414,12 +415,14 @@ msgstr "Termin storniert"
 msgid "Appointment update"
 msgstr "Termin-Information"
 
+#: build/admin-bookings.js
 #: includes/MailTemplatePost.php:60 includes/Settings.php:733
 #: includes/Settings.php:752 templates/confirmation-page.php:463
 #: build/index.js:185 build/index.js:188
 msgid "Date"
 msgstr "Datum"
 
+#: build/admin-bookings.js
 #: includes/MailTemplatePost.php:61 includes/Settings.php:734
 #: includes/Settings.php:753 templates/confirmation-page.php:467
 msgid "Time"
@@ -747,10 +750,11 @@ msgstr "Link zum Impressum"
 msgid "Link to post or page"
 msgstr "Link zum Beitrag oder zur Seite"
 
+#: includes/Admin/BookingsPage.php
 #: includes/Settings.php:107 includes/Settings.php:108
 #: includes/Settings.php:297
 msgid "Appointments"
-msgstr "Appointments"
+msgstr "Termine"
 
 #: includes/Admin/SettingsPage.php:64
 msgid "Reminder email to booking person"
@@ -760,6 +764,7 @@ msgstr "Erinnerungsmail an die buchende Person"
 msgid "Reminder email to the appointment email address"
 msgstr "Erinnerungsmail an die E-Mail-Adresse der Sprechstunde"
 
+#: includes/Admin/SettingsPage.php
 #: includes/Settings.php:146
 msgid "Booking data retention"
 msgstr "Aufbewahrung von Buchungsdaten"
@@ -772,14 +777,17 @@ msgstr "Bevorzugtes Format"
 msgid "Video call"
 msgstr "Videoanruf"
 
+#: includes/Admin/SettingsPage.php
 #: includes/Settings.php:307
 msgid "Disabled"
 msgstr "Deaktiviert"
 
+#: includes/Admin/SettingsPage.php
 #: includes/Settings.php:315
 msgid "days before the appointment."
 msgstr "Tage vor dem Termin versenden."
 
+#: includes/Admin/SettingsPage.php
 #: includes/Settings.php:325
 msgid ""
 "Completed bookings are permanently deleted this many days after the "
@@ -788,10 +796,12 @@ msgstr ""
 "Abgeschlossene Buchungen werden so viele Tage nach Ende des Termins "
 "dauerhaft gelöscht (Standard: 30)."
 
+#: includes/Admin/SettingsPage.php
 #: includes/Settings.php:336
 msgid "General"
 msgstr "Allgemein"
 
+#: includes/Admin/SettingsPage.php
 #: includes/Settings.php:337
 msgid "Mail Templates"
 msgstr "Mail-Vorlagen"
@@ -831,6 +841,7 @@ msgstr "%d Testmail(s) an %s versendet."
 msgid "New Template"
 msgstr "Neue Vorlage"
 
+#: build/admin-bookings.js
 #: includes/Settings.php:411 includes/Settings.php:735
 #: includes/Settings.php:754
 msgid "Title"
@@ -1036,18 +1047,22 @@ msgstr "Leer lassen, um den Standard-HTML-Inhalt zu verwenden."
 msgid "Insert placeholder"
 msgstr "Platzhalter einfügen"
 
+#: includes/Controller/AdminBookingsController.php
 #: includes/Settings.php:692
 msgid "Booking cancelled and cancellation emails sent."
 msgstr "Buchung storniert und Storno-Mails versendet."
 
+#: build/admin-bookings.js
 #: includes/Settings.php:707
 msgid "From"
 msgstr "Von"
 
+#: build/admin-bookings.js
 #: includes/Settings.php:711
 msgid "To"
 msgstr "Bis"
 
+#: build/admin-bookings.js
 #: includes/Settings.php:716 includes/Settings.php:736
 #: includes/Settings.php:755 build/index.js:195
 msgid "Person"
@@ -1061,26 +1076,32 @@ msgstr "Alle"
 msgid "Filter"
 msgstr "Filtern"
 
+#: build/admin-bookings.js
 #: includes/Settings.php:726
 msgid "Reset"
 msgstr "Zurücksetzen"
 
+#: build/admin-bookings.js
 #: includes/Settings.php:737 includes/Settings.php:756
 msgid "Booker"
 msgstr "Buchender"
 
+#: build/admin-bookings.js
 #: includes/Settings.php:738 includes/Settings.php:757
 msgid "Email"
 msgstr "E-Mail"
 
+#: build/admin-bookings.js
 #: includes/Settings.php:744
 msgid "No appointments found."
 msgstr "Keine Termine gefunden."
 
+#: build/admin-bookings.js
 #: includes/Settings.php:778
 msgid "Really cancel this booking?"
 msgstr "Buchung wirklich stornieren?"
 
+#: build/admin-bookings.js
 #: includes/Settings.php:779
 msgid "Cancel booking"
 msgstr "Stornieren"
@@ -2209,6 +2230,7 @@ msgstr ""
 "Der Termin ist erst reserviert, wenn Sie die Buchung über diese E-Mail "
 "abgeschlossen haben."
 
+#: includes/Admin/SettingsPage.php
 #: includes/Settings.php:489
 msgid "Booking opening notification"
 msgstr "Benachrichtigung zum Buchungsstart"
@@ -2217,6 +2239,7 @@ msgstr "Benachrichtigung zum Buchungsstart"
 msgid "Sent when a requested appointment opens for booking."
 msgstr "Wird versendet, sobald ein vorgemerkter Termin gebucht werden kann."
 
+#: build/admin-bookings.js
 #: includes/Admin/BookingsPage.php:198
 #: includes/Admin/MailTemplatesPage.php:151
 #: includes/Booking/Bookings.php:635 includes/Booking/Bookings.php:642
@@ -2224,10 +2247,12 @@ msgstr "Wird versendet, sobald ein vorgemerkter Termin gebucht werden kann."
 msgid "Reason for cancellation"
 msgstr "Grund für die Stornierung"
 
+#: build/admin-bookings.js
 #: includes/Admin/BookingsPage.php:199
 msgid "(optional)"
 msgstr "(optional)"
 
+#: build/admin-bookings.js
 #: includes/Admin/BookingsPage.php:210 templates/confirmation-page.php:610
 msgid "This reason will be included in the cancellation email."
 msgstr "Dieser Grund wird in die Stornierungs-E-Mail aufgenommen."
@@ -2293,6 +2318,7 @@ msgstr "Solange der Modus aktiviert ist, zeigt die Terminübersicht nur Datum un
 msgid "Sensitive appointment mode is active. Only appointment dates and times are shown."
 msgstr "Der Modus für sensible Sprechstunden ist aktiv. Es werden nur Datum und Uhrzeit der Termine angezeigt."
 
+#: build/admin-bookings.js
 #: includes/Admin/BookingsPage.php:184
 msgid "Sensitive appointment details remain hidden."
 msgstr "Die Details dieses sensiblen Termins bleiben ausgeblendet."
@@ -2783,3 +2809,89 @@ msgstr "Verfügbare Termine als Liste anzeigen"
 #: includes/Presentation/AssetManager.php build/index.js
 msgid "Hide the calendar on the website and group available times under date headings."
 msgstr "Den Kalender auf der Website ausblenden und verfügbare Uhrzeiten unter Datumsüberschriften gruppieren."
+
+#: build/admin-bookings.js
+#: includes/Admin/BookingsPage.php
+msgid "Appointment views"
+msgstr "Terminansichten"
+
+#: build/admin-bookings.js
+#: includes/Admin/BookingsPage.php
+msgid "Current appointments"
+msgstr "Aktuelle Termine"
+
+#: build/admin-bookings.js
+#: includes/Admin/BookingsPage.php
+msgid "Past appointments"
+msgstr "Vergangene Termine"
+
+#: build/admin-bookings.js
+#: includes/Admin/BookingsPage.php
+msgid "Completed appointments are shown until the configured retention period expires."
+msgstr "Abgeschlossene Termine werden bis zum Ablauf der eingestellten Aufbewahrungsfrist angezeigt."
+
+#: build/admin-bookings.js
+#: includes/Admin/BookingsPage.php
+msgid "Upcoming and ongoing appointments are shown here."
+msgstr "Hier werden bevorstehende und laufende Termine angezeigt."
+
+#: build/admin-bookings.js
+#: includes/Admin/BookingsPage.php
+msgid "No past appointments found."
+msgstr "Keine vergangenen Termine gefunden."
+
+#: build/admin-bookings.js
+msgid "The request failed. Please try again."
+msgstr "Die Anfrage ist fehlgeschlagen. Bitte versuchen Sie es erneut."
+
+#: build/admin-bookings.js
+msgid "Refresh"
+msgstr "Aktualisieren"
+
+#: build/admin-bookings.js includes/Admin/BookingsPage.php
+msgid "Loading appointments…"
+msgstr "Termine werden geladen…"
+
+#: build/admin-bookings.js
+msgid "Sensitive appointment mode is active. Only appointment dates, times and titles are shown."
+msgstr "Der Modus für sensible Termine ist aktiv. Es werden nur Datum, Uhrzeit und Titel der Termine angezeigt."
+
+#: build/admin-bookings.js
+msgid "Search appointments"
+msgstr "Termine suchen"
+
+#: build/admin-bookings.js
+msgid "Keep booking"
+msgstr "Buchung beibehalten"
+
+#: includes/Admin/BookingsPage.php
+msgid "Enable JavaScript to manage appointments."
+msgstr "Aktivieren Sie JavaScript, um Termine zu verwalten."
+
+#: includes/Admin/SettingsPage.php
+msgid "While enabled, the appointment overview only shows dates, times and titles. Appointments confirmed in this mode remain anonymized in the administration area after it is disabled. Existing appointments become visible again. Email delivery and content are unaffected."
+msgstr "Solange der Modus aktiv ist, zeigt die Terminübersicht nur Datum, Uhrzeit und Titel an. In diesem Modus bestätigte Termine bleiben auch nach dem Deaktivieren im Verwaltungsbereich anonymisiert. Bereits vorhandene Termine werden wieder sichtbar. Versand und Inhalt der E-Mails bleiben unverändert."
+
+#: includes/Controller/AdminBookingsController.php
+msgid "You do not have permission to manage appointments."
+msgstr "Sie haben keine Berechtigung, Termine zu verwalten."
+
+#: includes/Controller/AdminBookingsController.php
+msgid "Your session has expired. Reload the page and try again."
+msgstr "Ihre Sitzung ist abgelaufen. Laden Sie die Seite neu und versuchen Sie es erneut."
+
+#: includes/Controller/AdminBookingsController.php
+msgid "Appointments could not be loaded. Please try again."
+msgstr "Die Termine konnten nicht geladen werden. Bitte versuchen Sie es erneut."
+
+#: includes/Controller/AdminBookingsController.php
+msgid "This appointment has ended or is no longer booked. Refresh the list."
+msgstr "Dieser Termin ist beendet oder nicht mehr gebucht. Aktualisieren Sie die Liste."
+
+#: includes/Controller/AdminBookingsController.php
+msgid "This appointment is no longer booked. Refresh the list."
+msgstr "Dieser Termin ist nicht mehr gebucht. Aktualisieren Sie die Liste."
+
+#: includes/Controller/AdminBookingsController.php
+msgid "The booking could not be cancelled. Refresh the list and try again."
+msgstr "Die Buchung konnte nicht storniert werden. Aktualisieren Sie die Liste und versuchen Sie es erneut."

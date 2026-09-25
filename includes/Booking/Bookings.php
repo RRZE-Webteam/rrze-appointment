@@ -70,12 +70,15 @@ final class Bookings
     }
 
     /**
-     * Returns future bookings, optionally filtered by date or person.
+     * Returns current bookings or retained past bookings, filtered by date or person.
      *
-     * Supported filters are `date_from`, `date_to`, and `person_id`. Dates use
-     * the `Y-m-d` format and both date boundaries are inclusive.
+     * Current bookings include appointments that have not ended yet. The past
+     * view requires a positive retention period and excludes expired records,
+     * even if the scheduled cleanup has not run yet. Past bookings are sorted
+     * newest first; current bookings are sorted earliest first.
+     * Dates use `Y-m-d` and both date boundaries are inclusive.
      *
-     * @param array{date_from?: string, date_to?: string, person_id?: int|string} $filter
+     * @param array{view?: string, date_from?: string, date_to?: string, person_id?: int|string} $filter
      * @return array<int, array{
      *     slot: string,
      *     date: string,
@@ -94,12 +97,27 @@ final class Bookings
     public static function getAll(array $filter = []): array
     {
         try {
+            $showPast = ($filter['view'] ?? 'current') === 'past';
+            $retentionDays = min(self::MAX_RETENTION_DAYS, max(0, (int) PluginSettings::get('retention_days')));
+            if ($showPast && $retentionDays === 0) {
+                return [];
+            }
+
+            $now = current_datetime();
             $allMeta = self::getStoredMetadata();
             $bookings = [];
             $hideAllDetails = (bool) PluginSettings::get('sensitive_mode_enabled');
 
             foreach (self::getStoredSlots() as $slot) {
-                if (!is_string($slot) || self::isPastSlot($slot)) {
+                if (!is_string($slot)) {
+                    continue;
+                }
+
+                $slotEnd = self::getSlotEnd($slot);
+                if ($slotEnd === null || ($slotEnd <= $now) !== $showPast) {
+                    continue;
+                }
+                if ($showPast && $slotEnd->modify("+{$retentionDays} days") <= $now) {
                     continue;
                 }
 
@@ -113,9 +131,10 @@ final class Bookings
                 }
             }
 
+            $sortDirection = $showPast ? -1 : 1;
             usort(
                 $bookings,
-                static fn(array $first, array $second): int => strcmp($first['slot'], $second['slot'])
+                static fn(array $first, array $second): int => $sortDirection * strcmp($first['slot'], $second['slot'])
             );
 
             return $bookings;
@@ -405,7 +424,7 @@ final class Bookings
             'slot' => $slot,
             'date' => $parts['date'] ?? '',
             'time' => $parts === null ? '' : $parts['start'] . '-' . $parts['end'],
-            'title' => $isAnonymized ? '' : ($meta['title'] ?? ''),
+            'title' => $meta['title'] ?? '',
             'location' => $isAnonymized ? '' : ($meta['location'] ?? ''),
             'person_id' => $personId,
             'person_name' => $isAnonymized ? '' : self::resolvePersonName($personId, $meta),
@@ -871,20 +890,6 @@ final class Bookings
 
         $title = trim((string) get_the_title($personId));
         return $title !== '' ? $title : "Person #{$personId}";
-    }
-
-    /**
-     * Determines whether a valid slot has started or passed.
-     */
-    private static function isPastSlot(string $slot): bool
-    {
-        $parts = self::parseSlot($slot);
-        if ($parts === null) {
-            return false;
-        }
-
-        $slotStart = self::createDateTime($parts['date'], $parts['start']);
-        return $slotStart !== null && $slotStart->getTimestamp() <= current_time('timestamp');
     }
 
     /**

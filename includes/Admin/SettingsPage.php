@@ -195,7 +195,7 @@ final class SettingsPage
             <?php esc_html_e('Hide appointment details in the administration area.', 'rrze-appointment'); ?>
         </label>
         <p class="description">
-            <?php esc_html_e('While enabled, the appointment overview only shows dates and times. Appointments confirmed in this mode remain anonymized in the administration area after it is disabled. Existing appointments become visible again. Email delivery and content are unaffected.', 'rrze-appointment'); ?>
+            <?php esc_html_e('While enabled, the appointment overview only shows dates, times and titles. Appointments confirmed in this mode remain anonymized in the administration area after it is disabled. Existing appointments become visible again. Email delivery and content are unaffected.', 'rrze-appointment'); ?>
         </p>
         <?php
     }

@@ -1,6 +1,6 @@
 {
   "name": "rrze-appointment",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "description": "Plugin for creating and maintaining appointments. Usable as a block.",
   "author": {
     "name": "RRZE Webteam",
@@ -44,6 +44,7 @@
     "@types/wordpress__blocks": "^15.17.0",
     "@wordpress/dataviews": "^17.3.0",
     "@wordpress/icons": "^15.3.0",
-    "@wordpress/scripts": "^30.11.0"
+    "@wordpress/scripts": "^30.11.0",
+    "colorjs.io": "^0.6.1"
   }
 }

@@ -1,6 +1,8 @@
 declare module "@wordpress/api-fetch" {
-  interface ApiFetchOptions {
-    path: string;
+  interface ApiFetchOptions extends RequestInit {
+    path?: string;
+    url?: string;
+    data?: Record<string, unknown>;
   }
 
   function apiFetch<T>(options: ApiFetchOptions): Promise<T>;
@@ -57,6 +59,8 @@ declare module "@wordpress/components" {
   }
 
   interface ButtonProps {
+    type?: "button" | "submit" | "reset";
+    isBusy?: boolean;
     "aria-expanded"?: boolean;
     "aria-haspopup"?: "dialog" | boolean;
     children?: ReactNode;
@@ -133,6 +137,8 @@ declare module "@wordpress/components" {
   }
 
   interface ModalProps {
+    shouldCloseOnEsc?: boolean;
+    shouldCloseOnClickOutside?: boolean;
     children?: ReactNode;
     className?: string;
     contentLabel?: string;
@@ -144,6 +150,7 @@ declare module "@wordpress/components" {
   }
 
   interface NoticeProps {
+    onRemove?: () => void;
     children?: ReactNode;
     className?: string;
     isDismissible?: boolean;
@@ -180,6 +187,9 @@ declare module "@wordpress/components" {
   }
 
   interface TextControlProps extends BaseControlProps {
+    __next40pxDefaultSize?: boolean;
+    disabled?: boolean;
+    maxLength?: number;
     min?: string;
     placeholder?: string;
     rows?: number;

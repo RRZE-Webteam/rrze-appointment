@@ -60,6 +60,32 @@ past, and closed slots are omitted. Future slots whose booking window has not
 opened retain the **Notify me** option. The editor's planning calendar remains
 available; existing blocks use the calendar view by default.
 
+### Appointment administration
+
+The **Appointments** overview uses WordPress DataViews with search, sorting,
+date and host filters, column selection, and pagination. Current bookings can
+be cancelled from a confirmation dialog, with an optional reason when enabled
+in the settings.
+
+Only administrators and users explicitly authorized in the plugin settings
+can access the overview. The administration REST endpoints enforce the same
+site-specific permissions and require a valid REST nonce. They do not need
+to be enabled as public endpoints.
+
+When **Booking data retention** is greater than zero, the **Appointments**
+overview offers **Current appointments** and **Past appointments** views.
+Current appointments include ongoing appointments. After their end time,
+appointments appear in the past view, newest first, until their retention
+period expires. Past appointments cannot be cancelled from the overview.
+
+In sensitive mode, the overview shows the appointment date, time, and title.
+Host and booker details are hidden, including in REST responses. Bookings
+confirmed in sensitive mode retain this protection after the mode is disabled;
+their appointment titles remain visible.
+
+With a retention period of zero, the past view is unavailable. The daily
+cleanup continues to remove expired booking data from the database.
+
 
 ## Dependencies
 
