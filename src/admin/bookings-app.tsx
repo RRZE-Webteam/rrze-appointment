@@ -5,7 +5,7 @@ import {
 	type Field,
 	type View,
 } from '@wordpress/dataviews/wp';
-import { Button, Notice, Spinner, TextControl } from '@wordpress/components';
+import { Button, Notice, Spinner } from '@wordpress/components';
 import { useEffect, useMemo, useRef, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { notAllowed, update } from '@wordpress/icons';
@@ -36,8 +36,6 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 		query.get( 'view' ) === 'past' ? 'past' : 'current'
 	);
 	const [ view, setView ] = useState< View >( () => initialView( mode ) );
-	const [ from, setFrom ] = useState( query.get( 'filter_date' ) || '' );
-	const [ to, setTo ] = useState( query.get( 'filter_date_to' ) || '' );
 	const [ response, setResponse ] = useState< BookingsResponse | null >(
 		null
 	);
@@ -93,9 +91,7 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 			{
 				id: 'date',
 				label: __( 'Date', 'rrze-appointment' ),
-				type: 'text',
-				// Sort by the ISO slot, independently of the site's date format.
-				getValue: ( { item } ) => item.id,
+				type: 'date',
 				render: ( { item } ) => item.dateLabel,
 				enableHiding: false,
 				enableGlobalSearch: true,
@@ -182,11 +178,11 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 				? view.sort
 				: initialView( mode ).sort,
 	};
-	const bookings = ( response?.items || [] ).filter(
-		( item ) =>
-			( ! from || item.date >= from ) && ( ! to || item.date <= to )
+	const filtered = filterSortAndPaginate(
+		response?.items || [],
+		safeView,
+		fields
 	);
-	const filtered = filterSortAndPaginate( bookings, safeView, fields );
 	const actions: Action< AdminBooking >[] =
 		mode === 'past'
 			? []
@@ -218,8 +214,6 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 	}
 
 	function resetFilters() {
-		setFrom( '' );
-		setTo( '' );
 		setView( initialView( mode ) );
 	}
 
@@ -265,7 +259,7 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 					{ __( 'Refresh', 'rrze-appointment' ) }
 				</Button>
 			</div>
-			<p className="description">
+			<p className="description rrze-appointment-admin__description">
 				{ mode === 'past'
 					? __(
 							'Completed appointments are shown until the configured retention period expires.',
@@ -304,39 +298,6 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 							) }
 						</Notice>
 					) }
-					<div className="rrze-appointment-admin__filters">
-						<TextControl
-							type="date"
-							label={ __( 'From', 'rrze-appointment' ) }
-							value={ from }
-							onChange={ ( value ) => {
-								setFrom( value );
-								setView( ( current ) => ( {
-									...current,
-									page: 1,
-								} ) );
-							} }
-							__nextHasNoMarginBottom
-							__next40pxDefaultSize
-						/>
-						<TextControl
-							type="date"
-							label={ __( 'To', 'rrze-appointment' ) }
-							value={ to }
-							onChange={ ( value ) => {
-								setTo( value );
-								setView( ( current ) => ( {
-									...current,
-									page: 1,
-								} ) );
-							} }
-							__nextHasNoMarginBottom
-							__next40pxDefaultSize
-						/>
-						<Button variant="tertiary" onClick={ resetFilters }>
-							{ __( 'Reset', 'rrze-appointment' ) }
-						</Button>
-					</div>
 					<div className="rrze-appointment-admin__table">
 						<DataViews
 							data={ filtered.data }
