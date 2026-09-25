@@ -77,6 +77,49 @@ unavailable, ASCII addresses (including Punycode domains) still work, and users
 entering a Unicode domain are asked to use its Punycode form. The normalization
 applies to new guest submissions; existing stored addresses are not migrated.
 
+### Abuse protection for guest requests
+
+Guest bookings and booking-opening notifications share per-site quotas:
+
+- **5 requests per email address in 15 minutes**, across both forms and all source IPs.
+- **300 requests per source IP in 15 minutes** as a generous backstop for shared
+  university networks. Native IPv6 addresses share a quota within their `/64`;
+  IPv4-mapped IPv6 addresses share the corresponding IPv4 quota.
+
+Each window starts with its first counted request. Validation runs first;
+quota checks run before a reservation, subscription, or mail is created.
+The source quota counts valid attempts even if the recipient quota then rejects
+them. Rejected attempts do not extend the window. The response uses HTTP 429,
+a `Retry-After` header, and a translated message displayed in the existing form.
+Authenticated SSO bookings do not consume guest quotas.
+
+Email case is ignored for quota counting only; delivery still preserves the
+local part. Plus tags and dots are not stripped. Counters store keyed hashes
+derived from the WordPress nonce salt, expiry timestamps, and counts, without
+raw email or IP addresses. Database counters use conditional writes to handle
+concurrent requests and are not autoloaded or dependent on an evictable cache.
+Expired counters stop restricting requests immediately and are removed by
+WordPress's daily `delete_expired_transients` cron event while the plugin is active;
+physical deletion depends on WP-Cron running. A storage failure temporarily
+blocks new guest requests instead of allowing uncounted mail.
+
+Site operators can adjust the quotas with a filter, for example in an MU plugin:
+
+```php
+add_filter('rrze_appointment_guest_request_limits', static function (array $limits): array {
+    $limits['email'] = 5;
+    $limits['ip'] = 300; // Set to 0 to disable only the source-IP quota.
+    $limits['window'] = 15 * MINUTE_IN_SECONDS;
+    return $limits;
+});
+```
+
+Limits must be positive integers; only `ip` accepts `0`. The plugin uses
+`REMOTE_ADDR` and ignores client-supplied forwarding headers. Behind a trusted
+reverse proxy, configure the web server to supply the verified client address;
+otherwise all visitors may share the proxy's quota. Increase or disable the IP
+quota for sites where the shared source address would restrict legitimate demand.
+
 ### Appointment administration
 
 The **Appointments** overview uses WordPress DataViews with search, sorting,

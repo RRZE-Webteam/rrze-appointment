@@ -216,6 +216,11 @@ msgstr "Geben Sie Ihren Namen ein."
 msgid "Enter a valid email address."
 msgstr "Geben Sie eine gültige E-Mail-Adresse ein."
 
+#: includes/Controller/BookingRequestController.php
+#: includes/Controller/BookingOpeningController.php
+msgid "Too many requests. Please wait a few minutes and try again."
+msgstr "Zu viele Anfragen. Bitte warten Sie einige Minuten und versuchen Sie es erneut."
+
 #: includes/Mail/EmailAddress.php
 msgid "Please enter the email domain in Punycode format; this server cannot convert internationalized domains."
 msgstr "Bitte geben Sie die Domain Ihrer E-Mail-Adresse in Punycode-Schreibweise ein. Dieser Server kann internationalisierte Domains nicht umwandeln."

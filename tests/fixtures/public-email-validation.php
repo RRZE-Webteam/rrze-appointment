@@ -64,14 +64,20 @@ namespace RRZE\Appointment\Mail {
 namespace RRZE\Appointment\Presentation {
     class PublicPageRenderer {}
 }
+namespace RRZE\Appointment\Controller {
+    function header($value): void { $GLOBALS['responseHeaders'][] = $value; }
+}
 namespace {
     define('ABSPATH', __DIR__);
-    $GLOBALS['scenario'] = json_decode(stream_get_contents(STDIN), true) ?: [];
+    $input = json_decode(stream_get_contents(STDIN), true) ?: [];
+    require __DIR__ . '/guest-rate-limit-storage.php';
+    $GLOBALS['wpdb'] = new RateLimitTestDatabase();
+    $GLOBALS['rateLimits'] = $input['limits'] ?? null;
     $GLOBALS['pending'] = $GLOBALS['subscriptions'] = $GLOBALS['mails'] = $GLOBALS['checkedEmails'] = [];
     class JsonResult extends RuntimeException {
-        public function __construct(public bool $success, public mixed $data) { parent::__construct(); }
+        public function __construct(public bool $success, public mixed $data, public int $status = 200) { parent::__construct(); }
     }
-    function wp_send_json_error($data): never { throw new JsonResult(false, $data); }
+    function wp_send_json_error($data, $status = 200): never { throw new JsonResult(false, $data, $status); }
     function wp_send_json_success($data): never { throw new JsonResult(true, $data); }
     function check_ajax_referer($action, $field) { return 1; }
     function wp_unslash($value) { return is_string($value) ? stripslashes($value) : $value; }
@@ -89,35 +95,55 @@ namespace {
     function absint($value) { return abs((int) $value); }
     function __($text, $domain) { return $text; }
     function is_wp_error($value) { return false; }
-    function get_option($key, $default = false) { return $key === 'date_format' ? 'Y-m-d' : $default; }
+    function get_option($key, $default = false) {
+        if ($key === 'date_format') { return 'Y-m-d'; }
+        if ($key === 'booked') { return $GLOBALS['scenario']['booked'] ?? []; }
+        return $default;
+    }
     function date_i18n($format, $timestamp) { return gmdate($format, $timestamp); }
 
     $root = dirname(__DIR__, 2);
     require $root . '/includes/AppointmentException.php';
     require $root . '/includes/Mail/EmailAddress.php';
+    require $root . '/includes/Booking/GuestRequestLimiter.php';
     require $root . '/includes/Controller/BookingRequestController.php';
     require $root . '/includes/Controller/BookingOpeningController.php';
-    $scenario = $GLOBALS['scenario'];
-    $email = $scenario['email'] ?? '';
-    $_POST = [
-        'slot' => '2099-01-01 10:00-10:30', 'post_id' => '42', 'block_id' => 'test-block',
-        'booker_email' => is_string($email) ? addslashes($email) : $email,
-        'booker_name' => 'Test User',
-    ];
-    try {
-        if (($scenario['flow'] ?? 'booking') === 'notification') {
-            (new \RRZE\Appointment\Controller\BookingOpeningController(
-                new \RRZE\Appointment\Presentation\PublicPageRenderer()
-            ))->handleSubscription();
-        } else {
-            (new \RRZE\Appointment\Controller\BookingRequestController())->handleRequest();
+    $results = [];
+    foreach ($input['requests'] ?? [$input] as $scenario) {
+        $GLOBALS['scenario'] = $scenario;
+        $GLOBALS['testNow'] = $scenario['now'] ?? 1000;
+        $GLOBALS['testBlog'] = $scenario['blog'] ?? 1;
+        $GLOBALS['wpdb']->options = $GLOBALS['testBlog'] === 1 ? 'wp_options' : 'wp_2_options';
+        $GLOBALS['responseHeaders'] = [];
+        $_SERVER = [
+            'REMOTE_ADDR' => $scenario['ip'] ?? '192.0.2.1',
+            'HTTP_X_FORWARDED_FOR' => $scenario['forwarded'] ?? '',
+        ];
+        $email = $scenario['email'] ?? '';
+        $_POST = [
+            'slot' => '2099-01-01 10:00-10:30', 'post_id' => '42', 'block_id' => 'test-block',
+            'booker_email' => is_string($email) ? addslashes($email) : $email,
+            'booker_name' => 'Test User',
+        ];
+        try {
+            if (($scenario['flow'] ?? 'booking') === 'notification') {
+                (new \RRZE\Appointment\Controller\BookingOpeningController(
+                    new \RRZE\Appointment\Presentation\PublicPageRenderer()
+                ))->handleSubscription();
+            } else {
+                (new \RRZE\Appointment\Controller\BookingRequestController())->handleRequest();
+            }
+            throw new RuntimeException('The controller did not send a response.');
+        } catch (JsonResult $result) {
+            $results[] = [
+                'success' => $result->success, 'data' => $result->data,
+                'status' => $result->status, 'headers' => $GLOBALS['responseHeaders'],
+                'pending' => $GLOBALS['pending'], 'subscriptions' => $GLOBALS['subscriptions'],
+                'mails' => $GLOBALS['mails'], 'checkedEmails' => $GLOBALS['checkedEmails'],
+            ];
         }
-        throw new RuntimeException('The controller did not send a response.');
-    } catch (JsonResult $result) {
-        echo json_encode([
-            'success' => $result->success, 'data' => $result->data,
-            'pending' => $GLOBALS['pending'], 'subscriptions' => $GLOBALS['subscriptions'],
-            'mails' => $GLOBALS['mails'], 'checkedEmails' => $GLOBALS['checkedEmails'],
-        ]);
     }
+    echo json_encode(isset($input['requests']) ? [
+        'responses' => $results, 'rows' => $GLOBALS['wpdb']->rows(),
+    ] : $results[0]);
 }

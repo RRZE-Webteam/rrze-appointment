@@ -280,6 +280,51 @@ describe( 'frontend calendar accessibility', () => {
 		);
 	} );
 
+	it( 'shows the server rate-limit message on HTTP 429 and keeps the form usable', async () => {
+		const form = renderAppointment();
+		form
+			.querySelector< HTMLButtonElement >(
+				'.rrze-appointment__slot-button'
+			)
+			?.click();
+		const message =
+			'Too many requests. Please wait a few minutes and try again.';
+		global.fetch = jest.fn().mockResolvedValue( {
+			ok: false,
+			status: 429,
+			json: async () => ( { success: false, data: message } ),
+		} );
+		const dialogForm = document.querySelector< HTMLFormElement >(
+			'.rrze-appointment__overlay-form'
+		) as HTMLFormElement;
+		const nameInput = dialogForm.querySelector< HTMLInputElement >(
+			'.rrze-appointment__overlay-name'
+		) as HTMLInputElement;
+		const emailInput = dialogForm.querySelector< HTMLInputElement >(
+			'.rrze-appointment__overlay-email'
+		) as HTMLInputElement;
+		nameInput.value = 'Ada Lovelace';
+		emailInput.value = 'ada@example.org';
+		dialogForm.dispatchEvent(
+			new Event( 'submit', { bubbles: true, cancelable: true } )
+		);
+		await new Promise( ( resolve ) => setTimeout( resolve, 0 ) );
+		expect(
+			dialogForm.querySelector( '.rrze-appointment__overlay-status' )
+				?.textContent
+		).toBe( message );
+		expect( emailInput.value ).toBe( 'ada@example.org' );
+		expect( dialogForm.hasAttribute( 'aria-busy' ) ).toBe( false );
+		expect(
+			dialogForm.querySelector< HTMLButtonElement >(
+				'.rrze-appointment__overlay-confirm'
+			)?.disabled
+		).toBe( false );
+		expect(
+			form.querySelector( '.rrze-appointment__slot-button' )
+		).not.toBeNull();
+	} );
+
 	it( 'isolates the modal, associates errors, and restores focus', () => {
 		const form = renderAppointment();
 		const slotButton = form.querySelector< HTMLButtonElement >(

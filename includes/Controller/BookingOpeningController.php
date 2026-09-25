@@ -4,6 +4,7 @@ namespace RRZE\Appointment\Controller;
 
 use RRZE\Appointment\Booking\AppointmentBlock;
 use RRZE\Appointment\Booking\Bookings;
+use RRZE\Appointment\Booking\GuestRequestLimiter;
 use RRZE\Appointment\AppointmentException;
 use RRZE\Appointment\Mail\EmailAddress;
 use RRZE\Appointment\Notification\BookingOpeningNotifier;
@@ -46,6 +47,14 @@ final class BookingOpeningController
             [$bookerEmail, $bookerName] = $this->resolveBooker($request, $context);
             $this->validateBooker($bookerEmail, $bookerName);
             $this->assertSlotIsAvailable($request['slot']);
+
+            if (!empty($context['disable_sso'])) {
+                $retryAfter = GuestRequestLimiter::consume($bookerEmail);
+                if ($retryAfter > 0) {
+                    header('Retry-After: ' . $retryAfter);
+                    wp_send_json_error(__('Too many requests. Please wait a few minutes and try again.', 'rrze-appointment'), 429);
+                }
+            }
 
             $meta = $this->buildSubscriptionMeta($context, $bookerEmail, $bookerName);
             $subscription = BookingOpeningNotifier::subscribe(

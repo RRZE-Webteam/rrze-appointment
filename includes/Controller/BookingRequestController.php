@@ -4,6 +4,7 @@ namespace RRZE\Appointment\Controller;
 
 use RRZE\Appointment\Booking\AppointmentBlock;
 use RRZE\Appointment\Booking\Bookings;
+use RRZE\Appointment\Booking\GuestRequestLimiter;
 use RRZE\Appointment\Booking\TokenManager;
 use RRZE\Appointment\AppointmentException;
 use RRZE\Appointment\Mail\EmailAddress;
@@ -40,6 +41,14 @@ final class BookingRequestController
 
             [$datePart, $startTime, $endTime] = $this->parseSlot($request['slot']);
             $this->assertSlotIsAvailable($request['slot']);
+
+            if (!empty($context['disable_sso'])) {
+                $retryAfter = GuestRequestLimiter::consume($bookerEmail);
+                if ($retryAfter > 0) {
+                    header('Retry-After: ' . $retryAfter);
+                    wp_send_json_error(__('Too many requests. Please wait a few minutes and try again.', 'rrze-appointment'), 429);
+                }
+            }
 
             $meta = $this->buildPendingMeta($request, $context, $bookerEmail, $bookerName);
             $confirmToken = TokenManager::createPending($request['slot'], $meta);

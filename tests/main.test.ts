@@ -189,6 +189,7 @@ describe( 'plugin bootstrap', () => {
 				'template_redirect',
 				'pending_expiry',
 				'opening_cron',
+				'delete_expired_transients',
 				'post_updated',
 				'rest_api_init',
 				'rrze_rest_api_public_endpoints',
