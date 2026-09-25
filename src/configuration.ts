@@ -1,4 +1,6 @@
 export interface EditorI18n {
+	showSlotsAsListField?: string;
+	showSlotsAsListHelp?: string;
 	hideWeekendsField?: string;
 	hideWeekendsHelp?: string;
 }

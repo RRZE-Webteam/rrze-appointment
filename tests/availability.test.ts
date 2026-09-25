@@ -52,6 +52,7 @@ function createAttributes(
 		bookingMaxAdvance: 0,
 		disableSso: false,
 		hideWeekends: false,
+		showSlotsAsList: false,
 		style: 'light',
 		...overrides,
 	};

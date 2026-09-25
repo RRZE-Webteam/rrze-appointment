@@ -2771,3 +2771,15 @@ msgstr "Gibt die SSO-Identität des Besuchers oder die Anmelde-URL für die Term
 
 msgid "Unable to load your booking details. Please reload the page and try again. If the problem persists, contact the website administrator."
 msgstr "Ihre Buchungsdaten konnten nicht geladen werden. Bitte laden Sie die Seite neu und versuchen Sie es erneut. Falls das Problem weiterhin besteht, wenden Sie sich an die Website-Administration."
+
+#: build/index.js
+msgid "Appointment display"
+msgstr "Terminanzeige"
+
+#: includes/Presentation/AssetManager.php build/index.js
+msgid "Show available slots as a list"
+msgstr "Verfügbare Termine als Liste anzeigen"
+
+#: includes/Presentation/AssetManager.php build/index.js
+msgid "Hide the calendar on the website and group available times under date headings."
+msgstr "Den Kalender auf der Website ausblenden und verfügbare Uhrzeiten unter Datumsüberschriften gruppieren."
