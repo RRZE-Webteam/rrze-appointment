@@ -2413,3 +2413,13 @@ msgstr ""
 #: src/admin/bookings-app.tsx
 msgid "Reset search and filters"
 msgstr ""
+
+#: src/editor/availability/preview-calendar.tsx src/editor/availability/appointment-data-view.tsx
+msgid "Remove manual appointment"
+msgstr ""
+
+#: src/editor/availability/preview-calendar.tsx src/editor/availability/appointment-data-view.tsx
+#. translators: 1: appointment start time, 2: appointment end time.
+#, javascript-format
+msgid "Remove manual appointment from %1$s to %2$s"
+msgstr ""

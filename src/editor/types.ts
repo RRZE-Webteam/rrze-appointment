@@ -52,6 +52,7 @@ export interface PreviewCalendarProps {
 	slots: TimeSlot[];
 	selectedDates: string[];
 	onToggleSlotVisibility?: ( slot: TimeSlot ) => void;
+	onRemoveSlot?: ( slot: TimeSlot ) => void;
 	onAddSlot?: ( date: string ) => void;
 	activeDate: string;
 	onActiveDateChange: ( date: string ) => void;

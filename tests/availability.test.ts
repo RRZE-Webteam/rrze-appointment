@@ -5,6 +5,7 @@ import {
 	getAvailabilityEntries,
 	getAvailabilitySlotCount,
 	hasAvailabilityConflict,
+	removeExtraSlot,
 	setDateSlotsExcluded,
 	usesAppointmentPattern,
 } from '../src/scheduling/availability';
@@ -231,6 +232,103 @@ describe( 'availability editor model', () => {
 		} ).find( ( slot ) => slot.value === excludedValue );
 		expect( excludedSlot?.isExtra ).toBe( true );
 		expect( excludedSlot?.isExcluded ).toBe( true );
+	} );
+
+	it( 'removes only the chosen manual time and keeps the schedule and other dates', () => {
+		const attributes = createAttributes( {
+			availabilities: [ createEntry( 'single' ) ],
+			dateOverrides: {
+				'2026-08-03': {
+					duration: 30,
+					extraSlots: [ '10:00|10:45', '11:00|11:30' ],
+				},
+				'2026-08-04': { extraSlots: [ '12:00|12:30' ] },
+			},
+		} );
+		const slot = generateTimeSlots( attributes ).find(
+			( item ) => item.isExtra
+		)!;
+		const dateOverrides = removeExtraSlot( attributes.dateOverrides, slot );
+		expect( dateOverrides ).toEqual( {
+			'2026-08-03': { duration: 30, extraSlots: [ '11:00|11:30' ] },
+			'2026-08-04': { extraSlots: [ '12:00|12:30' ] },
+		} );
+		expect(
+			generateTimeSlots( { ...attributes, dateOverrides } ).map(
+				( item ) => item.timeRange
+			)
+		).toEqual( [ '09:00 - 09:30', '09:30 - 10:00', '11:00 - 11:30' ] );
+		expect( attributes.dateOverrides[ slot.date ].extraSlots ).toEqual( [
+			'10:00|10:45',
+			'11:00|11:30',
+		] );
+	} );
+
+	it( 'removes hidden manual times completely so re-adding them is bookable', () => {
+		const value = '2026-08-03 10:00-10:45';
+		const attributes = createAttributes( {
+			availabilities: [ createEntry( 'single' ) ],
+			dateOverrides: {
+				'2026-08-03': {
+					extraSlots: [ '10:00|10:45' ],
+					removedSlots: [ value, '2026-08-03 09:00-09:30' ],
+				},
+			},
+		} );
+		const slot = generateTimeSlots( attributes, {
+			includeExcluded: true,
+		} ).find( ( item ) => item.value === value )!;
+		const dateOverrides = removeExtraSlot( attributes.dateOverrides, slot );
+		expect( dateOverrides ).toEqual( {
+			'2026-08-03': { removedSlots: [ '2026-08-03 09:00-09:30' ] },
+		} );
+		expect(
+			generateTimeSlots(
+				{ ...attributes, dateOverrides },
+				{ includeExcluded: true }
+			).some( ( item ) => item.value === value )
+		).toBe( false );
+		dateOverrides[ slot.date ].extraSlots = [ '10:00|10:45' ];
+		expect(
+			generateTimeSlots( { ...attributes, dateOverrides } ).some(
+				( item ) => item.value === value
+			)
+		).toBe( true );
+	} );
+
+	it( 'cleans up the date override after deleting the last hidden manual time', () => {
+		const attributes = createAttributes( {
+			availabilities: [ createEntry( 'single' ) ],
+			dateOverrides: {
+				'2026-08-03': {
+					extraSlots: [ '10:00|10:30' ],
+					removedSlots: [ '2026-08-03 10:00-10:30' ],
+				},
+			},
+		} );
+		const slot = generateTimeSlots( attributes, {
+			includeExcluded: true,
+		} ).find( ( item ) => item.isExtra )!;
+		expect( removeExtraSlot( attributes.dateOverrides, slot ) ).toEqual(
+			{}
+		);
+	} );
+
+	it( 'can remove a legacy manual time stored without an end time', () => {
+		const attributes = createAttributes( {
+			availabilities: [ createEntry( 'single' ) ],
+			dateOverrides: { '2026-08-03': { extraSlots: [ '10:00' ] } },
+		} );
+		const slots = generateTimeSlots( attributes );
+		expect(
+			removeExtraSlot(
+				attributes.dateOverrides,
+				slots.find( ( item ) => item.isExtra )!
+			)
+		).toEqual( {} );
+		expect( removeExtraSlot( attributes.dateOverrides, slots[ 0 ] ) ).toBe(
+			attributes.dateOverrides
+		);
 	} );
 
 	it( 'detects overlapping dates between recurring entries', () => {

@@ -7,7 +7,14 @@ import {
 } from '@wordpress/dataviews/wp';
 import { Button, DatePicker, Dropdown } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
-import { calendar, notAllowed, seen, undo, unseen } from '@wordpress/icons';
+import {
+	calendar,
+	notAllowed,
+	seen,
+	trash,
+	undo,
+	unseen,
+} from '@wordpress/icons';
 import { useEffect, useMemo, useState } from '@wordpress/element';
 import calendarIllustration from '../../../assets/images/calendar-31.png';
 import type { TimeSlot } from '../../scheduling/types';
@@ -21,6 +28,7 @@ interface AppointmentDataViewProps {
 	onAdd: () => void;
 	onSetDateExcluded: ( date: string, excluded: boolean ) => void;
 	onToggleSlotExclusion: ( slot: TimeSlot ) => void;
+	onRemoveSlot: ( slot: TimeSlot ) => void;
 }
 
 const INITIAL_VIEW: View = {
@@ -69,11 +77,23 @@ function StatusField( { item }: { item: TimeSlot } ) {
 	);
 }
 
+/**
+ * Renders appointment management controls.
+ *
+ * @param root0                       Component properties.
+ * @param root0.slots                 Generated and manual appointments.
+ * @param root0.onAdd                 Opens schedule creation.
+ * @param root0.onSetDateExcluded     Updates visibility for a whole date.
+ * @param root0.onToggleSlotExclusion Toggles a single appointment exception.
+ * @param root0.onRemoveSlot          Removes a manually added appointment.
+ * @return Appointment management interface.
+ */
 export function AppointmentDataView( {
 	slots,
 	onAdd,
 	onSetDateExcluded,
 	onToggleSlotExclusion,
+	onRemoveSlot,
 }: AppointmentDataViewProps ) {
 	const [ view, setView ] = useState< View >( INITIAL_VIEW );
 	const [ selectedDate, setSelectedDate ] = useState( '' );
@@ -147,6 +167,19 @@ export function AppointmentDataView( {
 		},
 	];
 	const actions: Action< TimeSlot >[] = [
+		{
+			id: 'remove-extra-slot',
+			label: __( 'Remove manual appointment', 'rrze-appointment' ),
+			icon: trash,
+			isPrimary: true,
+			isEligible: ( item ) => item.isExtra,
+			supportsBulk: false,
+			callback: ( items ) => {
+				if ( items[ 0 ]?.isExtra ) {
+					onRemoveSlot( items[ 0 ] );
+				}
+			},
+		},
 		{
 			id: 'add-exception',
 			label: __( 'Add exception', 'rrze-appointment' ),

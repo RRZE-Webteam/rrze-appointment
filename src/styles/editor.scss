@@ -398,6 +398,7 @@
 
 	&__toolbar {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
 		gap: 1rem;
@@ -416,7 +417,7 @@
 
 	&__list {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr));
 		gap: 0.75rem;
 		margin: 1rem 0 0;
 		padding: 0;
@@ -424,7 +425,8 @@
 	}
 
 	&__item {
-		display: flex;
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr) auto;
 		align-items: center;
 		gap: 0.625rem;
 		box-sizing: border-box;
@@ -452,6 +454,20 @@
 	&__icon {
 		flex: 0 0 auto;
 		color: #646970;
+	}
+
+	&__content {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.35rem;
+		min-width: 0;
+	}
+
+	&__actions {
+		display: flex;
+		align-items: center;
+		flex-shrink: 0;
 	}
 
 	&__time {
@@ -489,7 +505,8 @@
 		font-size: 0.6875rem;
 		font-weight: 600;
 		line-height: 1.4;
-		white-space: nowrap;
+		white-space: normal;
+		overflow-wrap: anywhere;
 
 		&.is-excluded {
 			background: #dcdcde;
@@ -499,7 +516,6 @@
 
 	&__visibility.components-button {
 		flex: 0 0 auto;
-		margin-left: auto;
 		color: #50575e;
 
 		&:hover,

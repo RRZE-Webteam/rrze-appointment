@@ -20,6 +20,7 @@ import {
 	buildAvailabilityAttributes,
 	createAvailabilityId,
 	getAvailabilityEntries,
+	removeExtraSlot,
 	setDateSlotsExcluded,
 } from '../scheduling/availability';
 import type {
@@ -240,6 +241,17 @@ export default function AppointmentEditor( {
 		}
 
 		setAttributes( { dateOverrides: nextDateOverrides } );
+	};
+
+	/**
+	 * Removes a manually added time through Gutenberg's undoable attribute update.
+	 *
+	 * @param slot Manual appointment selected in either editor view.
+	 */
+	const handleRemoveSlot = ( slot: TimeSlot ) => {
+		setAttributes( {
+			dateOverrides: removeExtraSlot( normalizedDateOverrides, slot ),
+		} );
 	};
 
 	const handleSetDateExcluded = ( date: string, excluded: boolean ) => {
@@ -466,6 +478,9 @@ export default function AppointmentEditor( {
 													handleToggleSlotExclusion
 												}
 												onAddSlot={ handleOpenAddSlot }
+												onRemoveSlot={
+													handleRemoveSlot
+												}
 												activeDate={ activeDate }
 												onActiveDateChange={
 													setActiveDate
@@ -494,6 +509,7 @@ export default function AppointmentEditor( {
 										handleToggleSlotExclusion
 									}
 									onSetDateExcluded={ handleSetDateExcluded }
+									onRemoveSlot={ handleRemoveSlot }
 								/>
 							) }
 							{ showQuestionsManager && (
