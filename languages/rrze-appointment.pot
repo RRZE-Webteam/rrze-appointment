@@ -2371,3 +2371,45 @@ msgstr ""
 #: includes/Controller/AdminBookingsController.php
 msgid "The booking could not be cancelled. Refresh the list and try again."
 msgstr ""
+
+#: src/admin/bookings-app.tsx
+msgid "All bookings at a glance. Find appointments and manage cancellations."
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+msgid "Next appointment"
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+msgid "Bookings"
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+#. translators: 1: matching bookings, 2: all bookings in the selected period.
+#, javascript-format
+msgid "%1$d of %2$d appointments"
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+msgid "No matching appointments"
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+msgid "No upcoming appointments"
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+msgid "Try a different search or reset your filters."
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+msgid "Completed appointments appear here during the retention period."
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+msgid "New bookings will appear here automatically."
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+msgid "Reset search and filters"
+msgstr ""

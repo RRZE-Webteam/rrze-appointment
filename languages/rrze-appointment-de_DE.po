@@ -2905,3 +2905,45 @@ msgstr "Dieser Termin ist nicht mehr gebucht. Aktualisieren Sie die Liste."
 #: includes/Controller/AdminBookingsController.php
 msgid "The booking could not be cancelled. Refresh the list and try again."
 msgstr "Die Buchung konnte nicht storniert werden. Aktualisieren Sie die Liste und versuchen Sie es erneut."
+
+#: src/admin/bookings-app.tsx
+msgid "All bookings at a glance. Find appointments and manage cancellations."
+msgstr "Alle Buchungen im Blick. Termine finden und Stornierungen verwalten."
+
+#: src/admin/bookings-app.tsx
+msgid "Next appointment"
+msgstr "Nächster Termin"
+
+#: src/admin/bookings-app.tsx
+msgid "Bookings"
+msgstr "Buchungen"
+
+#: src/admin/bookings-app.tsx
+#. translators: 1: matching bookings, 2: all bookings in the selected period.
+#, javascript-format
+msgid "%1$d of %2$d appointments"
+msgstr "%1$d von %2$d Terminen"
+
+#: src/admin/bookings-app.tsx
+msgid "No matching appointments"
+msgstr "Keine passenden Termine"
+
+#: src/admin/bookings-app.tsx
+msgid "No upcoming appointments"
+msgstr "Keine bevorstehenden Termine"
+
+#: src/admin/bookings-app.tsx
+msgid "Try a different search or reset your filters."
+msgstr "Versuchen Sie einen anderen Suchbegriff oder setzen Sie die Filter zurück."
+
+#: src/admin/bookings-app.tsx
+msgid "Completed appointments appear here during the retention period."
+msgstr "Abgeschlossene Termine erscheinen hier innerhalb der Aufbewahrungsfrist."
+
+#: src/admin/bookings-app.tsx
+msgid "New bookings will appear here automatically."
+msgstr "Sobald Termine gebucht wurden, werden sie hier angezeigt."
+
+#: src/admin/bookings-app.tsx
+msgid "Reset search and filters"
+msgstr "Suche und Filter zurücksetzen"
