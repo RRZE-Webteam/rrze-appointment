@@ -2423,3 +2423,8 @@ msgstr ""
 #, javascript-format
 msgid "Remove manual appointment from %1$s to %2$s"
 msgstr ""
+
+#: includes/Admin/BookingsPage.php
+msgctxt "Admin menu label"
+msgid "Appointments"
+msgstr ""

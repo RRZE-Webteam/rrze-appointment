@@ -21,6 +21,9 @@ final class BookingsPage
         add_action('admin_enqueue_scripts', [$this, 'enqueueAssets']);
     }
 
+    /**
+     * Registers the appointment page with a distinct, recognizable menu label.
+     */
     public function addMenuPage(): void
     {
         if (!AppointmentPermissions::currentUserCanManage()) {
@@ -29,7 +32,7 @@ final class BookingsPage
 
         add_menu_page(
             __('Appointments', 'rrze-appointment'),
-            __('Appointments', 'rrze-appointment'),
+            _x('Appointments', 'Admin menu label', 'rrze-appointment'),
             'read',
             self::PAGE_SLUG,
             [$this, 'render'],
