@@ -7,8 +7,8 @@ import {
 } from '@wordpress/dataviews/wp';
 import { Button, Notice, Spinner } from '@wordpress/components';
 import { useEffect, useMemo, useRef, useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
-import { notAllowed, update } from '@wordpress/icons';
+import { __, sprintf } from '@wordpress/i18n';
+import { calendar, Icon, notAllowed, search, update } from '@wordpress/icons';
 import { loadBookings, requestErrorMessage } from './api';
 import { CancelBookingModal } from './cancel-booking-modal';
 import type {
@@ -18,6 +18,12 @@ import type {
 	BookingView,
 } from './types';
 
+/**
+ * Returns the default columns and chronological order for an appointment view.
+ *
+ * @param mode Appointment period to display.
+ * @return Initial table configuration.
+ */
 function initialView( mode: BookingView ): View {
 	return {
 		type: 'table',
@@ -25,11 +31,18 @@ function initialView( mode: BookingView ): View {
 		perPage: 25,
 		sort: { field: 'date', direction: mode === 'past' ? 'desc' : 'asc' },
 		titleField: 'title',
-		fields: [ 'date', 'time', 'personName', 'bookerName', 'bookerEmail' ],
+		fields: [ 'date', 'personName', 'bookerName' ],
 		layout: { density: 'comfortable' },
 	};
 }
 
+/**
+ * Renders the searchable appointment overview and its cancellation workflow.
+ *
+ * @param root0        Component properties.
+ * @param root0.config Authenticated API configuration supplied by WordPress.
+ * @return Appointment management interface.
+ */
 export function BookingsApp( { config }: { config: AdminConfig } ) {
 	const query = new URLSearchParams( window.location.search );
 	const [ mode, setMode ] = useState< BookingView >(
@@ -92,7 +105,16 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 				id: 'date',
 				label: __( 'Date', 'rrze-appointment' ),
 				type: 'date',
-				render: ( { item } ) => item.dateLabel,
+				getValue: ( { item } ) =>
+					`${ item.date }T${ item.time.slice( 0, 5 ) }`,
+				render: ( { item } ) => (
+					<div className="rrze-appointment-admin__cell">
+						<time dateTime={ item.date }>{ item.dateLabel }</time>
+						<span className="rrze-appointment-admin__secondary">
+							{ item.time.replace( '-', ' – ' ) }
+						</span>
+					</div>
+				),
 				enableHiding: false,
 				enableGlobalSearch: true,
 			},
@@ -107,6 +129,11 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 				id: 'title',
 				label: __( 'Title', 'rrze-appointment' ),
 				type: 'text',
+				render: ( { item } ) => (
+					<span className="rrze-appointment-admin__title">
+						{ item.title }
+					</span>
+				),
 				enableGlobalSearch: true,
 			},
 		];
@@ -118,6 +145,13 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 						.filter( Boolean )
 				)
 			).sort();
+			/**
+			 * Keeps permanently anonymized contact details hidden in every column.
+			 *
+			 * @param value      Contact detail to display.
+			 * @param anonymized Whether this booking has permanently hidden details.
+			 * @return Visible value or an accessible placeholder.
+			 */
 			const privateValue = ( value: string, anonymized: boolean ) =>
 				anonymized ? (
 					<span
@@ -150,8 +184,21 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 					label: __( 'Booker', 'rrze-appointment' ),
 					type: 'text',
 					enableGlobalSearch: true,
-					render: ( { item } ) =>
-						privateValue( item.bookerName, item.anonymized ),
+					render: ( { item } ) => (
+						<div className="rrze-appointment-admin__cell">
+							<span>
+								{ privateValue(
+									item.bookerName,
+									item.anonymized
+								) }
+							</span>
+							{ ! item.anonymized && item.bookerEmail && (
+								<span className="rrze-appointment-admin__secondary">
+									{ item.bookerEmail }
+								</span>
+							) }
+						</div>
+					),
 				},
 				{
 					id: 'bookerEmail',
@@ -183,6 +230,38 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 		safeView,
 		fields
 	);
+	const hasFilters = Boolean( safeView.search || safeView.filters?.length );
+	let emptyTitle: string =
+		mode === 'past'
+			? __( 'No past appointments found.', 'rrze-appointment' )
+			: __( 'No upcoming appointments', 'rrze-appointment' );
+	let emptyDescription: string =
+		mode === 'past'
+			? __(
+					'Completed appointments appear here during the retention period.',
+					'rrze-appointment'
+			  )
+			: __(
+					'New bookings will appear here automatically.',
+					'rrze-appointment'
+			  );
+	if ( hasFilters ) {
+		emptyTitle = __( 'No matching appointments', 'rrze-appointment' );
+		emptyDescription = __(
+			'Try a different search or reset your filters.',
+			'rrze-appointment'
+		);
+	}
+	const nextBooking = useMemo( () => {
+		if ( mode === 'past' || ! response?.items.length ) {
+			return null;
+		}
+		return response.items.reduce( ( first, item ) =>
+			`${ item.date } ${ item.time }` < `${ first.date } ${ first.time }`
+				? item
+				: first
+		);
+	}, [ mode, response ] );
 	const actions: Action< AdminBooking >[] =
 		mode === 'past'
 			? []
@@ -197,6 +276,11 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 					},
 			  ];
 
+	/**
+	 * Switches periods while retaining the user's search and column preferences.
+	 *
+	 * @param next Appointment period to display.
+	 */
 	function changeMode( next: BookingView ) {
 		setResponse( null );
 		setSelectedBooking( null );
@@ -213,12 +297,24 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 		window.history.replaceState( null, '', url );
 	}
 
+	/** Clears only search criteria, preserving sorting, columns and page size. */
 	function resetFilters() {
-		setView( initialView( mode ) );
+		setView( ( current ) => ( {
+			...current,
+			search: '',
+			filters: [],
+			page: 1,
+		} ) );
 	}
 
 	return (
 		<>
+			<p className="rrze-appointment-admin__intro">
+				{ __(
+					'All bookings at a glance. Find appointments and manage cancellations.',
+					'rrze-appointment'
+				) }
+			</p>
 			<div className="rrze-appointment-admin__toolbar">
 				<div
 					role="group"
@@ -226,7 +322,7 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 					className="rrze-appointment-admin__views"
 				>
 					<Button
-						variant={ mode === 'current' ? 'primary' : 'tertiary' }
+						variant="tertiary"
 						aria-pressed={ mode === 'current' }
 						onClick={ () => {
 							if ( mode !== 'current' ) {
@@ -238,7 +334,7 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 					</Button>
 					{ hasPastView && (
 						<Button
-							variant={ mode === 'past' ? 'primary' : 'tertiary' }
+							variant="tertiary"
 							aria-pressed={ mode === 'past' }
 							onClick={ () => {
 								if ( mode !== 'past' ) {
@@ -290,6 +386,45 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 			) }
 			{ response && ! loading && (
 				<>
+					<div className="rrze-appointment-admin__summary">
+						<div className="rrze-appointment-admin__total">
+							<span
+								className="rrze-appointment-admin__summary-icon"
+								aria-hidden="true"
+							>
+								<Icon icon={ calendar } />
+							</span>
+							<div>
+								<strong>{ response.items.length }</strong>
+								<span>
+									{ mode === 'past'
+										? __(
+												'Past appointments',
+												'rrze-appointment'
+										  )
+										: __(
+												'Current appointments',
+												'rrze-appointment'
+										  ) }
+								</span>
+							</div>
+						</div>
+						{ nextBooking && (
+							<div className="rrze-appointment-admin__next">
+								<span className="rrze-appointment-admin__secondary">
+									{ __(
+										'Next appointment',
+										'rrze-appointment'
+									) }
+								</span>
+								<strong>
+									{ nextBooking.dateLabel } ·{ ' ' }
+									{ nextBooking.time.replace( '-', ' – ' ) }
+								</strong>
+								<span>{ nextBooking.title }</span>
+							</div>
+						) }
+					</div>
 					{ response.sensitiveMode && (
 						<Notice status="info" isDismissible={ false }>
 							{ __(
@@ -299,6 +434,20 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 						</Notice>
 					) }
 					<div className="rrze-appointment-admin__table">
+						<div className="rrze-appointment-admin__table-heading">
+							<h2>{ __( 'Bookings', 'rrze-appointment' ) }</h2>
+							<span role="status">
+								{ sprintf(
+									/* translators: 1: matching bookings, 2: all bookings in the selected period. */
+									__(
+										'%1$d of %2$d appointments',
+										'rrze-appointment'
+									),
+									filtered.paginationInfo.totalItems,
+									response.items.length
+								) }
+							</span>
+						</div>
 						<DataViews
 							data={ filtered.data }
 							fields={ fields }
@@ -313,17 +462,32 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 								'rrze-appointment'
 							) }
 							empty={
-								<p>
-									{ mode === 'past'
-										? __(
-												'No past appointments found.',
+								<div className="rrze-appointment-admin__empty">
+									<span
+										className="rrze-appointment-admin__empty-icon"
+										aria-hidden="true"
+									>
+										<Icon
+											icon={
+												hasFilters ? search : calendar
+											}
+											size={ 32 }
+										/>
+									</span>
+									<h3>{ emptyTitle }</h3>
+									<p>{ emptyDescription }</p>
+									{ hasFilters && (
+										<Button
+											variant="secondary"
+											onClick={ resetFilters }
+										>
+											{ __(
+												'Reset search and filters',
 												'rrze-appointment'
-										  )
-										: __(
-												'No appointments found.',
-												'rrze-appointment'
-										  ) }
-								</p>
+											) }
+										</Button>
+									) }
+								</div>
 							}
 						/>
 					</div>

@@ -21,8 +21,24 @@ interface AvailabilityManagerDialogProps {
 	onEdit: ( entry: AvailabilityEntry ) => void;
 	onSetDateExcluded: ( date: string, excluded: boolean ) => void;
 	onToggleSlotExclusion: ( slot: TimeSlot ) => void;
+	onRemoveSlot: ( slot: TimeSlot ) => void;
 }
 
+/**
+ * Renders appointment management controls.
+ *
+ * @param root0                       Component properties.
+ * @param root0.entries               Configured appointment schedules.
+ * @param root0.slots                 Generated and manual appointments.
+ * @param root0.onAdd                 Opens schedule creation.
+ * @param root0.onClose               Closes the manager.
+ * @param root0.onDelete              Requests schedule deletion.
+ * @param root0.onEdit                Opens a schedule for editing.
+ * @param root0.onSetDateExcluded     Updates visibility for a whole date.
+ * @param root0.onToggleSlotExclusion Toggles a single appointment exception.
+ * @param root0.onRemoveSlot          Removes a manually added appointment.
+ * @return Appointment management interface.
+ */
 export function AvailabilityManagerDialog( {
 	entries,
 	slots,
@@ -32,6 +48,7 @@ export function AvailabilityManagerDialog( {
 	onEdit,
 	onSetDateExcluded,
 	onToggleSlotExclusion,
+	onRemoveSlot,
 }: AvailabilityManagerDialogProps ) {
 	const [ activeView, setActiveView ] = useState<
 		'schedules' | 'appointments'
@@ -114,6 +131,7 @@ export function AvailabilityManagerDialog( {
 					onAdd={ onAdd }
 					onSetDateExcluded={ onSetDateExcluded }
 					onToggleSlotExclusion={ onToggleSlotExclusion }
+					onRemoveSlot={ onRemoveSlot }
 				/>
 			) }
 		</Modal>

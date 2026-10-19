@@ -6,6 +6,7 @@ use RRZE\Appointment\Admin\BookingsPage;
 use RRZE\Appointment\Admin\MailTemplatesPage;
 use RRZE\Appointment\Admin\SettingsPage;
 use RRZE\Appointment\Booking\TokenManager;
+use RRZE\Appointment\Booking\GuestRequestLimiter;
 use RRZE\Appointment\Controller\AdminBookingsController;
 use RRZE\Appointment\Controller\BookingOpeningController;
 use RRZE\Appointment\Controller\BookingRequestController;
@@ -154,6 +155,7 @@ final class Main
      */
     private function registerBackgroundHooks(): void
     {
+        add_action('delete_expired_transients', [GuestRequestLimiter::class, 'cleanup']);
         add_action(TokenManager::PENDING_EXPIRY_HOOK, [TokenManager::class, 'expirePending']);
         add_action(BookingOpeningNotifier::CRON_HOOK, [BookingOpeningNotifier::class, 'notify']);
         add_action('post_updated', [$this->waitlistNotifier, 'handlePostUpdated'], 10, 3);

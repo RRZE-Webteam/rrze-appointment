@@ -1,11 +1,18 @@
 @import "../../node_modules/@wordpress/dataviews/build-style/style.css";
 
 body.toplevel_page_rrze-appointment-bookings {
-	background: #fff;
+	background: #f6f7f7;
 }
 
 .rrze-appointment-admin {
-	margin-top: 24px;
+	margin-top: 12px;
+	color: #1e1e1e;
+
+	&__intro {
+		margin: 0 0 28px;
+		color: #50575e;
+		font-size: 14px;
+	}
 
 	&__toolbar,
 	&__views {
@@ -17,17 +24,159 @@ body.toplevel_page_rrze-appointment-bookings {
 
 	&__toolbar {
 		justify-content: space-between;
+		border-bottom: 1px solid #dcdcde;
+		gap: 16px;
+		padding-bottom: 12px;
 	}
 
-	&__description {
-		margin: 24px 0;
+	&__views {
+		gap: 4px;
+
+		.components-button.is-tertiary {
+			border-radius: 4px;
+			color: #50575e;
+			font-weight: 500;
+
+			&:hover,
+			&:focus {
+				background: #fff;
+				color: #1e1e1e;
+			}
+
+			&[aria-pressed="true"] {
+				background: #fff;
+				color: #1e1e1e;
+				box-shadow: inset 0 0 0 1px #dcdcde;
+			}
+
+			&:focus-visible {
+				outline: 2px solid var(--wp-admin-theme-color, #3858e9);
+				outline-offset: 2px;
+			}
+		}
+	}
+
+	p.rrze-appointment-admin__description {
+		margin: 12px 0 20px;
+		color: #50575e;
+	}
+
+	&__summary {
+		display: flex;
+		align-items: center;
+		gap: 32px;
+		margin-bottom: 24px;
+		padding: 24px;
+		background: #fff;
+		border: 1px solid #dcdcde;
+		border-radius: 8px;
+	}
+
+	&__total {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		flex-shrink: 0;
+
+		strong {
+			display: block;
+			font-size: 28px;
+			line-height: 1.2;
+			margin-bottom: 4px;
+			font-variant-numeric: tabular-nums;
+		}
+	}
+
+	&__summary-icon,
+	&__empty-icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		background: #f0f0f1;
+		border-radius: 12px;
+		width: 48px;
+		height: 48px;
+		color: #50575e;
+		fill: currentcolor;
+	}
+
+	&__next {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		border-inline-start: 1px solid #dcdcde;
+		padding-inline-start: 32px;
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
+
+	&__cell {
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+		padding-block: 4px;
+
+		time {
+			font-weight: 500;
+		}
+	}
+
+	&__secondary {
+		color: #50575e;
+		font-size: 12px;
+		font-weight: 400;
+	}
+
+	&__title {
+		display: block;
+		max-width: 440px;
+		min-width: 180px;
+		white-space: normal;
+		overflow-wrap: anywhere;
+		line-height: 1.5;
+	}
+
+	&__table-heading {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 8px;
+		padding: 20px 24px;
+		border-bottom: 1px solid #f0f0f1;
+
+		h2 {
+			margin: 0;
+			font-size: 16px;
+		}
+
+		> span {
+			color: #50575e;
+		}
 	}
 
 	&__table {
 		background: #fff;
 		border: 1px solid #dcdcde;
-		border-radius: 4px;
+		border-radius: 8px;
 		overflow: hidden;
+	}
+
+	&__empty {
+		padding: 36px 24px 48px;
+		text-align: center;
+		max-width: 440px;
+		margin: auto;
+
+		h3 {
+			margin: 16px 0 8px;
+			font-size: 16px;
+		}
+
+		p {
+			margin: 0 0 20px;
+			color: #50575e;
+		}
 	}
 
 	&__loading {
@@ -43,6 +192,35 @@ body.toplevel_page_rrze-appointment-bookings {
 
 	.dataviews-wrapper {
 		min-height: 250px;
+	}
+
+	.dataviews-view-table th {
+		background: #f9f9f9;
+	}
+
+	.dataviews-view-table tr .dataviews-item-actions .components-button:not(.dataviews-all-actions-button) {
+		opacity: 1;
+	}
+
+	@media (max-width: 782px) {
+
+		&__summary {
+			align-items: stretch;
+			flex-direction: column;
+			gap: 20px;
+			padding: 20px;
+		}
+
+		&__next {
+			border-inline-start: 0;
+			border-top: 1px solid #dcdcde;
+			padding-inline-start: 0;
+			padding-top: 20px;
+		}
+
+		&__table-heading {
+			padding: 16px;
+		}
 	}
 }
 

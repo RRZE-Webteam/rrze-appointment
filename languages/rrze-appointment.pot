@@ -207,8 +207,18 @@ msgstr ""
 msgid "Enter your name."
 msgstr ""
 
+#: includes/Mail/EmailAddress.php
 #: includes/AssetManager.php:103 build/index.js:194
 msgid "Enter a valid email address."
+msgstr ""
+
+#: includes/Controller/BookingRequestController.php
+#: includes/Controller/BookingOpeningController.php
+msgid "Too many requests. Please wait a few minutes and try again."
+msgstr ""
+
+#: includes/Mail/EmailAddress.php
+msgid "Please enter the email domain in Punycode format; this server cannot convert internationalized domains."
 msgstr ""
 
 #: includes/AssetManager.php:105 includes/ConfirmationController.php:451
@@ -265,6 +275,7 @@ msgstr ""
 msgid "No authenticated email address found."
 msgstr ""
 
+#: includes/Mail/EmailAddress.php
 #: includes/BookingRequestController.php:107
 msgid "Please provide an email address."
 msgstr ""
@@ -2359,4 +2370,61 @@ msgstr ""
 
 #: includes/Controller/AdminBookingsController.php
 msgid "The booking could not be cancelled. Refresh the list and try again."
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+msgid "All bookings at a glance. Find appointments and manage cancellations."
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+msgid "Next appointment"
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+msgid "Bookings"
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+#. translators: 1: matching bookings, 2: all bookings in the selected period.
+#, javascript-format
+msgid "%1$d of %2$d appointments"
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+msgid "No matching appointments"
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+msgid "No upcoming appointments"
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+msgid "Try a different search or reset your filters."
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+msgid "Completed appointments appear here during the retention period."
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+msgid "New bookings will appear here automatically."
+msgstr ""
+
+#: src/admin/bookings-app.tsx
+msgid "Reset search and filters"
+msgstr ""
+
+#: src/editor/availability/preview-calendar.tsx src/editor/availability/appointment-data-view.tsx
+msgid "Remove manual appointment"
+msgstr ""
+
+#: src/editor/availability/preview-calendar.tsx src/editor/availability/appointment-data-view.tsx
+#. translators: 1: appointment start time, 2: appointment end time.
+#, javascript-format
+msgid "Remove manual appointment from %1$s to %2$s"
+msgstr ""
+
+#: includes/Admin/BookingsPage.php
+msgctxt "Admin menu label"
+msgid "Appointments"
 msgstr ""

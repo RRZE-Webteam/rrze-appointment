@@ -252,6 +252,55 @@ export function setDateSlotsExcluded(
 	return nextOverrides;
 }
 
+/**
+ * Removes a manual appointment and its exclusion without changing the schedule.
+ * Also accepts legacy extras containing only a start time. Persisted bookings
+ * are separate from these block attributes and are not cancelled here.
+ *
+ * @param dateOverrides Existing date-specific scheduling settings.
+ * @param slot          Manual appointment to remove.
+ * @return Updated overrides, or the original object for a non-manual slot.
+ */
+export function removeExtraSlot(
+	dateOverrides: DateOverrides,
+	slot: TimeSlot
+): DateOverrides {
+	const currentOverride = dateOverrides[ slot.date ];
+	if ( ! slot.isExtra || ! Array.isArray( currentOverride?.extraSlots ) ) {
+		return dateOverrides;
+	}
+	const extraSlots = currentOverride.extraSlots.filter( ( entry ) => {
+		const [ start, end ] = entry.split( '|' );
+		return (
+			parseTimeToMinutes( start ) !== slot.startMinutes ||
+			( end !== undefined &&
+				parseTimeToMinutes( end ) !== slot.endMinutes )
+		);
+	} );
+	if ( extraSlots.length === currentOverride.extraSlots.length ) {
+		return dateOverrides;
+	}
+	const nextOverride: DateOverride = { ...currentOverride, extraSlots };
+	if ( extraSlots.length === 0 ) {
+		delete nextOverride.extraSlots;
+	}
+	if ( Array.isArray( nextOverride.removedSlots ) ) {
+		nextOverride.removedSlots = nextOverride.removedSlots.filter(
+			( value ) => value !== slot.value
+		);
+		if ( nextOverride.removedSlots.length === 0 ) {
+			delete nextOverride.removedSlots;
+		}
+	}
+	const nextOverrides = { ...dateOverrides };
+	if ( Object.keys( nextOverride ).length === 0 ) {
+		delete nextOverrides[ slot.date ];
+	} else {
+		nextOverrides[ slot.date ] = nextOverride;
+	}
+	return nextOverrides;
+}
+
 export function buildAvailabilityAttributes(
 	attributes: AppointmentAttributes,
 	entries: AvailabilityEntry[]
