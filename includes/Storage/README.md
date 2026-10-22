@@ -125,6 +125,62 @@ does not erase historical copies. PHP code with access to the configured key
 can decrypt bookings. This protects database-only disclosure, not a compromised
 WordPress runtime. Access controls and operational security remain necessary.
 
+## Auxiliary stores and error boundaries
+
+Encryption of booking options does not protect every possible copy. The plugin
+uses the following controls outside those five stores, including when encryption
+is not configured where applicable:
+
+| Location | Content and protection |
+| --- | --- |
+| WordPress cron | Purpose-bound HMAC references once migration starts; no new token/slot plaintext on retries. Execution timestamps and counts remain operational metadata. |
+| Slot lock options | Site- and purpose-bound HMAC names (`v2_…`) and creation timestamps. Encrypted sites derive the HMAC key from their persistent context; legacy sites use the WordPress auth salt and site ID. |
+| Guest rate limits | Existing keyed hashes of email/IP identity, counters and expiry only; no plaintext address or IP. Daily cleanup removes expired counters. |
+| Object cache | Decrypted booking arrays stay request-local. Replacements invalidate individual options, `alloptions` and `notoptions`, including after a failed verification. |
+| Calendar attachments | Calendar bytes are passed to PHPMailer as string attachments. Confirmation creates no temporary `.ics` file, including on mail failure. |
+| Mail preparation | Plugin HTML/attachment globals and hooks are cleared in `finally`. False transport results and unexpected failures produce safe exceptions. |
+| Personal HTTP responses | Token pages and booking AJAX receive private/no-store headers early, plus `no-referrer` and `noindex`. REST booker/booking responses use the same policy after dispatch, including permission and storage errors. Ordinary public content keeps its normal cache behavior. |
+| Network diagnostics | Counts, site IDs, timestamps and generic error codes only; no exception dumps or booking payloads. |
+
+Startup removes at most 100 expired locks per site, restricted to the exact two
+known slot-lock prefixes and their old/current formats. It does not delete live
+locks or unrelated options. This also runs for already encrypted sites through
+normal requests and the network worker, so the earlier MD5 names are removed
+without resetting encryption state. Both lock types expire after five minutes;
+physical removal depends on a later initialization of that site. No encrypted
+booking payload needs to be rewritten for this cleanup.
+
+Unexpected dependency errors are converted into a fixed message. Safe domain
+messages and status codes survive, but original exception objects and chains do
+not. Even deliberate domain exceptions are rebuilt at normalization boundaries
+to discard deeper dependency traces. Payload-bearing plugin parameters use PHP
+`SensitiveParameter`. Public handlers catch unexpected `Throwable` failures and
+return safe errors; they do not report successful booking or expose raw details.
+These mechanisms do not create database rollback or exactly-once email delivery.
+A failed confirmation email can leave a correctly persisted booking in place.
+
+Operational limits remain explicit:
+
+- Hosting access logs may record token URLs. Configure query-string redaction or
+  exclusions for appointment action links; response headers cannot erase an
+  incoming URL from a server log or browser history.
+- Page-cache/CDN rules must honor `no-store` and exclude token pages, personal
+  AJAX and booking REST responses. A cache serving content before PHP executes
+  cannot be controlled by this plugin. `DONOTCACHEPAGE` is set for token/AJAX
+  requests as an additional hint to cooperating cache plugins.
+- Configure `zend.exception_ignore_args=On` in production. The plugin redacts its
+  arguments and does not log raw exceptions, but cannot annotate WordPress,
+  SMTP, debugger or other plugins' entire call stacks.
+- Mail delivery intentionally receives plaintext. Mail-logging, SMTP and queue
+  plugins may store bodies, answers or attachments independently; review their
+  storage and retention settings. Disk-based asynchronous mail integrations must
+  explicitly support string attachments; verify the complete delivery path.
+- Old temporary calendar files, backups, earlier logs and cache snapshots are
+  not retroactively secured by this update. Existing copies require operational
+  cleanup under their original retention/backup rules.
+- The browser's SSO-resume state stores only the selected public slot and return
+  page in per-tab session storage, not names, addresses or question answers.
+
 ## Concurrency and cache behavior
 
 `OptionDatabase` reads raw SQL values and does not put decrypted arrays in the

@@ -57,6 +57,12 @@ final class BookingStorage
         return $value;
     }
 
+    /** Supplies opaque lock identifiers for isolated workflows without real keys. */
+    public static function lockReference(string $purpose, string $slot): string
+    {
+        return 'v2_' . hash_hmac('sha256', $purpose . "\0" . $slot, 'synthetic-test-key');
+    }
+
     /**
      * Mirrors the production request boundary; this fixture has no database lock.
      */

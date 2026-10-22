@@ -47,6 +47,8 @@ const getSettingsResult = (): SettingsResult => {
 		}
 		namespace {
 			define( 'ABSPATH', __DIR__ );
+            require_once getcwd() . '/includes/AppointmentException.php';
+            function __( $message, $domain ) { return $message; }
 			$GLOBALS['options'] = [];
 			$GLOBALS['actions'] = [];
 			$GLOBALS['removed_actions'] = [];
@@ -164,7 +166,7 @@ const getSettingsResult = (): SettingsResult => {
 			$failureMessage = '';
 			try {
 				$mailerClass::send( 'user@example.test', 'Subject', 'Plain', '<p>HTML</p>' );
-			} catch ( \\RuntimeException $exception ) {
+			} catch ( \\Throwable $exception ) {
 				$failureMessage = $exception->getMessage();
 			}
 			$failedMail = [
@@ -293,7 +295,8 @@ describe( 'plugin configuration and mail delivery', () => {
 			globalRemoved: true,
 		} );
 		expect( result.failedMail ).toEqual( {
-			message: 'mail failed',
+			message:
+				'The appointment operation could not be completed. Please try again.',
 			hookRemoved: true,
 			globalRemoved: true,
 		} );

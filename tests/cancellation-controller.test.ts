@@ -20,7 +20,8 @@ const runCancellationScenarios = (): CancellationResults => {
 	);
 	const php = `
 		namespace RRZE\\Appointment {
-			class AppointmentException extends \\Exception {}
+			defined('ABSPATH') || define('ABSPATH', __DIR__);
+            require_once getcwd() . '/includes/AppointmentException.php';
 		}
 		namespace RRZE\\Appointment\\Configuration {
 			class PluginSettings {
@@ -111,7 +112,7 @@ const runCancellationScenarios = (): CancellationResults => {
 			}
 		}
 		namespace {
-			define( 'ABSPATH', __DIR__ );
+			defined('ABSPATH') || define( 'ABSPATH', __DIR__ );
 			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 			$GLOBALS['options'] = [
 				'booking_meta' => [

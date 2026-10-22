@@ -38,8 +38,8 @@ final class BookingOpeningNotifier
      * @return array{token: string, statusToken: string, created: bool}
      */
     public static function subscribe(
-        string $slot,
-        array $meta,
+        #[\SensitiveParameter] string $slot,
+        #[\SensitiveParameter] array $meta,
         int $opensAt,
         int $closesAt
     ): array {
@@ -54,8 +54,8 @@ final class BookingOpeningNotifier
             }
 
             return self::createSubscription($entries, $slot, $meta, $opensAt, $closesAt);
-        } catch (\Exception $exception) {
-            throw new AppointmentException($exception->getMessage(), $exception->getCode(), $exception);
+        } catch (\Throwable $exception) {
+            throw AppointmentException::fromThrowable($exception);
         }
     }
 
@@ -65,9 +65,9 @@ final class BookingOpeningNotifier
      * @param array<string, array<string, mixed>> $entries Stored subscriptions.
      */
     private static function findSubscriptionToken(
-        array $entries,
-        string $slot,
-        string $email
+        #[\SensitiveParameter] array $entries,
+        #[\SensitiveParameter] string $slot,
+        #[\SensitiveParameter] string $email
     ): ?string {
         foreach ($entries as $token => $entry) {
             if (
@@ -88,7 +88,7 @@ final class BookingOpeningNotifier
      * @param array<string, array<string, mixed>> $entries Stored subscriptions.
      * @return array{token: string, statusToken: string, created: bool}
      */
-    private static function reuseSubscription(array $entries, string $token, int $opensAt): array
+    private static function reuseSubscription(#[\SensitiveParameter] array $entries, #[\SensitiveParameter] string $token, int $opensAt): array
     {
         $entry = $entries[$token];
         $statusToken = (string) ($entry['status_token'] ?? '');
@@ -115,9 +115,9 @@ final class BookingOpeningNotifier
      * @return array{token: string, statusToken: string, created: bool}
      */
     private static function createSubscription(
-        array $entries,
-        string $slot,
-        array $meta,
+        #[\SensitiveParameter] array $entries,
+        #[\SensitiveParameter] string $slot,
+        #[\SensitiveParameter] array $meta,
         int $opensAt,
         int $closesAt
     ): array {
@@ -145,7 +145,7 @@ final class BookingOpeningNotifier
     /**
      * Sends the opening email for a subscription when its booking window opens.
      */
-    public static function notify(string $token): void
+    public static function notify(#[\SensitiveParameter] string $token): void
     {
         try {
             $entries = self::getEntries();
@@ -182,15 +182,15 @@ final class BookingOpeningNotifier
             }
 
             self::markNotified($token, $now);
-        } catch (\Exception $exception) {
-            throw new AppointmentException($exception->getMessage(), $exception->getCode(), $exception);
+        } catch (\Throwable $exception) {
+            throw AppointmentException::fromThrowable($exception);
         }
     }
 
     /**
      * Determines whether a slot is already booked.
      */
-    private static function isBooked(string $slot): bool
+    private static function isBooked(#[\SensitiveParameter] string $slot): bool
     {
         return in_array($slot, BookingStorage::get(Bookings::SLOTS_OPTION), true);
     }
@@ -198,7 +198,7 @@ final class BookingOpeningNotifier
     /**
      * Determines whether a slot is waiting for booking confirmation.
      */
-    private static function isPending(string $slot): bool
+    private static function isPending(#[\SensitiveParameter] string $slot): bool
     {
         return in_array($slot, TokenManager::getPendingSlots(), true);
     }
@@ -206,7 +206,7 @@ final class BookingOpeningNotifier
     /**
      * Schedules another delivery attempt without crossing the booking cutoff.
      */
-    private static function scheduleRetry(string $token, int $now, int $closesAt): void
+    private static function scheduleRetry(#[\SensitiveParameter] string $token, int $now, int $closesAt): void
     {
         self::schedule($token, min($closesAt, $now + self::RETRY_SECONDS));
     }
@@ -214,7 +214,7 @@ final class BookingOpeningNotifier
     /**
      * Marks a subscription as successfully notified if it still exists.
      */
-    private static function markNotified(string $token, int $notifiedAt): void
+    private static function markNotified(#[\SensitiveParameter] string $token, int $notifiedAt): void
     {
         $entries = self::getEntries();
         if (!isset($entries[$token]) || !is_array($entries[$token])) {
@@ -230,7 +230,7 @@ final class BookingOpeningNotifier
      *
      * @return string|\WP_Error Confirmation URL or a public-safe error.
      */
-    public static function claim(string $token)
+    public static function claim(#[\SensitiveParameter] string $token)
     {
         try {
             self::cleanup();
@@ -282,23 +282,23 @@ final class BookingOpeningNotifier
             } finally {
                 delete_option($lockOption);
             }
-        } catch (\Exception $exception) {
-            throw new AppointmentException($exception->getMessage(), $exception->getCode(), $exception);
+        } catch (\Throwable $exception) {
+            throw AppointmentException::fromThrowable($exception);
         }
     }
 
     /**
      * Returns the option name used to serialize claims for one slot.
      */
-    private static function getClaimLockOption(string $slot): string
+    private static function getClaimLockOption(#[\SensitiveParameter] string $slot): string
     {
-        return self::CLAIM_LOCK_PREFIX . md5($slot);
+        return self::CLAIM_LOCK_PREFIX . BookingStorage::lockReference('opening', $slot);
     }
 
     /**
      * Acquires a claim lock, replacing it only when it has expired.
      */
-    private static function acquireClaimLock(string $lockOption, int $now): bool
+    private static function acquireClaimLock(#[\SensitiveParameter] string $lockOption, int $now): bool
     {
         if (add_option($lockOption, $now, '', false)) {
             return true;
@@ -317,7 +317,7 @@ final class BookingOpeningNotifier
      *
      * @return array<string, mixed>|null
      */
-    public static function getSubscriptionByStatusToken(string $statusToken): ?array
+    public static function getSubscriptionByStatusToken(#[\SensitiveParameter] string $statusToken): ?array
     {
         self::cleanup();
         foreach (self::getEntries() as $entry) {
@@ -335,7 +335,7 @@ final class BookingOpeningNotifier
     /**
      * Builds the public success-page URL for a subscription.
      */
-    public static function registrationUrl(string $statusToken): string
+    public static function registrationUrl(#[\SensitiveParameter] string $statusToken): string
     {
         return add_query_arg(self::STATUS_QUERY_KEY, $statusToken, home_url('/'));
     }
@@ -368,7 +368,7 @@ final class BookingOpeningNotifier
     /**
      * Deletes one subscription and its scheduled delivery.
      */
-    private static function delete(string $token): void
+    private static function delete(#[\SensitiveParameter] string $token): void
     {
         $entries = self::getEntries();
         if (isset($entries[$token])) {
@@ -381,7 +381,7 @@ final class BookingOpeningNotifier
     /**
      * Schedules a subscription once, normalizing past timestamps.
      */
-    private static function schedule(string $token, int $timestamp): void
+    private static function schedule(#[\SensitiveParameter] string $token, int $timestamp): void
     {
         $now = time();
         if ($timestamp <= $now) {
@@ -405,7 +405,7 @@ final class BookingOpeningNotifier
     /**
      * @param array<string, mixed> $entry Stored subscription.
      */
-    private static function sendOpeningMail(string $token, array $entry): bool
+    private static function sendOpeningMail(#[\SensitiveParameter] string $token, #[\SensitiveParameter] array $entry): bool
     {
         $meta = is_array($entry['meta'] ?? null) ? $entry['meta'] : [];
         $variables = self::getOpeningMailVariables(
@@ -438,7 +438,7 @@ final class BookingOpeningNotifier
      * @param array<string, mixed> $meta Stored subscription metadata.
      * @return array<string, string>
      */
-    private static function getOpeningMailVariables(string $slot, string $token, array $meta): array
+    private static function getOpeningMailVariables(#[\SensitiveParameter] string $slot, #[\SensitiveParameter] string $token, #[\SensitiveParameter] array $meta): array
     {
         [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
         [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
@@ -477,7 +477,7 @@ final class BookingOpeningNotifier
      *
      * @return array{0: string, 1: string}
      */
-    private static function ensureRequiredMailLinks(string $plain, string $html): array
+    private static function ensureRequiredMailLinks(#[\SensitiveParameter] string $plain, #[\SensitiveParameter] string $html): array
     {
         if (strpos($plain, '[booking_link]') === false) {
             $plain .= "\n\n" . __('Book appointment', 'rrze-appointment') . ': [booking_link]';

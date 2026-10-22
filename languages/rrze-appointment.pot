@@ -2470,3 +2470,11 @@ msgstr ""
 #: includes/Storage/NetworkMigration.php
 msgid "Migration continues automatically in small batches."
 msgstr ""
+
+#: includes/AppointmentException.php includes/Mail/Mailer.php
+msgid "The appointment operation could not be completed. Please try again."
+msgstr ""
+
+#: includes/AppointmentException.php includes/Mail/Mailer.php
+msgid "The appointment email could not be sent. Please try again."
+msgstr ""

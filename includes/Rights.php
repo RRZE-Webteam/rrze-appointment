@@ -54,12 +54,8 @@ final class Rights
     {
         try {
             return self::getAuthenticatedBooker() ?? self::anonymousBooker();
-        } catch (\Exception $exception) {
-            throw new AppointmentException(
-                $exception->getMessage(),
-                (int) $exception->getCode(),
-                $exception
-            );
+        } catch (\Throwable $exception) {
+            throw AppointmentException::fromThrowable($exception);
         }
     }
 

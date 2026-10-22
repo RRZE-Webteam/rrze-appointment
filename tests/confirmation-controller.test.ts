@@ -13,8 +13,8 @@ type ConfirmationResult = {
 	slotParts: string[];
 	escapedCalendarValue: string;
 	calendar: string;
-	attachmentPath: string;
-	attachmentExistsAfterFailure: boolean;
+	memoryAttachments: Record< string, string >;
+	fileAttachments: string[];
 };
 
 const getConfirmationResult = (): ConfirmationResult => {
@@ -24,7 +24,8 @@ const getConfirmationResult = (): ConfirmationResult => {
 	);
 	const php = `
 		namespace RRZE\\Appointment {
-			class AppointmentException extends \\Exception {}
+			defined('ABSPATH') || define('ABSPATH', __DIR__);
+            require_once getcwd() . '/includes/AppointmentException.php';
 		}
 		namespace RRZE\\Appointment\\Presentation {
 			class PublicPageRenderer {
@@ -70,7 +71,8 @@ const getConfirmationResult = (): ConfirmationResult => {
 		}
 		namespace RRZE\\Appointment\\Mail {
 			class Mailer {
-				public static string $attachmentPath = '';
+				public static array $memoryAttachments = [];
+                public static array $fileAttachments = [];
 				public static function render( string $template, array $variables ): string {
 					return str_replace( array_keys( $variables ), array_values( $variables ), $template );
 				}
@@ -80,15 +82,17 @@ const getConfirmationResult = (): ConfirmationResult => {
 					string $plain,
 					string $html,
 					array $attachments,
-					string $status
+					string $status,
+                    array $stringAttachments = []
 				): bool {
-					self::$attachmentPath = $attachments[0];
+					self::$memoryAttachments = $stringAttachments;
+                    self::$fileAttachments = $attachments;
 					throw new \\RuntimeException( 'mail failure' );
 				}
 			}
 		}
 		namespace {
-			define( 'ABSPATH', __DIR__ );
+			defined('ABSPATH') || define( 'ABSPATH', __DIR__ );
 			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 			function __( $message, $domain ) { return $message; }
 			function esc_html__( $message, $domain ) { return $message; }
@@ -197,10 +201,8 @@ const getConfirmationResult = (): ConfirmationResult => {
 				'slotParts' => $slotParts,
 				'escapedCalendarValue' => $escapedCalendarValue,
 				'calendar' => $calendar,
-				'attachmentPath' => \\RRZE\\Appointment\\Mail\\Mailer::$attachmentPath,
-				'attachmentExistsAfterFailure' => file_exists(
-					\\RRZE\\Appointment\\Mail\\Mailer::$attachmentPath
-				),
+				'memoryAttachments' => \\RRZE\\Appointment\\Mail\\Mailer::$memoryAttachments,
+                'fileAttachments' => \\RRZE\\Appointment\\Mail\\Mailer::$fileAttachments,
 			] );
 		}
 	`;
@@ -251,7 +253,7 @@ describe( 'confirmation controller', () => {
 		] );
 	} );
 
-	it( 'creates safe calendar content and always removes its temporary file', () => {
+	it( 'passes safe calendar content in memory without creating a temporary file', () => {
 		const result = getConfirmationResult();
 
 		expect( result.escapedCalendarValue ).toBe(
@@ -260,7 +262,9 @@ describe( 'confirmation controller', () => {
 		expect( result.calendar ).toContain( 'BEGIN:VCALENDAR\r\n' );
 		expect( result.calendar ).toContain( 'DTSTART:20260821T070000Z\r\n' );
 		expect( result.calendar ).toContain( 'SUMMARY:Planning\\, review' );
-		expect( result.attachmentPath ).toMatch( /\.ics$/ );
-		expect( result.attachmentExistsAfterFailure ).toBe( false );
+		expect( result.memoryAttachments ).toEqual( {
+			'appointment.ics': result.calendar,
+		} );
+		expect( result.fileAttachments ).toEqual( [] );
 	} );
 } );

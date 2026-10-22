@@ -38,7 +38,7 @@ final class BookingStorage
     /**
      * Locks and validates every store before any workflow can change booking data.
      */
-    private function __construct(object $database, string $table)
+    private function __construct(#[\SensitiveParameter] object $database, #[\SensitiveParameter] string $table)
     {
         $this->database = new OptionDatabase($database, $table);
         try {
@@ -56,7 +56,7 @@ final class BookingStorage
             }
         } catch (\Throwable $exception) {
             $this->database->release();
-            throw $exception;
+            throw AppointmentException::fromThrowable($exception);
         }
     }
 
@@ -69,16 +69,23 @@ final class BookingStorage
     {
         global $wpdb;
         $table = $wpdb->options;
-        $site = self::$sites[$table] ??= new self($wpdb, $table);
-        if ($site->blocked) {
-            throw new AppointmentException('Appointment storage is unavailable. Please retry after correcting the storage error.');
+        try {
+            $site = self::$sites[$table] ??= new self($wpdb, $table);
+            if ($site->blocked) {
+                throw new AppointmentException('Appointment storage is unavailable. Please retry after correcting the storage error.');
+            }
+            $site->database->assertOwnership();
+            if ($initialize && $site->key !== null && !$site->migrating
+                && ($site->state['phase'] ?? null) !== 'encrypted') {
+                self::migrate();
+            }
+            return $site;
+        } catch (\Throwable $exception) {
+            if (isset(self::$sites[$table])) {
+                self::$sites[$table]->blocked = true;
+            }
+            throw AppointmentException::fromThrowable($exception);
         }
-        $site->database->assertOwnership();
-        if ($initialize && $site->key !== null && !$site->migrating
-            && ($site->state['phase'] ?? null) !== 'encrypted') {
-            self::migrate();
-        }
-        return $site;
     }
 
     /**
@@ -89,7 +96,11 @@ final class BookingStorage
      */
     public static function initialize(): void
     {
-        self::site();
+        try {
+            self::site()->database->pruneExpiredLocks();
+        } catch (\Throwable $exception) {
+            throw AppointmentException::fromThrowable($exception);
+        }
     }
 
     /**
@@ -97,7 +108,7 @@ final class BookingStorage
      *
      * @return array<mixed> Decrypted or explicitly permitted legacy data.
      */
-    public static function get(string $name): array
+    public static function get(#[\SensitiveParameter] string $name): array
     {
         self::assertName($name);
         return self::site()->data[$name];
@@ -109,7 +120,7 @@ final class BookingStorage
      * @param array<mixed> $data New booking data.
      * @throws AppointmentException On invalid data, conflict, or failed persistence.
      */
-    public static function set(string $name, #[\SensitiveParameter] array $data): void
+    public static function set(#[\SensitiveParameter] string $name, #[\SensitiveParameter] array $data): void
     {
         self::assertName($name);
         $site = self::site();
@@ -130,7 +141,7 @@ final class BookingStorage
             }
         } catch (\Throwable $exception) {
             $site->blocked = true;
-            throw $exception;
+            throw AppointmentException::fromThrowable($exception);
         }
     }
 
@@ -195,7 +206,7 @@ final class BookingStorage
         } catch (\Throwable $exception) {
             $site->blocked = true;
             if ($exception instanceof AppointmentException) {
-                throw $exception;
+                throw AppointmentException::fromThrowable($exception);
             }
             throw new AppointmentException('Appointment migration could not be completed.');
         } finally {
@@ -206,13 +217,28 @@ final class BookingStorage
     /**
      * Converts cron payloads to non-reversible, purpose-bound references after start.
      */
-    public static function jobReference(string $hook, #[\SensitiveParameter] string $value): string
+    public static function jobReference(#[\SensitiveParameter] string $hook, #[\SensitiveParameter] string $value): string
     {
         $site = self::site();
         if ($site->state === null) {
             return $value;
         }
         return 'rrze-appt-job:v1:' . hash_hmac('sha256', $hook . "\0" . $value, $site->key->forJobs($site->state['context']));
+    }
+
+    /**
+     * Hides predictable slot values in auxiliary lock names with a purpose-bound HMAC.
+     *
+     * Legacy installations use WordPress's secret salt and site ID. Encrypted
+     * installations use the configured key and persistent per-site context.
+     */
+    public static function lockReference(#[\SensitiveParameter] string $purpose, #[\SensitiveParameter] string $slot): string
+    {
+        $site = self::site();
+        $key = $site->state !== null
+            ? $site->key->forJobs($site->state['context'])
+            : wp_salt('auth') . "\0" . get_current_blog_id();
+        return 'v2_' . hash_hmac('sha256', 'lock:' . $purpose . "\0" . $slot, $key);
     }
 
     /**
@@ -229,7 +255,7 @@ final class BookingStorage
     /**
      * Rejects accidental access to settings or unrelated WordPress options.
      */
-    private static function assertName(string $name): void
+    private static function assertName(#[\SensitiveParameter] string $name): void
     {
         if (!in_array($name, self::OPTIONS, true)) {
             throw new AppointmentException('Unsupported appointment storage area.');
@@ -241,7 +267,7 @@ final class BookingStorage
      *
      * @return array{version: int, phase: string, context: string, key_id: string, completed: array<string>, mac: string}
      */
-    private function decodeState(string $raw): array
+    private function decodeState(#[\SensitiveParameter] string $raw): array
     {
         $state = json_decode($raw, true);
         if (!is_array($state) || count($state) !== 6 || ($state['version'] ?? null) !== 1
@@ -273,7 +299,7 @@ final class BookingStorage
      *
      * @return array<mixed> Booking data; missing migrated rows are always errors.
      */
-    private function decode(string $name, #[\SensitiveParameter] ?string $raw): array
+    private function decode(#[\SensitiveParameter] string $name, #[\SensitiveParameter] ?string $raw): array
     {
         if ($raw !== null && str_starts_with($raw, BookingCipher::PREFIX)) {
             if ($this->cipher === null) {
@@ -340,7 +366,7 @@ final class BookingStorage
      * @param array<string, mixed> $state Validated migration fields.
      * @return string Hex-encoded HMAC over the canonical ordered field list.
      */
-    private function stateMac(array $state): string
+    private function stateMac(#[\SensitiveParameter] array $state): string
     {
         $payload = json_encode([
             $state['version'], $state['phase'], $state['context'], $state['key_id'], $state['completed'],

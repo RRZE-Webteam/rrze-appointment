@@ -28,8 +28,8 @@ type TokenManagerResult = {
 	wrappedFailure: {
 		className: string;
 		message: string;
-		previousClass: string;
-		previousMessage: string;
+		previousClass: string | null;
+		previousMessage: string | null;
 	};
 };
 
@@ -40,7 +40,8 @@ const getTokenManagerResult = (): TokenManagerResult => {
 	);
 	const php = `
 		namespace RRZE\\Appointment {
-			class AppointmentException extends \\Exception {}
+			defined('ABSPATH') || define('ABSPATH', __DIR__);
+            require_once getcwd() . '/includes/AppointmentException.php';
 		}
 		namespace RRZE\\Appointment\\Booking {
 			class Bookings {
@@ -48,7 +49,7 @@ const getTokenManagerResult = (): TokenManagerResult => {
 			}
 		}
 		namespace {
-			define( 'ABSPATH', __DIR__ );
+			defined('ABSPATH') || define( 'ABSPATH', __DIR__ );
 			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 			$now = time();
 			$GLOBALS['options'] = [
@@ -91,7 +92,8 @@ const getTokenManagerResult = (): TokenManagerResult => {
 			$GLOBALS['uuid_counter'] = 0;
 			$GLOBALS['throw_on_get'] = false;
 
-			function get_option( $key, $default = false ) {
+			function __( $message, $domain ) { return $message; }
+            function get_option( $key, $default = false ) {
 				if ( $GLOBALS['throw_on_get'] ) { throw new \\RuntimeException( 'storage failed' ); }
 				return array_key_exists( $key, $GLOBALS['options'] )
 					? $GLOBALS['options'][ $key ]
@@ -189,8 +191,8 @@ const getTokenManagerResult = (): TokenManagerResult => {
 				$wrappedFailure = [
 					'className' => get_class( $exception ),
 					'message' => $exception->getMessage(),
-					'previousClass' => get_class( $exception->getPrevious() ),
-					'previousMessage' => $exception->getPrevious()->getMessage(),
+					'previousClass' => $exception->getPrevious() ? get_class( $exception->getPrevious() ) : null,
+					'previousMessage' => $exception->getPrevious()?->getMessage(),
 				];
 			}
 
@@ -308,9 +310,10 @@ describe( 'token manager', () => {
 		expect( result.corruptOptionsRejected ).toBe( true );
 		expect( result.wrappedFailure ).toEqual( {
 			className: 'RRZE\\Appointment\\AppointmentException',
-			message: 'storage failed',
-			previousClass: 'RuntimeException',
-			previousMessage: 'storage failed',
+			message:
+				'The appointment operation could not be completed. Please try again.',
+			previousClass: null,
+			previousMessage: null,
 		} );
 	} );
 } );

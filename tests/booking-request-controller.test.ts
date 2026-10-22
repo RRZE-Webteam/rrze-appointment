@@ -16,7 +16,8 @@ const getControllerResult = (): RequestControllerResult => {
 	);
 	const php = `
 		namespace RRZE\\Appointment {
-			class AppointmentException extends \\Exception {}
+			defined('ABSPATH') || define('ABSPATH', __DIR__);
+            require_once getcwd() . '/includes/AppointmentException.php';
 		}
 		namespace RRZE\\Appointment\\Booking {
 			class Bookings {
@@ -24,7 +25,7 @@ const getControllerResult = (): RequestControllerResult => {
 			}
 		}
 		namespace {
-			define( 'ABSPATH', __DIR__ );
+			defined('ABSPATH') || define( 'ABSPATH', __DIR__ );
 			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 			function wp_unslash( $value ) {
 				return is_string( $value ) ? stripslashes( $value ) : $value;

@@ -27,7 +27,7 @@ final class BookingScheduler
     /**
      * Schedules a job with an opaque argument once encryption has started.
      */
-    public static function schedule(int $timestamp, string $hook, string $value): void
+    public static function schedule(int $timestamp, #[\SensitiveParameter] string $hook, #[\SensitiveParameter] string $value): void
     {
         wp_schedule_single_event($timestamp, $hook, [BookingStorage::jobReference($hook, $value)]);
     }
@@ -37,7 +37,7 @@ final class BookingScheduler
      *
      * @return int|false Next run timestamp, or false if no matching event exists.
      */
-    public static function next(string $hook, string $value): int|false
+    public static function next(#[\SensitiveParameter] string $hook, #[\SensitiveParameter] string $value): int|false
     {
         return wp_next_scheduled($hook, [BookingStorage::jobReference($hook, $value)]);
     }
@@ -45,7 +45,7 @@ final class BookingScheduler
     /**
      * Removes both reference-based and pre-migration events for the given target.
      */
-    public static function clear(string $hook, string $value): void
+    public static function clear(#[\SensitiveParameter] string $hook, #[\SensitiveParameter] string $value): void
     {
         $reference = BookingStorage::jobReference($hook, $value);
         wp_clear_scheduled_hook($hook, [$reference]);
@@ -59,7 +59,7 @@ final class BookingScheduler
      *
      * @return string|null Target token/slot, or null for a deleted target.
      */
-    public static function resolve(string $hook, string $argument): ?string
+    public static function resolve(#[\SensitiveParameter] string $hook, #[\SensitiveParameter] string $argument): ?string
     {
         if (!isset(self::STORES[$hook])) {
             throw new AppointmentException('Unsupported appointment job.');
@@ -77,7 +77,7 @@ final class BookingScheduler
     /**
      * Dispatches an expiry callback after resolving its non-secret queue reference.
      */
-    public static function expirePending(string $argument): void
+    public static function expirePending(#[\SensitiveParameter] string $argument): void
     {
         self::dispatch(TokenManager::PENDING_EXPIRY_HOOK, $argument, [TokenManager::class, 'expirePending']);
     }
@@ -85,7 +85,7 @@ final class BookingScheduler
     /**
      * Dispatches an opening email after resolving its non-secret queue reference.
      */
-    public static function notifyOpening(string $argument): void
+    public static function notifyOpening(#[\SensitiveParameter] string $argument): void
     {
         self::dispatch(BookingOpeningNotifier::CRON_HOOK, $argument, [BookingOpeningNotifier::class, 'notify']);
     }
@@ -93,7 +93,7 @@ final class BookingScheduler
     /**
      * Dispatches a reminder after resolving its non-secret queue reference.
      */
-    public static function sendReminder(string $argument): void
+    public static function sendReminder(#[\SensitiveParameter] string $argument): void
     {
         self::dispatch(Reminder::CRON_HOOK, $argument, [new Reminder(), 'sendReminder']);
     }
@@ -107,7 +107,7 @@ final class BookingScheduler
      *
      * @param callable(string): void $callback Resolved domain callback.
      */
-    private static function dispatch(string $hook, string $argument, callable $callback): void
+    private static function dispatch(#[\SensitiveParameter] string $hook, #[\SensitiveParameter] string $argument, callable $callback): void
     {
         try {
             $target = self::resolve($hook, $argument);

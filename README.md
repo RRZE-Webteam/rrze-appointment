@@ -80,6 +80,10 @@ links, and replaces sensitive cron arguments with opaque references. Public
 blocks, mail templates and ordinary settings remain editable. Errors stop access
 instead of treating existing data as empty. See the [storage operating guide](includes/Storage/README.md)
 for deployment, interrupted migrations, multisite, backups and restore requirements.
+Calendar attachments are prepared entirely in memory. Personal responses use
+private/no-store headers, and unexpected dependency errors never expose their
+original messages or exception chains. Auxiliary slot locks use keyed references
+and expired locks are removed in bounded batches.
 
 ### Email addresses for bookings without SSO
 

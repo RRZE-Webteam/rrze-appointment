@@ -29,7 +29,8 @@ const getMailTemplatePostResult = (): MailTemplatePostResult => {
 	);
 	const php = `
 		namespace RRZE\\Appointment {
-			class AppointmentException extends \\Exception {}
+			defined('ABSPATH') || define('ABSPATH', __DIR__);
+            require_once getcwd() . '/includes/AppointmentException.php';
 		}
 		namespace RRZE\\Appointment\\Mail {
 			class MailTemplate {
@@ -40,7 +41,7 @@ const getMailTemplatePostResult = (): MailTemplatePostResult => {
 			}
 		}
 		namespace {
-			define( 'ABSPATH', __DIR__ );
+			defined('ABSPATH') || define( 'ABSPATH', __DIR__ );
 			class WP_Post {
 				public int $ID;
 				public string $post_title;

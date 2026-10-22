@@ -3005,3 +3005,11 @@ msgstr "Dieser Durchlauf ist beendet. Websites mit Fehlern werden in einem spät
 #: includes/Storage/NetworkMigration.php
 msgid "Migration continues automatically in small batches."
 msgstr "Die Migration wird automatisch in kleinen Schritten fortgesetzt."
+
+#: includes/AppointmentException.php includes/Mail/Mailer.php
+msgid "The appointment operation could not be completed. Please try again."
+msgstr "Der Terminvorgang konnte nicht abgeschlossen werden. Bitte versuchen Sie es erneut."
+
+#: includes/AppointmentException.php includes/Mail/Mailer.php
+msgid "The appointment email could not be sent. Please try again."
+msgstr "Die Termin-E-Mail konnte nicht versendet werden. Bitte versuchen Sie es erneut."

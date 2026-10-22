@@ -47,6 +47,7 @@ final class BookingTestDatabase
         $this->db = new SQLite3(':memory:');
         $this->db->enableExceptions(true);
         $this->db->createFunction('SHA2', static fn($data, $bits) => hash('sha256', $data), 2);
+        $this->db->createFunction('regexp', static fn($pattern, $value) => preg_match('~' . $pattern . '~D', $value), 2);
         foreach (['wp_options', 'wp_2_options'] as $table) {
             $this->db->exec("CREATE TABLE $table (option_name TEXT PRIMARY KEY, option_value TEXT, autoload TEXT)");
         }

@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 type StoredRequest = { meta: { booker_email: string } };
 type Result = {
 	success: boolean;
+	status: number;
 	data: string | { message: string };
 	pending: StoredRequest[];
 	subscriptions: StoredRequest[];
@@ -44,6 +45,21 @@ const longAsciiDomain = `${ Array( 3 )
 
 for ( const flow of [ 'booking', 'notification' ] ) {
 	describe( `${ flow }: guest email validation`, () => {
+		it( 'returns a safe error without storing bookings or sending mail on an unexpected storage failure', () => {
+			const result = request( {
+				flow,
+				email: 'guest@example.test',
+				storageFailure: true,
+			} );
+			expect( result ).toMatchObject( {
+				success: false,
+				status: 500,
+				data: 'The appointment operation could not be completed. Please try again.',
+				pending: [],
+				subscriptions: [],
+				mails: [],
+			} );
+		} );
 		it.each( [
 			'max mustermann@example.org',
 			'mäx@example.org',

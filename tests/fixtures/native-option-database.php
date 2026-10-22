@@ -38,6 +38,14 @@ try {
     assertAppointmentDatabase(!$store->replace('synthetic', 'synthetic-v1', 'stale'), 'Stale update was accepted.');
     assertAppointmentDatabase($store->read('synthetic') === 'synthetic-v2', 'Concurrent value was lost.');
     assertAppointmentDatabase($store->replace('synthetic', 'synthetic-v2', 'synthetic-v2'), 'No-op update failed.');
+    $oldLock = 'rrze_appointment_waitlist_lock_' . md5('synthetic-slot');
+    $liveLock = 'rrze_appointment_opening_claim_' . md5('synthetic-slot');
+    $newLock = 'rrze_appointment_waitlist_lock_v2_' . hash('sha256', 'synthetic-slot');
+    $store->replace($oldLock, null, (string) (time() - 301));
+    $store->replace($liveLock, null, (string) time());
+    $store->replace($newLock, null, (string) time());
+    $store->pruneExpiredLocks();
+    assertAppointmentDatabase($store->read($oldLock) === null && $store->read($liveLock) !== null && $store->read($newLock) !== null, 'Legacy lock cleanup selected incorrect rows.');
     $second = new wpdb(DB_USER, DB_PASSWORD, DB_NAME, DB_HOST);
     $blocked = false;
     try {
@@ -50,7 +58,7 @@ try {
     $contender = new OptionDatabase($second, $table);
     $contender->assertOwnership();
     $contender->release();
-    WP_CLI::success('Native conditional writes, stale-write rejection and two-connection locking passed. No booking data were accessed.');
+    WP_CLI::success('Native conditional writes, stale-write rejection, legacy lock cleanup and two-connection locking passed. No booking data were accessed.');
 } finally {
     $store?->release();
     $contender?->release();

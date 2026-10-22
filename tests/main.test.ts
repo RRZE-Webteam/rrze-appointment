@@ -36,7 +36,8 @@ const getMainResult = ( storageFailure = false ): MainResult => {
 			}
 		}
 		namespace RRZE\\Appointment {
-			class AppointmentException extends \\Exception {}
+			defined('ABSPATH') || define('ABSPATH', __DIR__);
+            require_once getcwd() . '/includes/AppointmentException.php';
             class FaudirPersonProvider { public function handleRequest(): void {} }
 		}
 		namespace RRZE\\Appointment\\Admin {
@@ -105,7 +106,7 @@ const getMainResult = ( storageFailure = false ): MainResult => {
 			}
 		}
 		namespace {
-			define( 'ABSPATH', __DIR__ );
+			defined('ABSPATH') || define( 'ABSPATH', __DIR__ );
             require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
             require_once getcwd() . '/includes/Admin/StorageStatus.php';
 			$GLOBALS['storageInitFails'] = ${ storageFailure ? 'true' : 'false' };

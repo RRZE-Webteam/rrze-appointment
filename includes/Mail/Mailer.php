@@ -2,6 +2,8 @@
 
 namespace RRZE\Appointment\Mail;
 
+use RRZE\Appointment\AppointmentException;
+
 defined('ABSPATH') || exit;
 
 /**
@@ -12,7 +14,7 @@ final class Mailer
     /**
      * @param array<string, mixed> $variables
      */
-    public static function render(string $template, array $variables): string
+    public static function render(#[\SensitiveParameter] string $template, #[\SensitiveParameter] array $variables): string
     {
         // Existing custom templates may still contain the removed placeholder.
         $variables['[message]'] = '';
@@ -27,26 +29,36 @@ final class Mailer
 
     /**
      * @param array<int, string> $attachments Absolute attachment paths.
+     * @param array<string, string> $stringAttachments Attachment filename => in-memory content.
      */
     public static function send(
-        string $to,
-        string $subject,
-        string $plain,
-        string $html,
-        array $attachments = [],
-        string $status = MailTemplate::STATUS_NEUTRAL
+        #[\SensitiveParameter] string $to,
+        #[\SensitiveParameter] string $subject,
+        #[\SensitiveParameter] string $plain,
+        #[\SensitiveParameter] string $html,
+        #[\SensitiveParameter] array $attachments = [],
+        #[\SensitiveParameter] string $status = MailTemplate::STATUS_NEUTRAL,
+        #[\SensitiveParameter] array $stringAttachments = []
     ): bool {
-        $GLOBALS['rrze_appointment_html_body'] = MailTemplate::wrap($html, $subject, $status);
-        add_action('phpmailer_init', [self::class, 'addHtmlPart']);
         try {
-            return wp_mail($to, $subject, $plain, [], $attachments);
+            $GLOBALS['rrze_appointment_html_body'] = MailTemplate::wrap($html, $subject, $status);
+            $GLOBALS['rrze_appointment_string_attachments'] = $stringAttachments;
+            add_action('phpmailer_init', [self::class, 'addHtmlPart']);
+            if (!wp_mail($to, $subject, $plain, [], $attachments)) {
+                throw new AppointmentException(__('The appointment email could not be sent. Please try again.', 'rrze-appointment'), 502);
+            }
+            return true;
+        } catch (\Throwable $exception) {
+            throw AppointmentException::fromThrowable($exception);
         } finally {
             remove_action('phpmailer_init', [self::class, 'addHtmlPart']);
             unset($GLOBALS['rrze_appointment_html_body']);
+            unset($GLOBALS['rrze_appointment_string_attachments']);
         }
     }
 
-    public static function addHtmlPart(\PHPMailer\PHPMailer\PHPMailer $phpmailer): void
+    /** Adds HTML and calendar bytes directly to this message without creating files. */
+    public static function addHtmlPart(#[\SensitiveParameter] \PHPMailer\PHPMailer\PHPMailer $phpmailer): void
     {
         $html = $GLOBALS['rrze_appointment_html_body'] ?? '';
         if (!is_string($html) || $html === '') {
@@ -57,5 +69,10 @@ final class Mailer
         $phpmailer->AltBody = $phpmailer->Body;
         $phpmailer->Body = $html;
         $phpmailer->isHTML(true);
+        foreach ($GLOBALS['rrze_appointment_string_attachments'] ?? [] as $filename => $content) {
+            if (!$phpmailer->addStringAttachment($content, $filename, 'base64', 'text/calendar')) {
+                throw new AppointmentException(__('The calendar attachment could not be created.', 'rrze-appointment'));
+            }
+        }
     }
 }

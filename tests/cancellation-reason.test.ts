@@ -20,7 +20,8 @@ const getCancellationReasonResult = (): CancellationReasonResult => {
 	);
 	const php = `
 		namespace RRZE\\Appointment {
-			class AppointmentException extends \\Exception {}
+			defined('ABSPATH') || define('ABSPATH', __DIR__);
+            require_once getcwd() . '/includes/AppointmentException.php';
 		}
 		namespace RRZE\\Appointment\\Notification {
 			class Reminder { public const CRON_HOOK = 'reminder'; }
@@ -75,7 +76,7 @@ const getCancellationReasonResult = (): CancellationReasonResult => {
 			}
 		}
 		namespace {
-			define( 'ABSPATH', __DIR__ );
+			defined('ABSPATH') || define( 'ABSPATH', __DIR__ );
 			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 			define( 'MINUTE_IN_SECONDS', 60 );
 			function __( $value, $domain ) { return $value; }

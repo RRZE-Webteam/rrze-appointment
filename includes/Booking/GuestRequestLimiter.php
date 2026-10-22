@@ -15,7 +15,7 @@ final class GuestRequestLimiter
      * Consumes one request, or returns the number of seconds to wait.
      * Call after validating the booking and normalizing the email, before side effects.
      */
-    public static function consume(string $email): int
+    public static function consume(#[\SensitiveParameter] string $email): int
     {
         $configured = apply_filters('rrze_appointment_guest_request_limits', self::DEFAULT_LIMITS);
         $limits = self::DEFAULT_LIMITS;
@@ -57,7 +57,7 @@ final class GuestRequestLimiter
      * Uses non-autoloaded database rows, independent of evictable object caches.
      * Conditional writes prevent lost increments under concurrent submissions.
      */
-    private static function consumeBucket(string $kind, string $identity, int $limit, int $window): int
+    private static function consumeBucket(#[\SensitiveParameter] string $kind, #[\SensitiveParameter] string $identity, int $limit, int $window): int
     {
         global $wpdb;
 

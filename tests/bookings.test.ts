@@ -22,7 +22,8 @@ const runBookingsScenario = (): BookingsResult => {
 	);
 	const php = `
 		namespace RRZE\\Appointment {
-			class AppointmentException extends \\Exception {}
+			defined('ABSPATH') || define('ABSPATH', __DIR__);
+            require_once getcwd() . '/includes/AppointmentException.php';
 		}
 		namespace RRZE\\Appointment\\Notification {
 			class Reminder {
@@ -47,7 +48,7 @@ const runBookingsScenario = (): BookingsResult => {
 			}
 		}
 		namespace {
-			define( 'ABSPATH', __DIR__ );
+			defined('ABSPATH') || define( 'ABSPATH', __DIR__ );
 			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 			define( 'MINUTE_IN_SECONDS', 60 );
 			$GLOBALS['options'] = [

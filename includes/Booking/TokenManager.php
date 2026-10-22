@@ -110,7 +110,7 @@ final class TokenManager
      *
      * @param array<string, mixed> $meta Pending booking metadata.
      */
-    public static function createPending(string $slot, array $meta): string
+    public static function createPending(#[\SensitiveParameter] string $slot, #[\SensitiveParameter] array $meta): string
     {
         try {
             self::cleanupPendingState();
@@ -140,7 +140,7 @@ final class TokenManager
      *
      * @return array<string, mixed>|null
      */
-    public static function confirmPending(string $token): ?array
+    public static function confirmPending(#[\SensitiveParameter] string $token): ?array
     {
         try {
             if (!self::getPending($token)) {
@@ -158,7 +158,7 @@ final class TokenManager
      *
      * @return array<string, mixed>|null
      */
-    public static function getPending(string $token): ?array
+    public static function getPending(#[\SensitiveParameter] string $token): ?array
     {
         try {
             if ($token === '') {
@@ -181,7 +181,7 @@ final class TokenManager
     /**
      * Removes a pending booking when its scheduled expiry hook runs.
      */
-    public static function expirePending(string $token): void
+    public static function expirePending(#[\SensitiveParameter] string $token): void
     {
         try {
             self::deletePending($token);
@@ -195,7 +195,7 @@ final class TokenManager
      *
      * @return array<string, mixed>|null Removed pending entry.
      */
-    public static function deletePending(string $token): ?array
+    public static function deletePending(#[\SensitiveParameter] string $token): ?array
     {
         try {
             if ($token === '') {
@@ -266,7 +266,7 @@ final class TokenManager
     /**
      * Creates and stores a cancellation token for a confirmed booking.
      */
-    public static function createCancelToken(string $slot): string
+    public static function createCancelToken(#[\SensitiveParameter] string $slot): string
     {
         try {
             $token = self::generateToken($slot);
@@ -289,7 +289,7 @@ final class TokenManager
     /**
      * Creates a cancellation token linked to a pending booking.
      */
-    public static function createPendingCancelToken(string $pendingToken): string
+    public static function createPendingCancelToken(#[\SensitiveParameter] string $pendingToken): string
     {
         try {
             self::cleanupPendingState();
@@ -322,7 +322,7 @@ final class TokenManager
     /**
      * Returns a stable cancellation URL for a confirmed booking slot.
      */
-    public static function getCancelUrlForSlot(string $slot): string
+    public static function getCancelUrlForSlot(#[\SensitiveParameter] string $slot): string
     {
         try {
             $allMeta = self::getOptionArray(Bookings::META_OPTION);
@@ -342,7 +342,7 @@ final class TokenManager
     /**
      * Returns a stable waitlist opt-out URL for a confirmed booking slot.
      */
-    public static function getWaitlistOptOutUrlForSlot(string $slot): string
+    public static function getWaitlistOptOutUrlForSlot(#[\SensitiveParameter] string $slot): string
     {
         try {
             $allMeta = self::getOptionArray(Bookings::META_OPTION);
@@ -366,7 +366,7 @@ final class TokenManager
     /**
      * Resolves a waitlist opt-out token to its confirmed booking slot.
      */
-    public static function validateWaitlistOptOutToken(string $token): ?string
+    public static function validateWaitlistOptOutToken(#[\SensitiveParameter] string $token): ?string
     {
         try {
             if ($token === '') {
@@ -396,7 +396,7 @@ final class TokenManager
      *
      * @return array<string, mixed>|null
      */
-    public static function validateCancelToken(string $token): ?array
+    public static function validateCancelToken(#[\SensitiveParameter] string $token): ?array
     {
         try {
             self::cleanupPendingState();
@@ -445,7 +445,7 @@ final class TokenManager
     /**
      * Removes a cancellation token after it has been consumed.
      */
-    public static function deleteCancelToken(string $token): void
+    public static function deleteCancelToken(#[\SensitiveParameter] string $token): void
     {
         try {
             $tokens = self::getOptionArray(self::CANCEL_OPTION);
@@ -459,7 +459,7 @@ final class TokenManager
     /**
      * Builds a public booking-confirmation URL.
      */
-    public static function confirmUrl(string $token): string
+    public static function confirmUrl(#[\SensitiveParameter] string $token): string
     {
         return self::actionUrl(self::CONFIRM_QUERY_KEY, $token);
     }
@@ -467,7 +467,7 @@ final class TokenManager
     /**
      * Builds a public booking-cancellation URL.
      */
-    public static function cancelUrl(string $token): string
+    public static function cancelUrl(#[\SensitiveParameter] string $token): string
     {
         return self::actionUrl(self::CANCEL_QUERY_KEY, $token);
     }
@@ -475,7 +475,7 @@ final class TokenManager
     /**
      * Builds a public waitlist-preference URL.
      */
-    public static function waitlistOptOutUrl(string $token): string
+    public static function waitlistOptOutUrl(#[\SensitiveParameter] string $token): string
     {
         return self::actionUrl(self::WAITLIST_OPT_OUT_QUERY_KEY, $token);
     }
@@ -503,7 +503,7 @@ final class TokenManager
      *
      * @return array<mixed>
      */
-    private static function getOptionArray(string $optionName): array
+    private static function getOptionArray(#[\SensitiveParameter] string $optionName): array
     {
         return BookingStorage::get($optionName);
     }
@@ -513,7 +513,7 @@ final class TokenManager
      *
      * @param array<string, mixed> $entry Stored token entry.
      */
-    private static function isExpired(array $entry, ?int $now = null): bool
+    private static function isExpired(#[\SensitiveParameter] array $entry, ?int $now = null): bool
     {
         $expires = (int) ($entry['expires'] ?? 0);
         return $expires <= 0 || ($now ?? time()) >= $expires;
@@ -535,7 +535,7 @@ final class TokenManager
     /**
      * Generates a non-predictable token scoped by WordPress salts.
      */
-    private static function generateToken(string $context, string $scheme = 'auth'): string
+    private static function generateToken(#[\SensitiveParameter] string $context, #[\SensitiveParameter] string $scheme = 'auth'): string
     {
         $entropy = implode('|', [
             $context,
@@ -550,7 +550,7 @@ final class TokenManager
     /**
      * Builds a public action URL containing an opaque token.
      */
-    private static function actionUrl(string $queryKey, string $token): string
+    private static function actionUrl(#[\SensitiveParameter] string $queryKey, #[\SensitiveParameter] string $token): string
     {
         return add_query_arg($queryKey, $token, home_url('/'));
     }
@@ -560,11 +560,7 @@ final class TokenManager
      */
     private static function wrapException(\Throwable $exception): AppointmentException
     {
-        if ($exception instanceof AppointmentException) {
-            return $exception;
-        }
-
-        return new AppointmentException($exception->getMessage(), (int) $exception->getCode(), $exception);
+        return AppointmentException::fromThrowable($exception);
     }
 
     /**

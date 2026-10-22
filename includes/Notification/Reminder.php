@@ -43,7 +43,7 @@ final class Reminder
                 );
             }
             add_action(self::DAILY_CHECK_HOOK, [$this, 'checkAndSendReminders']);
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -53,7 +53,7 @@ final class Reminder
      *
      * @param array<string, mixed> $meta Confirmed booking metadata.
      */
-    public static function scheduleForSlot(string $slot, array $meta): void
+    public static function scheduleForSlot(#[\SensitiveParameter] string $slot, #[\SensitiveParameter] array $meta): void
     {
         try {
             $allMeta = BookingStorage::get(Bookings::META_OPTION);
@@ -76,7 +76,7 @@ final class Reminder
 
                 BookingScheduler::schedule($reminderTimestamp, self::CRON_HOOK, $slot);
             }
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -84,7 +84,7 @@ final class Reminder
     /**
      * Sends host and booker reminders for a confirmed slot.
      */
-    public function sendReminder(string $slot): void
+    public function sendReminder(#[\SensitiveParameter] string $slot): void
     {
         try {
             $hostDue = self::isReminderDue($slot, (int) PluginSettings::get('reminder_host_days'));
@@ -123,7 +123,7 @@ final class Reminder
                     self::BOOKER_TEMPLATE_TYPE
                 );
             }
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -133,7 +133,7 @@ final class Reminder
      *
      * @return array<string, mixed>
      */
-    private function getBookingMeta(string $slot): array
+    private function getBookingMeta(#[\SensitiveParameter] string $slot): array
     {
         $allMeta = BookingStorage::get(Bookings::META_OPTION);
         return is_array($allMeta[$slot] ?? null) ? $allMeta[$slot] : [];
@@ -145,7 +145,7 @@ final class Reminder
      * @param array<string, mixed> $meta Confirmed booking metadata.
      * @return array<string, string>
      */
-    private function buildTemplateVariables(string $slot, array $meta): array
+    private function buildTemplateVariables(#[\SensitiveParameter] string $slot, #[\SensitiveParameter] array $meta): array
     {
         [$datePart, $startTime, $endTime] = self::parseSlot($slot);
         $personName = sanitize_text_field((string) ($meta['person_name'] ?? ''));
@@ -196,7 +196,7 @@ final class Reminder
      *
      * @return array{subject: string, body: string, body_html: string}
      */
-    private function resolveTemplate(int $templateId, string $type): array
+    private function resolveTemplate(int $templateId, #[\SensitiveParameter] string $type): array
     {
         $custom = $templateId > 0
             ? (MailTemplatePost::getTemplateForType($templateId, $type) ?? [])
@@ -218,7 +218,7 @@ final class Reminder
      * @param array<string, string>                                  $variables
      * @return array{subject: string, plain: string, html: string}
      */
-    private function renderMail(array $template, array $variables): array
+    private function renderMail(#[\SensitiveParameter] array $template, #[\SensitiveParameter] array $variables): array
     {
         $htmlVariables = array_map(
             static fn (string $value): string => esc_html($value),
@@ -237,7 +237,7 @@ final class Reminder
      *
      * @param array{subject: string, plain: string, html: string} $mail Rendered mail parts.
      */
-    private function sendRenderedMail(string $recipient, array $mail, string $templateType): void
+    private function sendRenderedMail(#[\SensitiveParameter] string $recipient, #[\SensitiveParameter] array $mail, #[\SensitiveParameter] string $templateType): void
     {
         if ($recipient === '') {
             return;
@@ -277,7 +277,7 @@ final class Reminder
 
                 $this->sendReminder($slot);
             }
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -285,7 +285,7 @@ final class Reminder
     /**
      * Checks the current recipient setting, including for previously scheduled events.
      */
-    private static function isReminderDue(string $slot, int $days): bool
+    private static function isReminderDue(#[\SensitiveParameter] string $slot, int $days): bool
     {
         if ($days < 1) {
             return false;
@@ -312,7 +312,7 @@ final class Reminder
     /**
      * Calculates a site-local reminder timestamp for a stored slot.
      */
-    private static function getReminderTimestamp(string $slot, int $days): ?int
+    private static function getReminderTimestamp(#[\SensitiveParameter] string $slot, int $days): ?int
     {
         [$datePart] = self::parseSlot($slot);
         $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $datePart, wp_timezone());
@@ -331,7 +331,7 @@ final class Reminder
      *
      * @return array{0: string, 1: string, 2: string}
      */
-    private static function parseSlot(string $slot): array
+    private static function parseSlot(#[\SensitiveParameter] string $slot): array
     {
         [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
         [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
@@ -342,12 +342,8 @@ final class Reminder
     /**
      * Converts infrastructure errors to the plugin's shared exception type.
      */
-    private static function createException(\Exception $exception): AppointmentException
+    private static function createException(#[\SensitiveParameter] \Throwable $exception): AppointmentException
     {
-        if ($exception instanceof AppointmentException) {
-            return $exception;
-        }
-
-        return new AppointmentException($exception->getMessage(), (int) $exception->getCode(), $exception);
+        return AppointmentException::fromThrowable($exception);
     }
 }

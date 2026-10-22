@@ -53,7 +53,7 @@ final class BookingOpeningController
                 $retryAfter = GuestRequestLimiter::consume($bookerEmail);
                 if ($retryAfter > 0) {
                     header('Retry-After: ' . $retryAfter);
-                    wp_send_json_error(__('Too many requests. Please wait a few minutes and try again.', 'rrze-appointment'), 429);
+                    throw new AppointmentException(__('Too many requests. Please wait a few minutes and try again.', 'rrze-appointment'), 429);
                 }
             }
 
@@ -65,15 +65,18 @@ final class BookingOpeningController
                 (int) $context['booking_closes_at']
             );
 
-            wp_send_json_success([
+            $response = [
                 'message' => __('We will email you when this appointment opens for booking.', 'rrze-appointment'),
                 'redirectUrl' => BookingOpeningNotifier::registrationUrl(
                     $subscription['statusToken']
                 ),
-            ]);
+            ];
         } catch (AppointmentException $exception) {
-            wp_send_json_error($exception->getMessage());
+            wp_send_json_error($exception->getMessage(), in_array($exception->getCode(), [429, 500, 502], true) ? $exception->getCode() : 200);
+        } catch (\Throwable $exception) {
+            wp_send_json_error(AppointmentException::fromThrowable($exception)->getMessage(), 500);
         }
+        wp_send_json_success($response);
     }
 
     /**
@@ -94,8 +97,8 @@ final class BookingOpeningController
 
             wp_safe_redirect($result);
             exit;
-        } catch (AppointmentException $exception) {
-            wp_die(esc_html($exception->getMessage()), '', ['response' => 500]);
+        } catch (\Throwable $exception) {
+            wp_die(esc_html(AppointmentException::fromThrowable($exception)->getMessage()), '', ['response' => 500]);
         }
     }
 
@@ -125,8 +128,8 @@ final class BookingOpeningController
                     $meta
                 )
             );
-        } catch (AppointmentException $exception) {
-            wp_die(esc_html($exception->getMessage()), '', ['response' => 500]);
+        } catch (\Throwable $exception) {
+            wp_die(esc_html(AppointmentException::fromThrowable($exception)->getMessage()), '', ['response' => 500]);
         }
     }
 
@@ -152,10 +155,10 @@ final class BookingOpeningController
      * @param array{slot: string, postId: int, blockFingerprint: string, email: string, name: string} $request
      * @return array<string, mixed>
      */
-    private function resolveSubscriptionContext(array $request): array
+    private function resolveSubscriptionContext(#[\SensitiveParameter] array $request): array
     {
         if ($request['slot'] === '') {
-            wp_send_json_error(__('No appointment specified.', 'rrze-appointment'));
+            throw new AppointmentException(__('No appointment specified.', 'rrze-appointment'));
         }
 
         $context = AppointmentBlock::resolvePublished(
@@ -165,15 +168,15 @@ final class BookingOpeningController
             true
         );
         if (is_wp_error($context)) {
-            wp_send_json_error($context->get_error_message());
+            throw new AppointmentException($context->get_error_message());
         }
         if (empty($context['booking_not_open'])) {
-            wp_send_json_error(
+            throw new AppointmentException(
                 __('This appointment is already open for booking.', 'rrze-appointment')
             );
         }
         if ((int) $context['booking_opens_at'] >= (int) $context['booking_closes_at']) {
-            wp_send_json_error(
+            throw new AppointmentException(
                 __('This appointment has no valid booking period.', 'rrze-appointment')
             );
         }
@@ -186,7 +189,7 @@ final class BookingOpeningController
      * @param array<string, mixed> $context Published appointment context.
      * @return array{0: string, 1: string}
      */
-    private function resolveBooker(array $request, array $context): array
+    private function resolveBooker(#[\SensitiveParameter] array $request, #[\SensitiveParameter] array $context): array
     {
         if (!empty($context['disable_sso'])) {
             return [EmailAddress::validate($request['email']), $request['name']];
@@ -196,7 +199,7 @@ final class BookingOpeningController
         $email = sanitize_email((string) ($serverBooker['bookerEmail'] ?? ''));
         $name = sanitize_text_field((string) ($serverBooker['bookerName'] ?? ''));
         if (empty($serverBooker['authenticated']) || $email === '') {
-            wp_send_json_error(__('No authenticated email address found.', 'rrze-appointment'));
+            throw new AppointmentException(__('No authenticated email address found.', 'rrze-appointment'));
         }
 
         return [$email, $name];
@@ -205,23 +208,23 @@ final class BookingOpeningController
     /**
      * Validates the required subscriber identity fields.
      */
-    private function validateBooker(string $email, string $name): void
+    private function validateBooker(#[\SensitiveParameter] string $email, #[\SensitiveParameter] string $name): void
     {
         if ($email === '') {
-            wp_send_json_error(__('Please provide an email address.', 'rrze-appointment'));
+            throw new AppointmentException(__('Please provide an email address.', 'rrze-appointment'));
         }
         if ($name === '') {
-            wp_send_json_error(__('Please provide your name.', 'rrze-appointment'));
+            throw new AppointmentException(__('Please provide your name.', 'rrze-appointment'));
         }
     }
 
     /**
      * Rejects slots that have already been booked.
      */
-    private function assertSlotIsAvailable(string $slot): void
+    private function assertSlotIsAvailable(#[\SensitiveParameter] string $slot): void
     {
         if (in_array($slot, BookingStorage::get(Bookings::SLOTS_OPTION), true)) {
-            wp_send_json_error(__('This appointment is no longer available.', 'rrze-appointment'));
+            throw new AppointmentException(__('This appointment is no longer available.', 'rrze-appointment'));
         }
     }
 
@@ -232,9 +235,9 @@ final class BookingOpeningController
      * @return array<string, mixed>
      */
     private function buildSubscriptionMeta(
-        array $context,
-        string $bookerEmail,
-        string $bookerName
+        #[\SensitiveParameter] array $context,
+        #[\SensitiveParameter] string $bookerEmail,
+        #[\SensitiveParameter] string $bookerName
     ): array {
         return [
             'title' => $context['title'],
@@ -255,7 +258,7 @@ final class BookingOpeningController
     /**
      * Reads one scalar POST value and removes WordPress request slashes.
      */
-    private function getPostValue(string $key): string
+    private function getPostValue(#[\SensitiveParameter] string $key): string
     {
         $value = wp_unslash($_POST[$key] ?? '');
 
@@ -265,7 +268,7 @@ final class BookingOpeningController
     /**
      * Reads and sanitizes a token from the query string.
      */
-    private function getQueryToken(string $key): string
+    private function getQueryToken(#[\SensitiveParameter] string $key): string
     {
         $value = wp_unslash($_GET[$key] ?? '');
 

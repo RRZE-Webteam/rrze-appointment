@@ -47,7 +47,7 @@ final class BookingRequestController
                 $retryAfter = GuestRequestLimiter::consume($bookerEmail);
                 if ($retryAfter > 0) {
                     header('Retry-After: ' . $retryAfter);
-                    wp_send_json_error(__('Too many requests. Please wait a few minutes and try again.', 'rrze-appointment'), 429);
+                    throw new AppointmentException(__('Too many requests. Please wait a few minutes and try again.', 'rrze-appointment'), 429);
                 }
             }
 
@@ -61,12 +61,15 @@ final class BookingRequestController
                 $meta
             );
 
-            wp_send_json_success([
+            $response = [
                 'message' => __('Please confirm your appointment by email.', 'rrze-appointment'),
-            ]);
+            ];
         } catch (AppointmentException $exception) {
-            wp_send_json_error($exception->getMessage());
+            wp_send_json_error($exception->getMessage(), in_array($exception->getCode(), [429, 500, 502], true) ? $exception->getCode() : 200);
+        } catch (\Throwable $exception) {
+            wp_send_json_error(AppointmentException::fromThrowable($exception)->getMessage(), 500);
         }
+        wp_send_json_success($response);
     }
 
     /**
@@ -92,10 +95,10 @@ final class BookingRequestController
      * @param array{slot: string, postId: int, blockFingerprint: string, email: string, name: string, waitlist: bool} $request
      * @return array<string, mixed>
      */
-    private function resolveBookingContext(array $request): array
+    private function resolveBookingContext(#[\SensitiveParameter] array $request): array
     {
         if ($request['slot'] === '') {
-            wp_send_json_error(__('No appointment specified.', 'rrze-appointment'));
+            throw new AppointmentException(__('No appointment specified.', 'rrze-appointment'));
         }
 
         $context = AppointmentBlock::resolvePublished(
@@ -104,7 +107,7 @@ final class BookingRequestController
             $request['slot']
         );
         if (is_wp_error($context)) {
-            wp_send_json_error($context->get_error_message());
+            throw new AppointmentException($context->get_error_message());
         }
 
         return $context;
@@ -117,7 +120,7 @@ final class BookingRequestController
      * @param array<string, mixed> $context Published appointment block context.
      * @return array{0: string, 1: string}
      */
-    private function resolveBooker(array $request, array $context): array
+    private function resolveBooker(#[\SensitiveParameter] array $request, #[\SensitiveParameter] array $context): array
     {
         if (!empty($context['disable_sso'])) {
             return [EmailAddress::validate($request['email']), $request['name']];
@@ -128,7 +131,7 @@ final class BookingRequestController
         $email = sanitize_email($serverBooker['bookerEmail'] ?? '');
         $serverName = sanitize_text_field($serverBooker['bookerName'] ?? '');
         if (!$isAuthenticated || $email === '') {
-            wp_send_json_error(__('No authenticated email address found.', 'rrze-appointment'));
+            throw new AppointmentException(__('No authenticated email address found.', 'rrze-appointment'));
         }
 
         return [$email, $isAuthenticated ? $serverName : $request['name']];
@@ -137,13 +140,13 @@ final class BookingRequestController
     /**
      * Validates the required booking identity fields.
      */
-    private function validateBooker(string $email, string $name): void
+    private function validateBooker(#[\SensitiveParameter] string $email, #[\SensitiveParameter] string $name): void
     {
         if ($email === '') {
-            wp_send_json_error(__('Please provide an email address.', 'rrze-appointment'));
+            throw new AppointmentException(__('Please provide an email address.', 'rrze-appointment'));
         }
         if ($name === '') {
-            wp_send_json_error(__('Please provide your name.', 'rrze-appointment'));
+            throw new AppointmentException(__('Please provide your name.', 'rrze-appointment'));
         }
     }
 
@@ -152,12 +155,12 @@ final class BookingRequestController
      *
      * @return array{0: string, 1: string, 2: string}
      */
-    private function parseSlot(string $slot): array
+    private function parseSlot(#[\SensitiveParameter] string $slot): array
     {
         [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
         [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
         if ($datePart === '' || $startTime === '' || $endTime === '') {
-            wp_send_json_error(__('Invalid appointment format.', 'rrze-appointment'));
+            throw new AppointmentException(__('Invalid appointment format.', 'rrze-appointment'));
         }
 
         return [$datePart, $startTime, $endTime];
@@ -166,19 +169,19 @@ final class BookingRequestController
     /**
      * Rejects slots that are already booked or waiting for confirmation.
      */
-    private function assertSlotIsAvailable(string $slot): void
+    private function assertSlotIsAvailable(#[\SensitiveParameter] string $slot): void
     {
         $booked = BookingStorage::get(Bookings::SLOTS_OPTION);
         $pending = TokenManager::getPendingSlots();
         if (in_array($slot, $booked, true) || in_array($slot, $pending, true)) {
-            wp_send_json_error(__('This appointment is no longer available.', 'rrze-appointment'));
+            throw new AppointmentException(__('This appointment is no longer available.', 'rrze-appointment'));
         }
     }
 
     /**
      * Reads one scalar POST value and removes WordPress request slashes.
      */
-    private function getPostValue(string $key): string
+    private function getPostValue(#[\SensitiveParameter] string $key): string
     {
         $value = wp_unslash($_POST[$key] ?? '');
 
@@ -196,10 +199,10 @@ final class BookingRequestController
      * @return array<string, mixed>
      */
     private function buildPendingMeta(
-        array $request,
-        array $context,
-        string $bookerEmail,
-        string $bookerName
+        #[\SensitiveParameter] array $request,
+        #[\SensitiveParameter] array $context,
+        #[\SensitiveParameter] string $bookerEmail,
+        #[\SensitiveParameter] string $bookerName
     ): array {
         return [
             'title' => $context['title'],
@@ -223,11 +226,11 @@ final class BookingRequestController
      * @param array<string, mixed> $meta Pending booking metadata.
      */
     private function sendConfirmationRequest(
-        string $confirmToken,
-        string $datePart,
-        string $startTime,
-        string $endTime,
-        array $meta
+        #[\SensitiveParameter] string $confirmToken,
+        #[\SensitiveParameter] string $datePart,
+        #[\SensitiveParameter] string $startTime,
+        #[\SensitiveParameter] string $endTime,
+        #[\SensitiveParameter] array $meta
     ): void {
         $variables = $this->getConfirmationVariables(
             $confirmToken,
@@ -268,11 +271,11 @@ final class BookingRequestController
      * @return array<string, string>
      */
     private function getConfirmationVariables(
-        string $confirmToken,
-        string $datePart,
-        string $startTime,
-        string $endTime,
-        array $meta
+        #[\SensitiveParameter] string $confirmToken,
+        #[\SensitiveParameter] string $datePart,
+        #[\SensitiveParameter] string $startTime,
+        #[\SensitiveParameter] string $endTime,
+        #[\SensitiveParameter] array $meta
     ): array {
         $confirmUrl = TokenManager::confirmUrl($confirmToken);
         $imprintUrl = TokenManager::imprintUrl();
@@ -298,7 +301,7 @@ final class BookingRequestController
      *
      * @return array{0: array<string, string>, 1: array<string, string>}
      */
-    private function getConfirmationTemplates(int $templateId, string $templateType): array
+    private function getConfirmationTemplates(int $templateId, #[\SensitiveParameter] string $templateType): array
     {
         $template = $templateId > 0
             ? (MailTemplatePost::getTemplateForType($templateId, $templateType) ?? [])
@@ -312,7 +315,7 @@ final class BookingRequestController
      *
      * @return array{0: string, 1: string}
      */
-    private function ensureRequiredConfirmationLinks(string $plain, string $html): array
+    private function ensureRequiredConfirmationLinks(#[\SensitiveParameter] string $plain, #[\SensitiveParameter] string $html): array
     {
         if (strpos($plain, '[confirmation_link]') === false) {
             $plain .= "\n\n" . __('Confirmation', 'rrze-appointment') . ': [confirmation_link]';
