@@ -10,6 +10,7 @@ use RRZE\Appointment\Mail\EmailAddress;
 use RRZE\Appointment\Notification\BookingOpeningNotifier;
 use RRZE\Appointment\Presentation\PublicPageRenderer;
 use RRZE\Appointment\Rights;
+use RRZE\Appointment\Storage\BookingStorage;
 
 defined('ABSPATH') || exit;
 
@@ -219,7 +220,7 @@ final class BookingOpeningController
      */
     private function assertSlotIsAvailable(string $slot): void
     {
-        if (in_array($slot, (array) get_option(Bookings::SLOTS_OPTION, []), true)) {
+        if (in_array($slot, BookingStorage::get(Bookings::SLOTS_OPTION), true)) {
             wp_send_json_error(__('This appointment is no longer available.', 'rrze-appointment'));
         }
     }

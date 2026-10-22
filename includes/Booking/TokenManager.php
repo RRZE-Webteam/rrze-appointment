@@ -3,6 +3,8 @@
 namespace RRZE\Appointment\Booking;
 
 use RRZE\Appointment\AppointmentException;
+use RRZE\Appointment\Storage\BookingStorage;
+use RRZE\Appointment\Storage\BookingScheduler;
 
 defined('ABSPATH') || exit;
 
@@ -41,7 +43,7 @@ final class TokenManager
             foreach ($pending as $pendingToken => $entry) {
                 if (!self::isValidPendingEntry($entry, $now)) {
                     unset($pending[$pendingToken]);
-                    wp_clear_scheduled_hook(self::PENDING_EXPIRY_HOOK, [$pendingToken]);
+                    BookingScheduler::clear(self::PENDING_EXPIRY_HOOK, $pendingToken);
                     $pendingChanged = true;
                     continue;
                 }
@@ -93,10 +95,10 @@ final class TokenManager
             }
 
             if ($pendingChanged) {
-                update_option(self::PENDING_OPTION, $pending, false);
+                BookingStorage::set(self::PENDING_OPTION, $pending);
             }
             if ($tokensChanged) {
-                update_option(self::CANCEL_OPTION, $tokens, false);
+                BookingStorage::set(self::CANCEL_OPTION, $tokens);
             }
         } catch (\Throwable $exception) {
             throw self::wrapException($exception);
@@ -121,11 +123,11 @@ final class TokenManager
                 'meta'    => $meta,
                 'expires' => $expires,
             ];
-            update_option(self::PENDING_OPTION, $pending, false);
-            wp_schedule_single_event(
+            BookingStorage::set(self::PENDING_OPTION, $pending);
+            BookingScheduler::schedule(
                 $expires + self::EXPIRY_SCHEDULE_DELAY,
                 self::PENDING_EXPIRY_HOOK,
-                [$token]
+                $token
             );
             return $token;
         } catch (\Throwable $exception) {
@@ -206,9 +208,9 @@ final class TokenManager
 
             if (isset($pending[$token])) {
                 unset($pending[$token]);
-                update_option(self::PENDING_OPTION, $pending, false);
+                BookingStorage::set(self::PENDING_OPTION, $pending);
             }
-            wp_clear_scheduled_hook(self::PENDING_EXPIRY_HOOK, [$token]);
+            BookingScheduler::clear(self::PENDING_EXPIRY_HOOK, $token);
 
             $tokens = self::getOptionArray(self::CANCEL_OPTION);
             $changed = false;
@@ -231,7 +233,7 @@ final class TokenManager
                 }
             }
             if ($changed) {
-                update_option(self::CANCEL_OPTION, $tokens, false);
+                BookingStorage::set(self::CANCEL_OPTION, $tokens);
             }
 
             return is_array($entry) ? $entry : null;
@@ -270,12 +272,12 @@ final class TokenManager
             $token = self::generateToken($slot);
             $tokens = self::getOptionArray(self::CANCEL_OPTION);
             $tokens[$token] = ['slot' => $slot, 'type' => self::TOKEN_TYPE_BOOKED];
-            update_option(self::CANCEL_OPTION, $tokens, false);
+            BookingStorage::set(self::CANCEL_OPTION, $tokens);
 
             $allMeta = self::getOptionArray(Bookings::META_OPTION);
             if (isset($allMeta[$slot]) && is_array($allMeta[$slot])) {
                 $allMeta[$slot]['cancel_token'] = $token;
-                update_option(Bookings::META_OPTION, $allMeta, false);
+                BookingStorage::set(Bookings::META_OPTION, $allMeta);
             }
 
             return $token;
@@ -306,10 +308,10 @@ final class TokenManager
                 'pending_token' => $pendingToken,
                 'expires'       => (int) $entry['expires'],
             ];
-            update_option(self::CANCEL_OPTION, $tokens, false);
+            BookingStorage::set(self::CANCEL_OPTION, $tokens);
 
             $pending[$pendingToken]['cancel_token'] = $token;
-            update_option(self::PENDING_OPTION, $pending, false);
+            BookingStorage::set(self::PENDING_OPTION, $pending);
 
             return $token;
         } catch (\Throwable $exception) {
@@ -352,7 +354,7 @@ final class TokenManager
             if ($token === '') {
                 $token = self::generateToken($slot, 'nonce');
                 $allMeta[$slot]['waitlist_optout_token'] = $token;
-                update_option(Bookings::META_OPTION, $allMeta, false);
+                BookingStorage::set(Bookings::META_OPTION, $allMeta);
             }
 
             return self::waitlistOptOutUrl($token);
@@ -448,7 +450,7 @@ final class TokenManager
         try {
             $tokens = self::getOptionArray(self::CANCEL_OPTION);
             unset($tokens[$token]);
-            update_option(self::CANCEL_OPTION, $tokens, false);
+            BookingStorage::set(self::CANCEL_OPTION, $tokens);
         } catch (\Throwable $exception) {
             throw self::wrapException($exception);
         }
@@ -503,8 +505,7 @@ final class TokenManager
      */
     private static function getOptionArray(string $optionName): array
     {
-        $value = get_option($optionName, []);
-        return is_array($value) ? $value : [];
+        return BookingStorage::get($optionName);
     }
 
     /**

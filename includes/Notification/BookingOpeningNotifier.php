@@ -8,6 +8,8 @@ use RRZE\Appointment\AppointmentException;
 use RRZE\Appointment\Mail\MailTemplate;
 use RRZE\Appointment\Mail\MailTemplatePost;
 use RRZE\Appointment\Mail\Mailer;
+use RRZE\Appointment\Storage\BookingStorage;
+use RRZE\Appointment\Storage\BookingScheduler;
 
 defined('ABSPATH') || exit;
 
@@ -93,7 +95,7 @@ final class BookingOpeningNotifier
         if ($statusToken === '') {
             $statusToken = wp_generate_uuid4();
             $entries[$token]['status_token'] = $statusToken;
-            update_option(self::OPTION, $entries, false);
+            BookingStorage::set(self::OPTION, $entries);
         }
 
         self::schedule($token, (int) ($entry['opens_at'] ?? $opensAt));
@@ -130,7 +132,7 @@ final class BookingOpeningNotifier
             'created_at' => time(),
             'notified_at' => 0,
         ];
-        update_option(self::OPTION, $entries, false);
+        BookingStorage::set(self::OPTION, $entries);
         self::schedule($token, $opensAt);
 
         return [
@@ -190,7 +192,7 @@ final class BookingOpeningNotifier
      */
     private static function isBooked(string $slot): bool
     {
-        return in_array($slot, (array) get_option(Bookings::SLOTS_OPTION, []), true);
+        return in_array($slot, BookingStorage::get(Bookings::SLOTS_OPTION), true);
     }
 
     /**
@@ -220,7 +222,7 @@ final class BookingOpeningNotifier
         }
 
         $entries[$token]['notified_at'] = $notifiedAt;
-        update_option(self::OPTION, $entries, false);
+        BookingStorage::set(self::OPTION, $entries);
     }
 
     /**
@@ -350,13 +352,16 @@ final class BookingOpeningNotifier
         foreach ($entries as $token => $entry) {
             if (!is_array($entry) || $now >= (int) ($entry['closes_at'] ?? 0)) {
                 unset($entries[$token]);
-                wp_clear_scheduled_hook(self::CRON_HOOK, [(string) $token]);
+                BookingScheduler::clear(self::CRON_HOOK, (string) $token);
                 $changed = true;
+            } elseif (empty($entry['notified_at'])) {
+                // A one-shot cron event may have been consumed during a key outage.
+                self::schedule((string) $token, (int) ($entry['opens_at'] ?? $now));
             }
         }
 
         if ($changed) {
-            update_option(self::OPTION, $entries, false);
+            BookingStorage::set(self::OPTION, $entries);
         }
     }
 
@@ -368,9 +373,9 @@ final class BookingOpeningNotifier
         $entries = self::getEntries();
         if (isset($entries[$token])) {
             unset($entries[$token]);
-            update_option(self::OPTION, $entries, false);
+            BookingStorage::set(self::OPTION, $entries);
         }
-        wp_clear_scheduled_hook(self::CRON_HOOK, [$token]);
+        BookingScheduler::clear(self::CRON_HOOK, $token);
     }
 
     /**
@@ -382,8 +387,8 @@ final class BookingOpeningNotifier
         if ($timestamp <= $now) {
             $timestamp = $now + 1;
         }
-        if (!wp_next_scheduled(self::CRON_HOOK, [$token])) {
-            wp_schedule_single_event($timestamp, self::CRON_HOOK, [$token]);
+        if (!BookingScheduler::next(self::CRON_HOOK, $token)) {
+            BookingScheduler::schedule($timestamp, self::CRON_HOOK, $token);
         }
     }
 
@@ -394,7 +399,7 @@ final class BookingOpeningNotifier
      */
     private static function getEntries(): array
     {
-        return (array) get_option(self::OPTION, []);
+        return BookingStorage::get(self::OPTION);
     }
 
     /**

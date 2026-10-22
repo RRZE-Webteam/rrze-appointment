@@ -24,7 +24,7 @@ type TokenManagerResult = {
 	unknownWaitlistSlot: null;
 	actionUrls: string[];
 	imprintUrl: string;
-	corruptOptionsIgnored: string[];
+	corruptOptionsRejected: boolean;
 	wrappedFailure: {
 		className: string;
 		message: string;
@@ -49,6 +49,7 @@ const getTokenManagerResult = (): TokenManagerResult => {
 		}
 		namespace {
 			define( 'ABSPATH', __DIR__ );
+			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 			$now = time();
 			$GLOBALS['options'] = [
 				'rrze_appointment_pending_slots' => [
@@ -174,7 +175,12 @@ const getTokenManagerResult = (): TokenManagerResult => {
 			$imprintUrl = \\RRZE\\Appointment\\Booking\\TokenManager::imprintUrl();
 
 			$GLOBALS['options']['rrze_appointment_pending_slots'] = 'corrupt';
-			$corruptOptionsIgnored = \\RRZE\\Appointment\\Booking\\TokenManager::getPendingSlots();
+			$corruptOptionsRejected = false;
+            try {
+                \\RRZE\\Appointment\\Booking\\TokenManager::getPendingSlots();
+            } catch (\\RRZE\\Appointment\\AppointmentException $exception) {
+                $corruptOptionsRejected = true;
+            }
 			$GLOBALS['throw_on_get'] = true;
 			$wrappedFailure = [];
 			try {
@@ -207,7 +213,7 @@ const getTokenManagerResult = (): TokenManagerResult => {
 				'unknownWaitlistSlot' => $unknownWaitlistSlot,
 				'actionUrls' => $actionUrls,
 				'imprintUrl' => $imprintUrl,
-				'corruptOptionsIgnored' => $corruptOptionsIgnored,
+				'corruptOptionsRejected' => $corruptOptionsRejected,
 				'wrappedFailure' => $wrappedFailure,
 			] );
 		}
@@ -296,10 +302,10 @@ describe( 'token manager', () => {
 		expect( result.imprintUrl ).toBe( 'https://example.test/impressum/' );
 	} );
 
-	it( 'ignores corrupt option shapes and wraps storage failures', () => {
+	it( 'rejects corrupt option shapes and wraps storage failures', () => {
 		const result = getTokenManagerResult();
 
-		expect( result.corruptOptionsIgnored ).toEqual( [] );
+		expect( result.corruptOptionsRejected ).toBe( true );
 		expect( result.wrappedFailure ).toEqual( {
 			className: 'RRZE\\Appointment\\AppointmentException',
 			message: 'storage failed',

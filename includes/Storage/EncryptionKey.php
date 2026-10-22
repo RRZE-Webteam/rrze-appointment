@@ -85,6 +85,28 @@ final class EncryptionKey
     }
 
     /**
+     * Derives an independent key for opaque references in the WordPress cron queue.
+     *
+     * @param string $siteContext Persistent site's storage context.
+     * @return string Binary HMAC key; never persist or log it.
+     */
+    public function forJobs(string $siteContext): string
+    {
+        return hash_hkdf('sha256', $this->material, 32, 'rrze-appointment:jobs:v1', $siteContext);
+    }
+
+    /**
+     * Derives an independent authentication key for migration progress markers.
+     *
+     * @param string $siteContext Persistent site's storage context.
+     * @return string Binary HMAC key; never persist or log it.
+     */
+    public function forState(string $siteContext): string
+    {
+        return hash_hkdf('sha256', $this->material, 32, 'rrze-appointment:state:v1', $siteContext);
+    }
+
+    /**
      * Derives a public key identifier independently from the encryption key.
      *
      * @param string $siteContext Stable site identifier used by the storage cipher.

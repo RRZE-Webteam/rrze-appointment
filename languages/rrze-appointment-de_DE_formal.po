@@ -2963,3 +2963,45 @@ msgstr "Manuellen Termin von %1$s bis %2$s entfernen"
 msgctxt "Admin menu label"
 msgid "Appointments"
 msgstr "Appointments"
+
+#: includes/Admin/StorageStatus.php
+msgid "Appointment storage is unavailable. Check the encryption key, database connection and migration state. Booking operations have been stopped to protect existing data."
+msgstr "Der Terminspeicher ist nicht verfügbar. Prüfen Sie den Schlüssel, die Datenbankverbindung und den Migrationsstatus. Buchungsvorgänge wurden zum Schutz bestehender Daten angehalten."
+
+#: includes/Admin/StorageStatus.php
+msgid "Booking data is not encrypted. Configuring RRZE_APPOINTMENT_ENCRYPTION_KEY on the server starts migration automatically on the next request."
+msgstr "Buchungsdaten sind nicht verschlüsselt. Sobald RRZE_APPOINTMENT_ENCRYPTION_KEY auf dem Server hinterlegt ist, startet die Migration automatisch beim nächsten Aufruf."
+
+#: includes/Admin/StorageStatus.php
+msgid "The encryption key is configured. Migration starts automatically when the plugin initializes or booking data are accessed."
+msgstr "Der Schlüssel ist hinterlegt. Die Migration startet automatisch beim Initialisieren des Plugins oder beim Zugriff auf Buchungsdaten."
+
+#: includes/Admin/StorageStatus.php
+#, php-format
+msgid "Encryption migration is incomplete (%1$d of %2$d stores). It resumes automatically on the next request. Storage errors must be corrected before booking operations can continue."
+msgstr "Die Verschlüsselungsmigration ist unvollständig (%1$d von %2$d Speicherbereichen). Sie wird beim nächsten Aufruf automatisch fortgesetzt. Speicherfehler müssen behoben werden, bevor Buchungsvorgänge fortgesetzt werden können."
+
+#: includes/Admin/StorageStatus.php
+msgid "Booking and notification stores are encrypted. Scheduled jobs use opaque references."
+msgstr "Buchungs- und Benachrichtigungsdaten sind verschlüsselt. Geplante Aufgaben verwenden nicht lesbare Verweise."
+
+#: includes/Storage/NetworkMigration.php
+msgid "Appointment network migration (every minute)"
+msgstr "Appointment-Netzwerkmigration (jede Minute)"
+
+#: includes/Storage/NetworkMigration.php
+#, php-format
+msgid "Appointment network migration: %1$d sites checked, %2$d encrypted, %3$d skipped, %4$d failed. Coordinator site: %5$d. Last failed site: %6$d."
+msgstr "Appointment-Netzwerkmigration: %1$d Websites geprüft, %2$d verschlüsselt, %3$d übersprungen, %4$d fehlgeschlagen. Koordinierende Website: %5$d. Letzte Website mit Fehler: %6$d."
+
+#: includes/Storage/NetworkMigration.php
+msgid "Migration needs attention. Check the encryption key, database and cron execution on the coordinator site."
+msgstr "Die Migration erfordert eine Prüfung. Prüfen Sie den Schlüssel, die Datenbank und die Cron-Ausführung auf der koordinierenden Website."
+
+#: includes/Storage/NetworkMigration.php
+msgid "This pass has finished. Failed sites are retried in a later pass."
+msgstr "Dieser Durchlauf ist beendet. Websites mit Fehlern werden in einem späteren Durchlauf erneut versucht."
+
+#: includes/Storage/NetworkMigration.php
+msgid "Migration continues automatically in small batches."
+msgstr "Die Migration wird automatisch in kleinen Schritten fortgesetzt."

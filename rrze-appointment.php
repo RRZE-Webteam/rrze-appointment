@@ -239,6 +239,7 @@ function loaded(): void
 
     // Initialize plugin.
     main();
+    Storage\NetworkMigration::register();
 
     add_action('init', __NAMESPACE__ . '\register_blocks');
     add_filter(

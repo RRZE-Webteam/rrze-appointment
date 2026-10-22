@@ -112,6 +112,7 @@ const runCancellationScenarios = (): CancellationResults => {
 		}
 		namespace {
 			define( 'ABSPATH', __DIR__ );
+			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 			$GLOBALS['options'] = [
 				'booking_meta' => [
 					'2026-08-22 10:00-10:30' => [ 'name' => 'Confirmed' ],

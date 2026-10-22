@@ -2,6 +2,7 @@
 
 // Run the real booking query and admin renderer against isolated test data.
 define('ABSPATH', __DIR__);
+require_once __DIR__ . '/legacy-booking-storage.php';
 define('MINUTE_IN_SECONDS', 60);
 $scenario = json_decode(stream_get_contents(STDIN), true) ?: [];
 $GLOBALS['scenario'] = $scenario;

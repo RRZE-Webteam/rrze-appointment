@@ -5,6 +5,9 @@ namespace RRZE\Appointment;
 use RRZE\Appointment\Admin\BookingsPage;
 use RRZE\Appointment\Admin\MailTemplatesPage;
 use RRZE\Appointment\Admin\SettingsPage;
+use RRZE\Appointment\Admin\StorageStatus;
+use RRZE\Appointment\Storage\BookingScheduler;
+use RRZE\Appointment\Storage\BookingStorage;
 use RRZE\Appointment\Booking\TokenManager;
 use RRZE\Appointment\Booking\GuestRequestLimiter;
 use RRZE\Appointment\Controller\AdminBookingsController;
@@ -73,7 +76,17 @@ final class Main
      */
     public function onInit(): void
     {
-        $this->initializePluginState();
+        $storageInitializationError = null;
+        try {
+            $this->initializePluginState();
+        } catch (AppointmentException $exception) {
+            $storageInitializationError = $exception->getMessage();
+            // Keep admin recovery and routes available. Every booking access still
+            // validates storage and fails closed; cleanup must not use empty defaults.
+        } finally {
+            BookingStorage::release();
+        }
+        (new StorageStatus($storageInitializationError))->register();
 
         $mailTemplatesPage = new MailTemplatesPage();
         (new SettingsPage($mailTemplatesPage))->register();
@@ -92,6 +105,7 @@ final class Main
      */
     private function initializePluginState(): void
     {
+        BookingStorage::initialize();
         MailTemplatePost::ensureEditableDefaultTemplateExists();
         TokenManager::cleanupPendingState();
         BookingOpeningNotifier::cleanup();
@@ -156,8 +170,8 @@ final class Main
     private function registerBackgroundHooks(): void
     {
         add_action('delete_expired_transients', [GuestRequestLimiter::class, 'cleanup']);
-        add_action(TokenManager::PENDING_EXPIRY_HOOK, [TokenManager::class, 'expirePending']);
-        add_action(BookingOpeningNotifier::CRON_HOOK, [BookingOpeningNotifier::class, 'notify']);
+        add_action(TokenManager::PENDING_EXPIRY_HOOK, [BookingScheduler::class, 'expirePending']);
+        add_action(BookingOpeningNotifier::CRON_HOOK, [BookingScheduler::class, 'notifyOpening']);
         add_action('post_updated', [$this->waitlistNotifier, 'handlePostUpdated'], 10, 3);
     }
 

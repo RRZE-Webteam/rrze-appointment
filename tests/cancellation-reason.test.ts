@@ -76,6 +76,7 @@ const getCancellationReasonResult = (): CancellationReasonResult => {
 		}
 		namespace {
 			define( 'ABSPATH', __DIR__ );
+			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 			define( 'MINUTE_IN_SECONDS', 60 );
 			function __( $value, $domain ) { return $value; }
 			function esc_html__( $value, $domain ) { return esc_html( $value ); }

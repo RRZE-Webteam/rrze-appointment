@@ -20,6 +20,7 @@ const getControllerResult = (): ControllerResult => {
 		}
 		namespace {
 			define( 'ABSPATH', __DIR__ );
+			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 			function wp_unslash( $value ) {
 				return is_string( $value ) ? stripslashes( $value ) : $value;
 			}

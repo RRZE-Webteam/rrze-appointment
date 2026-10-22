@@ -10,8 +10,9 @@ used for groups with a single, clear responsibility:
 - `Mail/` renders and persists reusable email templates.
 - `Notification/` schedules or sends event-driven notifications.
 - `Presentation/` delivers frontend assets and public appointment pages.
-- `Storage/` defines and validates the encrypted booking storage format. Its
-  [format contract](Storage/README.md) documents the staged migration boundary.
+- `Storage/` owns booking persistence, encryption, bounded network migration and
+  opaque cron references. Its [operating and format contract](Storage/README.md) documents
+  activation, recovery, locking and compatibility.
 
 Classes remain at the root when they represent a core appointment concept or
 when no meaningful group exists yet. Avoid catch-all directories such as

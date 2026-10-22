@@ -7,6 +7,7 @@ use RRZE\Appointment\Booking\TokenManager;
 use RRZE\Appointment\Configuration\PluginSettings;
 use RRZE\Appointment\AppointmentException;
 use RRZE\Appointment\Presentation\PublicPageRenderer;
+use RRZE\Appointment\Storage\BookingStorage;
 
 defined('ABSPATH') || exit;
 
@@ -183,7 +184,7 @@ final class CancellationController
      */
     private function getStoredBookingMeta(string $slot): array
     {
-        $allMeta = (array) get_option(Bookings::META_OPTION, []);
+        $allMeta = BookingStorage::get(Bookings::META_OPTION);
         return is_array($allMeta[$slot] ?? null) ? $allMeta[$slot] : [];
     }
 

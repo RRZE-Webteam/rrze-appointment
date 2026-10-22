@@ -69,6 +69,7 @@ namespace RRZE\Appointment\Controller {
 }
 namespace {
     define('ABSPATH', __DIR__);
+    require_once __DIR__ . '/legacy-booking-storage.php';
     $input = json_decode(stream_get_contents(STDIN), true) ?: [];
     require __DIR__ . '/guest-rate-limit-storage.php';
     $GLOBALS['wpdb'] = new RateLimitTestDatabase();

@@ -11,6 +11,7 @@ use RRZE\Appointment\Mail\MailTemplatePost;
 use RRZE\Appointment\Mail\Mailer;
 use RRZE\Appointment\Notification\Reminder;
 use RRZE\Appointment\Presentation\PublicPageRenderer;
+use RRZE\Appointment\Storage\BookingStorage;
 
 defined('ABSPATH') || exit;
 
@@ -315,9 +316,9 @@ final class ConfirmationController
      */
     private function markSlotAsBooked(string $slot): void
     {
-        $booked = (array) get_option(Bookings::SLOTS_OPTION, []);
+        $booked = BookingStorage::get(Bookings::SLOTS_OPTION);
         $booked[] = $slot;
-        update_option(Bookings::SLOTS_OPTION, array_unique($booked), false);
+        BookingStorage::set(Bookings::SLOTS_OPTION, array_unique($booked));
     }
 
     /**

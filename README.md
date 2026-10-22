@@ -60,6 +60,27 @@ past, and closed slots are omitted. Future slots whose booking window has not
 opened retain the **Notify me** option. The editor's planning calendar remains
 available; existing blocks use the calendar view by default.
 
+### Encrypted booking storage
+
+Back up the database and preserve the encryption key separately before rollout.
+Configure `RRZE_APPOINTMENT_ENCRYPTION_KEY` in `wp-config.php` with Base64 for
+32 or 64 random bytes (for example, generated with `openssl rand -base64 64`).
+Migration starts automatically on the next request and resumes automatically
+after interruption. No customer action is required. **Settings → RRZE Appointment**
+shows the status. If the key is already configured, updating to this version
+enables automatic migration on the next request.
+
+Multisite additionally schedules a network worker that visits up to ten sites per
+cron run, including sites without visitors. Progress and errors appear in network
+administration. Cron must run reliably on the coordinator site (normally the main
+site); visitor-triggered WP-Cron alone provides no completion deadline.
+
+The migration encrypts booking and notification data, preserves existing guest
+links, and replaces sensitive cron arguments with opaque references. Public
+blocks, mail templates and ordinary settings remain editable. Errors stop access
+instead of treating existing data as empty. See the [storage operating guide](includes/Storage/README.md)
+for deployment, interrupted migrations, multisite, backups and restore requirements.
+
 ### Email addresses for bookings without SSO
 
 Guest bookings and booking-opening notifications validate the submitted email

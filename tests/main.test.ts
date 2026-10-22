@@ -18,13 +18,14 @@ type MainResult = {
 		permissionCallback: string;
 	} >;
 	maintenance: Record< string, number >;
+	storageInitOrder: string[];
 	publicEndpoints: Record< string, { route: string; methods: string[] } >;
 	bookerAllowed: boolean;
 	personsDenied: boolean;
 	personsAllowed: boolean;
 };
 
-const getMainResult = (): MainResult => {
+const getMainResult = ( storageFailure = false ): MainResult => {
 	const mainPath = resolve( process.cwd(), 'includes/Main.php' );
 	const php = `
 		namespace RRZE\\Appointment\\Presentation {
@@ -35,7 +36,8 @@ const getMainResult = (): MainResult => {
 			}
 		}
 		namespace RRZE\\Appointment {
-			class FaudirPersonProvider { public function handleRequest(): void {} }
+			class AppointmentException extends \\Exception {}
+            class FaudirPersonProvider { public function handleRequest(): void {} }
 		}
 		namespace RRZE\\Appointment\\Admin {
 			class MailTemplatesPage {}
@@ -53,14 +55,14 @@ const getMainResult = (): MainResult => {
 			class MailTemplatePost {
 				public static int $initialized = 0;
 				public static function register(): void {}
-				public static function ensureEditableDefaultTemplateExists(): void { self::$initialized++; }
+				public static function ensureEditableDefaultTemplateExists(): void { self::$initialized++; $GLOBALS['storageInitOrder'][] = 'templates'; }
 			}
 		}
 		namespace RRZE\\Appointment\\Booking {
 			class TokenManager {
 				public const PENDING_EXPIRY_HOOK = 'pending_expiry';
 				public static int $cleaned = 0;
-				public static function cleanupPendingState(): void { self::$cleaned++; }
+				public static function cleanupPendingState(): void { self::$cleaned++; $GLOBALS['storageInitOrder'][] = 'pending'; }
 				public static function expirePending(): void {}
 			}
 		}
@@ -98,13 +100,17 @@ const getMainResult = (): MainResult => {
 			class BookingOpeningNotifier {
 				public const CRON_HOOK = 'opening_cron';
 				public static int $cleaned = 0;
-				public static function cleanup(): void { self::$cleaned++; }
+				public static function cleanup(): void { self::$cleaned++; $GLOBALS['storageInitOrder'][] = 'opening'; }
 				public static function notify(): void {}
 			}
 		}
 		namespace {
 			define( 'ABSPATH', __DIR__ );
-			$GLOBALS['actions'] = [];
+            require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
+            require_once getcwd() . '/includes/Admin/StorageStatus.php';
+			$GLOBALS['storageInitFails'] = ${ storageFailure ? 'true' : 'false' };
+            $GLOBALS['storageInitOrder'] = [];
+            $GLOBALS['actions'] = [];
 			$GLOBALS['routes'] = [];
 			$GLOBALS['can_edit_posts'] = false;
 			function describe_callback( $callback ): string {
@@ -146,7 +152,8 @@ const getMainResult = (): MainResult => {
 				'publicEndpoints' => $main->registerPublicRestEndpoints( [ 'existing' => [ 'route' => '/existing', 'methods' => [ 'GET' ] ] ] ),
 				'actions' => $GLOBALS['actions'],
 				'routes' => $GLOBALS['routes'],
-				'maintenance' => [
+				'storageInitOrder' => $GLOBALS['storageInitOrder'],
+                'maintenance' => [
 					'defaultTemplate' => \\RRZE\\Appointment\\Mail\\MailTemplatePost::$initialized,
 					'pendingState' => \\RRZE\\Appointment\\Booking\\TokenManager::$cleaned,
 					'openingState' => \\RRZE\\Appointment\\Notification\\BookingOpeningNotifier::$cleaned,
@@ -171,6 +178,12 @@ describe( 'plugin bootstrap', () => {
 		const result = getMainResult();
 		const hookNames = result.actions.map( ( action ) => action.hook );
 
+		expect( result.storageInitOrder ).toEqual( [
+			'storage',
+			'templates',
+			'pending',
+			'opening',
+		] );
 		expect( result.maintenance ).toEqual( {
 			defaultTemplate: 1,
 			pendingState: 1,
@@ -247,4 +260,17 @@ it( 'declares only the exact POST identity route and preserves other plugins', (
 		route: '/existing',
 		methods: [ 'GET' ],
 	} );
+} );
+
+it( 'keeps administration and routes available but skips cleanup after storage initialization fails', () => {
+	const result = getMainResult( true );
+	expect( result.storageInitOrder ).toEqual( [ 'storage' ] );
+	expect( result.maintenance ).toMatchObject( {
+		defaultTemplate: 0,
+		pendingState: 0,
+		openingState: 0,
+		settings: 1,
+		bookings: 1,
+	} );
+	expect( result.routes ).toHaveLength( 2 );
 } );

@@ -42,6 +42,7 @@ const runAssetManager = (
 		}
 		namespace {
 			define( 'ABSPATH', __DIR__ );
+			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 			$GLOBALS['asset_result'] = null;
 			function wp_script_is( $handle, $status ) {
 				return true;

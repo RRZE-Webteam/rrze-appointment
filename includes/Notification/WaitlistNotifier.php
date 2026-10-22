@@ -4,6 +4,7 @@ namespace RRZE\Appointment\Notification;
 
 use RRZE\Appointment\Booking\Bookings;
 use RRZE\Appointment\Booking\SlotGenerator;
+use RRZE\Appointment\Storage\BookingStorage;
 
 defined('ABSPATH') || exit;
 
@@ -255,8 +256,7 @@ final class WaitlistNotifier
      */
     private function getOptionArray(string $optionName): array
     {
-        $value = get_option($optionName, []);
-        return is_array($value) ? $value : [];
+        return BookingStorage::get($optionName);
     }
 
     /**

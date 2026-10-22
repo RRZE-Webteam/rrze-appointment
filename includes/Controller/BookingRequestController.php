@@ -12,6 +12,7 @@ use RRZE\Appointment\Mail\MailTemplate;
 use RRZE\Appointment\Mail\MailTemplatePost;
 use RRZE\Appointment\Mail\Mailer;
 use RRZE\Appointment\Rights;
+use RRZE\Appointment\Storage\BookingStorage;
 
 defined('ABSPATH') || exit;
 
@@ -167,7 +168,7 @@ final class BookingRequestController
      */
     private function assertSlotIsAvailable(string $slot): void
     {
-        $booked = (array) get_option(Bookings::SLOTS_OPTION, []);
+        $booked = BookingStorage::get(Bookings::SLOTS_OPTION);
         $pending = TokenManager::getPendingSlots();
         if (in_array($slot, $booked, true) || in_array($slot, $pending, true)) {
             wp_send_json_error(__('This appointment is no longer available.', 'rrze-appointment'));

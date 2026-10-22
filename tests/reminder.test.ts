@@ -96,6 +96,7 @@ const getReminderResult = (
 		}
 		namespace {
 			define( 'ABSPATH', __DIR__ );
+			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 			$GLOBALS['actions'] = [];
 			$GLOBALS['daily_schedule'] = null;
 			$GLOBALS['single_schedules'] = [];

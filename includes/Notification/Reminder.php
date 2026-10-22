@@ -9,6 +9,8 @@ use RRZE\Appointment\Configuration\PluginSettings;
 use RRZE\Appointment\Mail\MailTemplate;
 use RRZE\Appointment\Mail\MailTemplatePost;
 use RRZE\Appointment\Mail\Mailer;
+use RRZE\Appointment\Storage\BookingStorage;
+use RRZE\Appointment\Storage\BookingScheduler;
 
 defined('ABSPATH') || exit;
 
@@ -31,7 +33,7 @@ final class Reminder
     public function register(): void
     {
         try {
-            add_action(self::CRON_HOOK, [$this, 'sendReminder'], 10, 1);
+            add_action(self::CRON_HOOK, [BookingScheduler::class, 'sendReminder'], 10, 1);
 
             if (!wp_next_scheduled(self::DAILY_CHECK_HOOK)) {
                 wp_schedule_event(
@@ -54,9 +56,9 @@ final class Reminder
     public static function scheduleForSlot(string $slot, array $meta): void
     {
         try {
-            $allMeta = (array) get_option(Bookings::META_OPTION, []);
+            $allMeta = BookingStorage::get(Bookings::META_OPTION);
             $allMeta[$slot] = $meta;
-            update_option(Bookings::META_OPTION, $allMeta, false);
+            BookingStorage::set(Bookings::META_OPTION, $allMeta);
 
             $reminderDays = array_unique([
                 (int) PluginSettings::get('reminder_booker_days'),
@@ -72,7 +74,7 @@ final class Reminder
                     continue;
                 }
 
-                wp_schedule_single_event($reminderTimestamp, self::CRON_HOOK, [$slot]);
+                BookingScheduler::schedule($reminderTimestamp, self::CRON_HOOK, $slot);
             }
         } catch (\Exception $exception) {
             throw self::createException($exception);
@@ -133,7 +135,7 @@ final class Reminder
      */
     private function getBookingMeta(string $slot): array
     {
-        $allMeta = (array) get_option(Bookings::META_OPTION, []);
+        $allMeta = BookingStorage::get(Bookings::META_OPTION);
         return is_array($allMeta[$slot] ?? null) ? $allMeta[$slot] : [];
     }
 
@@ -251,6 +253,9 @@ final class Reminder
         );
     }
 
+    /**
+     * Cleans expired bookings and sends reminders due on the current site date.
+     */
     public function checkAndSendReminders(): void
     {
         try {
@@ -263,7 +268,7 @@ final class Reminder
                 return;
             }
 
-            $allMeta = (array) get_option(Bookings::META_OPTION, []);
+            $allMeta = BookingStorage::get(Bookings::META_OPTION);
 
             foreach ($allMeta as $slot => $meta) {
                 if (!is_string($slot) || !is_array($meta)) {

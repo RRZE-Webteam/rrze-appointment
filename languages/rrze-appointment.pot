@@ -2428,3 +2428,45 @@ msgstr ""
 msgctxt "Admin menu label"
 msgid "Appointments"
 msgstr ""
+
+#: includes/Admin/StorageStatus.php
+msgid "Appointment storage is unavailable. Check the encryption key, database connection and migration state. Booking operations have been stopped to protect existing data."
+msgstr ""
+
+#: includes/Admin/StorageStatus.php
+msgid "Booking data is not encrypted. Configuring RRZE_APPOINTMENT_ENCRYPTION_KEY on the server starts migration automatically on the next request."
+msgstr ""
+
+#: includes/Admin/StorageStatus.php
+msgid "The encryption key is configured. Migration starts automatically when the plugin initializes or booking data are accessed."
+msgstr ""
+
+#: includes/Admin/StorageStatus.php
+#, php-format
+msgid "Encryption migration is incomplete (%1$d of %2$d stores). It resumes automatically on the next request. Storage errors must be corrected before booking operations can continue."
+msgstr ""
+
+#: includes/Admin/StorageStatus.php
+msgid "Booking and notification stores are encrypted. Scheduled jobs use opaque references."
+msgstr ""
+
+#: includes/Storage/NetworkMigration.php
+msgid "Appointment network migration (every minute)"
+msgstr ""
+
+#: includes/Storage/NetworkMigration.php
+#, php-format
+msgid "Appointment network migration: %1$d sites checked, %2$d encrypted, %3$d skipped, %4$d failed. Coordinator site: %5$d. Last failed site: %6$d."
+msgstr ""
+
+#: includes/Storage/NetworkMigration.php
+msgid "Migration needs attention. Check the encryption key, database and cron execution on the coordinator site."
+msgstr ""
+
+#: includes/Storage/NetworkMigration.php
+msgid "This pass has finished. Failed sites are retried in a later pass."
+msgstr ""
+
+#: includes/Storage/NetworkMigration.php
+msgid "Migration continues automatically in small batches."
+msgstr ""

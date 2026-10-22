@@ -89,6 +89,7 @@ const getConfirmationResult = (): ConfirmationResult => {
 		}
 		namespace {
 			define( 'ABSPATH', __DIR__ );
+			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 			function __( $message, $domain ) { return $message; }
 			function esc_html__( $message, $domain ) { return $message; }
 			function esc_html( $value ) { return htmlspecialchars( $value, ENT_QUOTES ); }

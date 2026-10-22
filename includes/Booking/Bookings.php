@@ -8,6 +8,8 @@ use RRZE\Appointment\Mail\MailTemplate;
 use RRZE\Appointment\Mail\MailTemplatePost;
 use RRZE\Appointment\Mail\Mailer;
 use RRZE\Appointment\Notification\Reminder;
+use RRZE\Appointment\Storage\BookingStorage;
+use RRZE\Appointment\Storage\BookingScheduler;
 
 defined('ABSPATH') || exit;
 
@@ -160,7 +162,7 @@ final class Bookings
             $allMeta = self::getStoredMetadata();
             $meta = self::getSlotMetadata($allMeta, $slot);
 
-            wp_clear_scheduled_hook(Reminder::CRON_HOOK, [$slot]);
+            BookingScheduler::clear(Reminder::CRON_HOOK, $slot);
             self::sendCancellationMail($slot, $meta, $reason);
             $remainingMeta = self::removeStoredBooking($slot, $slots, $allMeta);
             self::notifyWaitlist($slot, $meta, $remainingMeta);
@@ -184,10 +186,10 @@ final class Bookings
             $slots,
             static fn($bookedSlot): bool => $bookedSlot !== $slot
         ));
-        update_option(self::SLOTS_OPTION, $remainingSlots, false);
+        BookingStorage::set(self::SLOTS_OPTION, $remainingSlots);
 
         unset($allMeta[$slot]);
-        update_option(self::META_OPTION, $allMeta, false);
+        BookingStorage::set(self::META_OPTION, $allMeta);
 
         return $allMeta;
     }
@@ -370,15 +372,15 @@ final class Bookings
             $slots,
             static fn($slot): bool => !is_string($slot) || !isset($expiredSlots[$slot])
         ));
-        update_option(self::SLOTS_OPTION, $remainingSlots, false);
+        BookingStorage::set(self::SLOTS_OPTION, $remainingSlots);
 
         foreach ($expiredSlots as $slot => $_unused) {
             unset($allMeta[$slot]);
-            wp_clear_scheduled_hook(Reminder::CRON_HOOK, [$slot]);
+            BookingScheduler::clear(Reminder::CRON_HOOK, $slot);
             delete_option(self::getWaitlistLockOption($slot));
         }
 
-        update_option(self::META_OPTION, $allMeta, false);
+        BookingStorage::set(self::META_OPTION, $allMeta);
     }
 
     /**
@@ -388,24 +390,24 @@ final class Bookings
      */
     private static function removeExpiredTokens(array $expiredSlots): void
     {
-        $tokens = (array) get_option(TokenManager::CANCEL_OPTION, []);
+        $tokens = BookingStorage::get(TokenManager::CANCEL_OPTION);
         foreach ($tokens as $token => $entry) {
             $slot = is_array($entry) ? ($entry['slot'] ?? '') : $entry;
             if (is_string($slot) && isset($expiredSlots[$slot])) {
                 unset($tokens[$token]);
             }
         }
-        update_option(TokenManager::CANCEL_OPTION, $tokens, false);
+        BookingStorage::set(TokenManager::CANCEL_OPTION, $tokens);
 
-        $pending = (array) get_option(TokenManager::PENDING_OPTION, []);
+        $pending = BookingStorage::get(TokenManager::PENDING_OPTION);
         foreach ($pending as $token => $entry) {
             $slot = is_array($entry) ? ($entry['slot'] ?? '') : '';
             if (is_string($slot) && isset($expiredSlots[$slot])) {
                 unset($pending[$token]);
-                wp_clear_scheduled_hook(TokenManager::PENDING_EXPIRY_HOOK, [$token]);
+                BookingScheduler::clear(TokenManager::PENDING_EXPIRY_HOOK, $token);
             }
         }
-        update_option(TokenManager::PENDING_OPTION, $pending, false);
+        BookingStorage::set(TokenManager::PENDING_OPTION, $pending);
     }
 
     /**
@@ -597,7 +599,7 @@ final class Bookings
         $notifiedSlots[] = $availableSlot;
         $allMeta[$bookedSlot][self::WAITLIST_NOTIFIED_SLOTS_KEY] = $notifiedSlots;
         unset($allMeta[$bookedSlot]['waitlist_notified_slot']);
-        update_option(self::META_OPTION, $allMeta, false);
+        BookingStorage::set(self::META_OPTION, $allMeta);
     }
 
     /**
@@ -637,7 +639,7 @@ final class Bookings
                 : null;
             if ($currentValue !== $enabled) {
                 $allMeta[$slot]['booker_waitlist'] = $enabled;
-                update_option(self::META_OPTION, $allMeta, false);
+                BookingStorage::set(self::META_OPTION, $allMeta);
             }
 
             return true;
@@ -963,7 +965,7 @@ final class Bookings
      */
     private static function getStoredSlots(): array
     {
-        return (array) get_option(self::SLOTS_OPTION, []);
+        return BookingStorage::get(self::SLOTS_OPTION);
     }
 
     /**
@@ -973,7 +975,7 @@ final class Bookings
      */
     private static function getStoredMetadata(): array
     {
-        return (array) get_option(self::META_OPTION, []);
+        return BookingStorage::get(self::META_OPTION);
     }
 
     /**
