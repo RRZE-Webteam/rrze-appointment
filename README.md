@@ -85,6 +85,40 @@ private/no-store headers, and unexpected dependency errors never expose their
 original messages or exception chains. Auxiliary slot locks use keyed references
 and expired locks are removed in bounded batches.
 
+### Optional SSO protection for appointment management
+
+The general settings contain an independent **SSO protection for appointment management** section.
+It is disabled by default, separately for every site. Setup can activate an installed and permitted
+RRZE-AC plugin on the current site, then requires a fresh request and a matching SSO login before
+protection can be enabled. Public bookings, emails, cron and encrypted-storage migration remain independent.
+
+The management page and its REST list/cancellation routes require both the existing WordPress
+permission and an active SSO session mapped to the same WordPress account. RRZE-AC and RRZE-SSO
+must be active and configured; the RRZE-SSO helper requires its `force_sso` configuration and
+initialized identity providers. Setup never changes that configuration or existing AC rules.
+An unrecognized IdP, missing mapping or dependency failure denies access. Local accounts without
+a matching SSO identity cannot access protected appointment data, including network administrators.
+
+Site administrators need matching SSO to disable protection or change appointment managers.
+Network administrators have a separate, nonce-protected emergency reset in the same settings section.
+It explicitly removes the additional requirement on that site; it is not a data-access bypass.
+Deactivating AC later leaves protection enabled and denies management access until repaired or reset.
+
+The non-autoloaded site option is `rrze_appointment_backend_sso_required`. Ordinary settings saves
+do not modify it. Activation honors WordPress capabilities, plugin visibility (`all_plugins`),
+network-only restrictions, WordPress dependency checks and the optional
+`rrze_appointment_can_activate_access_control` filter (boolean, current blog ID).
+Networks with a separate plugin allowlist should enforce it through that filter if they do not
+already expose it through capabilities or plugin visibility. No other sites are scanned or activated.
+
+REST failures use `rrze_appointment_sso_required` (401),
+`rrze_appointment_sso_identity_mismatch` (403), and `rrze_appointment_sso_unavailable` (503).
+They never redirect; the management UI clears displayed data on a failed request and offers an
+explicit login when appropriate. Already displayed information cannot be recalled when an SSO
+session expires: access is checked on every subsequent request. No SSO attributes or authorization
+results are stored by this integration. Settings, management, login and error responses are private
+and non-cacheable. Server configuration and other plugins remain trusted administrative components.
+
 ### Email addresses for bookings without SSO
 
 Guest bookings and booking-opening notifications validate the submitted email

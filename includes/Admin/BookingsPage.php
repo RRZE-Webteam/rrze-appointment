@@ -15,6 +15,7 @@ final class BookingsPage
     public const PAGE_SLUG = 'rrze-appointment-bookings';
     private const ADMIN_MENU_ICON_PATH = 'assets/svg/approval_delegation_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg';
 
+    /** Registers the management menu and its assets. */
     public function register(): void
     {
         add_action('admin_menu', [$this, 'addMenuPage']);
@@ -41,11 +42,13 @@ final class BookingsPage
         );
     }
 
+    /** Returns the WordPress screen identifier. */
     public static function screenHook(): string
     {
         return 'toplevel_page_' . self::PAGE_SLUG;
     }
 
+    /** Loads the bundled menu icon, with a WordPress fallback. */
     private static function getAdminMenuIcon(): string
     {
         $iconPath = plugin()->getPath() . self::ADMIN_MENU_ICON_PATH;
@@ -64,7 +67,8 @@ final class BookingsPage
     /** Loads the React application only for authorized appointment managers. */
     public function enqueueAssets(string $hook): void
     {
-        if ($hook !== self::screenHook() || !AppointmentPermissions::currentUserCanManage()) {
+        if ($hook !== self::screenHook() || !AppointmentPermissions::currentUserCanManage()
+            || is_wp_error(BackendSsoAccess::check())) {
             return;
         }
         $assetPath = plugin()->getPath() . 'build/admin-bookings.asset.php';
@@ -97,14 +101,27 @@ final class BookingsPage
                 'url' => rest_url(AdminBookingsController::REST_NAMESPACE . AdminBookingsController::ROUTE),
                 'cancelUrl' => rest_url(AdminBookingsController::REST_NAMESPACE . AdminBookingsController::ROUTE . '/cancel'),
                 'nonce' => wp_create_nonce('wp_rest'),
+                'loginUrl' => BackendSsoSettings::loginUrl(),
             ]) . ';',
             'before'
         );
     }
 
+    /** Renders the application or a data-free SSO gate for authorized managers. */
     public function render(): void
     {
         if (!AppointmentPermissions::currentUserCanManage()) {
+            return;
+        }
+        $access = BackendSsoAccess::check();
+        if (is_wp_error($access)) {
+            echo '<div class="wrap"><h1>' . esc_html__('Appointments', 'rrze-appointment') . '</h1><p>'
+                . esc_html($access->get_error_message()) . '</p>';
+            if ($access->get_error_code() === 'rrze_appointment_sso_required') {
+                echo '<p><a class="button button-primary" href="' . esc_url(BackendSsoSettings::loginUrl()) . '">'
+                    . esc_html__('Sign in with SSO', 'rrze-appointment') . '</a></p>';
+            }
+            echo '</div>';
             return;
         }
         ?>

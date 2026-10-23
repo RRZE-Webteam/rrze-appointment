@@ -48,6 +48,7 @@ describe( 'auxiliary booking data and private responses', () => {
 		} );
 		for ( const headers of [
 			...result.tokenHeaders,
+			...result.adminHeaders,
 			result.ajaxHeaders,
 		] ) {
 			expect( headers ).toEqual(
@@ -61,7 +62,7 @@ describe( 'auxiliary booking data and private responses', () => {
 	} );
 	it( 'protects REST success, permission failures and storage errors without touching unrelated routes', () => {
 		for ( const response of result.rest ) {
-			expect( [ 200, 403, 500 ] ).toContain( response.status );
+			expect( [ 200, 401, 403, 500, 503 ] ).toContain( response.status );
 			if ( response.route.startsWith( '/unrelated/' ) ) {
 				expect( response.headers ).toEqual( [] );
 			} else {

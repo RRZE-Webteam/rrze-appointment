@@ -2,6 +2,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import type { AdminConfig, BookingsResponse, BookingView } from './types';
 
+/** Loads authorized display data without browser caching. */
 export function loadBookings(
 	config: AdminConfig,
 	view: BookingView,
@@ -18,6 +19,7 @@ export function loadBookings(
 	} );
 }
 
+/** Submits a cancellation using the current WordPress and SSO sessions. */
 export function cancelBooking(
 	config: AdminConfig,
 	slot: string,
@@ -33,6 +35,7 @@ export function cancelBooking(
 	} );
 }
 
+/** Returns a server-provided safe error message or a generic fallback. */
 export function requestErrorMessage( error: unknown ): string {
 	if (
 		error &&
@@ -45,15 +48,32 @@ export function requestErrorMessage( error: unknown ): string {
 	return __( 'The request failed. Please try again.', 'rrze-appointment' );
 }
 
+/** Recognizes authorization failures, including an unavailable SSO integration. */
 export function isAccessError( error: unknown ): boolean {
 	if ( ! error || typeof error !== 'object' || ! ( 'data' in error ) ) {
 		return false;
 	}
 	const data = error.data;
+	if (
+		'code' in error &&
+		error.code === 'rrze_appointment_sso_unavailable'
+	) {
+		return true;
+	}
 	return (
 		!! data &&
 		typeof data === 'object' &&
 		'status' in data &&
 		( data.status === 401 || data.status === 403 )
+	);
+}
+
+/** Identifies the only error that an explicit SSO login can resolve directly. */
+export function needsSsoLogin( error: unknown ): boolean {
+	return (
+		!! error &&
+		typeof error === 'object' &&
+		'code' in error &&
+		error.code === 'rrze_appointment_sso_required'
 	);
 }

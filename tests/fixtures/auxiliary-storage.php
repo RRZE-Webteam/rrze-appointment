@@ -84,6 +84,18 @@ namespace {
     }
     $result['tokenHeaders'] = $tokenHeaders;
     $result['cachePluginFlag'] = DONOTCACHEPAGE;
+    $result['adminHeaders'] = [];
+    foreach (['rrze-appointment-bookings', 'rrze-appointment-settings'] as $page) {
+        $_GET = ['page' => $page];
+        $GLOBALS['headers'] = [];
+        PrivateResponses::protectRequest();
+        $result['adminHeaders'][] = $GLOBALS['headers'];
+    }
+    $_GET = [];
+    $_REQUEST = ['action' => 'rrze_appointment_backend_sso'];
+    $GLOBALS['headers'] = [];
+    PrivateResponses::protectRequest();
+    $result['adminHeaders'][] = $GLOBALS['headers'];
     $_GET = [];
     $_REQUEST = ['action' => 'rrze_appointment_book'];
     $GLOBALS['ajax'] = true;
@@ -92,7 +104,7 @@ namespace {
     $result['ajaxHeaders'] = $GLOBALS['headers'];
     $rest = [];
     foreach (['/rrze/v2/appointment/bookings', '/rrze/v2/appointment/bookings/cancel', '/rrze/v2/appointment/booker', '/RRZE/v2/Appointment/BOOKINGS/', '/unrelated/v1/public'] as $route) {
-        foreach ([200, 403, 500] as $status) {
+        foreach ([200, 401, 403, 500, 503] as $status) {
             $response = new class($status) {
                 public array $headers = [];
                 /** Retains the status as supplied by the REST pipeline. */

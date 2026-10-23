@@ -117,6 +117,7 @@ require $root . '/includes/Admin/Request.php';
 require $root . '/includes/Admin/AppointmentPermissions.php';
 require $root . '/includes/Admin/BookingsPage.php';
 require $root . '/includes/Controller/AdminBookingsController.php';
+require $root . '/includes/Admin/BackendSsoAccess.php';
 require __DIR__ . '/booking-mail-stubs.php';
 
 $_GET = $scenario['query'] ?? [];

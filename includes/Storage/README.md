@@ -13,7 +13,10 @@ after a multisite switch. Completed migration does not trigger repeated writes.
 **Settings → RRZE Appointment** shows diagnostics to site administrators; it has
 no migration action. The server-side key configuration authorizes automatic
 migration. Public booking remains available to guests and does not require SSO.
-Optional RRZE-AC protection is a separate step.
+Optional RRZE-AC protection for management is configured separately in the general
+settings. It additionally requires the managing WordPress user's matching SSO
+identity; public bookings and storage maintenance do not use that requirement.
+See the main README for setup, dependencies and network-admin emergency recovery.
 
 ## Rollout and recovery
 

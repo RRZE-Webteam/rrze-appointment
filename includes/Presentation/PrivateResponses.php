@@ -40,7 +40,12 @@ final class PrivateResponses
     public static function protectRequest(): void
     {
         $private = count(array_intersect(self::TOKEN_PARAMETERS, array_keys($_GET))) > 0;
+        $page = $_GET['page'] ?? '';
+        $private = $private || (is_string($page) && in_array($page, [
+            'rrze-appointment-bookings', 'rrze-appointment-settings',
+        ], true));
         $action = $_REQUEST['action'] ?? '';
+        $private = $private || $action === 'rrze_appointment_backend_sso';
         $private = $private || (wp_doing_ajax() && is_string($action) && in_array($action, self::AJAX_ACTIONS, true));
         if (!$private) {
             return;

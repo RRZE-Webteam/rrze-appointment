@@ -9,7 +9,7 @@ import { Button, Notice, Spinner } from '@wordpress/components';
 import { useEffect, useMemo, useRef, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import { calendar, Icon, notAllowed, search, update } from '@wordpress/icons';
-import { loadBookings, requestErrorMessage } from './api';
+import { loadBookings, needsSsoLogin, requestErrorMessage } from './api';
 import { CancelBookingModal } from './cancel-booking-modal';
 import type {
 	AdminBooking,
@@ -55,6 +55,7 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 	const [ hasPastView, setHasPastView ] = useState( false );
 	const [ loading, setLoading ] = useState( true );
 	const [ error, setError ] = useState( '' );
+	const [ loginRequired, setLoginRequired ] = useState( false );
 	const [ notice, setNotice ] = useState( '' );
 	const [ revision, setRevision ] = useState( 0 );
 	const [ selectedBooking, setSelectedBooking ] =
@@ -72,6 +73,8 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 		setResponse( null );
 		setLoading( true );
 		setError( '' );
+		setLoginRequired( false );
+		setSelectedBooking( null );
 		loadBookings( config, mode, controller.signal )
 			.then( ( result ) => {
 				if ( controller.signal.aborted ) {
@@ -88,6 +91,8 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 			.catch( ( requestError: unknown ) => {
 				if ( ! controller.signal.aborted ) {
 					setError( requestErrorMessage( requestError ) );
+					setLoginRequired( needsSsoLogin( requestError ) );
+					setSelectedBooking( null );
 					setResponse( null );
 				}
 			} )
@@ -375,6 +380,19 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 				{ error && (
 					<Notice status="error" isDismissible={ false }>
 						{ error }
+						{ loginRequired && config.loginUrl && (
+							<p>
+								<Button
+									href={ config.loginUrl }
+									variant="secondary"
+								>
+									{ __(
+										'Sign in with SSO',
+										'rrze-appointment'
+									) }
+								</Button>
+							</p>
+						) }
 					</Notice>
 				) }
 			</div>
@@ -505,10 +523,11 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 						setView( ( current ) => ( { ...current, page: 1 } ) );
 						setRevision( ( value ) => value + 1 );
 					} }
-					onAccessError={ ( message ) => {
+					onAccessError={ ( requestError ) => {
 						setSelectedBooking( null );
 						setResponse( null );
-						setError( message );
+						setError( requestErrorMessage( requestError ) );
+						setLoginRequired( needsSsoLogin( requestError ) );
 						setNotice( '' );
 					} }
 				/>

@@ -3013,3 +3013,83 @@ msgstr "Der Terminvorgang konnte nicht abgeschlossen werden. Bitte versuchen Sie
 #: includes/AppointmentException.php includes/Mail/Mailer.php
 msgid "The appointment email could not be sent. Please try again."
 msgstr "Die Termin-E-Mail konnte nicht versendet werden. Bitte versuchen Sie es erneut."
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "Sign in with SSO to manage appointments."
+msgstr "Melden Sie sich per SSO an, um Termine zu verwalten."
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "The SSO account does not match your WordPress account. Sign in with the matching account."
+msgstr "Das SSO-Konto stimmt nicht mit Ihrem WordPress-Konto überein. Melden Sie sich mit dem passenden Konto an."
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "SSO protection is unavailable. Contact your network administrator."
+msgstr "Der SSO-Schutz ist nicht verfügbar. Wenden Sie sich an die Netzwerkadministration."
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "This SSO action is not permitted. Reload the page and try again."
+msgstr "Diese SSO-Aktion ist nicht erlaubt. Laden Sie die Seite neu und versuchen Sie es erneut."
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "You cannot change SSO protection."
+msgstr "Sie dürfen den SSO-Schutz nicht ändern."
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "Only network administrators may reset SSO protection without SSO."
+msgstr "Nur Netzwerkadministratoren dürfen den SSO-Schutz ohne SSO zurücksetzen."
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "RRZE-AC is missing or cannot be activated on this website. Contact your network administrator."
+msgstr "RRZE-AC fehlt oder darf auf diesem Webauftritt nicht aktiviert werden. Wenden Sie sich an die Netzwerkadministration."
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "RRZE-AC could not be activated. Contact your network administrator."
+msgstr "RRZE-AC konnte nicht aktiviert werden. Wenden Sie sich an die Netzwerkadministration."
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "The appointment managers were not changed. Sign in with the matching SSO account first."
+msgstr "Die Terminverwalter wurden nicht geändert. Melden Sie sich zuerst mit dem passenden SSO-Konto an."
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "SSO protection for appointment management"
+msgstr "SSO-Schutz der Terminverwaltung"
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "SSO protection is enabled. Appointment access requires the matching SSO account."
+msgstr "Der SSO-Schutz ist aktiviert. Für den Zugriff auf Termine ist das passende SSO-Konto erforderlich."
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "SSO protection is disabled. Existing WordPress permissions apply."
+msgstr "Der SSO-Schutz ist deaktiviert. Es gelten die bestehenden WordPress-Berechtigungen."
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "Public bookings remain available without SSO. Setup activates an available RRZE-AC plugin on this website, then verifies your SSO account."
+msgstr "Öffentliche Buchungen bleiben ohne SSO möglich. Die Einrichtung aktiviert ein verfügbares RRZE-AC auf diesem Webauftritt und prüft anschließend Ihr SSO-Konto."
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "Set up SSO protection / activate RRZE-AC"
+msgstr "SSO-Schutz einrichten / RRZE-AC aktivieren"
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "Sign in with SSO"
+msgstr "Mit SSO anmelden"
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "Disable SSO protection"
+msgstr "SSO-Schutz deaktivieren"
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "Enable SSO protection"
+msgstr "SSO-Schutz aktivieren"
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "Emergency reset removes the additional SSO requirement on this website. Existing WordPress permissions still apply."
+msgstr "Das Zurücksetzen entfernt die zusätzliche SSO-Pflicht auf diesem Webauftritt. Die bestehenden WordPress-Berechtigungen gelten weiterhin."
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "Reset SSO protection as network administrator"
+msgstr "SSO-Schutz als Netzwerkadministrator zurücksetzen"
+
+#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
+msgid "Sign in with the matching SSO account to change appointment managers."
+msgstr "Melden Sie sich mit dem passenden SSO-Konto an, um die Terminverwalter zu ändern."

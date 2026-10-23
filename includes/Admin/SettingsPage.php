@@ -205,6 +205,10 @@ final class SettingsPage
      */
     public function renderAppointmentManagersField(): void
     {
+        if (is_wp_error(BackendSsoAccess::check())) {
+            echo '<p>' . esc_html__('Sign in with the matching SSO account to change appointment managers.', 'rrze-appointment') . '</p>';
+            return;
+        }
         $storedUserIds = PluginSettings::get('appointment_manager_user_ids');
         $storedUserIds = is_array($storedUserIds)
             ? array_values(array_unique(array_map('absint', $storedUserIds)))
@@ -414,6 +418,7 @@ final class SettingsPage
         <?php
     }
 
+    /** Renders ordinary settings and independent SSO setup actions. */
     private function renderTabGeneral(): void
     {
         ?>
@@ -432,6 +437,7 @@ final class SettingsPage
             ?>
         </form>
         <?php
+        BackendSsoSettings::render();
     }
 
     private function renderTabIllustrations(): void

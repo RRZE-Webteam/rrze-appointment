@@ -24,6 +24,7 @@ export interface AdminConfig {
 	url: string;
 	cancelUrl: string;
 	nonce: string;
+	loginUrl?: string;
 }
 
 declare global {

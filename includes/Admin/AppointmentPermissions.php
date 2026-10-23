@@ -12,7 +12,8 @@ defined('ABSPATH') || exit;
 final class AppointmentPermissions
 {
     /**
-     * Administrators always have access; listed site users receive delegated access.
+     * Grants WordPress authorization to administrators and listed site members.
+     * The optional BackendSsoAccess check is an additional requirement for data access.
      */
     public static function currentUserCanManage(): bool
     {
