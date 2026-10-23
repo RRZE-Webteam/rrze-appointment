@@ -45,7 +45,7 @@ final class PrivateResponses
             'rrze-appointment-bookings', 'rrze-appointment-settings',
         ], true));
         $action = $_REQUEST['action'] ?? '';
-        $private = $private || $action === 'rrze_appointment_backend_sso';
+        $private = $private || $action === 'rrze_appointment_backend_sso' || $action === 'rrze_appointment_access';
         $private = $private || (wp_doing_ajax() && is_string($action) && in_array($action, self::AJAX_ACTIONS, true));
         if (!$private) {
             return;

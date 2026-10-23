@@ -31,6 +31,8 @@ const getPermissionResult = (): PermissionResult => {
 			function get_current_blog_id() { return 3; }
 			function is_user_member_of_blog( $userId, $blogId ) { return $GLOBALS['member']; }
 			function absint( $value ) { return abs( (int) $value ); }
+			function get_option( $key, $default = false ) { return $default; }
+			require getcwd() . '/includes/Admin/AccessPolicy.php';
 			require ${ JSON.stringify( permissionsPath ) };
 
 			$class = \\RRZE\\Appointment\\Admin\\AppointmentPermissions::class;

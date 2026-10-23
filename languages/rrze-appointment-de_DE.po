@@ -3092,3 +3092,179 @@ msgstr "SSO-Schutz als Netzwerkadministrator zurücksetzen"
 #: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
 msgid "Sign in with the matching SSO account to change appointment managers."
 msgstr "Melden Sie sich mit dem passenden SSO-Konto an, um die Terminverwalter zu ändern."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "No access to appointment management"
+msgstr "Kein Zugriff auf die Terminverwaltung"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Your account is not authorized for this appointment management. Contact a responsible person if you need to view or cancel appointments."
+msgstr "Ihr Benutzerkonto ist für diese Terminverwaltung nicht freigeschaltet. Wenden Sie sich an eine der verantwortlichen Personen, wenn Sie Termine einsehen oder stornieren sollen."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Please sign in with SSO"
+msgstr "Bitte mit SSO anmelden"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "You have permission to manage appointments. Sign in with the SSO account belonging to your WordPress account to continue."
+msgstr "Sie sind für die Terminverwaltung freigeschaltet. Melden Sie sich mit dem SSO-Konto an, das zu Ihrem WordPress-Konto gehört, um fortzufahren."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "The signed-in accounts do not match"
+msgstr "Die angemeldeten Konten passen nicht zusammen"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Use the SSO account belonging to your current WordPress account, then reload this page."
+msgstr "Verwenden Sie das SSO-Konto, das zu Ihrem aktuellen WordPress-Konto gehört, und laden Sie diese Seite anschließend erneut."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "SSO sign-in is currently unavailable"
+msgstr "Die SSO-Anmeldung ist derzeit nicht verfügbar"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Please try again. If the problem persists, contact support. Appointment access remains protected."
+msgstr "Versuchen Sie es erneut. Wenn das Problem weiterhin besteht, wenden Sie sich an den Support. Der Zugriff auf die Terminverwaltung bleibt geschützt."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Please renew your WordPress session"
+msgstr "Bitte erneuern Sie Ihre WordPress-Anmeldung"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Reload this page and sign in to WordPress again if requested."
+msgstr "Laden Sie diese Seite erneut und melden Sie sich bei Bedarf wieder bei WordPress an."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Access settings are unavailable"
+msgstr "Die Zugriffseinstellungen sind nicht verfügbar"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Access settings are unavailable. Please try again or contact support to reassign responsibility."
+msgstr "Die Zugriffseinstellungen sind nicht verfügbar. Versuchen Sie es erneut oder wenden Sie sich an den Support, um die Verantwortlichkeit neu zuweisen zu lassen."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "The change could not be saved"
+msgstr "Die Änderung konnte nicht gespeichert werden"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Back to dashboard"
+msgstr "Zurück zum Dashboard"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Reload page"
+msgstr "Seite neu laden"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Keep at least one eligible responsible person. Add a successor before removing yourself."
+msgstr "Mindestens eine berechtigte verantwortliche Person muss erhalten bleiben. Benennen Sie eine Nachfolge, bevor Sie sich selbst entfernen."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Select current members of this website with at least editor permissions."
+msgstr "Wählen Sie Mitglieder dieses Webauftritts mit mindestens Redakteur-Berechtigungen aus."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Access settings have changed. Reload the page and review the current permissions before saving again."
+msgstr "Die Zugriffseinstellungen wurden zwischenzeitlich geändert. Laden Sie die Seite erneut und prüfen Sie die aktuellen Freigaben, bevor Sie noch einmal speichern."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "This access change is not permitted. Reload the page and try again."
+msgstr "Diese Änderung der Zugriffsrechte ist nicht zulässig. Laden Sie die Seite erneut und versuchen Sie es noch einmal."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Responsible for access management:"
+msgstr "Verantwortlich für die Zugriffsverwaltung:"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "No eligible responsible person is available."
+msgstr "Es ist keine berechtigte verantwortliche Person verfügbar."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "These people manage appointment permissions. If no responsible person is available, contact support to reassign responsibility."
+msgstr "Diese Personen verwalten die Freigaben für die Terminverwaltung. Ist keine verantwortliche Person mehr erreichbar, wenden Sie sich an den Support, um die Verantwortlichkeit neu zuweisen zu lassen."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Access to appointment management"
+msgstr "Zugriff auf die Terminverwaltung"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Access is restricted to explicitly authorized users. Other administrators do not have automatic access, even when SSO is disabled."
+msgstr "Der Zugriff ist auf ausdrücklich freigeschaltete Benutzer beschränkt. Andere Administratoren haben keinen automatischen Zugriff, auch wenn SSO ausgeschaltet ist."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Manage access"
+msgstr "Zugriff verwalten"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Reassign responsible people as network administrator"
+msgstr "Verantwortliche als Netzwerk-Administrator neu zuweisen"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Explicitly select the new responsible people. This replaces responsibility but preserves ordinary permissions and the SSO requirement."
+msgstr "Wählen Sie die neuen Verantwortlichen ausdrücklich aus. Die bisherige Verantwortlichkeit wird ersetzt. Normale Freigaben und die SSO-Pflicht bleiben erhalten."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "User restrictions have not been set up. All administrators and previously selected users still have access."
+msgstr "Die Benutzerbeschränkung ist noch nicht eingerichtet. Alle Administratoren und bisher ausgewählten Benutzer haben weiterhin Zugriff."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Set up user restrictions"
+msgstr "Benutzerbeschränkung einrichten"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Review the future permissions before saving. You become responsible. Other administrators lose automatic access and must be selected explicitly. Restrictions remain in place when SSO is disabled."
+msgstr "Prüfen Sie vor dem Speichern die künftigen Freigaben. Sie werden verantwortlich. Andere Administratoren verlieren ihren automatischen Zugriff und müssen ausdrücklich ausgewählt werden. Die Beschränkung bleibt auch bei ausgeschaltetem SSO bestehen."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Authorized users can view and cancel appointments. Responsible people can also grant access and appoint other responsible people."
+msgstr "Freigeschaltete Benutzer können Termine einsehen und stornieren. Verantwortliche können zusätzlich Freigaben erteilen und weitere Verantwortliche benennen."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Responsible people"
+msgstr "Verantwortliche"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Users allowed to view and cancel appointments"
+msgstr "Benutzer mit Berechtigung zum Einsehen und Stornieren"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Responsible people automatically have access and do not need a second selection. At least one eligible responsible person must remain."
+msgstr "Verantwortliche haben automatisch Zugriff und müssen nicht zusätzlich ausgewählt werden. Mindestens eine berechtigte verantwortliche Person muss erhalten bleiben."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Reassign responsibility"
+msgstr "Verantwortlichkeit neu zuweisen"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Save permissions"
+msgstr "Freigaben speichern"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Some previous selections are no longer eligible and have no access. Saving removes these obsolete selections."
+msgstr "Einige bisher ausgewählte Benutzer erfüllen die Voraussetzungen nicht mehr und haben keinen Zugriff. Beim Speichern werden diese veralteten Freigaben entfernt."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Set up user restrictions and confirm the responsible people before enabling SSO protection."
+msgstr "Richten Sie die Benutzerbeschränkung ein und bestätigen Sie die Verantwortlichen, bevor Sie den SSO-Schutz aktivieren."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Only responsible administrators can change SSO protection."
+msgstr "Nur verantwortliche Administratoren können den SSO-Schutz ändern."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Emergency reset removes only the SSO requirement on this website. User restrictions and responsible people remain unchanged."
+msgstr "Die Notfallrücksetzung entfernt ausschließlich die SSO-Pflicht auf diesem Webauftritt. Benutzerbeschränkung und Verantwortliche bleiben unverändert."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Permissions are managed separately by the responsible people under Appointments → Manage access."
+msgstr "Die Freigaben werden separat durch die Verantwortlichen unter Appointments → Zugriff verwalten verwaltet."
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Appointment management"
+msgstr "Terminverwaltung"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Access management is reserved for responsible people"
+msgstr "Nur Verantwortliche können Freigaben verwalten"
+
+#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
+msgid "Only responsible people can manage permissions. Contact a responsible person or support if responsibility needs to be reassigned."
+msgstr "Nur verantwortliche Personen können Freigaben verwalten. Wenden Sie sich an eine verantwortliche Person oder an den Support, wenn die Verantwortlichkeit neu zugewiesen werden muss."

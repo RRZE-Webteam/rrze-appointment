@@ -133,7 +133,9 @@ describe( 'authenticated booking administration API', () => {
 				} );
 				expect( result.api.code ).toBe( 'rrze_appointment_forbidden' );
 				expect( result.api.data.status ).toBe( 403 );
-				expect( result.html ).toBe( '' );
+				expect( result.html ).toContain( 'No access to appointment management' );
+				expect( result.html ).not.toContain( 'id="rrze-appointment-admin"' );
+				expect( result.html ).not.toContain( 'Private booker' );
 				expect( result.writes ).toBe( 0 );
 				expect( result.mails ).toHaveLength( 0 );
 			}

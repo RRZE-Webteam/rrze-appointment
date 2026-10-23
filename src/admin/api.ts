@@ -56,7 +56,8 @@ export function isAccessError( error: unknown ): boolean {
 	const data = error.data;
 	if (
 		'code' in error &&
-		error.code === 'rrze_appointment_sso_unavailable'
+		( error.code === 'rrze_appointment_sso_unavailable' ||
+			error.code === 'rrze_appointment_access_unavailable' )
 	) {
 		return true;
 	}

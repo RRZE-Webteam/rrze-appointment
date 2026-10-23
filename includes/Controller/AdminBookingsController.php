@@ -3,7 +3,6 @@
 namespace RRZE\Appointment\Controller;
 
 use RRZE\Appointment\Admin\AppointmentPermissions;
-use RRZE\Appointment\Admin\BackendSsoAccess;
 use RRZE\Appointment\AppointmentException;
 use RRZE\Appointment\Booking\Bookings;
 use RRZE\Appointment\Configuration\PluginSettings;
@@ -46,13 +45,6 @@ final class AdminBookingsController
     /** Requires the same site-specific permission as the page and a REST nonce. */
     public function allowRequest(\WP_REST_Request $request): bool|\WP_Error
     {
-        if (!AppointmentPermissions::currentUserCanManage()) {
-            return new \WP_Error(
-                'rrze_appointment_forbidden',
-                __('You do not have permission to manage appointments.', 'rrze-appointment'),
-                ['status' => 403]
-            );
-        }
         if (!wp_verify_nonce($request->get_header('X-WP-Nonce'), 'wp_rest')) {
             return new \WP_Error(
                 'rrze_appointment_invalid_nonce',
@@ -60,7 +52,7 @@ final class AdminBookingsController
                 ['status' => 403]
             );
         }
-        return BackendSsoAccess::check();
+        return AppointmentPermissions::dataAccess();
     }
 
     /** Returns only authorized display fields, with a safe failure response. */

@@ -55,7 +55,9 @@ namespace RRZE\Appointment\Booking {
     {
         public const MAX_CANCELLATION_REASON_LENGTH = 2000;
         /** Counts data access without reading actual bookings. */
-        public static function getAll(array $options = []): array { $GLOBALS['bookingReads']++; return []; }
+        public static function getAll(array $options = []): array { $GLOBALS['bookingReads']++; return $GLOBALS['fakeBookings'] ?? []; }
+        /** Records an authorized cancellation without sending real notifications. */
+        public static function cancel($slot, $reason): bool { $GLOBALS['cancellations'][] = $slot; return true; }
     }
 }
 namespace {
@@ -79,7 +81,7 @@ namespace {
         /** Returns the synthetic REST nonce. */
         public function get_header(string $name): string { return 'nonce'; }
         /** Returns no optional query parameters. */
-        public function get_param(string $name): mixed { return null; }
+        public function get_param(string $name): mixed { return $GLOBALS['requestParams'][$name] ?? null; }
     }
     /** Captures successful REST responses. */
     class WP_REST_Response
@@ -104,7 +106,13 @@ namespace {
     /** Returns the simulated subsite. */
     function get_current_blog_id(): int { return $GLOBALS['site']; }
     /** Models site membership for delegated managers. */
-    function is_user_member_of_blog(...$args): bool { return true; }
+    function is_user_member_of_blog($id, ...$args): bool { return !in_array($id, $GLOBALS['nonMembers'] ?? [], true); }
+    /** Supplies eligible synthetic accounts, with explicit deletion and role-loss controls. */
+    function get_userdata($id): mixed { return in_array($id, [7, 8, 9, 10], true) && !in_array($id, $GLOBALS['deleted'] ?? [], true) ? (object) ['ID' => $id, 'display_name' => 'User ' . $id, 'user_login' => 'user' . $id] : false; }
+    /** Models capability changes independently from grants. */
+    function user_can($user, $cap): bool { return !in_array($user->ID, $GLOBALS['demoted'] ?? [], true) && ($user->ID !== get_current_user_id() || $cap === 'read' || $cap === 'edit_others_posts' || current_user_can($cap)); }
+    /** Synthetic options have no cache, but production code must still evict it. */
+    function wp_cache_delete(...$args): bool { return true; }
     /** Converts manager IDs in the production permission class. */
     function absint($value): int { return abs((int) $value); }
     /** Supplies synthetic per-site settings. */
@@ -144,6 +152,10 @@ namespace {
     function wp_verify_nonce($nonce, $action): bool { return $GLOBALS['nonce'] && ($action === 'wp_rest' || $nonce === $action); }
     /** Preserves fixture request input. */
     function wp_unslash($value): mixed { return $value; }
+    /** Formats test dates without changing locale state. */
+    function date_i18n($format, $timestamp): string { return date($format ?: 'Y-m-d', $timestamp); }
+    /** Sanitizes synthetic cancellation reasons. */
+    function sanitize_textarea_field($value): string { return strip_tags($value); }
     /** Normalizes the synthetic IdP labels as WordPress would. */
     function sanitize_title($value): string { return strtolower($value); }
     /** Resolves both canonical IdP-scoped and local accounts. */
@@ -157,7 +169,12 @@ namespace {
     /** Stops an HTTP action with an observable status. */
     function wp_die($message, $title = '', $args = []): void { throw new TestStopped($message, $args['response'] ?? 500); }
     /** Returns fixed site-local admin paths. */
-    function admin_url($path): string { return 'https://site' . get_current_blog_id() . '.test/wp-admin/' . $path; }
+    function admin_url($path = ''): string { return 'https://site' . get_current_blog_id() . '.test/wp-admin/' . $path; }
+    /** Adds arguments to a fixed test URL using both WordPress calling conventions. */
+    function add_query_arg($key, $value, $url = null): string {
+        if (is_array($key)) { $url = $value; $args = $key; } else { $args = [$key => $value]; }
+        return $url . (str_contains($url, '?') ? '&' : '?') . http_build_query($args);
+    }
     /** Captures a successful redirect and state before the handler exits. */
     function wp_safe_redirect($url): void { echo json_encode(['redirect' => $url, 'authCalls' => $GLOBALS['authCalls'], 'writes' => $GLOBALS['writes']]); }
 
@@ -174,17 +191,20 @@ namespace {
     $nonce = true;
     $installed = $visible = $allowed = true;
     $networkOnly = $activationFails = false;
-    $caps = ['manage_options' => true, 'activate_plugins' => true, 'activate_plugin' => true, 'manage_network_options' => true];
+    $caps = ['read' => true, 'manage_options' => true, 'activate_plugins' => true, 'activate_plugin' => true, 'manage_network_options' => true];
     $active = [1 => ['rrze-ac/rrze-ac.php', 'rrze-sso/rrze-sso.php'], 2 => []];
     $networkActive = [];
     $options = [1 => ['rrze_appointment_backend_sso_required' => '1'], 2 => []];
     $writes = $activations = $authCalls = $notices = [];
     $bookingReads = 0;
 
+    define('DB_NAME', 'test');
+    require __DIR__ . '/access-database.php';
+    $wpdb = new AccessTestDatabase();
     $root = dirname(__DIR__, 2);
     $helper = dirname($root) . '/rrze-sso/includes/Helper.php';
     require is_file($helper) ? $helper : __DIR__ . '/backend-sso-helper.php';
-    foreach (['Configuration/PluginSettings', 'Admin/AppointmentPermissions', 'Admin/BackendSsoAccess', 'Admin/BackendSsoSettings',
+    foreach (['AppointmentException', 'Storage/OptionDatabase', 'Admin/AccessPolicy', 'Admin/AccessSettings', 'Admin/AccessNotice', 'Configuration/PluginSettings', 'Admin/AppointmentPermissions', 'Admin/BackendSsoAccess', 'Admin/BackendSsoSettings',
         'Admin/BookingsPage', 'Admin/SettingsPage', 'Controller/AdminBookingsController'] as $class) {
         require $root . '/includes/' . $class . '.php';
     }
@@ -212,7 +232,9 @@ namespace {
         case 'multisite': $site = 2; break;
         case 'super-expired': $super = true; $authenticated = false; break;
     }
-    if (str_starts_with($scenario, 'activate-')) {
+    if (str_starts_with($scenario, 'policy-')) {
+        require __DIR__ . '/access-policy-cases.php';
+    } elseif (str_starts_with($scenario, 'activate-')) {
         $active[1] = ['rrze-sso/rrze-sso.php'];
         $options[1][$access::OPTION_NAME] = '0';
         switch ($scenario) {
@@ -232,12 +254,12 @@ namespace {
             ['appointment_manager_user_ids' => [7], 'retention_days' => 30]);
     } elseif (str_starts_with($scenario, 'reset-') || str_starts_with($scenario, 'disable-') || $scenario === 'enable') {
         $super = $scenario === 'reset-network';
-        if ($scenario === 'enable') { $options[1][$access::OPTION_NAME] = '0'; }
+        if ($scenario === 'enable') { $options[1][$access::OPTION_NAME] = '0'; $options[1]['rrze_appointment_access_policy'] = ['version' => 1, 'restricted' => true, 'revision' => 1, 'owners' => [7], 'managers' => []]; }
         $result = $settings->perform(explode('-', $scenario)[0]);
     } elseif (str_starts_with($scenario, 'http-')) {
         $_SERVER['REQUEST_METHOD'] = 'POST';
-        $_POST = ['operation' => 'enable'];
-        $_POST['_wpnonce'] = \RRZE\Appointment\Admin\BackendSsoSettings::nonceAction('enable');
+        $_POST = ['operation' => 'enable', 'policy_token' => \RRZE\Appointment\Admin\AccessPolicy::token()];
+        $_POST['_wpnonce'] = \RRZE\Appointment\Admin\BackendSsoSettings::nonceAction('enable', 'settings', $_POST['policy_token']);
         switch ($scenario) {
             case 'http-nonce': $_POST['_wpnonce'] = 'invalid'; break;
             case 'http-cross-site': $site = 2; break;
@@ -256,5 +278,5 @@ namespace {
         $cancel = $controller->cancelBooking(new WP_REST_Request());
     }
     echo json_encode(['result' => $result, 'cancel' => $cancel ?? null, 'reads' => $bookingReads, 'writes' => $writes,
-        'activations' => $activations, 'options' => $options, 'authCalls' => $authCalls, 'notices' => $notices]);
+        'activations' => $activations, 'options' => $options, 'authCalls' => $authCalls, 'notices' => $notices, 'extra' => $extra ?? [], 'locked' => $wpdb->locked]);
 }

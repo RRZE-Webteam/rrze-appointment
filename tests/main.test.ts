@@ -41,6 +41,7 @@ const getMainResult = ( storageFailure = false ): MainResult => {
             class FaudirPersonProvider { public function handleRequest(): void {} }
 		}
 		namespace RRZE\\Appointment\\Admin {
+			class AccessSettings { public function register(): void {} }
 			class BackendSsoSettings { public function register(): void {} }
 			class MailTemplatesPage {}
 			class SettingsPage {

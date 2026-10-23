@@ -1,0 +1,17 @@
+.rrze-appointment-access-card {
+    max-width: 650px;
+    margin: 24px 0;
+    padding: 28px;
+    border: 1px solid #c3c4c7;
+    border-radius: 8px;
+    background: #fff;
+    color: #1d2327;
+}
+.rrze-appointment-access-card .dashicons { color: #50575e; font-size: 28px; width: 28px; height: 28px; }
+.rrze-appointment-access-card h2 { font-size: 20px; line-height: 1.4; margin: 16px 0 8px; }
+.rrze-appointment-access-card p { font-size: 14px; line-height: 1.6; }
+.rrze-appointment-access-card:focus { outline: 2px solid #2271b1; outline-offset: 2px; }
+.rrze-appointment-access-form { max-width: 750px; margin-top: 20px; }
+.rrze-appointment-access-form fieldset { padding: 16px; margin: 16px 0; border: 1px solid #c3c4c7; background: #fff; }
+.rrze-appointment-access-form legend { font-weight: 600; padding: 0 4px; }
+.rrze-appointment-access-form label { display: block; padding: 6px 0; }

@@ -78,7 +78,7 @@ function esc_html__($text, $domain) { return esc_html($text); }
 function esc_html_e($text, $domain) { echo esc_html($text); }
 function esc_attr_e($text, $domain) { echo esc_attr($text); }
 function selected($current, $value) { if ((string) $current === (string) $value) { echo ' selected="selected"'; } }
-function admin_url($path) { return 'https://example.test/wp-admin/' . $path; }
+function admin_url($path = '') { return 'https://example.test/wp-admin/' . $path; }
 function add_query_arg($args, $url) {
     $parts = parse_url($url);
     parse_str($parts['query'] ?? '', $query);
@@ -98,6 +98,10 @@ function wp_verify_nonce($nonce, $action) { return $action === 'wp_rest' && $non
 function is_wp_error($value) { return $value instanceof WP_Error; }
 function register_rest_route($namespace, $route, $args) { $GLOBALS['routes'][] = compact('namespace', 'route', 'args'); }
 class WP_Error {
+    /** Returns the synthetic error code. */
+    public function get_error_code() { return $this->code; }
+    /** Returns the safe synthetic message. */
+    public function get_error_message() { return $this->message; }
     public function __construct(public string $code, public string $message, public array $data = []) {}
 }
 class WP_REST_Response {
@@ -114,6 +118,10 @@ require $root . '/includes/AppointmentException.php';
 require $root . '/includes/Configuration/PluginSettings.php';
 require $root . '/includes/Booking/Bookings.php';
 require $root . '/includes/Admin/Request.php';
+require $root . '/includes/Admin/AccessPolicy.php';
+require $root . '/includes/Admin/AccessNotice.php';
+require $root . '/includes/Admin/AccessSettings.php';
+require $root . '/includes/Admin/BackendSsoSettings.php';
 require $root . '/includes/Admin/AppointmentPermissions.php';
 require $root . '/includes/Admin/BookingsPage.php';
 require $root . '/includes/Controller/AdminBookingsController.php';

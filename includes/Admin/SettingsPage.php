@@ -205,6 +205,10 @@ final class SettingsPage
      */
     public function renderAppointmentManagersField(): void
     {
+        if (AccessPolicy::restricted()) {
+            echo '<p>' . esc_html__('Permissions are managed separately by the responsible people under Appointments → Manage access.', 'rrze-appointment') . '</p>';
+            return;
+        }
         if (is_wp_error(BackendSsoAccess::check())) {
             echo '<p>' . esc_html__('Sign in with the matching SSO account to change appointment managers.', 'rrze-appointment') . '</p>';
             return;
@@ -437,6 +441,7 @@ final class SettingsPage
             ?>
         </form>
         <?php
+        AccessSettings::renderSettings();
         BackendSsoSettings::render();
     }
 

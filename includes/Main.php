@@ -3,6 +3,7 @@
 namespace RRZE\Appointment;
 
 use RRZE\Appointment\Admin\BookingsPage;
+use RRZE\Appointment\Admin\AccessSettings;
 use RRZE\Appointment\Admin\BackendSsoSettings;
 use RRZE\Appointment\Admin\MailTemplatesPage;
 use RRZE\Appointment\Admin\SettingsPage;
@@ -92,6 +93,7 @@ final class Main
         $mailTemplatesPage = new MailTemplatesPage();
         (new SettingsPage($mailTemplatesPage))->register();
         (new BackendSsoSettings())->register();
+        (new AccessSettings())->register();
         (new BookingsPage())->register();
         (new Reminder())->register();
 

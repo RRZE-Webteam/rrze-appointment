@@ -55,6 +55,7 @@ describe( 'focused administration pages', () => {
 			'admin_print_footer_scripts',
 			'admin_menu',
 			'admin_enqueue_scripts',
+			'load-toplevel_page_rrze-appointment-bookings',
 		] );
 		expect( result.mailTemplateMethods ).toContain( 'render' );
 		expect( result.settingsScreen ).toBe(

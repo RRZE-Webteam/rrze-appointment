@@ -99,7 +99,7 @@ initialized identity providers. Setup never changes that configuration or existi
 An unrecognized IdP, missing mapping or dependency failure denies access. Local accounts without
 a matching SSO identity cannot access protected appointment data, including network administrators.
 
-Site administrators need matching SSO to disable protection or change appointment managers.
+Before explicit user restrictions are configured, site administrators need matching SSO to disable protection or change legacy appointment managers. After setup, only responsible administrators may change SSO protection; responsible editors may manage grants.
 Network administrators have a separate, nonce-protected emergency reset in the same settings section.
 It explicitly removes the additional requirement on that site; it is not a data-access bypass.
 Deactivating AC later leaves protection enabled and denies management access until repaired or reset.
@@ -118,6 +118,55 @@ explicit login when appropriate. Already displayed information cannot be recalle
 session expires: access is checked on every subsequent request. No SSO attributes or authorization
 results are stored by this integration. Settings, management, login and error responses are private
 and non-cacheable. Server configuration and other plugins remain trusted administrative components.
+
+### Explicit appointment permissions and responsible people
+
+Each site can deliberately set up **user restrictions** in the general settings. Existing installations
+retain their administrator access and legacy manager list until this confirmation; no site is converted
+by an update or a network scan. The preview makes the acting administrator responsible and offers
+eligible previous managers for confirmation. Other administrators must be explicitly selected.
+A new SSO activation requires this setup first; an already enabled SSO requirement remains unchanged.
+
+After setup, only listed responsible people and ordinary authorized users may view and cancel
+appointments. Administrators and network administrators have no implicit data access. Eligible users
+must currently belong to the site and have `read` plus `edit_others_posts` or `manage_options`.
+Roles, membership and the matching SSO session (when required) are rechecked on every request.
+Deleting or demoting users removes their effective access immediately. Local accounts without a
+matching SSO identity cannot use an SSO-protected management screen even when listed.
+
+Responsible people use **Appointments → Manage access**, including editors without `manage_options`,
+to grant view/cancellation access or appoint other responsible people. At least one eligible owner
+must remain after each change. Restrictions persist independently of SSO and never revert to
+administrator access because a list becomes empty or invalid. There is no regular "allow all admins"
+action after setup. Other administrators see read-only responsibility information in settings.
+
+Only a responsible administrator with matching SSO may normally enable/disable SSO. A network
+administrator can explicitly **reassign responsibility** without SSO if owners are unavailable; this
+preserves ordinary grants and the SSO requirement. If a damaged policy cannot be decoded, recovery
+creates a valid policy from the explicitly selected owners without trusting damaged grants.
+The separate **SSO emergency reset** removes only SSO, leaving explicit user restrictions intact.
+Neither recovery action automatically adds its actor to the list. All writes require authenticated
+POSTs and site/action/revision-bound WordPress nonces.
+
+The non-autoloaded, per-site option `rrze_appointment_access_policy` stores a version, the restricted
+state, owners, managers and a revision. It is separate from ordinary settings and booking encryption.
+The old `appointment_manager_user_ids` field is ignored and preserved after setup. Security writes
+share a bounded database advisory lock, refresh option caches, reject stale forms (409), and preserve
+the previous policy on failure. Policy writes use compare-and-swap; failures deny access (503).
+No SSO claims or authentication results are persisted. Server code and database administrators remain
+trusted infrastructure; these application permissions do not isolate data from someone controlling PHP.
+
+Users without a base grant do not see the Appointments menu. Direct links display a private, data-free
+explanation. Users who only need to renew SSO still see the menu and an explicit sign-in action.
+Responsible names are shown only to authenticated site members, never in denied REST responses.
+The open application clears its list and cancellation dialog on access failures and rejects late responses.
+The existing REST list/cancellation URLs and their SSO status codes remain unchanged.
+
+Validation covers setup/legacy compatibility, ordinary and responsible editors, excluded admins,
+SSO failures, nonce manipulation, last-owner protection, stale forms, role/member loss, network recovery,
+site isolation, and late frontend responses. Public booking, mail, cron and encrypted migration retain
+independent authorization paths. Build without a version bump using
+`./node_modules/.bin/wp-scripts build --webpack-copy-php` followed by `npm run build:email`.
 
 ### Email addresses for bookings without SSO
 

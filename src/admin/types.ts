@@ -25,6 +25,11 @@ export interface AdminConfig {
 	cancelUrl: string;
 	nonce: string;
 	loginUrl?: string;
+	dashboardUrl?: string;
+	accessMessages?: Record<
+		string,
+		{ title: string; description: string; action: string }
+	>;
 }
 
 declare global {

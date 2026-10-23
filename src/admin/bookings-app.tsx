@@ -9,7 +9,8 @@ import { Button, Notice, Spinner } from '@wordpress/components';
 import { useEffect, useMemo, useRef, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import { calendar, Icon, notAllowed, search, update } from '@wordpress/icons';
-import { loadBookings, needsSsoLogin, requestErrorMessage } from './api';
+import { loadBookings, isAccessError, requestErrorMessage } from './api';
+import { AccessErrorCard } from './access-error-card';
 import { CancelBookingModal } from './cancel-booking-modal';
 import type {
 	AdminBooking,
@@ -55,7 +56,10 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 	const [ hasPastView, setHasPastView ] = useState( false );
 	const [ loading, setLoading ] = useState( true );
 	const [ error, setError ] = useState( '' );
-	const [ loginRequired, setLoginRequired ] = useState( false );
+	const [ accessError, setAccessError ] = useState< unknown >( null );
+	const requestGeneration = useRef( 0 );
+	const pendingRequest = useRef< AbortController | null >( null );
+	const accessBlocked = useRef( false );
 	const [ notice, setNotice ] = useState( '' );
 	const [ revision, setRevision ] = useState( 0 );
 	const [ selectedBooking, setSelectedBooking ] =
@@ -70,14 +74,20 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 
 	useEffect( () => {
 		const controller = new AbortController();
+		pendingRequest.current = controller;
+		const generation = ++requestGeneration.current;
 		setResponse( null );
 		setLoading( true );
 		setError( '' );
-		setLoginRequired( false );
+
 		setSelectedBooking( null );
 		loadBookings( config, mode, controller.signal )
 			.then( ( result ) => {
-				if ( controller.signal.aborted ) {
+				if (
+					controller.signal.aborted ||
+					generation !== requestGeneration.current ||
+					accessBlocked.current
+				) {
 					return;
 				}
 				setHasPastView( result.hasPastView );
@@ -89,15 +99,24 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 				setResponse( result );
 			} )
 			.catch( ( requestError: unknown ) => {
-				if ( ! controller.signal.aborted ) {
+				if (
+					! controller.signal.aborted &&
+					generation === requestGeneration.current
+				) {
+					if ( isAccessError( requestError ) ) {
+						denyAccess( requestError );
+						return;
+					}
 					setError( requestErrorMessage( requestError ) );
-					setLoginRequired( needsSsoLogin( requestError ) );
 					setSelectedBooking( null );
 					setResponse( null );
 				}
 			} )
 			.finally( () => {
-				if ( ! controller.signal.aborted ) {
+				if (
+					! controller.signal.aborted &&
+					generation === requestGeneration.current
+				) {
 					setLoading( false );
 				}
 			} );
@@ -312,6 +331,25 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 		} ) );
 	}
 
+	/** Revokes the display and prevents late requests from restoring any booking data. */
+	function denyAccess( requestError: unknown ) {
+		accessBlocked.current = true;
+		requestGeneration.current++;
+		pendingRequest.current?.abort();
+		setSelectedBooking( null );
+		setResponse( null );
+		setHasPastView( false );
+		setView( initialView( mode ) );
+		setNotice( '' );
+		setError( '' );
+		setLoading( false );
+		setAccessError( requestError );
+	}
+
+	if ( accessError ) {
+		return <AccessErrorCard error={ accessError } config={ config } />;
+	}
+
 	return (
 		<>
 			<p className="rrze-appointment-admin__intro">
@@ -380,19 +418,6 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 				{ error && (
 					<Notice status="error" isDismissible={ false }>
 						{ error }
-						{ loginRequired && config.loginUrl && (
-							<p>
-								<Button
-									href={ config.loginUrl }
-									variant="secondary"
-								>
-									{ __(
-										'Sign in with SSO',
-										'rrze-appointment'
-									) }
-								</Button>
-							</p>
-						) }
 					</Notice>
 				) }
 			</div>
@@ -518,18 +543,13 @@ export function BookingsApp( { config }: { config: AdminConfig } ) {
 					showReason={ response.cancellationReasonEnabled }
 					onClose={ () => setSelectedBooking( null ) }
 					onSuccess={ ( message ) => {
+						if ( accessBlocked.current ) return;
 						setSelectedBooking( null );
 						setNotice( message );
 						setView( ( current ) => ( { ...current, page: 1 } ) );
 						setRevision( ( value ) => value + 1 );
 					} }
-					onAccessError={ ( requestError ) => {
-						setSelectedBooking( null );
-						setResponse( null );
-						setError( requestErrorMessage( requestError ) );
-						setLoginRequired( needsSsoLogin( requestError ) );
-						setNotice( '' );
-					} }
+					onAccessError={ denyAccess }
 				/>
 			) }
 		</>

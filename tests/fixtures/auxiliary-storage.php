@@ -92,10 +92,12 @@ namespace {
         $result['adminHeaders'][] = $GLOBALS['headers'];
     }
     $_GET = [];
-    $_REQUEST = ['action' => 'rrze_appointment_backend_sso'];
-    $GLOBALS['headers'] = [];
-    PrivateResponses::protectRequest();
-    $result['adminHeaders'][] = $GLOBALS['headers'];
+    foreach (['rrze_appointment_backend_sso', 'rrze_appointment_access'] as $action) {
+        $_REQUEST = ['action' => $action];
+        $GLOBALS['headers'] = [];
+        PrivateResponses::protectRequest();
+        $result['adminHeaders'][] = $GLOBALS['headers'];
+    }
     $_GET = [];
     $_REQUEST = ['action' => 'rrze_appointment_book'];
     $GLOBALS['ajax'] = true;
