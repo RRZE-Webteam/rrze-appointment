@@ -29,7 +29,11 @@ final class BookingScheduler
      */
     public static function schedule(int $timestamp, #[\SensitiveParameter] string $hook, #[\SensitiveParameter] string $value): void
     {
-        wp_schedule_single_event($timestamp, $hook, [BookingStorage::jobReference($hook, $value)]);
+        $arguments = [BookingStorage::jobReference($hook, $value)];
+        $result = wp_schedule_single_event($timestamp, $hook, $arguments, true);
+        if (($result === false || $result instanceof \WP_Error) && !wp_next_scheduled($hook, $arguments)) {
+            throw new AppointmentException('An appointment notification could not be scheduled.');
+        }
     }
 
     /**
@@ -123,6 +127,47 @@ final class BookingScheduler
     }
 
     /**
+     * Inspects known jobs without rewriting WordPress's shared cron option.
+     *
+     * @param OptionDatabase $database Locked site storage connection.
+     * @param bool $requireOpaque Whether plaintext arguments must be rejected.
+     * @throws AppointmentException On malformed events or incomplete cron protection.
+     */
+    public static function inspect(OptionDatabase $database, bool $requireOpaque = false): void
+    {
+        $raw = $database->read('cron');
+        if ($raw === null) {
+            return;
+        }
+        foreach (BookingStorage::decodeLegacy($raw) as $hooks) {
+            if (!is_array($hooks)) {
+                continue;
+            }
+            foreach (self::STORES as $hook => $store) {
+                if (!isset($hooks[$hook])) {
+                    continue;
+                }
+                if (!is_array($hooks[$hook])) {
+                    throw new AppointmentException('An appointment cron event is malformed.');
+                }
+                foreach ($hooks[$hook] as $eventKey => $event) {
+                    if (!is_array($event) || !is_array($event['args'] ?? null)
+                        || array_keys($event['args']) !== [0] || !is_string($event['args'][0])) {
+                        throw new AppointmentException('An appointment cron event is malformed.');
+                    }
+                    $argument = $event['args'][0];
+                    $opaque = preg_match('/^rrze-appt-job:v1:[a-f0-9]{64}$/D', $argument) === 1;
+                    if (($requireOpaque && !$opaque)
+                        || (str_starts_with($argument, self::PREFIX) && !$opaque)
+                        || ($requireOpaque && $eventKey !== md5(serialize($event['args'])))) {
+                        throw new AppointmentException('Appointment cron protection is incomplete. Check the migration and concurrent cron writers.');
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Replaces legacy cron arguments, retaining timestamps and unrelated events.
      *
      * A conditional write retries concurrent changes to WordPress's shared cron
@@ -168,6 +213,7 @@ final class BookingScheduler
             }
             unset($hooks);
             if ($database->replace('cron', $raw, serialize($cron))) {
+                self::inspect($database, true);
                 return;
             }
         }

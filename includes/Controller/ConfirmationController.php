@@ -11,7 +11,7 @@ use RRZE\Appointment\Mail\MailTemplatePost;
 use RRZE\Appointment\Mail\Mailer;
 use RRZE\Appointment\Notification\Reminder;
 use RRZE\Appointment\Presentation\PublicPageRenderer;
-use RRZE\Appointment\Storage\BookingStorage;
+use RRZE\Appointment\Storage\BookingScheduler;
 
 defined('ABSPATH') || exit;
 
@@ -56,6 +56,8 @@ final class ConfirmationController
      */
     public function handleConfirmation(): void
     {
+        $committed = false;
+        $sendingMail = false;
         try {
             $token = $this->getConfirmationToken();
             if ($token === '') {
@@ -83,28 +85,29 @@ final class ConfirmationController
                 return;
             }
 
-            $entry = TokenManager::confirmPending($token);
+            $meta = $this->getPersistableBookingMeta($pendingMeta);
+            $entry = TokenManager::completePending($token, $meta);
             if (!is_array($entry)) {
                 $this->renderInvalidConfirmation();
                 return;
             }
 
-            $slot = (string) $entry['slot'];
-            $meta = $this->getPersistableBookingMeta(
-                is_array($entry['meta'] ?? null) ? $entry['meta'] : []
-            );
+            $committed = true;
+            $slot = $entry['slot'];
+            $meta = $entry['meta'];
             [$datePart, $startTime, $endTime] = $this->parseSlot($slot);
 
-            $this->markSlotAsBooked($slot);
-            Reminder::scheduleForSlot($slot, $meta);
+            BookingScheduler::clear(TokenManager::PENDING_EXPIRY_HOOK, $token);
+            Reminder::schedulePersistedSlot($slot);
 
             $variables = $this->buildTemplateVariables(
                 $datePart,
                 $startTime,
                 $endTime,
                 $meta,
-                TokenManager::getCancelUrlForSlot($slot)
+                TokenManager::cancelUrl($meta['cancel_token'])
             );
+            $sendingMail = true;
             $this->sendConfirmationEmails(
                 $meta,
                 $variables,
@@ -114,6 +117,13 @@ final class ConfirmationController
 
             $this->renderer->renderConfirmation('', [], [], '', '', $appointmentDetails);
         } catch (\Throwable $exception) {
+            if ($committed) {
+                $message = $sendingMail
+                    ? __('Your appointment is booked, but the confirmation emails could not be sent completely. Please contact the appointment organizer.', 'rrze-appointment')
+                    : __('Your appointment is booked, but its notifications could not be prepared. Please contact the appointment organizer.', 'rrze-appointment');
+                $this->renderer->renderError($message, 500);
+                return;
+            }
             wp_die(esc_html(AppointmentException::fromThrowable($exception)->getMessage()), '', ['response' => 500]);
         }
     }
@@ -308,16 +318,6 @@ final class ConfirmationController
         }
 
         return $persistableMeta;
-    }
-
-    /**
-     * Adds a confirmed slot to the public booked-slot option.
-     */
-    private function markSlotAsBooked(#[\SensitiveParameter] string $slot): void
-    {
-        $booked = BookingStorage::get(Bookings::SLOTS_OPTION);
-        $booked[] = $slot;
-        BookingStorage::set(Bookings::SLOTS_OPTION, array_unique($booked));
     }
 
     /**

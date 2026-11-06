@@ -2430,7 +2430,7 @@ msgid "Appointments"
 msgstr ""
 
 #: includes/Admin/StorageStatus.php
-msgid "Appointment storage is unavailable. Check the encryption key, database connection and migration state. Booking operations have been stopped to protect existing data."
+msgid "Appointment storage or scheduled jobs need attention. Check the encryption key, database connection and migration state."
 msgstr ""
 
 #: includes/Admin/StorageStatus.php
@@ -2733,4 +2733,12 @@ msgstr ""
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
 msgid "Only responsible people can manage permissions. Contact a responsible person or support if responsibility needs to be reassigned."
+msgstr ""
+
+#: includes/Controller/ConfirmationController.php
+msgid "Your appointment is booked, but the confirmation emails could not be sent completely. Please contact the appointment organizer."
+msgstr ""
+
+#: includes/Controller/ConfirmationController.php
+msgid "Your appointment is booked, but its notifications could not be prepared. Please contact the appointment organizer."
 msgstr ""

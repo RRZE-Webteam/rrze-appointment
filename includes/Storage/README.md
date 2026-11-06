@@ -1,6 +1,6 @@
 # Booking storage and migration
 
-All booking workflows use `BookingStorage::get()` / `set()`. This includes
+All booking workflows use `BookingStorage::get()` / `set()` / `setMany()`. This includes
 availability, pending bookings, confirmations, cancellation, administrative
 lists, retention, waiting lists, reminders and opening notifications. Never use
 `get_option()` or `update_option()` directly for the five protected options.
@@ -10,8 +10,10 @@ Configuring a valid `RRZE_APPOINTMENT_ENCRYPTION_KEY` starts migration
 page or press a button. `Main` initializes storage before maintenance, and the
 storage layer also initializes itself before direct booking access, including
 after a multisite switch. Completed migration does not trigger repeated writes.
-**Settings → RRZE Appointment** shows diagnostics to site administrators; it has
-no migration action. The server-side key configuration authorizes automatic
+**Appointments and Settings → RRZE Appointment** show diagnostics to site
+administrators on single-site installations and exclusively to superadministrators
+on multisite. Other administration screens show no storage/migration notices.
+Neither page offers a migration action. The server-side key configuration authorizes automatic
 migration. Public booking remains available to guests and does not require SSO.
 Optional RRZE-AC protection for management is configured separately in the general
 settings. It additionally requires the managing WordPress user's matching SSO
@@ -24,23 +26,57 @@ See the main README for setup, dependencies and network-admin emergency recovery
    deploying this version or enabling the key**. If the key already exists,
    updating the plugin enables migration immediately on the next request. Do not
    paste the key into tickets, logs, source control or a database option.
-2. Drain web requests and cron workers during deployment, update **all** workers,
-   then admit requests again. Old code does not understand ciphertext or honor
-   the new storage lock. Removing an active encryption key is not a migration
-   pause mechanism and will block access to an already migrated site.
-3. The next request initializes the current site. The plugin preflights all five
-   arrays, records an authenticated migration marker, then replaces and verifies
-   each store. Existing action tokens and URLs are preserved byte-for-byte.
-   Multisite also schedules a bounded network worker so unvisited sites are
-   reached without requiring customer actions; see the network operation below.
-4. Check the encrypted status. All five stores, including previously missing
-   empty stores, must be encrypted, and old cron arguments must be converted.
-   Settings, public appointment blocks and mail templates remain editable.
-5. If interrupted, the next request resumes from the saved progress. Correct any
-   storage or configuration errors first. Do **not** delete migration state,
-   regenerate the key or replace a failed store with `[]`. Ordinary booking
-   workflows only continue after initialization succeeds; there is no plaintext
-   write fallback after an unsuccessful automatic migration.
+2. Pause new PHP requests and every cron/CLI writer across the entire affected
+   network. Drain all old processes, including ordinary page requests and writers
+   on inactive sites. Update all workers and their OPcache while the gate stays
+   closed. A form-only maintenance screen is insufficient.
+3. Run the CLI preflight below, correct failures, then run migration and verification
+   for every affected network. The helper checks every eligible site before it
+   writes the first site. Migration preserves existing tokens and verifies every
+   store before checkpointing. Interrupted runs resume with the same key.
+4. Release traffic only after verification succeeds for all relevant sites and
+   private-response cache exclusions are in place. The background network worker
+   continues discovery/recovery afterwards; it does not replace this deployment
+   gate. A shared cron snapshot read before migration must never be written later.
+5. Keep the gate closed on failure. Do not delete migration state, generate a new
+   key, or replace failed stores with `[]`. Restore the complete database and its
+   matching key if recovery requires it. Reverting plugin code alone cannot read
+   ciphertext. After reopening, restoring an older backup can lose new bookings
+   and requires a separate, explicit recovery procedure.
+
+### Controlled CLI maintenance
+
+Use the deployed plugin's absolute path and the actual site's URL. Always skip
+normal plugins and themes: ordinary Appointment initialization would otherwise
+start migration before a read-only check. MU plugins and database drop-ins still
+load; deployment must account for their writers as well.
+
+```sh
+wp --url=https://SITE.example --skip-plugins --skip-themes eval-file /PATH/rrze-appointment/bin/storage-maintenance.php preflight network
+wp --url=https://SITE.example --skip-plugins --skip-themes eval-file /PATH/rrze-appointment/bin/storage-maintenance.php migrate network
+wp --url=https://SITE.example --skip-plugins --skip-themes eval-file /PATH/rrze-appointment/bin/storage-maintenance.php verify network
+```
+
+Omit `network` for one site. With multiple networks, run once per network using
+an appropriate URL. All modes require a valid configured key; unlike ordinary
+legacy operation, the helper never reports an unencrypted installation as ready
+for encrypted rollout. `preflight` checks InnoDB, keys, Sodium, payload round trips
+and cron structure without writing. `migrate` runs a full preflight, migration and
+verification pass. `verify` reads and authenticates all five stores, requires a
+complete state and rejects plaintext/malformed Appointment cron arguments. It
+never silently repairs a queue or claims to reconstruct lost foreign events.
+
+Network passes use primary-key batches of ten, including inactive sites with
+stored data, and release site locks/snapshots after each site. Empty inactive
+sites are skipped; missing tables and corrupt sites fail. Their network lock is
+shared with the background worker. Output is JSON lines with site IDs, phases,
+counters and generic error codes only. Any failing pass returns a nonzero exit
+status. An interrupted migration is safely rerun from the beginning: authenticated
+per-site progress is authoritative, and completed payloads are not rewritten.
+
+These checks take advisory locks but do not pause unrelated writers themselves.
+The migration gate is an operational prerequisite, not a claim that an ordinary
+plugin can control code that ignores its locks.
 
 Diagnostics distinguish legacy mode (no key), ready (not yet initialized),
 migrating, encrypted and errors. Status inspection itself is read-only; normal
@@ -93,7 +129,8 @@ without re-encryption. The network option contains only counters, site IDs,
 timestamps and generic error codes; it is **not** an authenticated security
 marker and cannot authorize plaintext access or replace per-site verification.
 
-Network administration shows the current/last pass counts, coordinator ID and
+The Appointment administration screens show superadministrators the current/last
+pass counts, coordinator ID and
 last failing site ID. An active pass without worker progress for 15 minutes
 shows an attention notice; scheduling health checks do not reset that timer.
 Visit a failing site's administration for its storage diagnosis. A pass that
@@ -209,8 +246,20 @@ validation. Lock ownership is checked to detect reconnects/lost connections.
 Conditional SQL updates additionally compare a SHA-256 digest of the observed
 raw value, so the old plaintext is not copied into the update predicate. A
 conflict stops the workflow instead of overwriting a newer value. The lock is
-**not a transaction**: existing multi-option domain operations and external mail
-delivery do not gain rollback or exactly-once delivery. Migration is independently
+**not a transaction**. Confirmation additionally uses `setMany()` to commit the
+reservation removal, booked slot, metadata and cancellation token in one InnoDB
+transaction. Every replacement is encoded and round-trip checked first; exact
+raw values are verified before COMMIT. Native mysqli calls on the captured lock
+connection avoid wpdb's reconnect-and-replay behavior. Existing caller transactions
+and non-InnoDB tables are rejected before writes; the plugin does not change engines.
+
+A pre-commit failure preserves the reservation for retry. If COMMIT succeeds but
+its acknowledgement is lost, the next request sees a complete booking and cannot
+confirm the consumed token again. Notifications and mail run only after commit;
+mail errors report that the booking was saved. Question answers remain request-local.
+Other multi-option operations and external delivery do not acquire rollback or
+exactly-once delivery through this change. Duplicate reminders and slow mail under
+the existing request lock remain separate follow-up work. Migration is independently
 resumable because every option replacement is verified and checkpointed.
 
 ## Migration marker and scheduled jobs

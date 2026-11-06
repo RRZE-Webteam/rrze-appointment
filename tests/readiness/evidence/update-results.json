@@ -1,0 +1,1160 @@
+{
+  "candidate": "working-tree:ac7ca78c878a1fed025e7a51dd82d3be5fd955095b4b480000870b541e6e2a98",
+  "baseline": "28b5552dc96171826ce22603964f4c67dd06a0b7",
+  "scope": "local synthetic data only",
+  "checks": [
+    {
+      "name": "candidate-build-without-version-bump",
+      "status": "pass",
+      "evidence": {
+        "version": "2.3.3",
+        "sha256": "7b5dc38c0679a40cbefe3f2d987252075747fecebd9723c0965e8a0f0a7db6de"
+      }
+    },
+    {
+      "name": "legacy-confirmation-booked",
+      "status": "pass",
+      "evidence": {
+        "status": 200
+      }
+    },
+    {
+      "name": "legacy-confirmation-cancel",
+      "status": "pass",
+      "evidence": {
+        "status": 200
+      }
+    },
+    {
+      "name": "legacy-confirmation-optout",
+      "status": "pass",
+      "evidence": {
+        "status": 200
+      }
+    },
+    {
+      "name": "legacy-baseline-real-bookings",
+      "status": "pass",
+      "evidence": {
+        "mails": 75
+      }
+    },
+    {
+      "name": "first-visitor-preserves-all-five-stores",
+      "status": "pass",
+      "evidence": {
+        "status": 200,
+        "seconds": 0.4102,
+        "phase": "encrypted",
+        "completed": 5
+      }
+    },
+    {
+      "name": "completed-migration-does-not-rewrite-stores",
+      "status": "pass",
+      "evidence": {}
+    },
+    {
+      "name": "legacy-confirmation-link-after-upgrade",
+      "status": "pass",
+      "evidence": {
+        "status": 200,
+        "duplicate_status": 410
+      }
+    },
+    {
+      "name": "legacy-optout-link-after-upgrade",
+      "status": "pass",
+      "evidence": {
+        "status": 200
+      }
+    },
+    {
+      "name": "legacy-cancellation-link-after-upgrade",
+      "status": "pass",
+      "evidence": {
+        "status": 200,
+        "duplicate_status": 410
+      }
+    },
+    {
+      "name": "token-response-private",
+      "status": "pass",
+      "evidence": {
+        "cache_control": "no-cache, must-revalidate, max-age=0, no-store, private"
+      }
+    },
+    {
+      "name": "native-atomic-confirmation-legacy",
+      "status": "pass",
+      "evidence": {
+        "assertions": [
+          "fault-installed",
+          "write-failure-reached-rrze_appointment_booked_slots",
+          "rollback-rrze_appointment_booked_slots",
+          "old-token-retained",
+          "retry-confirms-once",
+          "new-cancel-token-valid",
+          "repeat-token-rejected",
+          "pending-cancel-token-removed",
+          "fault-installed",
+          "write-failure-reached-rrze_appointment_booked_slots_meta",
+          "rollback-rrze_appointment_booked_slots_meta",
+          "old-token-retained",
+          "retry-confirms-once",
+          "new-cancel-token-valid",
+          "repeat-token-rejected",
+          "pending-cancel-token-removed",
+          "fault-installed",
+          "write-failure-reached-rrze_appointment_cancel_tokens",
+          "rollback-rrze_appointment_cancel_tokens",
+          "old-token-retained",
+          "retry-confirms-once",
+          "new-cancel-token-valid",
+          "repeat-token-rejected",
+          "pending-cancel-token-removed",
+          "fault-installed",
+          "write-failure-reached-rrze_appointment_pending_slots",
+          "rollback-rrze_appointment_pending_slots",
+          "old-token-retained",
+          "retry-confirms-once",
+          "new-cancel-token-valid",
+          "repeat-token-rejected",
+          "pending-cancel-token-removed",
+          "process-exit-before-commit-rolls-back",
+          "retry-after-process-exit",
+          "uncertain-commit-is-complete",
+          "uncertain-commit-retry-cannot-duplicate",
+          "ambient-transaction-rejected",
+          "myisam-rejected-before-write",
+          "fault-installed",
+          "connection-killed-during-transaction",
+          "disconnect-rolled-back-without-replay",
+          "retry-after-disconnect"
+        ]
+      }
+    },
+    {
+      "name": "native-atomic-confirmation-encrypted",
+      "status": "pass",
+      "evidence": {
+        "assertions": [
+          "fault-installed",
+          "write-failure-reached-rrze_appointment_booked_slots",
+          "rollback-rrze_appointment_booked_slots",
+          "old-token-retained",
+          "retry-confirms-once",
+          "new-cancel-token-valid",
+          "repeat-token-rejected",
+          "pending-cancel-token-removed",
+          "fault-installed",
+          "write-failure-reached-rrze_appointment_booked_slots_meta",
+          "rollback-rrze_appointment_booked_slots_meta",
+          "old-token-retained",
+          "retry-confirms-once",
+          "new-cancel-token-valid",
+          "repeat-token-rejected",
+          "pending-cancel-token-removed",
+          "fault-installed",
+          "write-failure-reached-rrze_appointment_cancel_tokens",
+          "rollback-rrze_appointment_cancel_tokens",
+          "old-token-retained",
+          "retry-confirms-once",
+          "new-cancel-token-valid",
+          "repeat-token-rejected",
+          "pending-cancel-token-removed",
+          "fault-installed",
+          "write-failure-reached-rrze_appointment_pending_slots",
+          "rollback-rrze_appointment_pending_slots",
+          "old-token-retained",
+          "retry-confirms-once",
+          "new-cancel-token-valid",
+          "repeat-token-rejected",
+          "pending-cancel-token-removed",
+          "process-exit-before-commit-rolls-back",
+          "retry-after-process-exit",
+          "uncertain-commit-is-complete",
+          "uncertain-commit-retry-cannot-duplicate",
+          "ambient-transaction-rejected",
+          "myisam-rejected-before-write",
+          "fault-installed",
+          "connection-killed-during-transaction",
+          "disconnect-rolled-back-without-replay",
+          "retry-after-disconnect"
+        ]
+      }
+    },
+    {
+      "name": "confirmation-mail-failure-keeps-committed-booking",
+      "status": "pass",
+      "evidence": {
+        "status": 500,
+        "duplicate_status": 410,
+        "booked_count": 4
+      }
+    },
+    {
+      "name": "maintenance-preflight-blocks-before-any-migration",
+      "status": "pass",
+      "evidence": {
+        "preflight": [
+          {
+            "phase": "preflight",
+            "site_id": 1,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 2,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 3,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 4,
+            "result": "storage_error"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 5,
+            "result": "skipped"
+          },
+          {
+            "phase": "preflight",
+            "checked": 4,
+            "skipped": 1,
+            "failed": 1
+          }
+        ],
+        "migrate": [
+          {
+            "phase": "preflight",
+            "site_id": 1,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 2,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 3,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 4,
+            "result": "storage_error"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 5,
+            "result": "skipped"
+          },
+          {
+            "phase": "preflight",
+            "checked": 4,
+            "skipped": 1,
+            "failed": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "maintenance-preflight-is-read-only",
+      "status": "pass",
+      "evidence": {
+        "results": [
+          {
+            "phase": "preflight",
+            "site_id": 1,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 2,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 3,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 4,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 5,
+            "result": "skipped"
+          },
+          {
+            "phase": "preflight",
+            "checked": 4,
+            "skipped": 1,
+            "failed": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "maintenance-migrates-active-and-dormant-sites",
+      "status": "pass",
+      "evidence": {
+        "results": [
+          {
+            "phase": "preflight",
+            "site_id": 1,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 2,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 3,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 4,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 5,
+            "result": "skipped"
+          },
+          {
+            "phase": "preflight",
+            "checked": 4,
+            "skipped": 1,
+            "failed": 0
+          },
+          {
+            "phase": "migrate",
+            "site_id": 1,
+            "result": "ok"
+          },
+          {
+            "phase": "migrate",
+            "site_id": 2,
+            "result": "ok"
+          },
+          {
+            "phase": "migrate",
+            "site_id": 3,
+            "result": "ok"
+          },
+          {
+            "phase": "migrate",
+            "site_id": 4,
+            "result": "ok"
+          },
+          {
+            "phase": "migrate",
+            "site_id": 5,
+            "result": "skipped"
+          },
+          {
+            "phase": "migrate",
+            "checked": 4,
+            "skipped": 1,
+            "failed": 0
+          },
+          {
+            "phase": "verify",
+            "site_id": 1,
+            "result": "ok"
+          },
+          {
+            "phase": "verify",
+            "site_id": 2,
+            "result": "ok"
+          },
+          {
+            "phase": "verify",
+            "site_id": 3,
+            "result": "ok"
+          },
+          {
+            "phase": "verify",
+            "site_id": 4,
+            "result": "ok"
+          },
+          {
+            "phase": "verify",
+            "site_id": 5,
+            "result": "skipped"
+          },
+          {
+            "phase": "verify",
+            "checked": 4,
+            "skipped": 1,
+            "failed": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "maintenance-verification-and-repeat-do-not-write",
+      "status": "pass",
+      "evidence": {
+        "verification": [
+          {
+            "phase": "verify",
+            "site_id": 1,
+            "result": "ok"
+          },
+          {
+            "phase": "verify",
+            "site_id": 2,
+            "result": "ok"
+          },
+          {
+            "phase": "verify",
+            "site_id": 3,
+            "result": "ok"
+          },
+          {
+            "phase": "verify",
+            "site_id": 4,
+            "result": "ok"
+          },
+          {
+            "phase": "verify",
+            "site_id": 5,
+            "result": "skipped"
+          },
+          {
+            "phase": "verify",
+            "checked": 4,
+            "skipped": 1,
+            "failed": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "drained-foreign-cron-writer-cannot-replay-legacy-snapshot",
+      "status": "pass",
+      "evidence": {}
+    },
+    {
+      "name": "maintenance-detects-reintroduced-plaintext-without-repair",
+      "status": "pass",
+      "evidence": {
+        "results": [
+          {
+            "phase": "verify",
+            "site_id": 1,
+            "result": "ok"
+          },
+          {
+            "phase": "verify",
+            "site_id": 2,
+            "result": "storage_error"
+          },
+          {
+            "phase": "verify",
+            "site_id": 3,
+            "result": "ok"
+          },
+          {
+            "phase": "verify",
+            "site_id": 4,
+            "result": "ok"
+          },
+          {
+            "phase": "verify",
+            "site_id": 5,
+            "result": "skipped"
+          },
+          {
+            "phase": "verify",
+            "checked": 4,
+            "skipped": 1,
+            "failed": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "local-drained-rollout-under-60-seconds",
+      "status": "pass",
+      "evidence": {
+        "seconds": 5.0,
+        "network_maintenance": [
+          {
+            "phase": "preflight",
+            "site_id": 1,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 2,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 3,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 4,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "site_id": 5,
+            "result": "ok"
+          },
+          {
+            "phase": "preflight",
+            "checked": 5,
+            "skipped": 0,
+            "failed": 0
+          },
+          {
+            "phase": "migrate",
+            "site_id": 1,
+            "result": "ok"
+          },
+          {
+            "phase": "migrate",
+            "site_id": 2,
+            "result": "ok"
+          },
+          {
+            "phase": "migrate",
+            "site_id": 3,
+            "result": "ok"
+          },
+          {
+            "phase": "migrate",
+            "site_id": 4,
+            "result": "ok"
+          },
+          {
+            "phase": "migrate",
+            "site_id": 5,
+            "result": "ok"
+          },
+          {
+            "phase": "migrate",
+            "checked": 5,
+            "skipped": 0,
+            "failed": 0
+          },
+          {
+            "phase": "verify",
+            "site_id": 1,
+            "result": "ok"
+          },
+          {
+            "phase": "verify",
+            "site_id": 2,
+            "result": "ok"
+          },
+          {
+            "phase": "verify",
+            "site_id": 3,
+            "result": "ok"
+          },
+          {
+            "phase": "verify",
+            "site_id": 4,
+            "result": "ok"
+          },
+          {
+            "phase": "verify",
+            "site_id": 5,
+            "result": "ok"
+          },
+          {
+            "phase": "verify",
+            "checked": 5,
+            "skipped": 0,
+            "failed": 0
+          }
+        ],
+        "foreign_cron_drained": true,
+        "public_samples": 85,
+        "public_statuses": [
+          200
+        ],
+        "private_status": 503,
+        "old_booking_success": true,
+        "new_booking_success": true,
+        "first_new_page_status": 200,
+        "opcache": "disabled in local CLI server",
+        "public_delivery": "exact-path cached HTML; real hosting cache and static assets not certified"
+      }
+    },
+    {
+      "name": "five-native-concurrent-writes-preserved",
+      "status": "pass",
+      "evidence": {
+        "process_statuses": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "added": 5
+      }
+    },
+    {
+      "name": "five-http-bookings-reserve-slot-once",
+      "status": "pass",
+      "evidence": {
+        "successes": 1,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ],
+        "seconds": [
+          0.3487,
+          0.3457,
+          0.6747,
+          0.3436,
+          0.3465
+        ]
+      }
+    },
+    {
+      "name": "native-lock-timeout-and-recovery",
+      "status": "pass",
+      "evidence": {
+        "blocked_store_count": 5,
+        "seconds": 30.785,
+        "recovered": true
+      }
+    },
+    {
+      "name": "migration-recovers-before-marker",
+      "status": "pass",
+      "evidence": {
+        "injected": true,
+        "response_status": 200,
+        "equal": true,
+        "phase": "encrypted"
+      }
+    },
+    {
+      "name": "migration-recovers-after-payload-before-checkpoint",
+      "status": "pass",
+      "evidence": {
+        "injected": true,
+        "response_status": 200,
+        "equal": true,
+        "phase": "encrypted"
+      }
+    },
+    {
+      "name": "migration-recovers-middle-store",
+      "status": "pass",
+      "evidence": {
+        "injected": true,
+        "response_status": 200,
+        "equal": true,
+        "phase": "encrypted"
+      }
+    },
+    {
+      "name": "migration-recovers-cron-write",
+      "status": "pass",
+      "evidence": {
+        "injected": true,
+        "response_status": 200,
+        "equal": true,
+        "phase": "encrypted"
+      }
+    },
+    {
+      "name": "migration-recovers-lost-lock",
+      "status": "pass",
+      "evidence": {
+        "injected": true,
+        "response_status": 200,
+        "equal": true,
+        "phase": "encrypted"
+      }
+    },
+    {
+      "name": "key-error-missing",
+      "status": "pass",
+      "evidence": {
+        "blocked_stores": 5,
+        "unchanged": true,
+        "recovered": true
+      }
+    },
+    {
+      "name": "key-error-wrong",
+      "status": "pass",
+      "evidence": {
+        "blocked_stores": 5,
+        "unchanged": true,
+        "recovered": true
+      }
+    },
+    {
+      "name": "key-error-invalid",
+      "status": "pass",
+      "evidence": {
+        "blocked_stores": 5,
+        "unchanged": true,
+        "recovered": true
+      }
+    },
+    {
+      "name": "corrupt-payload-blocks-access",
+      "status": "pass",
+      "evidence": {
+        "blocked_stores": 5
+      }
+    },
+    {
+      "name": "missing-row-blocks-access",
+      "status": "pass",
+      "evidence": {
+        "blocked_stores": 5
+      }
+    },
+    {
+      "name": "corrupt-state-blocks-access",
+      "status": "pass",
+      "evidence": {
+        "blocked_stores": 5
+      }
+    },
+    {
+      "name": "complete-database-and-key-restore",
+      "status": "pass",
+      "evidence": {
+        "identical_stores": true
+      }
+    },
+    {
+      "name": "network-isolates-failed-and-dormant-sites",
+      "status": "pass",
+      "evidence": {
+        "progress": {
+          "owner": 1,
+          "checked_at": 1793983226,
+          "updated_at": 1793983226,
+          "error": "",
+          "cursor": 5,
+          "upper": 5,
+          "scanned": 5,
+          "encrypted": 3,
+          "skipped": 1,
+          "failed": 1,
+          "last_failed": 4,
+          "in_flight": 0,
+          "finished_at": 1793983226,
+          "next_batch": 1793986826
+        },
+        "statuses": {
+          "2": "encrypted",
+          "3": "encrypted",
+          "4": "not-started",
+          "5": "not-started"
+        }
+      }
+    },
+    {
+      "name": "network-retries-repaired-site",
+      "status": "pass",
+      "evidence": {
+        "progress": {
+          "owner": 1,
+          "checked_at": 1793983226,
+          "updated_at": 1793983229,
+          "error": "",
+          "cursor": 5,
+          "upper": 5,
+          "scanned": 5,
+          "encrypted": 4,
+          "skipped": 1,
+          "failed": 0,
+          "last_failed": 0,
+          "in_flight": 0,
+          "finished_at": 1793983229,
+          "next_batch": 1794069629
+        },
+        "retry_clock": "next_batch advanced by test fixture"
+      }
+    },
+    {
+      "name": "new-http-booking-confirmation-and-calendar",
+      "status": "pass",
+      "evidence": {
+        "request_status": 200,
+        "confirmation_status": 200,
+        "messages": 3,
+        "calendar_parts": 2,
+        "valid_calendars": true,
+        "recipients": [
+          "host@example.test",
+          "new@example.test",
+          "new@example.test"
+        ]
+      }
+    },
+    {
+      "name": "migrated-reminder-jobs-send-mail",
+      "status": "pass",
+      "evidence": {
+        "dispatched": 3,
+        "messages": 6
+      }
+    },
+    {
+      "name": "legacy-opening-job-and-link",
+      "status": "pass",
+      "evidence": {
+        "messages": 1,
+        "claim_status": 200
+      }
+    },
+    {
+      "name": "management-rest-default-access",
+      "status": "pass",
+      "evidence": {
+        "anonymous": {
+          "status": 403,
+          "data_type": "array",
+          "code": "rrze_appointment_forbidden"
+        },
+        "admin": {
+          "status": 200,
+          "data_type": "array",
+          "code": null
+        }
+      }
+    },
+    {
+      "name": "simultaneous-first-visitors-and-bookings",
+      "status": "pass",
+      "evidence": {
+        "successful_reservations": 1,
+        "existing_bookings_retained": true,
+        "page_statuses": [
+          200,
+          200
+        ],
+        "seconds": [
+          0.3826,
+          0.4217,
+          0.7367,
+          0.4311,
+          0.7427
+        ]
+      }
+    },
+    {
+      "name": "real-database-outage-fails-closed-and-recovers",
+      "status": "pass",
+      "evidence": {
+        "page_status": 500,
+        "booking_status": 200,
+        "unchanged_stores": true,
+        "recovered_status": 200,
+        "ajax_success": false,
+        "ajax_database_error": true
+      }
+    },
+    {
+      "name": "opaque-reminders-retry-after-temporary-key-failure",
+      "status": "pass",
+      "evidence": {
+        "deferred_jobs": 3,
+        "same_references": true,
+        "no_mail_during_failure": true,
+        "recovery_messages": 6,
+        "retry_dispatch": "WP-CLI explicitly runs deferred events without waiting five minutes"
+      }
+    },
+    {
+      "name": "legacy-reservation-expires-and-old-link-rejects",
+      "status": "pass",
+      "evidence": {
+        "pending_before": 1,
+        "pending_after": 0,
+        "expired_link_status": 410
+      }
+    },
+    {
+      "name": "overlapping-first-migration-all-booking-operations",
+      "status": "pass",
+      "evidence": {
+        "statuses": [
+          200,
+          200,
+          200,
+          200
+        ],
+        "seconds": [
+          0.4059,
+          0.4119,
+          0.3437,
+          0.3618
+        ],
+        "booked_count": 3,
+        "pending_count": 1,
+        "exact_expected_slots": true
+      }
+    },
+    {
+      "name": "parallel-network-workers-preserve-site-isolation",
+      "status": "pass",
+      "evidence": {
+        "identical_site_payloads": true,
+        "visitor_status": 200,
+        "worker_scanned": [
+          5,
+          0
+        ]
+      }
+    },
+    {
+      "name": "legacy-confirmation-loss-reproduced",
+      "status": "pass",
+      "evidence": {
+        "injected": true,
+        "http_status": 200,
+        "negative_control": true
+      }
+    },
+    {
+      "name": "confirmation-write-failure-recoverable-candidate",
+      "status": "pass",
+      "evidence": {
+        "injected": true,
+        "pending_retained": true,
+        "retry_status": 200,
+        "duplicate_status": 410
+      }
+    },
+    {
+      "name": "confirmation_failure-harness-completion",
+      "status": "pass",
+      "evidence": {
+        "recovered": true
+      }
+    }
+  ],
+  "environment": {
+    "php": "8.4.17",
+    "wordpress": "7.1.4",
+    "mysql": "5.7.44",
+    "memory_limit": "-1",
+    "execution_limit": "0",
+    "sodium": true,
+    "object_cache": null,
+    "timezone": "Europe/Berlin",
+    "theme": "FAU-Elemental",
+    "sites": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "active_plugins": [
+      "rrze-appointment/rrze-appointment.php"
+    ]
+  },
+  "legacy": {
+    "stores": {
+      "rrze_appointment_booked_slots": {
+        "count": 3,
+        "digest": "937b2634fe05a52e47c1722aba942fa21180f9edc95db1aafa82697b3a49237d",
+        "raw_digest": "937b2634fe05a52e47c1722aba942fa21180f9edc95db1aafa82697b3a49237d",
+        "bytes": 108,
+        "encrypted": false
+      },
+      "rrze_appointment_booked_slots_meta": {
+        "count": 3,
+        "digest": "b409fae9fb8fe592ae34953a6f1a65ed32f49e837315ec74eb2ba5ba1a5708b9",
+        "raw_digest": "b409fae9fb8fe592ae34953a6f1a65ed32f49e837315ec74eb2ba5ba1a5708b9",
+        "bytes": 1620,
+        "encrypted": false
+      },
+      "rrze_appointment_pending_slots": {
+        "count": 1,
+        "digest": "4ef740dff8114c7f25791c9d9bae6c2b94f0ffdb5924410b31b92ef98ae67ec9",
+        "raw_digest": "4ef740dff8114c7f25791c9d9bae6c2b94f0ffdb5924410b31b92ef98ae67ec9",
+        "bytes": 513,
+        "encrypted": false
+      },
+      "rrze_appointment_cancel_tokens": {
+        "count": 3,
+        "digest": "ac0db045b53c163598b352f43adea751d1d8aed8f9a16ea257869b2389899d81",
+        "raw_digest": "ac0db045b53c163598b352f43adea751d1d8aed8f9a16ea257869b2389899d81",
+        "bytes": 339,
+        "encrypted": false
+      },
+      "rrze_appointment_booking_opening_notifications": {
+        "count": 1,
+        "digest": "b381049e5016d5c3260d4a0cd7ccc877c634980fc4150d93947a31a43aef2a4d",
+        "raw_digest": "b381049e5016d5c3260d4a0cd7ccc877c634980fc4150d93947a31a43aef2a4d",
+        "bytes": 661,
+        "encrypted": false
+      }
+    },
+    "cron": [
+      {
+        "time": 1793983680,
+        "hook": "rrze_appointment_booking_opened",
+        "opaque": false,
+        "args_digest": "524157886c4b22dd5a66a3560f13c53833215c35f422416b100dc744ce1b7df7"
+      },
+      {
+        "time": 1793984940,
+        "hook": "rrze_appointment_expire_pending",
+        "opaque": false,
+        "args_digest": "b67becc1bc4476abcde2e0d976ead8f865dc320bea6ffde93193757ad240f184"
+      },
+      {
+        "time": 1793986683,
+        "hook": "rrze_appointment_send_reminder",
+        "opaque": false,
+        "args_digest": "4be2e16d2716da8b5348621b157209f94c96b0af3f5505123bfb13a41371cc83"
+      },
+      {
+        "time": 1793986683,
+        "hook": "rrze_appointment_send_reminder",
+        "opaque": false,
+        "args_digest": "de41db7a866c73afe77ac674461fc9b066b8f2f60f1319be24469ca6a6439bd6"
+      },
+      {
+        "time": 1793986683,
+        "hook": "rrze_appointment_send_reminder",
+        "opaque": false,
+        "args_digest": "f2698c28917f381a6d33db70f9afd7b1804b67001c043da0b6cd6907d5e53a09"
+      },
+      {
+        "time": 1794026280,
+        "hook": "audit_foreign_event",
+        "opaque": false,
+        "args_digest": "7eadbcf26acf36d3a71f69d1eb1ff56b89dfb68d2a861e6fd46f9ff676813aa9"
+      },
+      {
+        "time": 1794034800,
+        "hook": "rrze_appointment_daily_check",
+        "opaque": false,
+        "args_digest": "35786c7117b4e38d0f169239752ce71158266ae2f6e4aa230fbbb87bd699c0e3"
+      }
+    ],
+    "errors": [],
+    "phase": "legacy",
+    "completed": 0,
+    "state_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "peak_memory": 55902208
+  },
+  "encrypted": {
+    "stores": {
+      "rrze_appointment_booked_slots": {
+        "count": 3,
+        "digest": "937b2634fe05a52e47c1722aba942fa21180f9edc95db1aafa82697b3a49237d",
+        "raw_digest": "ad95c6d3675afd62ca14ff2d85dd342280c39ba9eac0a2cee25e5916cebc4358",
+        "bytes": 271,
+        "encrypted": true
+      },
+      "rrze_appointment_booked_slots_meta": {
+        "count": 3,
+        "digest": "b409fae9fb8fe592ae34953a6f1a65ed32f49e837315ec74eb2ba5ba1a5708b9",
+        "raw_digest": "ba242e2b07ada84c1f7e49bb6c4dd05af0f82d3c4f27aa98b5a7ba2bb51ba03b",
+        "bytes": 1941,
+        "encrypted": true
+      },
+      "rrze_appointment_pending_slots": {
+        "count": 1,
+        "digest": "4ef740dff8114c7f25791c9d9bae6c2b94f0ffdb5924410b31b92ef98ae67ec9",
+        "raw_digest": "6d94dd4e7b58c010c725bc5f4a6b5a09cbc117a133570b58570a21e7b2005b68",
+        "bytes": 712,
+        "encrypted": true
+      },
+      "rrze_appointment_cancel_tokens": {
+        "count": 3,
+        "digest": "ac0db045b53c163598b352f43adea751d1d8aed8f9a16ea257869b2389899d81",
+        "raw_digest": "b241fc9111f4b82496f6b4f1f1a5db052f476066fcd05e75e134c2d1161a1f20",
+        "bytes": 510,
+        "encrypted": true
+      },
+      "rrze_appointment_booking_opening_notifications": {
+        "count": 1,
+        "digest": "b381049e5016d5c3260d4a0cd7ccc877c634980fc4150d93947a31a43aef2a4d",
+        "raw_digest": "563c36630e6ec75bfee7efeea00494697779176cb1d352c2fe3a5b0f22d32737",
+        "bytes": 869,
+        "encrypted": true
+      }
+    },
+    "cron": [
+      {
+        "time": 1793983680,
+        "hook": "rrze_appointment_booking_opened",
+        "opaque": true,
+        "args_digest": "31b8d96411c71aed4b61b32850d4aec1091774279bfffd236fb40843277e4834"
+      },
+      {
+        "time": 1793984940,
+        "hook": "rrze_appointment_expire_pending",
+        "opaque": true,
+        "args_digest": "f24f5fd685a24837762db618faebaf04de8082cf78e75594ae37dca7262dc545"
+      },
+      {
+        "time": 1793986683,
+        "hook": "rrze_appointment_send_reminder",
+        "opaque": true,
+        "args_digest": "f52eadf39c4f1231a743f1a17268769a1ad3065f416ece4c62af846c639a0f1c"
+      },
+      {
+        "time": 1793986683,
+        "hook": "rrze_appointment_send_reminder",
+        "opaque": true,
+        "args_digest": "8e65ae24ce90a1601cc0139b06657d134bfd56e52d761db7ab83a6db3b41d1e0"
+      },
+      {
+        "time": 1793986683,
+        "hook": "rrze_appointment_send_reminder",
+        "opaque": true,
+        "args_digest": "62e77a50af48ae9d68e515f4bd162000a2d622dc198bd26e65a06fdc2ef1d1b8"
+      },
+      {
+        "time": 1794026280,
+        "hook": "audit_foreign_event",
+        "opaque": false,
+        "args_digest": "7eadbcf26acf36d3a71f69d1eb1ff56b89dfb68d2a861e6fd46f9ff676813aa9"
+      },
+      {
+        "time": 1794034800,
+        "hook": "rrze_appointment_daily_check",
+        "opaque": false,
+        "args_digest": "35786c7117b4e38d0f169239752ce71158266ae2f6e4aa230fbbb87bd699c0e3"
+      }
+    ],
+    "errors": [],
+    "phase": "encrypted",
+    "completed": 5,
+    "state_digest": "baf8e79c2ebac36a23f881335278caa3b887263556cdf1705e835a41d5c63fa3",
+    "peak_memory": 57999360
+  }
+}

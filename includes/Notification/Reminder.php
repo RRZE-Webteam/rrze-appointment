@@ -59,7 +59,21 @@ final class Reminder
             $allMeta = BookingStorage::get(Bookings::META_OPTION);
             $allMeta[$slot] = $meta;
             BookingStorage::set(Bookings::META_OPTION, $allMeta);
+            self::schedulePersistedSlot($slot);
+        } catch (\Throwable $exception) {
+            throw self::createException($exception);
+        }
+    }
 
+    /**
+     * Schedules reminders after a committed confirmation without replacing metadata.
+     *
+     * @param string $slot Confirmed slot whose metadata and cancellation token already exist.
+     * @throws AppointmentException When a reminder cannot be scheduled.
+     */
+    public static function schedulePersistedSlot(#[\SensitiveParameter] string $slot): void
+    {
+        try {
             $reminderDays = array_unique([
                 (int) PluginSettings::get('reminder_booker_days'),
                 (int) PluginSettings::get('reminder_host_days'),

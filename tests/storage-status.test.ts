@@ -23,7 +23,7 @@ describe( 'automatic migration status', () => {
 	it( 'shows startup failures even before a migration marker could be persisted', () => {
 		const result = run( {
 			phase: 'ready',
-			page: 'dashboard',
+			page: 'rrze-appointment-bookings',
 			initializationError: 'Safe startup failure.',
 		} );
 		expect( result.html ).toContain( 'notice-error' );
@@ -49,11 +49,44 @@ describe( 'automatic migration status', () => {
 		}
 	);
 
-	it( 'shows errors beyond settings and restricts diagnostics to administrators', () => {
-		expect( run( { phase: 'error', page: 'dashboard' } ).html ).toContain(
-			'Safe storage error.'
-		);
-		expect( run( { phase: 'error', admin: false } ).html ).toBe( '' );
-		expect( run( { phase: 'ready', page: 'dashboard' } ).html ).toBe( '' );
+	it.each( [ 'legacy', 'ready', 'migrating', 'encrypted', 'error' ] )(
+		'restricts %s diagnostics before reading storage',
+		( phase ) => {
+			for ( const overrides of [
+				{ page: 'dashboard' },
+				{ page: 'rrze-appointment-settings', screen: 'dashboard' },
+				{ screen: '' },
+				{ admin: false },
+				{ multisite: true, admin: true, superAdmin: false },
+			] ) {
+				const result = run( { phase, ...overrides } );
+				expect( result.html ).toBe( '' );
+				expect( result.reads ).toBe( 0 );
+			}
+			for ( const page of [
+				'rrze-appointment-settings',
+				'rrze-appointment-bookings',
+			] ) {
+				expect( run( { phase, page } ).html ).not.toBe( '' );
+				expect(
+					run( { phase, page, multisite: true, superAdmin: true } )
+						.html
+				).not.toBe( '' );
+			}
+		}
+	);
+	it( 'hides startup errors on unrelated screens and from site admins', () => {
+		expect(
+			run( {
+				page: 'dashboard',
+				initializationError: 'Safe startup failure.',
+			} ).html
+		).toBe( '' );
+		expect(
+			run( {
+				multisite: true,
+				initializationError: 'Safe startup failure.',
+			} ).html
+		).toBe( '' );
 	} );
 } );

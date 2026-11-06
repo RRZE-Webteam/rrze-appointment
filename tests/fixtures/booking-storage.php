@@ -40,10 +40,14 @@ final class BookingTestDatabase
     public array $activeLocks = [];
     public int $peakLocks = 0;
     public SQLite3 $db;
+    public mysqli $dbh;
 
     /** Creates empty synthetic site tables and the MySQL digest equivalent. */
     public function __construct()
     {
+        // Unconnected native handle models the preflight driver check only.
+        // Real transaction behavior is covered by readiness/atomic.php on InnoDB.
+        $this->dbh = new mysqli();
         $this->db = new SQLite3(':memory:');
         $this->db->enableExceptions(true);
         $this->db->createFunction('SHA2', static fn($data, $bits) => hash('sha256', $data), 2);
@@ -73,6 +77,9 @@ final class BookingTestDatabase
         $this->last_error = $this->failReads ? 'synthetic failure' : '';
         if ($this->failReads) {
             return null;
+        }
+        if (str_contains($query, 'information_schema.TABLES')) {
+            return 'InnoDB';
         }
         if (str_contains($query, 'GET_LOCK(')) {
             $this->locks[] = $query;
@@ -237,7 +244,31 @@ foreach ($hooks as $hook => $argument) {
 $wpdb->seed('cron', serialize($cron));
 $result = [];
 
-if (in_array($scenario, ['wrong-key', 'missing-key', 'tamper', 'missing-option', 'plaintext-replacement', 'missing-state', 'invalid-state', 'swapped', 'downgraded-state'], true)) {
+if ($scenario === 'read-only-checks') {
+    $before = $wpdb->rows();
+    BookingStorage::preflight();
+    $result['preflightUnchanged'] = $wpdb->rows() === $before;
+    $result['notStarted'] = $wpdb->raw(BookingStorage::STATE_OPTION) === null;
+    BookingStorage::initialize();
+    $before = $wpdb->rows();
+    BookingStorage::verify();
+    $result['verifyUnchanged'] = $wpdb->rows() === $before;
+} elseif ($scenario === 'cron-reintroduced') {
+    BookingStorage::initialize();
+    $wpdb->seed('cron', serialize($cron));
+    BookingStorage::release();
+    $before = $wpdb->rows();
+    $result['verification'] = failure(static fn() => BookingStorage::verify());
+    $result['diagnostics'] = failure(static fn() => BookingStorage::status());
+    $result['unchanged'] = $wpdb->rows() === $before;
+} elseif ($scenario === 'malformed-cron-preflight') {
+    $cron[4000000000]['rrze_appointment_send_reminder'] = ['broken' => ['args' => [false]]];
+    $wpdb->seed('cron', serialize($cron));
+    $before = $wpdb->rows();
+    $result = failure(static fn() => BookingStorage::initialize());
+    $result['unchanged'] = $wpdb->rows() === $before;
+    $result['notStarted'] = $wpdb->raw(BookingStorage::STATE_OPTION) === null;
+} elseif (in_array($scenario, ['wrong-key', 'missing-key', 'tamper', 'missing-option', 'plaintext-replacement', 'missing-state', 'invalid-state', 'swapped', 'downgraded-state'], true)) {
     $context = str_repeat('a', 32);
     $cipher = new BookingCipher(EncryptionKey::fromBase64($key), $context);
     foreach ($data as $name => $value) {
@@ -328,12 +359,17 @@ if (in_array($scenario, ['wrong-key', 'missing-key', 'tamper', 'missing-option',
     \RRZE\Appointment\Notification\BookingOpeningNotifier::cleanup();
     $result['missingJobRepaired'] = wp_next_scheduled($hook, [$reference]) !== false;
 } elseif ($scenario === 'cron-failure') {
-    $wpdb->seed('cron', serialize([4000000000 => ['rrze_appointment_booking_opened' => ['broken' => ['args' => []]]]]));
+    /** Fails the cron replacement after all five payload checkpoints, not the earlier structural preflight. */
+    $wpdb->beforeWrite = static function (string $query): void {
+        if (str_contains($query, "option_name = 'cron'")) {
+            throw new AppointmentException('Synthetic cron write failure.');
+        }
+    };
     $result['failure'] = failure(static fn() => BookingStorage::initialize());
     BookingStorage::release();
     $result['phaseAfterFailure'] = BookingStorage::status()['phase'];
     $result['completedAfterFailure'] = BookingStorage::status()['completed'];
-    $wpdb->seed('cron', serialize($cron));
+    $wpdb->beforeWrite = null;
     BookingStorage::initialize();
     $result['phaseAfterResume'] = BookingStorage::status()['phase'];
 } elseif ($scenario === 'lost-lock') {

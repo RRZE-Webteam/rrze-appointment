@@ -30,15 +30,15 @@ final class StorageStatus
     }
 
     /**
-     * Displays status on settings, and storage failures throughout administration.
+     * Displays technical status only to operators on Appointment screens.
      */
     public function render(): void
     {
-        if (!current_user_can('manage_options')) {
+        if (!DiagnosticNotice::allowed()) {
             return;
         }
         $phase = 'error';
-        $message = __('Appointment storage is unavailable. Check the encryption key, database connection and migration state. Booking operations have been stopped to protect existing data.', 'rrze-appointment');
+        $message = __('Appointment storage or scheduled jobs need attention. Check the encryption key, database connection and migration state.', 'rrze-appointment');
         try {
             if ($this->initializationError !== null) {
                 throw new AppointmentException($this->initializationError);
@@ -54,9 +54,6 @@ final class StorageStatus
         } catch (AppointmentException $exception) {
             // Storage exceptions contain operator-safe descriptions, never payloads.
             $message .= ' ' . $exception->getMessage();
-        }
-        if ($phase !== 'error' && Request::queryText('page', true) !== SettingsPage::PAGE_SLUG) {
-            return;
         }
         $class = $phase === 'encrypted' ? 'notice-success' : ($phase === 'error' ? 'notice-error' : 'notice-warning');
         echo '<div class="notice ' . esc_attr($class) . '"><p>' . esc_html($message) . '</p>';

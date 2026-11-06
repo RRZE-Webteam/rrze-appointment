@@ -3,6 +3,7 @@
 namespace RRZE\Appointment\Storage;
 
 use RRZE\Appointment\AppointmentException;
+use RRZE\Appointment\Admin\DiagnosticNotice;
 
 defined('ABSPATH') || exit;
 
@@ -30,7 +31,7 @@ final class NetworkMigration
         add_filter('cron_schedules', [self::class, 'schedules']);
         add_action('init', [self::class, 'schedule'], 20);
         add_action(self::HOOK, [self::class, 'run']);
-        add_action('network_admin_notices', [self::class, 'renderStatus']);
+        add_action('admin_notices', [self::class, 'renderStatus']);
     }
 
     /** Adds the recurring interval so WordPress schedules the successor before dispatch. */
@@ -151,8 +152,9 @@ final class NetworkMigration
                 self::saveState($network, $state, $lock);
                 switch_to_blog($id);
                 try {
-                    if (self::activeOn($id, $network) || self::hasStoredData()) {
+                    if (self::isRelevantSite()) {
                         BookingStorage::initialize();
+                        BookingStorage::verify();
                         $state['encrypted']++;
                     } else {
                         $state['skipped']++;
@@ -184,10 +186,10 @@ final class NetworkMigration
         });
     }
 
-    /** Reports aggregate progress and one failing site ID only to network administrators. */
+    /** Reports aggregate progress to superadministrators on Appointment screens only. */
     public static function renderStatus(): void
     {
-        if (!current_user_can('manage_network_options')) {
+        if (!is_multisite() || !DiagnosticNotice::allowed()) {
             return;
         }
         $state = get_network_option(get_current_network_id(), self::OPTION, []);
@@ -244,6 +246,23 @@ final class NetworkMigration
         return $found !== null;
     }
 
+    /**
+     * Shares the current-site selection rule with controlled maintenance passes.
+     *
+     * @return bool Active plugin installation or an inactive site retaining protected stores.
+     */
+    public static function isRelevantSite(): bool
+    {
+        return self::activeOn(get_current_blog_id(), get_current_network_id()) || self::hasStoredData();
+    }
+
+    /** Returns the advisory lock name shared by cron and maintenance for one network. */
+    public static function lockName(int $network): string
+    {
+        global $wpdb;
+        return 'rrze-appt-net:' . substr(hash('sha256', DB_NAME . ':' . $wpdb->blogs . ':' . $network), 0, 40);
+    }
+
     /** Reads fresh coordinator metadata after acquiring the network lock. */
     private static function readState(int $network): array
     {
@@ -287,7 +306,7 @@ final class NetworkMigration
     private static function locked(int $network, callable $operation): void
     {
         global $wpdb;
-        $lock = 'rrze-appt-net:' . substr(hash('sha256', DB_NAME . ':' . $wpdb->blogs . ':' . $network), 0, 40);
+        $lock = self::lockName($network);
         $acquired = $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 0)', $lock));
         if ($acquired !== '1') {
             self::$failed = self::$failed || $acquired !== '0';

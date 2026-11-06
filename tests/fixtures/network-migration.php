@@ -106,6 +106,10 @@ namespace {
     function __($text, $domain): string { return $text; }
     /** Models network administrator permissions. */
     function current_user_can($capability): bool { return $GLOBALS['canManage']; }
+    /** Models superadministrator membership separately from delegated capabilities. */
+    function is_super_admin(): bool { return $GLOBALS['canManage']; }
+    /** Uses an actual Appointment screen for the network diagnostics. */
+    function get_current_screen(): object { return (object) ['id' => $GLOBALS['screen'] ?? 'settings_page_rrze-appointment-settings']; }
     /** Escapes notice text for HTML rendering tests. */
     function esc_html($text): string { return htmlspecialchars($text, ENT_QUOTES); }
     /** Escapes notice attributes for HTML rendering tests. */
@@ -274,6 +278,9 @@ namespace {
         $result['duplicateDidNoWork'] = progress() === $before;
     }
     $result['notice'] = notice();
+    $GLOBALS['screen'] = 'dashboard-network';
+    $result['noticeOffScreen'] = notice() === '';
+    $GLOBALS['screen'] = 'settings_page_rrze-appointment-settings';
     $GLOBALS['canManage'] = false;
     $result['noticeRestricted'] = notice() === '';
     $result['locksReleased'] = $wpdb->activeLocks === [];

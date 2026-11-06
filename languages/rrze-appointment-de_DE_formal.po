@@ -2965,8 +2965,8 @@ msgid "Appointments"
 msgstr "Appointments"
 
 #: includes/Admin/StorageStatus.php
-msgid "Appointment storage is unavailable. Check the encryption key, database connection and migration state. Booking operations have been stopped to protect existing data."
-msgstr "Der Terminspeicher ist nicht verfügbar. Prüfen Sie den Schlüssel, die Datenbankverbindung und den Migrationsstatus. Buchungsvorgänge wurden zum Schutz bestehender Daten angehalten."
+msgid "Appointment storage or scheduled jobs need attention. Check the encryption key, database connection and migration state."
+msgstr "Der Terminspeicher oder geplante Aufgaben müssen überprüft werden. Prüfen Sie den Schlüssel, die Datenbankverbindung und den Migrationsstatus."
 
 #: includes/Admin/StorageStatus.php
 msgid "Booking data is not encrypted. Configuring RRZE_APPOINTMENT_ENCRYPTION_KEY on the server starts migration automatically on the next request."
@@ -3269,3 +3269,11 @@ msgstr "Nur Verantwortliche können Freigaben verwalten"
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
 msgid "Only responsible people can manage permissions. Contact a responsible person or support if responsibility needs to be reassigned."
 msgstr "Nur verantwortliche Personen können Freigaben verwalten. Wenden Sie sich an eine verantwortliche Person oder an den Support, wenn die Verantwortlichkeit neu zugewiesen werden muss."
+
+#: includes/Controller/ConfirmationController.php
+msgid "Your appointment is booked, but the confirmation emails could not be sent completely. Please contact the appointment organizer."
+msgstr "Ihr Termin ist gebucht, aber die Bestätigungs-E-Mails konnten nicht vollständig versendet werden. Bitte wenden Sie sich an die für den Termin zuständige Person."
+
+#: includes/Controller/ConfirmationController.php
+msgid "Your appointment is booked, but its notifications could not be prepared. Please contact the appointment organizer."
+msgstr "Ihr Termin ist gebucht, aber die Benachrichtigungen konnten nicht vorbereitet werden. Bitte wenden Sie sich an die für den Termin zuständige Person."

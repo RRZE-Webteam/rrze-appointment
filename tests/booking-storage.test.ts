@@ -168,3 +168,27 @@ it( 'blocks a first booking write when automatic migration fails instead of fall
 		migrationStarted: true,
 	} );
 } );
+
+it( 'preflights and verifies without writing protected state', () => {
+	expect( run( 'read-only-checks' ) ).toMatchObject( {
+		preflightUnchanged: true,
+		notStarted: true,
+		verifyUnchanged: true,
+	} );
+} );
+
+it( 'reports reintroduced cron plaintext without silently repairing the queue', () => {
+	expect( run( 'cron-reintroduced' ) ).toMatchObject( {
+		verification: { rejected: true },
+		diagnostics: { rejected: true },
+		unchanged: true,
+	} );
+} );
+
+it( 'rejects malformed cron before the first migration marker', () => {
+	expect( run( 'malformed-cron-preflight' ) ).toMatchObject( {
+		rejected: true,
+		unchanged: true,
+		notStarted: true,
+	} );
+} );

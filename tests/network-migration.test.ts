@@ -57,6 +57,7 @@ describe( 'automatic multisite migration', () => {
 			locksReleased: true,
 			siteRestored: true,
 			noticeRestricted: true,
+			noticeOffScreen: true,
 		} );
 	} );
 	it( 'stops between sites when the time budget expires', () => {

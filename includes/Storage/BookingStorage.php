@@ -146,6 +146,89 @@ final class BookingStorage
     }
 
     /**
+     * Atomically persists a domain operation after automatic migration has completed.
+     *
+     * Encoding and round-trip verification finish before any transaction writes.
+     * Database verification compares these exact bytes before committing. A failed
+     * or unacknowledged commit blocks this request; the next request reads fresh state.
+     *
+     * @param array<string, array<mixed>> $updates Protected options and their complete replacement arrays.
+     * @throws AppointmentException On invalid data, unsupported tables or persistence failure.
+     */
+    public static function setMany(#[\SensitiveParameter] array $updates): void
+    {
+        if (!$updates) {
+            return;
+        }
+        foreach ($updates as $name => $data) {
+            self::assertName($name);
+            if (!is_array($data)) {
+                throw new AppointmentException('Invalid atomic appointment update.');
+            }
+        }
+        $site = self::site();
+        try {
+            $previous = $next = [];
+            foreach ($updates as $name => $data) {
+                self::validateArray($data);
+                $previous[$name] = $site->raw[$name];
+                $next[$name] = $site->cipher ? $site->cipher->encrypt($data, $name) : serialize($data);
+                $verified = $site->cipher ? $site->cipher->decrypt($next[$name], $name) : self::decodeLegacy($next[$name]);
+                if ($verified !== $data) {
+                    throw new AppointmentException('Appointment data did not pass the encryption preflight.');
+                }
+            }
+            $site->database->replaceMany($previous, $next);
+            foreach ($updates as $name => $data) {
+                $site->raw[$name] = $next[$name];
+                $site->data[$name] = $data;
+            }
+        } catch (\Throwable $exception) {
+            $site->blocked = true;
+            throw AppointmentException::fromThrowable($exception);
+        }
+    }
+
+    /**
+     * Checks migration prerequisites without changing stored data or migration state.
+     *
+     * @throws AppointmentException When key, engine, payloads or cron cannot be migrated.
+     */
+    public static function preflight(): void
+    {
+        $site = self::site(false);
+        $key = EncryptionKey::fromConfiguration();
+        $site->database->assertTransactional();
+        $cipher = $site->cipher ?? new BookingCipher($key, bin2hex(random_bytes(16)));
+        foreach (self::OPTIONS as $name) {
+            if ($cipher->decrypt($cipher->encrypt($site->data[$name], $name), $name) !== $site->data[$name]) {
+                throw new AppointmentException('Appointment data did not pass the encryption preflight.');
+            }
+        }
+        BookingScheduler::inspect($site->database);
+    }
+
+    /**
+     * Verifies all authenticated stores and cron references without repairing anything.
+     *
+     * @throws AppointmentException When encryption is incomplete or cron contains legacy arguments.
+     */
+    public static function verify(): void
+    {
+        $site = self::site(false);
+        if (($site->state['phase'] ?? null) !== 'encrypted') {
+            throw new AppointmentException('Appointment encryption migration is incomplete.');
+        }
+        foreach (self::OPTIONS as $name) {
+            // Fresh reads also detect out-of-band changes during a maintenance pass.
+            if ($site->decode($name, $site->database->read($name)) !== $site->data[$name]) {
+                throw new AppointmentException('Appointment storage changed during verification.');
+            }
+        }
+        BookingScheduler::inspect($site->database, true);
+    }
+
+    /**
      * Reports validated, non-sensitive status for the site's administration UI.
      *
      * @return array{phase: string, completed: int, total: int}
@@ -153,6 +236,9 @@ final class BookingStorage
     public static function status(): array
     {
         $site = self::site(false);
+        if (($site->state['phase'] ?? null) === 'encrypted') {
+            self::verify();
+        }
         return [
             'phase' => $site->state['phase'] ?? ($site->key ? 'ready' : 'legacy'),
             'completed' => count($site->state['completed'] ?? []),
@@ -173,6 +259,7 @@ final class BookingStorage
         $site = self::site(false);
         $site->migrating = true;
         try {
+            BookingScheduler::inspect($site->database);
             if ($site->state === null) {
                 $site->key ??= EncryptionKey::fromConfiguration();
                 $context = bin2hex(random_bytes(16));

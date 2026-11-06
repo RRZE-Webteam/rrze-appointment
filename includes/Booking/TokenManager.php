@@ -138,6 +138,7 @@ final class TokenManager
     /**
      * Reads and consumes a valid pending booking.
      *
+     * @deprecated Use completePending() to atomically persist a confirmation.
      * @return array<string, mixed>|null
      */
     public static function confirmPending(#[\SensitiveParameter] string $token): ?array
@@ -148,6 +149,57 @@ final class TokenManager
             }
 
             return self::deletePending($token);
+        } catch (\Throwable $exception) {
+            throw self::wrapException($exception);
+        }
+    }
+
+    /**
+     * Confirms a reservation with its slot, metadata and cancellation token atomically.
+     *
+     * Scheduling and mail delivery belong after this operation. No question answers
+     * are accepted here: callers pass only the confirmed-metadata allowlist.
+     *
+     * @param string $token Existing confirmation token, including pre-upgrade tokens.
+     * @param array<string, mixed> $meta Validated, persistable confirmed metadata.
+     * @return array{slot: string, meta: array<string, mixed>}|null Null for an invalid/expired token.
+     * @throws AppointmentException When the booking cannot be committed as a whole.
+     */
+    public static function completePending(#[\SensitiveParameter] string $token, #[\SensitiveParameter] array $meta): ?array
+    {
+        try {
+            $entry = self::getPending($token);
+            if ($entry === null) {
+                return null;
+            }
+            $slot = (string) $entry['slot'];
+            $slots = BookingStorage::get(Bookings::SLOTS_OPTION);
+            $allMeta = BookingStorage::get(Bookings::META_OPTION);
+            if (in_array($slot, $slots, true) || isset($allMeta[$slot])) {
+                throw new AppointmentException('This appointment is already booked.');
+            }
+            $pending = self::getOptionArray(self::PENDING_OPTION);
+            $tokens = self::getOptionArray(self::CANCEL_OPTION);
+            foreach ($tokens as $cancelToken => $cancelEntry) {
+                if (is_array($cancelEntry) && ($cancelEntry['type'] ?? '') === self::TOKEN_TYPE_PENDING
+                    && (($cancelEntry['pending_token'] ?? '') === $token
+                        || (empty($cancelEntry['pending_token']) && ($cancelEntry['slot'] ?? '') === $slot))) {
+                    unset($tokens[$cancelToken]);
+                }
+            }
+            $cancelToken = self::generateToken($slot);
+            $tokens[$cancelToken] = ['slot' => $slot, 'type' => self::TOKEN_TYPE_BOOKED];
+            $meta['cancel_token'] = $cancelToken;
+            $allMeta[$slot] = $meta;
+            $slots[] = $slot;
+            unset($pending[$token]);
+            BookingStorage::setMany([
+                Bookings::SLOTS_OPTION => $slots,
+                Bookings::META_OPTION => $allMeta,
+                self::CANCEL_OPTION => $tokens,
+                self::PENDING_OPTION => $pending,
+            ]);
+            return ['slot' => $slot, 'meta' => $meta];
         } catch (\Throwable $exception) {
             throw self::wrapException($exception);
         }
