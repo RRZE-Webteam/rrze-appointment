@@ -27,14 +27,14 @@ const runBookingsScenario = (): BookingsResult => {
 		}
 		namespace RRZE\\Appointment\\Notification {
 			class Reminder {
-				public const CRON_HOOK = 'reminder_hook';
+				public const CRON_HOOK = 'rrze_appointment_send_reminder';
 			}
 		}
 		namespace RRZE\\Appointment\\Booking {
 			class TokenManager {
 				public const CANCEL_OPTION = 'cancel_tokens';
 				public const PENDING_OPTION = 'pending_tokens';
-				public const PENDING_EXPIRY_HOOK = 'pending_expiry_hook';
+				public const PENDING_EXPIRY_HOOK = 'rrze_appointment_expire_pending';
 			}
 		}
 		namespace RRZE\\Appointment\\Configuration {
@@ -193,8 +193,8 @@ describe( 'bookings persistence', () => {
 		expect( result.pendingTokenKeys ).toEqual( [ 'future-pending' ] );
 		expect( result.clearedHooks ).toEqual(
 			expect.arrayContaining( [
-				'reminder_hook:2026-08-19 09:00-09:30',
-				'pending_expiry_hook:past-pending',
+				'rrze_appointment_send_reminder:2026-08-19 09:00-09:30',
+				'rrze_appointment_expire_pending:past-pending',
 			] )
 		);
 	} );

@@ -22,6 +22,7 @@ final class BookingOpeningController
     private const BOOKING_NONCE_ACTION = 'rrze_appointment_book';
     private const BOOKING_NONCE_FIELD = 'nonce';
     private const CLAIM_QUERY_KEY = 'rrze_appt_opening';
+    private const CLAIM_NONCE_FIELD = 'rrze_appt_opening_nonce';
     private const STATUS_QUERY_KEY = 'rrze_appt_opening_registered';
 
     private PublicPageRenderer $renderer;
@@ -80,7 +81,7 @@ final class BookingOpeningController
     }
 
     /**
-     * Claims an opening email link and forwards into regular confirmation.
+     * Previews an opening link and reserves the appointment on nonce-protected submission.
      */
     public function handleClaim(): void
     {
@@ -90,12 +91,27 @@ final class BookingOpeningController
                 return;
             }
 
+            if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
+                $entry = BookingOpeningNotifier::getClaimableSubscription($token);
+                if (is_wp_error($entry)) {
+                    $this->renderer->renderError($entry->get_error_message(), 410);
+                    return;
+                }
+                $details = $this->renderer->getAppointmentDetails((string) $entry['slot'], $entry['meta'] ?? []);
+                $this->renderer->renderOpeningClaim($token, $details);
+                return;
+            }
+            if (!wp_verify_nonce($this->getPostValue(self::CLAIM_NONCE_FIELD), 'rrze_appointment_opening_claim_' . $token)) {
+                $this->renderer->renderError(__('The form has expired. Please try again.', 'rrze-appointment'), 403);
+                return;
+            }
             $result = BookingOpeningNotifier::claim($token);
             if (is_wp_error($result)) {
                 $this->renderer->renderError($result->get_error_message(), 410);
+                return;
             }
 
-            wp_safe_redirect($result);
+            wp_safe_redirect($result, 303);
             exit;
         } catch (\Throwable $exception) {
             wp_die(esc_html(AppointmentException::fromThrowable($exception)->getMessage()), '', ['response' => 500]);

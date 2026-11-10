@@ -3,6 +3,7 @@
 namespace RRZE\Appointment\Booking;
 
 use RRZE\Appointment\AppointmentException;
+use RRZE\Appointment\Notification\BookingOpeningNotifier;
 use RRZE\Appointment\Storage\BookingStorage;
 use RRZE\Appointment\Storage\BookingScheduler;
 
@@ -17,6 +18,7 @@ final class TokenManager
     public const CANCEL_OPTION = 'rrze_appointment_cancel_tokens';
     public const PENDING_TTL = 1800;
     public const PENDING_EXPIRY_HOOK = 'rrze_appointment_expire_pending';
+    public const EXPIRY_SCHEDULE_DELAY = 60;
 
     private const TOKEN_TYPE_BOOKED = 'booked';
     private const TOKEN_TYPE_PENDING = 'pending';
@@ -24,81 +26,31 @@ final class TokenManager
     private const CANCEL_QUERY_KEY = 'rrze_appt_cancel';
     private const WAITLIST_OPT_OUT_QUERY_KEY = 'rrze_appt_waitlist_optout';
     private const IMPRINT_PAGE_SLUG = 'impressum';
-    private const EXPIRY_SCHEDULE_DELAY = 60;
 
     /**
-     * Removes expired pending requests and normalizes legacy cancellation
-     * tokens so booking metadata only exists in the pending option.
+     * Expires reservations and orphaned cancellation tokens during background cleanup.
+     * Valid pre-upgrade tokens retain their original shape until a business write.
      */
     public static function cleanupPendingState(): void
     {
         try {
-            $now            = time();
-            $pending        = self::getOptionArray(self::PENDING_OPTION);
-            $tokens         = self::getOptionArray(self::CANCEL_OPTION);
-            $pendingChanged = false;
-            $tokensChanged  = false;
-            $pendingBySlot  = [];
-
-            foreach ($pending as $pendingToken => $entry) {
-                if (!self::isValidPendingEntry($entry, $now)) {
-                    unset($pending[$pendingToken]);
-                    BookingScheduler::clear(self::PENDING_EXPIRY_HOOK, $pendingToken);
-                    $pendingChanged = true;
-                    continue;
-                }
-
-                $pendingBySlot[self::normalizeString($entry['slot'])] = (string) $pendingToken;
-            }
-
-            foreach ($tokens as $cancelToken => $entry) {
-                if (!is_array($entry) || ($entry['type'] ?? '') !== self::TOKEN_TYPE_PENDING) {
-                    continue;
-                }
-
-                $pendingToken = self::normalizeString($entry['pending_token'] ?? '');
-                if ($pendingToken === '') {
-                    // Legacy entries stored slot and full metadata. Link them
-                    // to the remaining pending request and discard the copy.
-                    $legacySlot = self::normalizeString($entry['slot'] ?? '');
-                    $pendingToken = $pendingBySlot[$legacySlot] ?? '';
-                }
-
-                if ($pendingToken === '' || !isset($pending[$pendingToken])) {
-                    unset($tokens[$cancelToken]);
-                    $tokensChanged = true;
-                    continue;
-                }
-
-                $normalized = [
-                    'type'          => self::TOKEN_TYPE_PENDING,
-                    'pending_token' => $pendingToken,
-                    'expires'       => (int) $pending[$pendingToken]['expires'],
-                ];
-                if ($entry !== $normalized) {
-                    $tokens[$cancelToken] = $normalized;
-                    $tokensChanged = true;
-                }
-
-                if (($pending[$pendingToken]['cancel_token'] ?? '') !== $cancelToken) {
-                    $pending[$pendingToken]['cancel_token'] = $cancelToken;
-                    $pendingChanged = true;
+            $now = time();
+            $pending = self::getOptionArray(self::PENDING_OPTION);
+            $tokens = self::getOptionArray(self::CANCEL_OPTION);
+            $remaining = array_filter($pending, static fn($entry): bool => self::isValidPendingEntry($entry, $now));
+            $remainingTokens = $tokens;
+            foreach ($tokens as $token => $entry) {
+                if (is_array($entry) && ($entry['type'] ?? '') === self::TOKEN_TYPE_PENDING
+                    && self::pendingTokenForCancellation($entry, $remaining, $now) === null) {
+                    unset($remainingTokens[$token]);
                 }
             }
-
-            foreach ($pending as $pendingToken => $entry) {
-                $cancelToken = self::normalizeString($entry['cancel_token'] ?? '');
-                if ($cancelToken !== '' && !isset($tokens[$cancelToken])) {
-                    unset($pending[$pendingToken]['cancel_token']);
-                    $pendingChanged = true;
-                }
+            if ($remaining === $pending && $remainingTokens === $tokens) {
+                return;
             }
-
-            if ($pendingChanged) {
-                BookingStorage::set(self::PENDING_OPTION, $pending);
-            }
-            if ($tokensChanged) {
-                BookingStorage::set(self::CANCEL_OPTION, $tokens);
+            BookingStorage::setMany([self::PENDING_OPTION => $remaining, self::CANCEL_OPTION => $remainingTokens]);
+            foreach (array_diff_key($pending, $remaining) as $token => $_entry) {
+                BookingScheduler::clear(self::PENDING_EXPIRY_HOOK, (string) $token);
             }
         } catch (\Throwable $exception) {
             throw self::wrapException($exception);
@@ -106,24 +58,71 @@ final class TokenManager
     }
 
     /**
-     * Stores a short-lived booking request and schedules its cleanup.
+     * Reserves a free slot and issues both links in one commit under the site lock.
      *
      * @param array<string, mixed> $meta Pending booking metadata.
+     * @param string|null $openingToken Optional opening subscription consumed in the same commit.
+     * @return string Confirmation token for the new reservation.
      */
-    public static function createPending(#[\SensitiveParameter] string $slot, #[\SensitiveParameter] array $meta): string
+    public static function createPending(
+        #[\SensitiveParameter] string $slot,
+        #[\SensitiveParameter] array $meta,
+        #[\SensitiveParameter] ?string $openingToken = null
+    ): string
     {
         try {
-            self::cleanupPendingState();
-
-            $token   = wp_generate_uuid4();
-            $expires = time() + self::PENDING_TTL;
+            $now = time();
+            $booked = self::getOptionArray(Bookings::SLOTS_OPTION);
+            $confirmedMeta = self::getOptionArray(Bookings::META_OPTION);
             $pending = self::getOptionArray(self::PENDING_OPTION);
+            $tokens = self::getOptionArray(self::CANCEL_OPTION);
+            if ($slot === '' || in_array($slot, $booked, true) || array_key_exists($slot, $confirmedMeta)) {
+                throw new AppointmentException(__('This appointment is no longer available.', 'rrze-appointment'));
+            }
+            $expired = [];
+            foreach ($pending as $oldToken => $entry) {
+                if (!is_array($entry) || ($entry['slot'] ?? null) !== $slot) {
+                    continue;
+                }
+                if (self::isValidPendingEntry($entry, $now)) {
+                    throw new AppointmentException(__('This appointment is no longer available.', 'rrze-appointment'));
+                }
+                $expired[] = (string) $oldToken;
+                unset($pending[$oldToken]);
+            }
+            $tokens = self::removeSlotTokens($tokens, $slot, $expired);
+            $token = wp_generate_uuid4();
+            $cancelToken = self::generateToken($token);
+            $expires = $now + self::PENDING_TTL;
             $pending[$token] = [
                 'slot'    => $slot,
                 'meta'    => $meta,
                 'expires' => $expires,
+                'cancel_token' => $cancelToken,
             ];
-            BookingStorage::set(self::PENDING_OPTION, $pending);
+            $tokens[$cancelToken] = [
+                'type' => self::TOKEN_TYPE_PENDING,
+                'pending_token' => $token,
+                'expires' => $expires,
+            ];
+            $updates = [self::PENDING_OPTION => $pending, self::CANCEL_OPTION => $tokens];
+            if ($openingToken !== null) {
+                $openings = self::getOptionArray(BookingOpeningNotifier::OPTION);
+                $opening = $openings[$openingToken] ?? null;
+                if (!is_array($opening) || ($opening['slot'] ?? null) !== $slot
+                    || $now < (int) ($opening['opens_at'] ?? 0) || $now >= (int) ($opening['closes_at'] ?? 0)) {
+                    throw new AppointmentException(__('This booking notification link is invalid or has expired.', 'rrze-appointment'));
+                }
+                unset($openings[$openingToken]);
+                $updates[BookingOpeningNotifier::OPTION] = $openings;
+            }
+            BookingStorage::setMany($updates);
+            foreach ($expired as $oldToken) {
+                BookingScheduler::clear(self::PENDING_EXPIRY_HOOK, $oldToken);
+            }
+            if ($openingToken !== null) {
+                BookingScheduler::clear(BookingOpeningNotifier::CRON_HOOK, $openingToken);
+            }
             BookingScheduler::schedule(
                 $expires + self::EXPIRY_SCHEDULE_DELAY,
                 self::PENDING_EXPIRY_HOOK,
@@ -180,13 +179,13 @@ final class TokenManager
             }
             $pending = self::getOptionArray(self::PENDING_OPTION);
             $tokens = self::getOptionArray(self::CANCEL_OPTION);
-            foreach ($tokens as $cancelToken => $cancelEntry) {
-                if (is_array($cancelEntry) && ($cancelEntry['type'] ?? '') === self::TOKEN_TYPE_PENDING
-                    && (($cancelEntry['pending_token'] ?? '') === $token
-                        || (empty($cancelEntry['pending_token']) && ($cancelEntry['slot'] ?? '') === $slot))) {
-                    unset($tokens[$cancelToken]);
+            foreach ($pending as $otherToken => $other) {
+                if ((string) $otherToken !== $token && self::isValidPendingEntry($other)
+                    && $other['slot'] === $slot) {
+                    throw new AppointmentException('Conflicting reservations for this appointment must be resolved.');
                 }
             }
+            $tokens = self::removeSlotTokens($tokens, $slot, [$token]);
             $cancelToken = self::generateToken($slot);
             $tokens[$cancelToken] = ['slot' => $slot, 'type' => self::TOKEN_TYPE_BOOKED];
             $meta['cancel_token'] = $cancelToken;
@@ -206,6 +205,28 @@ final class TokenManager
     }
 
     /**
+     * Retires previous cancellation rights before a slot is assigned or confirmed.
+     *
+     * @param array<string,mixed> $tokens Cancellation entries from both stores.
+     * @param list<string> $pendingTokens Confirmation tokens being consumed or expired.
+     * @return array<string,mixed> Cancellation tokens belonging to other appointments.
+     */
+    private static function removeSlotTokens(
+        #[\SensitiveParameter] array $tokens,
+        #[\SensitiveParameter] string $slot,
+        #[\SensitiveParameter] array $pendingTokens
+    ): array {
+        foreach ($tokens as $cancel => $entry) {
+            $linkedSlot = is_array($entry) ? ($entry['slot'] ?? null) : $entry;
+            $linkedPending = is_array($entry) ? ($entry['pending_token'] ?? null) : null;
+            if ($linkedSlot === $slot || in_array($linkedPending, $pendingTokens, true)) {
+                unset($tokens[$cancel]);
+            }
+        }
+        return $tokens;
+    }
+
+    /**
      * Reads a valid pending booking without consuming its confirmation token.
      *
      * @return array<string, mixed>|null
@@ -219,12 +240,7 @@ final class TokenManager
 
             $pending = self::getOptionArray(self::PENDING_OPTION);
             $entry = $pending[$token] ?? null;
-            if (!self::isValidPendingEntry($entry)) {
-                self::deletePending($token);
-                return null;
-            }
-
-            return $entry;
+            return self::isValidPendingEntry($entry) ? $entry : null;
         } catch (\Throwable $exception) {
             throw self::wrapException($exception);
         }
@@ -236,7 +252,12 @@ final class TokenManager
     public static function expirePending(#[\SensitiveParameter] string $token): void
     {
         try {
-            self::deletePending($token);
+            $entry = self::getOptionArray(self::PENDING_OPTION)[$token] ?? null;
+            if (is_array($entry) && self::isExpired($entry, time())) {
+                self::deletePending($token);
+            } elseif (self::isValidPendingEntry($entry)) {
+                BookingScheduler::schedule((int) $entry['expires'] + self::EXPIRY_SCHEDULE_DELAY, self::PENDING_EXPIRY_HOOK, $token);
+            }
         } catch (\Throwable $exception) {
             throw self::wrapException($exception);
         }
@@ -258,14 +279,12 @@ final class TokenManager
             $entry   = $pending[$token] ?? null;
             $slot = is_array($entry) ? self::normalizeString($entry['slot'] ?? '') : '';
 
-            if (isset($pending[$token])) {
-                unset($pending[$token]);
-                BookingStorage::set(self::PENDING_OPTION, $pending);
+            if ($entry === null) {
+                return null;
             }
-            BookingScheduler::clear(self::PENDING_EXPIRY_HOOK, $token);
+            unset($pending[$token]);
 
             $tokens = self::getOptionArray(self::CANCEL_OPTION);
-            $changed = false;
             foreach ($tokens as $cancelToken => $cancelEntry) {
                 if (
                     !is_array($cancelEntry)
@@ -281,12 +300,10 @@ final class TokenManager
                     || ($linkedPendingToken === '' && $slot !== '' && $legacySlot === $slot)
                 ) {
                     unset($tokens[$cancelToken]);
-                    $changed = true;
                 }
             }
-            if ($changed) {
-                BookingStorage::set(self::CANCEL_OPTION, $tokens);
-            }
+            BookingStorage::setMany([self::PENDING_OPTION => $pending, self::CANCEL_OPTION => $tokens]);
+            BookingScheduler::clear(self::PENDING_EXPIRY_HOOK, $token);
 
             return is_array($entry) ? $entry : null;
         } catch (\Throwable $exception) {
@@ -302,14 +319,14 @@ final class TokenManager
     public static function getPendingSlots(): array
     {
         try {
-            self::cleanupPendingState();
-            $pending = self::getOptionArray(self::PENDING_OPTION);
-            return array_values(array_filter(array_map(
-                static fn($entry): string => is_array($entry)
-                    ? self::normalizeString($entry['slot'] ?? '')
-                    : '',
-                $pending
-            )));
+            $slots = [];
+            $now = time();
+            foreach (self::getOptionArray(self::PENDING_OPTION) as $entry) {
+                if (self::isValidPendingEntry($entry, $now)) {
+                    $slots[] = (string) $entry['slot'];
+                }
+            }
+            return $slots;
         } catch (\Throwable $exception) {
             throw self::wrapException($exception);
         }
@@ -321,16 +338,17 @@ final class TokenManager
     public static function createCancelToken(#[\SensitiveParameter] string $slot): string
     {
         try {
-            $token = self::generateToken($slot);
-            $tokens = self::getOptionArray(self::CANCEL_OPTION);
-            $tokens[$token] = ['slot' => $slot, 'type' => self::TOKEN_TYPE_BOOKED];
-            BookingStorage::set(self::CANCEL_OPTION, $tokens);
-
+            if (!in_array($slot, self::getOptionArray(Bookings::SLOTS_OPTION), true)) {
+                throw new AppointmentException('Booking not found.');
+            }
             $allMeta = self::getOptionArray(Bookings::META_OPTION);
+            $tokens = self::getOptionArray(self::CANCEL_OPTION);
+            $token = self::generateToken($slot);
+            $tokens[$token] = ['slot' => $slot, 'type' => self::TOKEN_TYPE_BOOKED];
             if (isset($allMeta[$slot]) && is_array($allMeta[$slot])) {
                 $allMeta[$slot]['cancel_token'] = $token;
-                BookingStorage::set(Bookings::META_OPTION, $allMeta);
             }
+            BookingStorage::setMany([self::CANCEL_OPTION => $tokens, Bookings::META_OPTION => $allMeta]);
 
             return $token;
         } catch (\Throwable $exception) {
@@ -339,31 +357,38 @@ final class TokenManager
     }
 
     /**
-     * Creates a cancellation token linked to a pending booking.
+     * Reuses a reservation's issued cancellation link, including slot-based legacy links.
+     * Issues a link atomically for older reservations lacking one.
      */
     public static function createPendingCancelToken(#[\SensitiveParameter] string $pendingToken): string
     {
         try {
-            self::cleanupPendingState();
-
             $pending = self::getOptionArray(self::PENDING_OPTION);
             $entry   = $pending[$pendingToken] ?? null;
-            if (!self::isValidPendingEntry($entry)) {
-                self::deletePending($pendingToken);
-                throw new \RuntimeException('Pending booking not found.');
+            $now = time();
+            if (!self::isValidPendingEntry($entry, $now)) {
+                throw new AppointmentException('Pending booking not found.');
             }
 
-            $token = self::generateToken($pendingToken);
             $tokens = self::getOptionArray(self::CANCEL_OPTION);
+            $issued = self::normalizeString($entry['cancel_token'] ?? '');
+            if ($issued !== '' && is_array($tokens[$issued] ?? null)
+                && self::pendingTokenForCancellation($tokens[$issued], $pending, $now) === $pendingToken) {
+                return $issued;
+            }
+            foreach ($tokens as $existing => $cancelEntry) {
+                if (is_array($cancelEntry) && self::pendingTokenForCancellation($cancelEntry, $pending, $now) === $pendingToken) {
+                    return (string) $existing;
+                }
+            }
+            $token = self::generateToken($pendingToken);
             $tokens[$token] = [
                 'type'          => self::TOKEN_TYPE_PENDING,
                 'pending_token' => $pendingToken,
                 'expires'       => (int) $entry['expires'],
             ];
-            BookingStorage::set(self::CANCEL_OPTION, $tokens);
-
             $pending[$pendingToken]['cancel_token'] = $token;
-            BookingStorage::set(self::PENDING_OPTION, $pending);
+            BookingStorage::setMany([self::PENDING_OPTION => $pending, self::CANCEL_OPTION => $tokens]);
 
             return $token;
         } catch (\Throwable $exception) {
@@ -382,10 +407,16 @@ final class TokenManager
             $token = is_array($slotMeta)
                 ? self::normalizeString($slotMeta['cancel_token'] ?? '')
                 : '';
-            if ($token === '') {
-                $token = self::createCancelToken($slot);
+            $tokens = self::getOptionArray(self::CANCEL_OPTION);
+            if ($token !== '' && self::bookedCancellationSlot($tokens[$token] ?? null) === $slot) {
+                return self::cancelUrl($token);
             }
-            return self::cancelUrl($token);
+            foreach ($tokens as $existing => $cancelEntry) {
+                if (self::bookedCancellationSlot($cancelEntry) === $slot) {
+                    return self::cancelUrl((string) $existing);
+                }
+            }
+            return self::cancelUrl(self::createCancelToken($slot));
         } catch (\Throwable $exception) {
             throw self::wrapException($exception);
         }
@@ -451,38 +482,27 @@ final class TokenManager
     public static function validateCancelToken(#[\SensitiveParameter] string $token): ?array
     {
         try {
-            self::cleanupPendingState();
-
             if ($token === '') {
                 return null;
             }
 
             $tokens = self::getOptionArray(self::CANCEL_OPTION);
             $entry  = $tokens[$token] ?? null;
-            if (is_string($entry)) {
-                return $entry === '' ? null : ['slot' => $entry, 'type' => self::TOKEN_TYPE_BOOKED];
+            $slot = self::bookedCancellationSlot($entry);
+            if ($slot !== '') {
+                return in_array($slot, self::getOptionArray(Bookings::SLOTS_OPTION), true)
+                    ? ['slot' => $slot, 'type' => self::TOKEN_TYPE_BOOKED]
+                    : null;
             }
             if (!is_array($entry)) {
                 return null;
             }
-            if (($entry['type'] ?? '') !== self::TOKEN_TYPE_PENDING) {
-                $slot = self::normalizeString($entry['slot'] ?? '');
-                return $slot === '' ? null : ['slot' => $slot, 'type' => self::TOKEN_TYPE_BOOKED];
-            }
-
-            $pendingToken = self::normalizeString($entry['pending_token'] ?? '');
             $pending = self::getOptionArray(self::PENDING_OPTION);
-            $pendingEntry = $pending[$pendingToken] ?? null;
-            $now = time();
-            if (
-                !self::isValidPendingEntry($pendingEntry, $now)
-                || self::isExpired($entry, $now)
-            ) {
-                self::deletePending($pendingToken);
-                self::deleteCancelToken($token);
+            $pendingToken = self::pendingTokenForCancellation($entry, $pending, time());
+            if ($pendingToken === null) {
                 return null;
             }
-
+            $pendingEntry = $pending[$pendingToken];
             return [
                 'type'          => self::TOKEN_TYPE_PENDING,
                 'pending_token' => $pendingToken,
@@ -492,6 +512,54 @@ final class TokenManager
         } catch (\Throwable $exception) {
             throw self::wrapException($exception);
         }
+    }
+
+    /**
+     * Returns the slot of a booked cancellation token in either historical representation.
+     *
+     * @param mixed $entry Stored token entry.
+     */
+    private static function bookedCancellationSlot(#[\SensitiveParameter] mixed $entry): string
+    {
+        if (is_string($entry)) {
+            return $entry;
+        }
+        return is_array($entry) && ($entry['type'] ?? self::TOKEN_TYPE_BOOKED) === self::TOKEN_TYPE_BOOKED
+            ? self::normalizeString($entry['slot'] ?? '')
+            : '';
+    }
+
+    /**
+     * Resolves a valid pending cancellation reference without modifying the two old options.
+     *
+     * @param array<string, mixed> $entry Cancellation entry, possibly containing only a slot.
+     * @param array<string, mixed> $pending Current reservations from both storage formats.
+     * @return string|null Confirmation token, or null for an unresolvable or expired link.
+     */
+    private static function pendingTokenForCancellation(
+        #[\SensitiveParameter] array $entry,
+        #[\SensitiveParameter] array $pending,
+        int $now
+    ): ?string {
+        if (($entry['type'] ?? null) !== self::TOKEN_TYPE_PENDING
+            || (isset($entry['expires']) && self::isExpired($entry, $now))) {
+            return null;
+        }
+        $linked = self::normalizeString($entry['pending_token'] ?? '');
+        if ($linked !== '') {
+            return self::isValidPendingEntry($pending[$linked] ?? null, $now) ? $linked : null;
+        }
+        $slot = self::normalizeString($entry['slot'] ?? '');
+        $found = null;
+        foreach ($pending as $token => $candidate) {
+            if (self::isValidPendingEntry($candidate, $now) && $candidate['slot'] === $slot) {
+                if ($found !== null) {
+                    throw new AppointmentException('Conflicting reservations for this appointment must be resolved.');
+                }
+                $found = (string) $token;
+            }
+        }
+        return $found;
     }
 
     /**

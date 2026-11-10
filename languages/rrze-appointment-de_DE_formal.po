@@ -2968,44 +2968,6 @@ msgstr "Appointments"
 msgid "Appointment storage or scheduled jobs need attention. Check the encryption key, database connection and migration state."
 msgstr "Der Terminspeicher oder geplante Aufgaben müssen überprüft werden. Prüfen Sie den Schlüssel, die Datenbankverbindung und den Migrationsstatus."
 
-#: includes/Admin/StorageStatus.php
-msgid "Booking data is not encrypted. Configuring RRZE_APPOINTMENT_ENCRYPTION_KEY on the server starts migration automatically on the next request."
-msgstr "Buchungsdaten sind nicht verschlüsselt. Sobald RRZE_APPOINTMENT_ENCRYPTION_KEY auf dem Server hinterlegt ist, startet die Migration automatisch beim nächsten Aufruf."
-
-#: includes/Admin/StorageStatus.php
-msgid "The encryption key is configured. Migration starts automatically when the plugin initializes or booking data are accessed."
-msgstr "Der Schlüssel ist hinterlegt. Die Migration startet automatisch beim Initialisieren des Plugins oder beim Zugriff auf Buchungsdaten."
-
-#: includes/Admin/StorageStatus.php
-#, php-format
-msgid "Encryption migration is incomplete (%1$d of %2$d stores). It resumes automatically on the next request. Storage errors must be corrected before booking operations can continue."
-msgstr "Die Verschlüsselungsmigration ist unvollständig (%1$d von %2$d Speicherbereichen). Sie wird beim nächsten Aufruf automatisch fortgesetzt. Speicherfehler müssen behoben werden, bevor Buchungsvorgänge fortgesetzt werden können."
-
-#: includes/Admin/StorageStatus.php
-msgid "Booking and notification stores are encrypted. Scheduled jobs use opaque references."
-msgstr "Buchungs- und Benachrichtigungsdaten sind verschlüsselt. Geplante Aufgaben verwenden nicht lesbare Verweise."
-
-#: includes/Storage/NetworkMigration.php
-msgid "Appointment network migration (every minute)"
-msgstr "Appointment-Netzwerkmigration (jede Minute)"
-
-#: includes/Storage/NetworkMigration.php
-#, php-format
-msgid "Appointment network migration: %1$d sites checked, %2$d encrypted, %3$d skipped, %4$d failed. Coordinator site: %5$d. Last failed site: %6$d."
-msgstr "Appointment-Netzwerkmigration: %1$d Websites geprüft, %2$d verschlüsselt, %3$d übersprungen, %4$d fehlgeschlagen. Koordinierende Website: %5$d. Letzte Website mit Fehler: %6$d."
-
-#: includes/Storage/NetworkMigration.php
-msgid "Migration needs attention. Check the encryption key, database and cron execution on the coordinator site."
-msgstr "Die Migration erfordert eine Prüfung. Prüfen Sie den Schlüssel, die Datenbank und die Cron-Ausführung auf der koordinierenden Website."
-
-#: includes/Storage/NetworkMigration.php
-msgid "This pass has finished. Failed sites are retried in a later pass."
-msgstr "Dieser Durchlauf ist beendet. Websites mit Fehlern werden in einem späteren Durchlauf erneut versucht."
-
-#: includes/Storage/NetworkMigration.php
-msgid "Migration continues automatically in small batches."
-msgstr "Die Migration wird automatisch in kleinen Schritten fortgesetzt."
-
 #: includes/AppointmentException.php includes/Mail/Mailer.php
 msgid "The appointment operation could not be completed. Please try again."
 msgstr "Der Terminvorgang konnte nicht abgeschlossen werden. Bitte versuchen Sie es erneut."
@@ -3277,3 +3239,35 @@ msgstr "Ihr Termin ist gebucht, aber die Bestätigungs-E-Mails konnten nicht vol
 #: includes/Controller/ConfirmationController.php
 msgid "Your appointment is booked, but its notifications could not be prepared. Please contact the appointment organizer."
 msgstr "Ihr Termin ist gebucht, aber die Benachrichtigungen konnten nicht vorbereitet werden. Bitte wenden Sie sich an die für den Termin zuständige Person."
+
+#: includes/Admin/StorageStatus.php
+msgid "Booking data is stored in the legacy format. Configure RRZE_APPOINTMENT_ENCRYPTION_KEY to encrypt new and changed data."
+msgstr "Die Buchungsdaten liegen im bisherigen Format vor. Mit RRZE_APPOINTMENT_ENCRYPTION_KEY werden neue und geänderte Daten verschlüsselt."
+
+#: includes/Admin/StorageStatus.php
+msgid "Encryption is active for new and changed data."
+msgstr "Verschlüsselung für neue und geänderte Daten aktiv."
+
+#: templates/confirmation-page.php
+msgid "Please check the appointment details and confirm your booking."
+msgstr "Bitte prüfen Sie die Termindaten und bestätigen Sie Ihre Buchung."
+
+#: templates/confirmation-page.php
+msgid "Reserve this appointment"
+msgstr "Diesen Termin reservieren"
+
+#: templates/confirmation-page.php
+msgid "Reserve the appointment to continue to booking confirmation."
+msgstr "Reservieren Sie den Termin, um zur Buchungsbestätigung zu gelangen."
+
+#: templates/confirmation-page.php
+msgid "Earlier appointment notifications"
+msgstr "Benachrichtigungen über frühere Termine"
+
+#: templates/confirmation-page.php
+msgid "Choose whether to receive an email when an earlier appointment becomes available."
+msgstr "Wählen Sie, ob Sie per E-Mail über einen früheren freien Termin informiert werden möchten."
+
+#: includes/Booking/Bookings.php
+msgid "Your appointment has been cancelled, but its notification emails could not be sent completely."
+msgstr "Ihr Termin wurde storniert. Die Benachrichtigungen konnten nicht vollständig versendet werden."

@@ -60,13 +60,36 @@ final class OptionDatabase
     public function read(#[\SensitiveParameter] string $name): ?string
     {
         $this->assertOwnership();
-        $value = $this->database->get_var($this->database->prepare(
+        // wpdb::get_var() also returns null for an existing empty string. A
+        // damaged empty ciphertext must be distinguishable from a missing option.
+        $row = $this->database->get_row($this->database->prepare(
             'SELECT option_value FROM %i WHERE option_name = %s', $this->table, $name
-        ));
+        ), 'ARRAY_A');
         if ($this->database->last_error !== '') {
             throw new AppointmentException('Appointment storage could not be read.');
         }
-        return $value;
+        return $row === null ? null : $row['option_value'];
+    }
+
+    /**
+     * Reads the physical V2 inventory, including rows missing from a damaged index.
+     *
+     * A single indexed prefix query also detects records when both marker and index
+     * are missing. Never place ciphertext or decrypted business data in option caches.
+     *
+     * @return array<string, string> Option name to raw value for this site's records.
+     */
+    public function recordRows(): array
+    {
+        $this->assertOwnership();
+        $rows = $this->database->get_results($this->database->prepare(
+            "SELECT option_name, option_value FROM %i WHERE option_name LIKE %s ESCAPE '!' ORDER BY option_name",
+            $this->table, 'rrze!_appointment!_v2!_record!_%'
+        ), 'ARRAY_A');
+        if ($this->database->last_error !== '' || !is_array($rows)) {
+            throw new AppointmentException('Appointment record inventory could not be read.');
+        }
+        return array_column($rows, 'option_value', 'option_name');
     }
 
     /**
@@ -133,18 +156,34 @@ final class OptionDatabase
      * Prepared SQL and plaintext digests are constructed before starting the transaction.
      * Existing caller transactions are rejected rather than implicitly committed.
      *
-     * @param array<string, string|null> $previous Observed raw values, null for absent rows.
-     * @param array<string, string> $next Complete replacements for the same option names.
+     * @param array<string, string|null> $previous Read set; includes unchanged rows used for the decision.
+     * @param array<string, string|null> $next Changed subset; null deletes the verified existing row.
      * @throws AppointmentException On unsupported tables, conflicts or any database failure.
      */
     public function replaceMany(#[\SensitiveParameter] array $previous, #[\SensitiveParameter] array $next): void
     {
-        if (!$next || array_keys($previous) !== array_keys($next)) {
+        if (!$next || array_diff_key($next, $previous)) {
             throw new AppointmentException('Invalid atomic appointment update.');
         }
         $this->assertTransactional();
         $writes = $reads = [];
+        ksort($previous);
+        foreach ($previous as $name => $observed) {
+            $reads[$name] = $this->database->prepare(
+                'SELECT option_value FROM %i WHERE option_name = %s FOR UPDATE', $this->table, $name
+            );
+        }
         foreach ($next as $name => $value) {
+            if ($value === null) {
+                if ($previous[$name] === null) {
+                    throw new AppointmentException('Invalid atomic appointment deletion.');
+                }
+                $writes[$name] = $this->database->prepare(
+                    'DELETE FROM %i WHERE option_name = %s AND SHA2(option_value, 256) = %s',
+                    $this->table, $name, hash('sha256', $previous[$name])
+                );
+                continue;
+            }
             $writes[$name] = $previous[$name] === null
                 ? $this->database->prepare(
                     'INSERT INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s)',
@@ -154,9 +193,6 @@ final class OptionDatabase
                     'UPDATE %i SET option_value = %s, autoload = %s WHERE option_name = %s AND SHA2(option_value, 256) = %s',
                     $this->table, $value, 'no', $name, hash('sha256', $previous[$name])
                 );
-            $reads[$name] = $this->database->prepare(
-                'SELECT option_value FROM %i WHERE option_name = %s FOR UPDATE', $this->table, $name
-            );
         }
         $ownership = $this->database->prepare('SELECT IS_USED_LOCK(%s) = CONNECTION_ID()', $this->lock);
         $connection = $this->database->dbh;
@@ -185,10 +221,14 @@ final class OptionDatabase
             }
             $this->nativeQuery($connection, 'START TRANSACTION');
             $started = true;
-            foreach ($next as $name => $value) {
-                if ($this->nativeValue($connection, $ownership) !== '1'
-                    || $this->nativeValue($connection, $reads[$name]) !== $previous[$name]) {
+            foreach ($previous as $name => $observed) {
+                if ($this->nativeValue($connection, $reads[$name]) !== $observed) {
                     throw new AppointmentException('Appointment data changed concurrently. Please reload and try again.');
+                }
+            }
+            foreach ($next as $name => $value) {
+                if ($this->nativeValue($connection, $ownership) !== '1') {
+                    throw new AppointmentException('The appointment storage lock was lost. Please try again.');
                 }
                 $this->nativeQuery($connection, $writes[$name]);
                 if ($this->nativeValue($connection, $reads[$name]) !== $value) {

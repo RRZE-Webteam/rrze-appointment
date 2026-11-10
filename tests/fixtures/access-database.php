@@ -11,6 +11,13 @@ class AccessTestDatabase
     /** Keeps SQL and parameters separate for assertions without executing SQL. */
     public function prepare(string $query, ...$args): array { return [$query, $args]; }
 
+    /** Returns the raw option row, including a stored empty string. */
+    public function get_row(array $query, string $format): ?array
+    {
+        $value = $this->get_var($query);
+        return $value === null ? null : ['option_value' => $value];
+    }
+
     /** Models advisory locking and uncached option reads. */
     public function get_var(array $query): ?string
     {

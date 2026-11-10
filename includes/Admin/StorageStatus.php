@@ -12,17 +12,13 @@ defined('ABSPATH') || exit;
  */
 final class StorageStatus
 {
-    /**
-     * Retains a safe startup error even if migration could not save its first marker.
-     *
-     * @param string|null $initializationError Operator-facing error from this request.
-     */
-    public function __construct(private readonly ?string $initializationError = null)
+    /** Retains a safe template setup error so administrative recovery remains available. */
+    public function __construct(private readonly ?string $templateError = null)
     {
     }
 
     /**
-     * Registers diagnostics for the automatically managed storage migration.
+     * Registers diagnostics for the current site's write policy.
      */
     public function register(): void
     {
@@ -37,25 +33,24 @@ final class StorageStatus
         if (!DiagnosticNotice::allowed()) {
             return;
         }
+        if ($this->templateError !== null) {
+            echo '<div class="notice notice-error"><p>' . esc_html($this->templateError) . '</p></div>';
+        }
         $phase = 'error';
         $message = __('Appointment storage or scheduled jobs need attention. Check the encryption key, database connection and migration state.', 'rrze-appointment');
         try {
-            if ($this->initializationError !== null) {
-                throw new AppointmentException($this->initializationError);
-            }
             $status = BookingStorage::status();
             $phase = $status['phase'];
             $message = match ($phase) {
-                'legacy' => __('Booking data is not encrypted. Configuring RRZE_APPOINTMENT_ENCRYPTION_KEY on the server starts migration automatically on the next request.', 'rrze-appointment'),
-                'ready' => __('The encryption key is configured. Migration starts automatically when the plugin initializes or booking data are accessed.', 'rrze-appointment'),
-                'migrating' => sprintf(__('Encryption migration is incomplete (%1$d of %2$d stores). It resumes automatically on the next request. Storage errors must be corrected before booking operations can continue.', 'rrze-appointment'), $status['completed'], $status['total']),
-                'encrypted' => __('Booking and notification stores are encrypted. Scheduled jobs use opaque references.', 'rrze-appointment'),
+                'legacy' => __('Booking data is stored in the legacy format. Configure RRZE_APPOINTMENT_ENCRYPTION_KEY to encrypt new and changed data.', 'rrze-appointment'),
+                'mixed' => __('Encryption is active for new and changed data.', 'rrze-appointment'),
+                default => throw new AppointmentException('Unknown appointment storage state.'),
             };
         } catch (AppointmentException $exception) {
             // Storage exceptions contain operator-safe descriptions, never payloads.
             $message .= ' ' . $exception->getMessage();
         }
-        $class = $phase === 'encrypted' ? 'notice-success' : ($phase === 'error' ? 'notice-error' : 'notice-warning');
+        $class = $phase === 'mixed' ? 'notice-success' : ($phase === 'legacy' ? 'notice-warning' : 'notice-error');
         echo '<div class="notice ' . esc_attr($class) . '"><p>' . esc_html($message) . '</p>';
         echo '</div>';
     }

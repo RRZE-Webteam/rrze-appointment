@@ -50,11 +50,47 @@ final class BookingStorage
     }
 
     /**
+     * Applies a single domain operation to the in-memory fixture.
+     *
+     * @param array<string, array<mixed>> $updates Complete logical booking arrays.
+     */
+    public static function setMany(array $updates): void
+    {
+        foreach ($updates as $name => $data) {
+            self::set($name, $data);
+        }
+    }
+
+    /**
      * Retains the legacy cron argument in tests that do not enable encryption.
      */
     public static function jobReference(string $hook, string $value): string
     {
         return $value;
+    }
+
+    /** Legacy fixtures have no persistent encrypted record identities. */
+    public static function recordId(string $type, string $target): ?string
+    {
+        return null;
+    }
+
+    /** The unconfigured fixture keeps new events in its legacy WordPress queue. */
+    public static function promoteForJob(string $type, string $target, int $timestamp): ?string
+    {
+        return null;
+    }
+
+    /** The legacy workflow fixtures have no V2 wake to repair at startup. */
+    public static function hasMixedState(): bool
+    {
+        return false;
+    }
+
+    /** Supplies the fixture's per-site inventory result, including the empty-site case. */
+    public static function hasStoredData(): bool
+    {
+        return $GLOBALS['fixtureHasBookingData'] ?? true;
     }
 
     /** Supplies opaque lock identifiers for isolated workflows without real keys. */

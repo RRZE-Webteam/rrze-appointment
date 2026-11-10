@@ -1,9 +1,37 @@
-# Lokale Produktionsreifeprüfung
+# Lokale Staging-Abnahme
 
-Diese Helfer prüfen **2.3.3 → DEV `13cacbc`** mit echter WordPress-Multisite,
-MySQL, getrennten PHP-Prozessen und HTTP-Anfragen. Sie ändern keinen Plugincode.
-Den ursprünglichen Befund beschreibt [REPORT.md](REPORT.md). Die Umsetzung und
-die erneuten Nachweise vom 6. November beschreibt [UPDATE-REPORT.md](UPDATE-REPORT.md).
+Der aktuelle Mischbetrieb wird gegen echte Bestandsdaten aus Plugin-Version 2.3.3
+geprüft. Die Testdaten entstehen durch Buchungsanfragen und Bestätigungen in
+einer isolierten WordPress-Multisite. Ergebnisse, ZIP-Prüfsumme und die offene
+Produktionsbedingung stehen im [Staging-Bericht](MIXED-REPORT.md).
+
+```sh
+python3 tests/readiness/prepare.py --working-tree --root=/private/tmp/rrze-appointment-mixed-audit
+python3 tests/readiness/run.py --root=/private/tmp/rrze-appointment-mixed-audit
+python3 tests/readiness/run.py --root=/private/tmp/rrze-appointment-mixed-audit --phases=shutdown
+```
+
+Für eine andere PHP- oder WordPress-Version bei der Vorbereitung `--php` bzw.
+`--source` angeben. Die Standardprüfung für einen Mischbetriebs-Kandidaten
+enthält Build, Seed, HTTP-Abläufe, Cron-Verlust und -Wiederherstellung, V1-
+Kompatibilität und Schlüsselausfall, native Transaktionen und CLI-Prüfungen.
+Der Versionswechsel im HTTP-Test nutzt den WordPress-Upgrader über
+`wp plugin install candidate.zip --force`. Der Prüf-Build verwendet die
+Plugin-Version des Quellstands. Für einen neuen Teststand innerhalb derselben
+Einweg-Installation `--phases=working_tree,build,seed,mixed_workflows,mixed_jobs,mixed_compat,mixed_atomic,mixed_cli`
+verwenden. Das ersetzt das eingefrorene Testpaket und seine bisherigen Ergebnisse.
+
+Die Negativkontrolle hält eine alte Buchungsanfrage gezielt zwischen
+Belegungsprüfung und Legacy-Schreibzugriff an. Ihr Bestehen dokumentiert den
+reproduzierten Konflikt beim Betrieb zweier Codeversionen. Die Positivkontrolle
+lässt diese Anfrage vor dem Paketwechsel abschließen. Der Test überwacht keine
+produktiven Server oder deren FPM-/CLI-Prozesse.
+
+## Historische Prüfungen
+
+Die früheren [V1-Ergebnisse](UPDATE-REPORT.md) und [ursprünglichen Befunde](REPORT.md)
+beziehen sich auf die damalige Vollmigration. Die folgenden V1-Phasen sind im
+jeweils dokumentierten historischen Git-Stand reproduzierbar.
 
 ## Isolation
 

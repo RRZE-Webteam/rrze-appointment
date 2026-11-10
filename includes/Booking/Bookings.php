@@ -62,8 +62,7 @@ final class Bookings
                 return 0;
             }
 
-            self::removeExpiredBookings($expiredSlots, $slots, $allMeta);
-            self::removeExpiredTokens($expiredSlots);
+            self::removeBookings($expiredSlots, $slots, $allMeta);
 
             return count($expiredSlots);
         } catch (\Throwable $exception) {
@@ -162,36 +161,18 @@ final class Bookings
             $allMeta = self::getStoredMetadata();
             $meta = self::getSlotMetadata($allMeta, $slot);
 
-            BookingScheduler::clear(Reminder::CRON_HOOK, $slot);
-            self::sendCancellationMail($slot, $meta, $reason);
-            $remainingMeta = self::removeStoredBooking($slot, $slots, $allMeta);
+            $remainingMeta = self::removeBookings([$slot => true], $slots, $allMeta);
+            try {
+                self::sendCancellationMail($slot, $meta, $reason);
+            } catch (\Throwable) {
+                throw new AppointmentException(__('Your appointment has been cancelled, but its notification emails could not be sent completely.', 'rrze-appointment'));
+            }
             self::notifyWaitlist($slot, $meta, $remainingMeta);
 
             return true;
         } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
-    }
-
-    /**
-     * Removes one booking from the slot and metadata options.
-     *
-     * @param array<int, mixed>    $slots   Stored slot values.
-     * @param array<string, mixed> $allMeta Stored metadata keyed by slot.
-     * @return array<string, mixed> Remaining booking metadata.
-     */
-    private static function removeStoredBooking(#[\SensitiveParameter] string $slot, #[\SensitiveParameter] array $slots, #[\SensitiveParameter] array $allMeta): array
-    {
-        $remainingSlots = array_values(array_filter(
-            $slots,
-            static fn($bookedSlot): bool => $bookedSlot !== $slot
-        ));
-        BookingStorage::set(self::SLOTS_OPTION, $remainingSlots);
-
-        unset($allMeta[$slot]);
-        BookingStorage::set(self::META_OPTION, $allMeta);
-
-        return $allMeta;
     }
 
     /**
@@ -360,54 +341,52 @@ final class Bookings
     }
 
     /**
-     * Removes expired slots, metadata, reminders, and notification locks.
+     * Atomically removes bookings, their metadata and all linked action tokens.
+     * Legacy one-shot events are cleared only after the data commit succeeds.
      *
-     * @param array<string, true>  $expiredSlots
-     * @param array<int, mixed>    $slots
-     * @param array<string, mixed> $allMeta
+     * @param array<string, true> $remove Slots to cancel or expire.
+     * @param array<int, mixed> $slots Stored booked slots.
+     * @param array<string, mixed> $allMeta Stored booking metadata.
+     * @return array<string, mixed> Remaining bookings' metadata for waitlist notification.
      */
-    private static function removeExpiredBookings(#[\SensitiveParameter] array $expiredSlots, #[\SensitiveParameter] array $slots, #[\SensitiveParameter] array $allMeta): void
-    {
+    private static function removeBookings(
+        #[\SensitiveParameter] array $remove,
+        #[\SensitiveParameter] array $slots,
+        #[\SensitiveParameter] array $allMeta
+    ): array {
         $remainingSlots = array_values(array_filter(
             $slots,
-            static fn($slot): bool => !is_string($slot) || !isset($expiredSlots[$slot])
+            static fn($slot): bool => !is_string($slot) || !isset($remove[$slot])
         ));
-        BookingStorage::set(self::SLOTS_OPTION, $remainingSlots);
-
-        foreach ($expiredSlots as $slot => $_unused) {
-            unset($allMeta[$slot]);
-            BookingScheduler::clear(Reminder::CRON_HOOK, $slot);
-            delete_option(self::getWaitlistLockOption($slot));
-        }
-
-        BookingStorage::set(self::META_OPTION, $allMeta);
-    }
-
-    /**
-     * Removes cancellation and pending tokens associated with expired slots.
-     *
-     * @param array<string, true> $expiredSlots
-     */
-    private static function removeExpiredTokens(#[\SensitiveParameter] array $expiredSlots): void
-    {
+        $remainingMeta = array_diff_key($allMeta, $remove);
+        $pending = BookingStorage::get(TokenManager::PENDING_OPTION);
+        $removedPending = array_filter(
+            $pending,
+            static fn($entry): bool => is_array($entry) && is_string($entry['slot'] ?? null) && isset($remove[$entry['slot']])
+        );
         $tokens = BookingStorage::get(TokenManager::CANCEL_OPTION);
         foreach ($tokens as $token => $entry) {
-            $slot = is_array($entry) ? ($entry['slot'] ?? '') : $entry;
-            if (is_string($slot) && isset($expiredSlots[$slot])) {
+            $slot = is_array($entry) ? ($entry['slot'] ?? null) : $entry;
+            $pendingToken = is_array($entry) ? ($entry['pending_token'] ?? null) : null;
+            if ((is_string($slot) && isset($remove[$slot]))
+                || (is_string($pendingToken) && isset($removedPending[$pendingToken]))) {
                 unset($tokens[$token]);
             }
         }
-        BookingStorage::set(TokenManager::CANCEL_OPTION, $tokens);
-
-        $pending = BookingStorage::get(TokenManager::PENDING_OPTION);
-        foreach ($pending as $token => $entry) {
-            $slot = is_array($entry) ? ($entry['slot'] ?? '') : '';
-            if (is_string($slot) && isset($expiredSlots[$slot])) {
-                unset($pending[$token]);
-                BookingScheduler::clear(TokenManager::PENDING_EXPIRY_HOOK, $token);
-            }
+        BookingStorage::setMany([
+            self::SLOTS_OPTION => $remainingSlots,
+            self::META_OPTION => $remainingMeta,
+            TokenManager::CANCEL_OPTION => $tokens,
+            TokenManager::PENDING_OPTION => array_diff_key($pending, $removedPending),
+        ]);
+        foreach (array_keys($remove) as $slot) {
+            BookingScheduler::clear(Reminder::CRON_HOOK, $slot);
+            delete_option(self::getWaitlistLockOption($slot));
         }
-        BookingStorage::set(TokenManager::PENDING_OPTION, $pending);
+        foreach (array_keys($removedPending) as $token) {
+            BookingScheduler::clear(TokenManager::PENDING_EXPIRY_HOOK, (string) $token);
+        }
+        return $remainingMeta;
     }
 
     /**

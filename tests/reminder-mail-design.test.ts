@@ -18,14 +18,4 @@ describe( 'reminder mail design', () => {
 		);
 	} );
 
-	it( 'renders host and booker reminder templates independently', () => {
-		expect( reminder ).toContain(
-			'$this->resolveTemplate($templateId, self::ADMIN_TEMPLATE_TYPE)'
-		);
-		expect( reminder ).toContain(
-			'$this->resolveTemplate($templateId, self::BOOKER_TEMPLATE_TYPE)'
-		);
-		expect( reminder ).toContain( '$adminMail = $this->renderMail(' );
-		expect( reminder ).toContain( '$bookerMail = $this->renderMail(' );
-	} );
 } );

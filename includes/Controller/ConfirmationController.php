@@ -142,10 +142,6 @@ final class ConfirmationController
         #[\SensitiveParameter] array $questions,
         #[\SensitiveParameter] array $appointmentDetails
     ): ?array {
-        if ($questions === []) {
-            return [];
-        }
-
         if ($this->getRequestMethod() !== 'POST') {
             $this->renderer->renderConfirmation($token, $questions, [], '', '', $appointmentDetails);
             return null;

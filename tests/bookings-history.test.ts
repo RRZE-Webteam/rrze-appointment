@@ -14,6 +14,7 @@ function runScenario( scenario: Record< string, unknown > = {} ): {
 	html: string;
 	bookings: Booking[];
 	storedSlots: string[];
+	cancelTokens: string[];
 	writes: number;
 	api: {
 		status?: number;
@@ -133,8 +134,12 @@ describe( 'authenticated booking administration API', () => {
 				} );
 				expect( result.api.code ).toBe( 'rrze_appointment_forbidden' );
 				expect( result.api.data.status ).toBe( 403 );
-				expect( result.html ).toContain( 'No access to appointment management' );
-				expect( result.html ).not.toContain( 'id="rrze-appointment-admin"' );
+				expect( result.html ).toContain(
+					'No access to appointment management'
+				);
+				expect( result.html ).not.toContain(
+					'id="rrze-appointment-admin"'
+				);
 				expect( result.html ).not.toContain( 'Private booker' );
 				expect( result.writes ).toBe( 0 );
 				expect( result.mails ).toHaveLength( 0 );
@@ -277,6 +282,7 @@ describe( 'authenticated booking administration API', () => {
 			expect( result.storedSlots ).not.toContain(
 				'2026-08-20 12:30-13:00'
 			);
+			expect( result.cancelTokens ).toEqual( [ 'other-booking' ] );
 			expect( result.mails.map( ( mail ) => mail.to ) ).toEqual( [
 				'host@example.test',
 				'upcoming@example.test',
@@ -289,4 +295,20 @@ describe( 'authenticated booking administration API', () => {
 			} );
 		}
 	);
+
+	it( 'retains the booking and all its links without sending mail on a failed cancellation write', () => {
+		const slot = '2026-08-20 12:30-13:00';
+		const result = runScenario( {
+			cancel: true,
+			params: { slot },
+			failFirstWrite: true,
+		} );
+
+		expect( result.api.data.status ).toBe( 500 );
+		expect( result.storedSlots ).toContain( slot );
+		expect( result.cancelTokens ).toContain( 'old-string' );
+		expect( result.cancelTokens ).toContain( 'old-structured' );
+		expect( result.clearedHooks ).toEqual( [] );
+		expect( result.mails ).toEqual( [] );
+	} );
 } );

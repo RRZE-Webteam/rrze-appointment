@@ -7,14 +7,13 @@ use RRZE\Appointment\AppointmentException;
 defined('ABSPATH') || exit;
 
 /**
- * Owns the five booking stores, their encryption state, and resumable migration.
- *
- * Plaintext exists only in request-local memory. A configured key automatically
- * starts or resumes migration before any booking workflow can access the stores.
+ * Presents one site-local view of legacy arrays, authenticated V1 options and V2 records.
+ * A business mutation transfers only its affected aggregates in one native transaction.
  */
 final class BookingStorage
 {
     public const STATE_OPTION = 'rrze_appointment_storage_state';
+    public const MIXED_STATE_OPTION = MixedRecordStore::POLICY;
     public const OPTIONS = [
         'rrze_appointment_booked_slots',
         'rrze_appointment_booked_slots_meta',
@@ -31,9 +30,10 @@ final class BookingStorage
     private ?array $state = null;
     private ?string $rawState = null;
     private array $raw = [];
+    private array $source = [];
     private array $data = [];
+    private MixedRecordStore $mixed;
     private bool $blocked = false;
-    private bool $migrating = false;
 
     /**
      * Locks and validates every store before any workflow can change booking data.
@@ -42,30 +42,31 @@ final class BookingStorage
     {
         $this->database = new OptionDatabase($database, $table);
         try {
-            $this->rawState = $this->database->read(self::STATE_OPTION);
-            if (defined(EncryptionKey::CONFIGURATION_CONSTANT) || $this->rawState !== null) {
-                $this->key = EncryptionKey::fromConfiguration();
-            }
-            if ($this->rawState !== null) {
-                $this->state = $this->decodeState($this->rawState);
-                $this->cipher = new BookingCipher($this->key, $this->state['context']);
-            }
-            foreach (self::OPTIONS as $name) {
-                $this->raw[$name] = $this->database->read($name);
-                $this->data[$name] = $this->decode($name, $this->raw[$name]);
-            }
+            $this->readSnapshot();
         } catch (\Throwable $exception) {
             $this->database->release();
             throw AppointmentException::fromThrowable($exception);
         }
     }
 
-    /**
-     * Returns site storage, automatically migrating before normal booking access.
-     *
-     * @param bool $initialize False only for status inspection and migration internals.
-     */
-    private static function site(bool $initialize = true): self
+    /** Rereads all formats while retaining the existing site's lock and connection. */
+    private function readSnapshot(): void
+    {
+        $this->rawState = $this->database->read(self::STATE_OPTION);
+        $this->key = defined(EncryptionKey::CONFIGURATION_CONSTANT) || $this->rawState !== null
+            ? EncryptionKey::fromConfiguration() : null;
+        $this->state = $this->rawState !== null ? $this->decodeState($this->rawState) : null;
+        $this->cipher = $this->state !== null ? new BookingCipher($this->key, $this->state['context']) : null;
+        foreach (self::OPTIONS as $name) {
+            $this->raw[$name] = $this->database->read($name);
+            $this->source[$name] = $this->decode($name, $this->raw[$name]);
+        }
+        $this->mixed = new MixedRecordStore($this->database, $this->key, get_current_blog_id());
+        $this->data = $this->mixed->view($this->source);
+    }
+
+    /** Returns validated site storage, retaining the same connection across a business operation. */
+    private static function site(): self
     {
         global $wpdb;
         $table = $wpdb->options;
@@ -75,10 +76,6 @@ final class BookingStorage
                 throw new AppointmentException('Appointment storage is unavailable. Please retry after correcting the storage error.');
             }
             $site->database->assertOwnership();
-            if ($initialize && $site->key !== null && !$site->migrating
-                && ($site->state['phase'] ?? null) !== 'encrypted') {
-                self::migrate();
-            }
             return $site;
         } catch (\Throwable $exception) {
             if (isset(self::$sites[$table])) {
@@ -88,19 +85,45 @@ final class BookingStorage
         }
     }
 
-    /**
-     * Starts or resumes configured encryption before startup maintenance runs.
-     *
-     * Sites without a key and migration marker keep legacy mode. A missing key
-     * after migration has started is an error, never permission to write plaintext.
-     */
+    /** Validates the site's current formats without changing any data. */
     public static function initialize(): void
     {
-        try {
-            self::site()->database->pruneExpiredLocks();
-        } catch (\Throwable $exception) {
-            throw AppointmentException::fromThrowable($exception);
+        self::site();
+    }
+
+    /** Removes expired historical auxiliary locks during background maintenance. */
+    public static function pruneExpiredLocks(): void
+    {
+        self::site()->database->pruneExpiredLocks();
+    }
+
+    /** Includes dormant installations with booking data, without populating option caches. */
+    public static function hasStoredData(): bool
+    {
+        global $wpdb;
+        $names = [...self::OPTIONS, self::STATE_OPTION, self::MIXED_STATE_OPTION, MixedRecordStore::INDEX];
+        $arguments = [$wpdb->options, ...$names, 'rrze!_appointment!_v2!_record!_%'];
+        $found = $wpdb->get_var($wpdb->prepare(
+            'SELECT option_name FROM %i WHERE option_name IN (' . implode(',', array_fill(0, count($names), '%s')) . ") OR option_name LIKE %s ESCAPE '!' LIMIT 1",
+            ...$arguments
+        ));
+        if ($wpdb->last_error !== '') {
+            throw new AppointmentException('Appointment site inventory could not be read.');
         }
+        return $found !== null;
+    }
+
+    /** Returns whether wake repair may find stored work, without loading booking data or populating caches. */
+    public static function hasMixedState(): bool
+    {
+        global $wpdb;
+        $found = $wpdb->get_var($wpdb->prepare(
+            'SELECT option_name FROM %i WHERE option_name = %s', $wpdb->options, self::MIXED_STATE_OPTION
+        ));
+        if ($wpdb->last_error !== '') {
+            throw new AppointmentException('Appointment storage could not be read.');
+        }
+        return $found !== null;
     }
 
     /**
@@ -114,92 +137,208 @@ final class BookingStorage
         return self::site()->data[$name];
     }
 
-    /**
-     * Persists a workflow's updated array while retaining the request's site lock.
-     *
-     * @param array<mixed> $data New booking data.
-     * @throws AppointmentException On invalid data, conflict, or failed persistence.
-     */
+    /** Persists an array change using its aggregate boundaries in mixed mode. */
     public static function set(#[\SensitiveParameter] string $name, #[\SensitiveParameter] array $data): void
     {
-        self::assertName($name);
-        $site = self::site();
-        try {
-            self::validateArray($data);
-            $next = $site->cipher ? $site->cipher->encrypt($data, $name) : serialize($data);
-            if (!$site->database->replace($name, $site->raw[$name], $next)) {
-                throw new AppointmentException('Appointment data changed concurrently. Please reload and try again.');
-            }
-            if ($site->cipher && $site->cipher->decrypt($site->database->read($name), $name) !== $data) {
-                throw new AppointmentException('Encrypted appointment data could not be verified.');
-            }
-            $site->raw[$name] = $next;
-            $site->data[$name] = $data;
-            if ($site->state !== null && !in_array($name, $site->state['completed'], true)) {
-                $site->state['completed'][] = $name;
-                $site->saveState();
-            }
-        } catch (\Throwable $exception) {
-            $site->blocked = true;
-            throw AppointmentException::fromThrowable($exception);
-        }
+        self::setMany([$name => $data]);
     }
 
     /**
-     * Atomically persists a domain operation after automatic migration has completed.
+     * Commits a business operation across both formats, including removals and durable jobs.
      *
-     * Encoding and round-trip verification finish before any transaction writes.
-     * Database verification compares these exact bytes before committing. A failed
-     * or unacknowledged commit blocks this request; the next request reads fresh state.
-     *
-     * @param array<string, array<mixed>> $updates Protected options and their complete replacement arrays.
-     * @throws AppointmentException On invalid data, unsupported tables or persistence failure.
+     * @param array<string,array> $updates Complete replacement views for the affected logical options.
+     * @throws AppointmentException If validation, locking, encoding, read-set checks or commit fails.
      */
     public static function setMany(#[\SensitiveParameter] array $updates): void
     {
         if (!$updates) {
             return;
         }
-        foreach ($updates as $name => $data) {
-            self::assertName($name);
-            if (!is_array($data)) {
-                throw new AppointmentException('Invalid atomic appointment update.');
-            }
-        }
         $site = self::site();
         try {
-            $previous = $next = [];
             foreach ($updates as $name => $data) {
-                self::validateArray($data);
-                $previous[$name] = $site->raw[$name];
-                $next[$name] = $site->cipher ? $site->cipher->encrypt($data, $name) : serialize($data);
-                $verified = $site->cipher ? $site->cipher->decrypt($next[$name], $name) : self::decodeLegacy($next[$name]);
-                if ($verified !== $data) {
-                    throw new AppointmentException('Appointment data did not pass the encryption preflight.');
+                self::assertName($name);
+                if (!is_array($data)) {
+                    throw new AppointmentException('Invalid atomic appointment update.');
                 }
+                self::validateArray($data);
             }
-            $site->database->replaceMany($previous, $next);
-            foreach ($updates as $name => $data) {
-                $site->raw[$name] = $next[$name];
-                $site->data[$name] = $data;
+            $desired = array_replace($site->data, $updates);
+            if ($desired === $site->data) {
+                return;
             }
+            if ($site->key === null) {
+                $site->writeLegacy($updates);
+            } else {
+                $candidate = clone $site->mixed;
+                $source = $candidate->apply($site->source, $site->data, $desired);
+                $site->commit($candidate, $source);
+            }
+        } catch (\Throwable $exception) {
+            $site->blocked = true;
+            throw AppointmentException::fromThrowable($exception);
+        }
+        self::refreshWake();
+    }
+
+    /** Preserves the unconfigured legacy installation, using InnoDB for multi-option mutations. */
+    private function writeLegacy(#[\SensitiveParameter] array $updates): void
+    {
+        $next = [];
+        foreach ($updates as $name => $data) {
+            if ($data !== $this->source[$name]) {
+                $next[$name] = serialize($data);
+            }
+        }
+        if (count($updates) === 1) {
+            $name = array_key_first($updates);
+            if (!$this->database->replace($name, $this->raw[$name], $next[$name])) {
+                throw RecordProjection::conflict();
+            }
+        } else {
+            $this->database->replaceMany($this->raw, $next);
+        }
+        $this->raw = array_replace($this->raw, $next);
+        $this->data = $this->source = array_replace($this->source, $updates);
+    }
+
+    /**
+     * Stages source removal in the original format, respecting V1's signed write policy.
+     * The request snapshot advances only after COMMIT has been acknowledged.
+     */
+    private function commit(MixedRecordStore $candidate, #[\SensitiveParameter] array $source): void
+    {
+        $oldMixed = $this->mixed->rawValues();
+        $newMixed = $candidate->rawValues();
+        $readSet = $this->raw + [self::STATE_OPTION => $this->rawState] + $oldMixed;
+        $writes = [];
+        foreach (array_keys($newMixed + $oldMixed) as $name) {
+            $readSet[$name] ??= null;
+            $next = $newMixed[$name] ?? null;
+            if ($readSet[$name] !== $next) {
+                $writes[$name] = $next;
+            }
+        }
+        foreach (self::OPTIONS as $name) {
+            if ($source[$name] === $this->source[$name]) {
+                continue;
+            }
+            // This is a removal only. Even for a partially completed V1 migration,
+            // unrelated entries keep their original format and signed checkpoint.
+            $encrypted = str_starts_with($this->raw[$name] ?? '', BookingCipher::PREFIX);
+            $next = $encrypted ? $this->cipher->encrypt($source[$name], $name) : serialize($source[$name]);
+            $verified = $encrypted ? $this->cipher->decrypt($next, $name) : self::decodeLegacy($next);
+            if ($verified !== $source[$name]) {
+                throw new AppointmentException('Appointment source data could not be verified.');
+            }
+            $writes[$name] = $next;
+        }
+        if (!$writes) {
+            return;
+        }
+        $view = $candidate->view($source);
+        $this->database->replaceMany($readSet, $writes);
+        $this->raw = array_replace($this->raw, array_intersect_key($writes, $this->raw));
+        $this->source = $source;
+        $this->data = $view;
+        $this->mixed = $candidate;
+    }
+
+    /** Repairs a disposable scheduler wake after a committed write; durable work remains recoverable. */
+    private static function refreshWake(): void
+    {
+        try {
+            BookingScheduler::afterCommit();
+        } catch (\Throwable) {
+            // A subsequent plugin/cron start can restore the wake from the committed records.
+        }
+    }
+
+    /**
+     * Returns the encrypted queue's live owners and jobs under the site lock.
+     *
+     * @return array<string,array{type:string,target:string,jobs:array}> Entries keyed by immutable record ID.
+     */
+    public static function managedJobs(): array
+    {
+        return self::site()->mixed->managedJobs();
+    }
+
+    /** Returns the durable ID if this particular legacy target has already been promoted. */
+    public static function recordId(string $type, #[\SensitiveParameter] string $target): ?string
+    {
+        return self::site()->mixed->recordId($type, $target);
+    }
+
+    /**
+     * Moves an old target when its next notification/expiry is newly scheduled.
+     * The requested timestamp and the source removal commit atomically.
+     *
+     * @return string|null Immutable V2 ID, or null only in unconfigured legacy mode.
+     */
+    public static function promoteForJob(string $type, #[\SensitiveParameter] string $target, int $timestamp): ?string
+    {
+        $site = self::site();
+        if ($site->key === null) {
+            return null;
+        }
+        $id = $site->mixed->recordId($type, $target);
+        if ($id !== null) {
+            return $id;
+        }
+        try {
+            $candidate = clone $site->mixed;
+            $source = $candidate->apply($site->source, $site->data, $site->data,
+                ['type' => $type, 'target' => $target, 'at' => $timestamp]);
+            $site->commit($candidate, $source);
+        } catch (\Throwable $exception) {
+            $site->blocked = true;
+            throw AppointmentException::fromThrowable($exception);
+        }
+        self::refreshWake();
+        return $site->mixed->recordId($type, $target);
+    }
+
+    /**
+     * Atomically saves a worker lease, retry or acknowledgement on its owning record.
+     *
+     * @param string $id Current immutable record ID.
+     * @param array<string,array> $jobs Replacement work for this owner.
+     */
+    public static function setRecordJobs(string $id, #[\SensitiveParameter] array $jobs): void
+    {
+        $site = self::site();
+        try {
+            $candidate = clone $site->mixed;
+            $candidate->setJobs($id, $jobs);
+            $site->commit($candidate, $site->source);
         } catch (\Throwable $exception) {
             $site->blocked = true;
             throw AppointmentException::fromThrowable($exception);
         }
     }
 
-    /**
-     * Checks migration prerequisites without changing stored data or migration state.
-     *
-     * @throws AppointmentException When key, engine, payloads or cron cannot be migrated.
-     */
+    /** Reads a fresh raw WordPress cron snapshot for targeted adoption of existing single events. */
+    public static function cronSnapshot(): array
+    {
+        $raw = self::site()->database->read('cron');
+        if ($raw === null) {
+            return [];
+        }
+        $events = @unserialize($raw, ['allowed_classes' => false]);
+        if (!is_array($events)) {
+            throw new AppointmentException('The appointment cron queue could not be inspected.');
+        }
+        return $events;
+    }
+
+    /** Checks configuration, transaction support, readable records and the cipher without writing. */
     public static function preflight(): void
     {
-        $site = self::site(false);
+        $site = self::site();
         $key = EncryptionKey::fromConfiguration();
         $site->database->assertTransactional();
-        $cipher = $site->cipher ?? new BookingCipher($key, bin2hex(random_bytes(16)));
+        $cipher = new BookingCipher($key, bin2hex(random_bytes(16)));
         foreach (self::OPTIONS as $name) {
             if ($cipher->decrypt($cipher->encrypt($site->data[$name], $name), $name) !== $site->data[$name]) {
                 throw new AppointmentException('Appointment data did not pass the encryption preflight.');
@@ -208,97 +347,61 @@ final class BookingStorage
         BookingScheduler::inspect($site->database);
     }
 
-    /**
-     * Verifies all authenticated stores and cron references without repairing anything.
-     *
-     * @throws AppointmentException When encryption is incomplete or cron contains legacy arguments.
-     */
+    /** Reads a fresh snapshot under the site lock, rejecting changed, missing or malformed rows. */
+    private static function inspection(): self
+    {
+        $site = self::site();
+        try {
+            $site->readSnapshot();
+            return $site;
+        } catch (\Throwable $exception) {
+            $site->blocked = true;
+            throw AppointmentException::fromThrowable($exception);
+        }
+    }
+
+    /** Verifies old source checkpoints, V2 policy, index, immutable record scopes and scheduler inputs. */
+    public static function verifyMixed(): void
+    {
+        $site = self::inspection();
+        EncryptionKey::fromConfiguration();
+        $site->database->assertTransactional();
+        BookingScheduler::inspect($site->database);
+    }
+
+    /** Verifies full encryption at rest. Mixed sites with remaining plaintext data or cron arguments fail. */
     public static function verify(): void
     {
-        $site = self::site(false);
-        if (($site->state['phase'] ?? null) !== 'encrypted') {
+        $site = self::inspection();
+        if (($site->state !== null && $site->state['phase'] !== 'encrypted')
+            || ($site->state === null && $site->mixed->rawValues()[self::MIXED_STATE_OPTION] === null)) {
             throw new AppointmentException('Appointment encryption migration is incomplete.');
         }
         foreach (self::OPTIONS as $name) {
-            // Fresh reads also detect out-of-band changes during a maintenance pass.
-            if ($site->decode($name, $site->database->read($name)) !== $site->data[$name]) {
-                throw new AppointmentException('Appointment storage changed during verification.');
+            $raw = $site->raw[$name];
+            if ($raw !== null && !str_starts_with($raw, BookingCipher::PREFIX)) {
+                throw new AppointmentException('Appointment source data still contains plaintext.');
             }
         }
         BookingScheduler::inspect($site->database, true);
     }
 
     /**
-     * Reports validated, non-sensitive status for the site's administration UI.
+     * Reports the configured write mode and any historical V1 checkpoints.
      *
-     * @return array{phase: string, completed: int, total: int}
+     * @return array{phase:string,completed:int,total:int} Non-sensitive diagnostics only.
      */
     public static function status(): array
     {
-        $site = self::site(false);
-        if (($site->state['phase'] ?? null) === 'encrypted') {
-            self::verify();
-        }
-        return [
-            'phase' => $site->state['phase'] ?? ($site->key ? 'ready' : 'legacy'),
-            'completed' => count($site->state['completed'] ?? []),
-            'total' => count(self::OPTIONS),
-        ];
+        $site = self::site();
+        return ['phase' => $site->key === null ? 'legacy' : 'mixed',
+            'completed' => count($site->state['completed'] ?? []), 'total' => count(self::OPTIONS)];
     }
 
-    /**
-     * Starts or resumes migration, checkpointing each verified option replacement.
-     *
-     * All payloads are preflighted before the first write. Once state is recorded,
-     * every new write is encrypted, including while migration is incomplete.
-     *
-     * @param int $limit Maximum number of stores to migrate in this invocation.
-     */
+    /** Rejects the old whole-site operation before changing any data. */
     public static function migrate(int $limit = 5): void
     {
-        $site = self::site(false);
-        $site->migrating = true;
-        try {
-            BookingScheduler::inspect($site->database);
-            if ($site->state === null) {
-                $site->key ??= EncryptionKey::fromConfiguration();
-                $context = bin2hex(random_bytes(16));
-                $site->cipher = new BookingCipher($site->key, $context);
-                // Round-trip all stores before committing the migration marker.
-                foreach (self::OPTIONS as $name) {
-                    $encrypted = $site->cipher->encrypt($site->data[$name], $name);
-                    if ($site->cipher->decrypt($encrypted, $name) !== $site->data[$name]) {
-                        throw new AppointmentException('Appointment data did not pass the encryption preflight.');
-                    }
-                }
-                $site->state = [
-                    'version' => 1,
-                    'phase' => 'migrating',
-                    'context' => $context,
-                    'key_id' => $site->key->identifier($context),
-                    'completed' => [],
-                ];
-                $site->saveState();
-            }
-            foreach (self::OPTIONS as $name) {
-                if (!in_array($name, $site->state['completed'], true) && $limit-- > 0) {
-                    self::set($name, $site->data[$name]);
-                }
-            }
-            if (count($site->state['completed']) === count(self::OPTIONS)) {
-                BookingScheduler::migrate($site->database);
-                $site->state['phase'] = 'encrypted';
-                $site->saveState();
-            }
-        } catch (\Throwable $exception) {
-            $site->blocked = true;
-            if ($exception instanceof AppointmentException) {
-                throw AppointmentException::fromThrowable($exception);
-            }
-            throw new AppointmentException('Appointment migration could not be completed.');
-        } finally {
-            $site->migrating = false;
-        }
+        throw new AppointmentException('Full migration is disabled. New and changed appointment data are encrypted automatically.');
     }
 
     /**
@@ -324,7 +427,7 @@ final class BookingStorage
         $site = self::site();
         $key = $site->state !== null
             ? $site->key->forJobs($site->state['context'])
-            : wp_salt('auth') . "\0" . get_current_blog_id();
+            : ($site->mixed->auxiliaryKey() ?? (wp_salt('auth') . "\0" . get_current_blog_id()));
         return 'v2_' . hash_hmac('sha256', 'lock:' . $purpose . "\0" . $slot, $key);
     }
 
@@ -432,19 +535,6 @@ final class BookingStorage
         } catch (\JsonException) {
             throw new AppointmentException('Unsupported values in appointment storage.');
         }
-    }
-
-    /**
-     * Persists the migration marker with a conditional, verified database write.
-     */
-    private function saveState(): void
-    {
-        $this->state['mac'] = $this->stateMac($this->state);
-        $next = json_encode($this->state, JSON_THROW_ON_ERROR);
-        if (!$this->database->replace(self::STATE_OPTION, $this->rawState, $next)) {
-            throw new AppointmentException('The appointment migration state changed concurrently.');
-        }
-        $this->rawState = $next;
     }
 
     /**

@@ -25,6 +25,7 @@ final class BookingCipher
         'rrze_appointment_pending_slots',
         'rrze_appointment_cancel_tokens',
         'rrze_appointment_booking_opening_notifications',
+        'rrze_appointment_record_index_v2',
     ];
 
     /**
@@ -53,7 +54,7 @@ final class BookingCipher
      * Encrypts an entire booking storage area with a fresh 192-bit nonce.
      *
      * @param array<mixed> $data Booking values containing only arrays and JSON-compatible scalars.
-     * @param string $storageName One of the five protected booking option names.
+     * @param string $storageName Physical option name, including type and ID for a V2 record.
      * @return string Versioned ciphertext suitable for storage as an option value.
      * @throws AppointmentException When the scope, data, or encryption operation is invalid.
      */
@@ -183,7 +184,8 @@ final class BookingCipher
      */
     private function assertStorageName(string $storageName): void
     {
-        if (!in_array($storageName, self::STORAGE_NAMES, true)) {
+        if (!in_array($storageName, self::STORAGE_NAMES, true)
+            && !preg_match('/\Arrze_appointment_v2_record_(pending|booking|opening)_[a-f0-9]{32}\z/', $storageName)) {
             throw new AppointmentException('The appointment encryption storage area is invalid.');
         }
     }

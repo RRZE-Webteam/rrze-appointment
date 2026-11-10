@@ -178,7 +178,7 @@ if __name__ == "__main__":
     parser.add_argument("--root", required=True)
     parser.add_argument("--finish", action='store_true', help='Finish an interrupted audit setup after core installation.')
     parser.add_argument("--source", default="/Users/ej64ojyw/Sites/multisite")
-    parser.add_argument("--php", default="/Applications/MAMP/bin/php/php8.4.17/bin/php")
+    parser.add_argument("--php", default=shutil.which("php") or "php")
     parser.add_argument("--wp", default="/opt/homebrew/bin/wp")
     parser.add_argument("--mysql-bin", default="/Applications/MAMP/Library/bin/mysql80/bin")
     parser.add_argument("--mysqld", default="/Applications/MAMP/Library/bin/mysql57/bin/mysqld")

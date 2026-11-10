@@ -14,181 +14,123 @@ const run = ( scenario: string ): Record< string, any > =>
 		)
 	);
 
-describe( 'central booking storage and controlled migration', () => {
-	it( 'retains legacy mode when no key or migration marker exists', () => {
-		const result = run( 'legacy' );
-		expect( result.status.phase ).toBe( 'legacy' );
-		expect( result ).toMatchObject( {
-			data: true,
-			legacyWrite: true,
-			noState: true,
+describe( 'versioned booking records and lazy promotion', () => {
+	it( 'keeps the internal record ID from reservation through confirmation while consuming pending links', () => {
+		expect( run( 'lifecycle' ) ).toMatchObject( {
+			expiry: true,
+			confirmed: true,
+			idPreserved: true,
+			consumed: true,
+		} );
+	} );
+	it( 'keeps the unconfigured installation in legacy mode', () => {
+		expect( run( 'legacy' ) ).toEqual( {
+			phase: 'legacy',
+			written: true,
+			marker: false,
 		} );
 	} );
 
-	it.each( [ 'automatic', 'first-access' ] )(
-		'starts encryption on %s without a customer action',
-		( scenario ) => {
-			expect( run( scenario ) ).toMatchObject( {
-				status: { phase: 'encrypted', completed: 5, total: 5 },
-				allEncrypted: true,
-				payloadPreserved: true,
-				rawClean: true,
-				noRepeatedWrites: true,
-			} );
-		}
-	);
-
-	it( 'encrypts all five stores and cron references, preserving old links and jobs', () => {
-		const result = run( 'migrate' );
-		expect( result.status ).toEqual( {
-			phase: 'encrypted',
-			completed: 5,
-			total: 5,
-		} );
-		for ( const flag of [
-			'allEncrypted',
-			'autoloadOff',
-			'payloadPreserved',
-			'publicUntouched',
-			'otherCronUntouched',
-			'rawClean',
-			'referencesResolve',
-			'oldCancellation',
-			'oldUrl',
-			'oldOptout',
-			'oldConfirmation',
-			'pendingConsumed',
-			'newJobOpaque',
-			'dispatchWorks',
-			'idempotentState',
-		] ) {
-			expect( [ flag, result[ flag ] ] ).toEqual( [ flag, true ] );
-		}
-	} );
-
-	it.each( [ 'resume', 'checkpoint-failure' ] )(
-		'resumes %s without losing intervening bookings',
-		( scenario ) => {
-			const result = run( scenario );
-			expect( result.interrupted.rejected ).toBe( true );
-			expect( result.partialStatus.phase ).toBe( 'migrating' );
-			expect( result.status.phase ).toBe( 'encrypted' );
-			expect( result.newWriteEncrypted ).toBe( true );
-			expect( result.automaticallyResumed ).toBe( true );
-			expect( result.newBookingPreserved ).toBe( true );
-			expect( result.rawClean ).toBe( true );
-		}
-	);
-
-	it.each( [
-		'wrong-key',
-		'missing-key',
-		'invalid-key',
-		'tamper',
-		'missing-option',
-		'plaintext-replacement',
-		'missing-state',
-		'invalid-state',
-		'swapped',
-		'downgraded-state',
-		'corrupt-legacy',
-		'object-legacy',
-		'database-error',
-		'lock-busy',
-		'lost-lock',
-	] )( 'fails closed for %s without destructive cleanup', ( scenario ) => {
-		expect( run( scenario ) ).toMatchObject( {
-			rejected: true,
+	it( 'reads every old array and verifies mixed integrity without initiating a migration', () => {
+		expect( run( 'read' ) ).toMatchObject( {
+			phase: 'mixed',
+			same: true,
+			strictRejected: true,
+			disabledMigrate: true,
 			unchanged: true,
 		} );
 	} );
 
-	it( 'rejects stale writes instead of overwriting a concurrent booking', () => {
-		expect( run( 'write-conflict' ) ).toMatchObject( {
+	it( 'encrypts one new reservation in its own row, leaving existing sources untouched', () => {
+		expect( run( 'new' ) ).toEqual( {
+			oldUnchanged: true,
+			nonAutoloaded: true,
+			protected: true,
+			versions: [ 2, 2, 2, 1 ],
+			persisted: true,
+		} );
+	} );
+
+	it( 'moves the changed booking and its existing action tokens in one transaction', () => {
+		expect( run( 'transfer' ) ).toMatchObject( {
+			separate: true,
+			relatedRemoved: true,
+			otherSources: true,
+			oldLinks: true,
+			stable: true,
+		} );
+	} );
+
+	it( 'hides a replayed legacy snapshot after promotion', () => {
+		expect( run( 'replay' ) ).toMatchObject( {
+			latest: true,
+			oldLink: true,
+			strictRejected: true,
+		} );
+	} );
+
+	it( 'does not resurrect a consumed cancellation link when a slot is booked again', () => {
+		expect( run( 'rebook' ) ).toMatchObject( {
+			latest: true,
+			newId: true,
+			oldLink: false,
+		} );
+	} );
+
+	it.each( [ 'v1', 'partial-v1' ] )(
+		'reads %s sources and retains authenticated checkpoints on promotion',
+		( scenario ) => {
+			expect( run( scenario ) ).toMatchObject( {
+				unchanged: true,
+				linked: true,
+				sourceFormats: true,
+				untouched: true,
+				strict: scenario === 'v1',
+			} );
+		}
+	);
+
+	it( 'rolls back an interrupted first promotion and preserves the original for retry', () => {
+		expect( run( 'rollback' ) ).toMatchObject( {
+			failure: true,
+			unchanged: true,
+			retry: true,
+		} );
+	} );
+
+	it( 'checks unchanged source rows used for occupancy before accepting a write', () => {
+		expect( run( 'readset' ) ).toMatchObject( {
 			rejected: true,
-			newerPreserved: true,
+			preserved: true,
 		} );
 	} );
 
-	it( 'retries shared cron changes and retains other plugins’ events', () => {
-		expect( run( 'cron-conflict' ) ).toMatchObject( {
-			concurrentCronPreserved: true,
-			otherCronUntouched: true,
-			rawClean: true,
-		} );
-	} );
-
-	it( 'creates encrypted empty stores so later row loss cannot look like an empty installation', () => {
-		expect( run( 'empty' ) ).toMatchObject( {
-			allEncrypted: true,
-			payloadPreserved: true,
-		} );
-	} );
-
-	it( 'isolates data, migration contexts and locks in multisite', () => {
-		expect( run( 'multisite' ) ).toMatchObject( {
-			separateContext: true,
-			separateData: true,
-			separateLocks: true,
-			firstSitePreserved: true,
-		} );
-	} );
-} );
-
-it( 'defers opaque cron jobs during storage errors and repairs missing opening jobs', () => {
-	expect( run( 'job-outage' ) ).toMatchObject( {
-		opaqueRetry: true,
-		noPlaintextToken: true,
-		missingJobRepaired: true,
-	} );
-} );
-
-it( 'does not report completion until cron conversion succeeds', () => {
-	expect( run( 'cron-failure' ) ).toMatchObject( {
-		failure: { rejected: true },
-		phaseAfterFailure: 'migrating',
-		completedAfterFailure: 5,
-		phaseAfterResume: 'encrypted',
-	} );
-} );
-
-it( 'evicts stale caches even when verification fails after a committed write', () => {
-	expect( run( 'verification-failure' ) ).toMatchObject( {
-		rejected: true,
-		writeReachedDatabase: true,
-		cacheEvicted: true,
-	} );
-} );
-
-it( 'blocks a first booking write when automatic migration fails instead of falling back to plaintext', () => {
-	expect( run( 'automatic-write-failure' ) ).toMatchObject( {
-		rejected: true,
-		secondAttempt: { rejected: true },
-		originalPendingUntouched: true,
-		migrationStarted: true,
-	} );
-} );
-
-it( 'preflights and verifies without writing protected state', () => {
-	expect( run( 'read-only-checks' ) ).toMatchObject( {
-		preflightUnchanged: true,
-		notStarted: true,
-		verifyUnchanged: true,
-	} );
-} );
-
-it( 'reports reintroduced cron plaintext without silently repairing the queue', () => {
-	expect( run( 'cron-reintroduced' ) ).toMatchObject( {
-		verification: { rejected: true },
-		diagnostics: { rejected: true },
-		unchanged: true,
-	} );
-} );
-
-it( 'rejects malformed cron before the first migration marker', () => {
-	expect( run( 'malformed-cron-preflight' ) ).toMatchObject( {
-		rejected: true,
-		unchanged: true,
-		notStarted: true,
-	} );
+	it.each( [
+		'missing-index',
+		'missing-record',
+		'missing-marker',
+		'orphan-record',
+		'tampered-state',
+		'tampered-v2',
+		'unknown-version',
+		'cross-site',
+		'late-conflict',
+		'wrong-key',
+		'missing-key',
+		'missing-v1-option',
+		'foreign-v1-envelope',
+		'downgraded-v1',
+		'tamper-v1',
+		'invalid-key',
+		'invalid-legacy',
+		'corrupt-legacy',
+		'duplicate-slot',
+		'lock-busy',
+		'database-error',
+	] )(
+		'fails closed for %s without treating the data as an available slot',
+		( scenario ) => {
+			expect( run( scenario ).rejected ).toBe( true );
+		}
+	);
 } );

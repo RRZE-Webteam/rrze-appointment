@@ -140,3 +140,58 @@ function appointmentAuditHoldLegacyCleanup($value)
     return $value;
 }
 add_filter('pre_update_option_rrze_appointment_pending_slots', 'appointmentAuditHoldLegacyCleanup');
+
+/**
+ * Hold an explicitly armed 2.3.3 AJAX reservation after its availability check.
+ *
+ * The legacy controller has already accepted this slot when createPending() is
+ * about to persist its newly generated token. Ordinary bootstrap cleanup cannot
+ * trigger this barrier. Keep the original PHP process and its mail classes alive
+ * across the real WordPress package replacement.
+ *
+ * @param mixed $value Pending option built by the legacy writer.
+ * @return mixed Original option bytes for the unmodified legacy SQL write.
+ */
+function appointmentAuditHoldSlotReservation($value)
+{
+    $root = RRZE_APPOINTMENT_AUDIT_ROOT;
+    if (PHP_SAPI !== 'cli-server' || ($_POST['audit_hold_mixed'] ?? '') !== '1'
+        || !is_file($root . '/mixed-slot-arm') || !is_array($value)
+        || method_exists(\RRZE\Appointment\Booking\TokenManager::class, 'completePending')) {
+        return $value;
+    }
+    static $held = false;
+    $creating = false;
+    foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 24) as $frame) {
+        if (($frame['class'] ?? '') === \RRZE\Appointment\Booking\TokenManager::class
+            && ($frame['function'] ?? '') === 'createPending') {
+            $creating = true;
+            break;
+        }
+    }
+    if ($held || !$creating) {
+        return $value;
+    }
+    foreach ($value as $entry) {
+        if (($entry['slot'] ?? null) !== ($_POST['slot'] ?? '')
+            || ($entry['meta']['booker_email'] ?? null) !== 'old-race@example.test') {
+            continue;
+        }
+        $held = true;
+        class_exists(\RRZE\Appointment\Mail\Mailer::class);
+        class_exists(\RRZE\Appointment\Mail\MailTemplatePost::class);
+        class_exists(\RRZE\Appointment\Mail\MailTemplate::class);
+        file_put_contents($root . '/mixed-slot-ready', 'after-legacy-availability-check', LOCK_EX);
+        $deadline = microtime(true) + 35;
+        while (!is_file($root . '/mixed-slot-release')) {
+            if (microtime(true) >= $deadline) {
+                wp_die('Synthetic reservation barrier timed out.', '', ['response' => 503]);
+            }
+            usleep(20000);
+            clearstatcache();
+        }
+        break;
+    }
+    return $value;
+}
+add_filter('pre_update_option_rrze_appointment_pending_slots', 'appointmentAuditHoldSlotReservation');

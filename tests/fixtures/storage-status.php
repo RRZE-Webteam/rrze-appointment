@@ -76,7 +76,7 @@ namespace {
     function esc_attr($value): string { return esc_html($value); }
     require dirname(__DIR__, 2) . '/includes/Admin/DiagnosticNotice.php';
     require dirname(__DIR__, 2) . '/includes/Admin/StorageStatus.php';
-    $status = new \RRZE\Appointment\Admin\StorageStatus($GLOBALS['input']['initializationError'] ?? null);
+    $status = new \RRZE\Appointment\Admin\StorageStatus();
     $status->register();
     ob_start();
     $status->render();

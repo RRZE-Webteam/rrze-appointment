@@ -29,7 +29,7 @@ describe( 'booking opening notification workflow', () => {
 
 	it( 'claims a slot through the regular pending confirmation workflow', () => {
 		expect( notifier ).toContain(
-			'TokenManager::createPending($slot, $meta)'
+			'TokenManager::createPending($slot, $meta, $token)'
 		);
 		expect( notifier ).toContain(
 			'TokenManager::confirmUrl($pendingToken)'

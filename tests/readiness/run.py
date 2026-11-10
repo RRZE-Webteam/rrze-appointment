@@ -28,6 +28,10 @@ PHASES = ('build', 'seed', 'upgrade', 'cron_race', 'concurrency', 'faults', 'rec
           'rollout', 'notification_cycle', 'additional', 'cron_load', 'repeat_build', 'atomic', 'maintenance', 'confirmation_delivery_failure')
 
 
+MIXED_PHASES = ('build', 'seed', 'mixed_workflows', 'mixed_jobs', 'mixed_compat', 'mixed_atomic', 'mixed_cli')
+PHASES += tuple(phase for phase in ('working_tree', *MIXED_PHASES) if phase not in PHASES)
+
+
 class Audit:
     """Own the isolated processes, database snapshots and machine-readable evidence."""
 
@@ -155,6 +159,85 @@ class Audit:
                 archive.extractall(target.parent)
         else:
             shutil.copytree(self.root / 'baseline', target)
+
+    def working_tree(self):
+        """Freeze a fresh candidate and discard prior evidence tied to a different snapshot."""
+        from prepare import snapshot_working_tree
+        target = self.root / 'candidate'
+        if target.is_symlink():
+            raise RuntimeError('Refusing to replace a linked candidate directory.')
+        if target.exists():
+            shutil.rmtree(target)
+        snapshot_working_tree(self.repo, target)
+        self.config['candidate'] = (self.root / 'candidate-source.txt').read_text()
+        (self.root / 'manifest.json').write_text(json.dumps(self.config, indent=2) + '\n')
+        self.results = {'candidate': self.config['candidate'], 'baseline': self.config['baseline'],
+                        'scope': 'local synthetic data only', 'checks': []}
+        self.save()
+
+    def update_plugin(self):
+        """Install the staging ZIP through WordPress' upgrader on the disposable network."""
+        self.wp(['plugin', 'install', str(self.root / 'candidate.zip'), '--force'])
+        self.wp(['plugin', 'is-active', 'rrze-appointment', '--network'])
+
+    def mixed_workflows(self):
+        """Exercise ordinary HTTP routes, the version switch and concurrent writers."""
+        from mixed_workflows import run_workflows
+        run_workflows(self)
+
+    def mixed_jobs(self):
+        """Verify native WordPress-Cron loss/recovery against stored record jobs."""
+        self.restore()
+        self.mixed_fixture('mixed-jobs')
+
+    def mixed_fixture(self, name, *arguments, skip=False, prefix=''):
+        """Run a guarded native fixture and publish only its named boolean assertions."""
+        output = self.wp(['eval-file', str(self.repo / 'tests/readiness' / (name + '.php')), *arguments], skip)
+        checks = json.loads(output.splitlines()[-1])['checks']
+        if not isinstance(checks, dict) or not checks or not all(type(value) is bool for value in checks.values()):
+            raise RuntimeError('Expected named boolean checks from ' + name)
+        for label, passed in checks.items():
+            self.check(name + '-' + prefix + label, passed)
+
+    def mixed_compat(self):
+        """Check V1 fixtures, V2 damage and key outages in separate PHP processes."""
+        self.restore()
+        self.mixed_fixture('mixed-compat', skip=True)
+        self.mixed_fixture('mixed-compat', 'seed-key-test', skip=True)
+        flag = self.root / 'encryption-enabled'
+        key = self.root / 'key.txt'
+        saved = key.read_bytes()
+        try:
+            flag.unlink()
+            self.mixed_fixture('mixed-compat', 'reject-key', skip=True, prefix='missing-')
+            import base64
+            key.write_bytes(base64.b64encode(os.urandom(32)))
+            flag.touch()
+            self.mixed_fixture('mixed-compat', 'reject-key', skip=True, prefix='wrong-')
+        finally:
+            key.write_bytes(saved)
+            flag.touch()
+            self.mixed_fixture('mixed-compat', 'cleanup', skip=True)
+
+    def mixed_atomic(self):
+        """Inject native SQL and connection failures on both legacy and V2 write paths."""
+        for encrypted in (False, True):
+            self.restore(encrypted=encrypted)
+            self.mixed_fixture('atomic', skip=True, prefix=('mixed-' if encrypted else 'legacy-'))
+
+    def mixed_cli(self):
+        """Check distinct full-encryption, mixed-integrity and disabled migration exit codes."""
+        self.restore()
+        names = ','.join("'" + name + "'" for name in self.results['legacy']['stores'])
+        query = ("SELECT option_name, SHA2(option_value,256) FROM wp_2_options "
+                 "WHERE option_name IN (" + names + ") OR option_name LIKE 'rrze_appointment%v2%' ORDER BY option_name")
+        before = self.sql(query)
+        for mode, success in [('verify-mixed', True), ('verify', False), ('migrate', False)]:
+            code, rows = self.run_maintenance(mode, network=False)
+            self.check('cli-' + mode, (code == 0) == success, exit=code)
+        code, rows = self.run_maintenance('verify-mixed', network=True)
+        self.check('cli-inspects-actual-network', code == 0 and rows[-1]['checked'] == 5)
+        self.check('cli-leaves-source-bytes-untouched', self.sql(query) == before)
 
     def snapshot(self, name):
         """Export only the isolated database; the test key remains a separate file."""
@@ -598,11 +681,8 @@ class Audit:
             status=response['status'], duplicate_status=duplicate['status'], booked_count=state['stores']['rrze_appointment_booked_slots']['count'])
 
     def atomic(self):
-        """Exercise native transactions in both supported storage modes."""
-        for encrypted in (False, True):
-            self.restore(name='encrypted' if encrypted else 'legacy', encrypted=encrypted)
-            result = json.loads(self.wp(['eval-file', str(self.repo / 'tests/readiness/atomic.php')], skip=True).splitlines()[-1])
-            self.check('native-atomic-confirmation-' + result['mode'], True, assertions=result['checks'])
+        """Run the current native transaction suite, including legacy and mixed modes."""
+        self.mixed_atomic()
 
     def run_maintenance(self, mode, network=True):
         """Invoke the installed CLI helper with normal plugins and themes skipped."""
@@ -760,11 +840,13 @@ class Audit:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', required=True)
-    parser.add_argument('--phases', default=','.join(PHASES))
+    parser.add_argument('--phases', help='Comma-separated checks; mixed candidates default to their staging acceptance suite.')
     parser.add_argument('--keep-server', action='store_true')
     arguments = parser.parse_args()
     audit = Audit(arguments.root)
-    selected = arguments.phases.split(',')
+    selected = (arguments.phases.split(',') if arguments.phases else
+                MIXED_PHASES if (audit.root / 'candidate/includes/Storage/MixedRecordStore.php').is_file()
+                else tuple(phase for phase in PHASES if phase not in (*MIXED_PHASES[2:], 'working_tree')))
     audit.run(selected, arguments.keep_server)
     if any(phase in PHASES for phase in selected):
         sys.exit(1 if any(row['status'] == 'fail' for row in audit.results['checks']) else 0)

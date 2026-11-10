@@ -17,6 +17,11 @@ $GLOBALS['options'] = [
         'cancellation_reason_enabled' => $scenario['showReason'] ?? true,
         'appointment_manager_user_ids' => $scenario['allowedUsers'] ?? [7],
     ],
+    'rrze_appointment_cancel_tokens' => [
+        'old-string' => '2026-08-20 12:30-13:00',
+        'old-structured' => ['type' => 'booked', 'slot' => '2026-08-20 12:30-13:00'],
+        'other-booking' => '2026-08-23 10:00-10:30',
+    ],
     'rrze_appointment_booked_slots_meta' => [
         '2026-08-23 10:00-10:30' => ['title' => 'Future appointment', 'person_id' => 2],
         '2026-07-21 11:30-12:00' => ['title' => 'Expired appointment', 'person_id' => 1],
@@ -44,6 +49,9 @@ $GLOBALS['options']['rrze_appointment_booked_slots'] = array_keys(
 
 function get_option($key, $default = false) { return $GLOBALS['options'][$key] ?? $default; }
 function update_option($key, $value, $autoload = null) {
+    if (!empty($GLOBALS['scenario']['failFirstWrite']) && $key === 'rrze_appointment_booked_slots') {
+        throw new RuntimeException('Simulated failed booking write.');
+    }
     ++$GLOBALS['writes'];
     $GLOBALS['options'][$key] = $value;
     return true;
@@ -142,6 +150,7 @@ echo json_encode([
     'html' => $html,
     'bookings' => \RRZE\Appointment\Booking\Bookings::getAll($scenario['filter'] ?? []),
     'storedSlots' => get_option('rrze_appointment_booked_slots'),
+    'cancelTokens' => array_keys(get_option('rrze_appointment_cancel_tokens', [])),
     'writes' => $GLOBALS['writes'],
     'api' => $api,
     'mails' => \RRZE\Appointment\Mail\Mailer::$mails,

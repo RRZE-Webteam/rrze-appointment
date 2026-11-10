@@ -62,36 +62,26 @@ available; existing blocks use the calendar view by default.
 
 ### Encrypted booking storage
 
-Back up the database and preserve the encryption key separately before rollout.
-Configure `RRZE_APPOINTMENT_ENCRYPTION_KEY` in `wp-config.php` with Base64 for
-32 or 64 random bytes (for example, generated with `openssl rand -base64 64`).
-Migration starts automatically on the next request and resumes automatically
-after interruption. No customer action is required. **Appointments** and
-**Settings → RRZE Appointment** show technical status to administrators on
-single-site installations and exclusively to superadministrators on multisite. If the key is already configured, updating to this version
-enables automatic migration on the next request.
+With a valid `RRZE_APPOINTMENT_ENCRYPTION_KEY` in `wp-config.php`, each new
+reservation, booking and opening subscription is immediately stored as an
+authenticated V2 record. An existing booking is adopted on its first business
+change. Reading the calendar, opening an old guest link or viewing the
+administration leaves its stored booking data untouched. Old links show a
+preview and use a nonce-protected form to confirm the action.
 
-Multisite additionally schedules a network worker that visits up to ten sites per
-cron run, including sites without visitors. Progress and errors appear only on
-the Appointment administration screens for superadministrators. Cron must run reliably on the coordinator site (normally the main
-site); visitor-triggered WP-Cron alone provides no completion deadline.
+Activation is site-local. The first encrypted write commits the record, its
+index, the signed site policy and its scheduled work in one InnoDB transaction.
+Existing plaintext records and their old cron arguments can remain until they
+change, run or expire. **Appointments** and **Settings → RRZE Appointment** show
+the current write policy to administrators (superadministrators on multisite).
 
-A controlled encrypted rollout requires a complete pause and drain of all affected
-web, cron and CLI writers until every relevant site passes the documented CLI
-preflight, migration and verification. This includes inactive sites with stored
-data. InnoDB options tables are required for atomic booking confirmation; the
-plugin never converts tables automatically. Without a configured key and without
-a migration marker, ordinary legacy operation remains available.
-
-The migration encrypts booking and notification data, preserves existing guest
-links, and replaces sensitive cron arguments with opaque references. Public
-blocks, mail templates and ordinary settings remain editable. Errors stop access
-instead of treating existing data as empty. See the [storage operating guide](includes/Storage/README.md)
-for deployment, interrupted migrations, multisite, backups and restore requirements.
-Calendar attachments are prepared entirely in memory. Personal responses use
-private/no-store headers, and unexpected dependency errors never expose their
-original messages or exception chains. Auxiliary slot locks use keyed references
-and expired locks are removed in bounded batches.
+Use Base64 for 32 or 64 cryptographically random bytes and back up the key
+separately from the database. This version is a staging candidate. Before the
+first production write, verify that all web, cron and CLI requests still using
+2.3.3 have finished. An old request can already have accepted a slot that the
+new booking process claims. Other sites can continue serving traffic during the
+switch. See the [storage guide](includes/Storage/README.md) for format details,
+read-only verification, scheduling and restore requirements.
 
 ### Optional SSO protection for appointment management
 

@@ -181,16 +181,11 @@ describe( 'plugin bootstrap', () => {
 		const result = getMainResult();
 		const hookNames = result.actions.map( ( action ) => action.hook );
 
-		expect( result.storageInitOrder ).toEqual( [
-			'storage',
-			'templates',
-			'pending',
-			'opening',
-		] );
+		expect( result.storageInitOrder ).toEqual( [ 'templates' ] );
 		expect( result.maintenance ).toEqual( {
 			defaultTemplate: 1,
-			pendingState: 1,
-			openingState: 1,
+			pendingState: 0,
+			openingState: 0,
 			settings: 1,
 			bookings: 1,
 			reminder: 1,
@@ -265,11 +260,11 @@ it( 'declares only the exact POST identity route and preserves other plugins', (
 	} );
 } );
 
-it( 'keeps administration and routes available but skips cleanup after storage initialization fails', () => {
+it( 'can bootstrap the administration and routes even when booking storage is unavailable', () => {
 	const result = getMainResult( true );
-	expect( result.storageInitOrder ).toEqual( [ 'storage' ] );
+	expect( result.storageInitOrder ).toEqual( [ 'templates' ] );
 	expect( result.maintenance ).toMatchObject( {
-		defaultTemplate: 0,
+		defaultTemplate: 1,
 		pendingState: 0,
 		openingState: 0,
 		settings: 1,

@@ -6,6 +6,7 @@ type ConfirmationResult = {
 	getRequest: unknown;
 	invalidNonce: unknown;
 	requiredError: unknown;
+	plainRequests: unknown[];
 	validAnswers: Array< { label: string; answer: string } >;
 	renderEvents: Array< Array< unknown > >;
 	persistedMeta: Record< string, unknown >;
@@ -150,6 +151,14 @@ const getConfirmationResult = (): ConfirmationResult => {
 			$requiredError = $collect->invoke( $controller, 'token', $questions, $details );
 			$_POST['question_answers']['topic'] = "  <b>Security</b>\\'s scope  ";
 			$validAnswers = $collect->invoke( $controller, 'token', $questions, $details );
+			$questionEvents = $renderer->events;
+			$_SERVER['REQUEST_METHOD'] = 'GET';
+			$plainRequests[] = $collect->invoke( $controller, 'token', [], $details );
+			$_SERVER['REQUEST_METHOD'] = 'POST';
+			$_POST = [];
+			$plainRequests[] = $collect->invoke( $controller, 'token', [], $details );
+			$_POST['rrze_appt_questions_nonce'] = 'valid:rrze_appointment_confirm_questions_token';
+			$plainRequests[] = $collect->invoke( $controller, 'token', [], $details );
 
 			$persistedMeta = $getMeta->invoke( $controller, [
 				'title' => 'Consultation',
@@ -195,7 +204,8 @@ const getConfirmationResult = (): ConfirmationResult => {
 				'invalidNonce' => $invalidNonce,
 				'requiredError' => $requiredError,
 				'validAnswers' => $validAnswers,
-				'renderEvents' => $renderer->events,
+				'renderEvents' => $questionEvents,
+				'plainRequests' => $plainRequests,
 				'persistedMeta' => $persistedMeta,
 				'sensitivePersistedMeta' => $sensitivePersistedMeta,
 				'slotParts' => $slotParts,
@@ -213,6 +223,14 @@ const getConfirmationResult = (): ConfirmationResult => {
 };
 
 describe( 'confirmation controller', () => {
+	it( 'requires a nonce-protected submission before confirming a reservation without questions', () => {
+		expect( getConfirmationResult().plainRequests ).toEqual( [
+			null,
+			null,
+			[],
+		] );
+	} );
+
 	it( 'renders question errors and only returns validated answers', () => {
 		const result = getConfirmationResult();
 

@@ -1,169 +1,94 @@
-# Booking storage and migration
+# Mixed-format booking storage
 
-All booking workflows use `BookingStorage::get()` / `set()` / `setMany()`. This includes
-availability, pending bookings, confirmations, cancellation, administrative
-lists, retention, waiting lists, reminders and opening notifications. Never use
-`get_option()` or `update_option()` directly for the five protected options.
+With a configured encryption key, a site accepts legacy 2.3.3 data, fully or
+partly encrypted V1 options and V2 records. Calendar, administration and token
+previews merge these into one booking view. Opening a link displays its action
+and requires a nonce-protected POST to confirm, cancel, change waitlist
+preferences or claim an opening. Unchanged legacy bookings remain in their
+existing format. Expiration and retention use background cleanup.
 
-Configuring a valid `RRZE_APPOINTMENT_ENCRYPTION_KEY` starts migration
-**automatically on the next request**. Customers do not need to open a settings
-page or press a button. `Main` initializes storage before maintenance, and the
-storage layer also initializes itself before direct booking access, including
-after a multisite switch. Completed migration does not trigger repeated writes.
-**Appointments and Settings → RRZE Appointment** show diagnostics to site
-administrators on single-site installations and exclusively to superadministrators
-on multisite. Other administration screens show no storage/migration notices.
-Neither page offers a migration action. The server-side key configuration authorizes automatic
-migration. Public booking remains available to guests and does not require SSO.
-Optional RRZE-AC protection for management is configured separately in the general
-settings. It additionally requires the managing WordPress user's matching SSO
-identity; public bookings and storage maintenance do not use that requirement.
-See the main README for setup, dependencies and network-admin emergency recovery.
+## Record and format boundaries
 
-## Rollout and recovery
+A business operation owns one reservation, confirmed booking or opening
+subscription together with its slot, metadata, action tokens and outstanding
+jobs. Each encrypted record has a random 128-bit ID and its own non-autoloaded
+WordPress option. A confirmed V2 reservation keeps its ID. Rebooking a
+cancelled slot creates a fresh ID. The option name binds the kind and ID to
+the cipher's authenticated data; each site's random context binds the location.
 
-1. Back up the database and preserve the configured key separately **before
-   deploying this version or enabling the key**. If the key already exists,
-   updating the plugin enables migration immediately on the next request. Do not
-   paste the key into tickets, logs, source control or a database option.
-2. Pause new PHP requests and every cron/CLI writer across the entire affected
-   network. Drain all old processes, including ordinary page requests and writers
-   on inactive sites. Update all workers and their OPcache while the gate stays
-   closed. A form-only maintenance screen is insufficient.
-3. Run the CLI preflight below, correct failures, then run migration and verification
-   for every affected network. The helper checks every eligible site before it
-   writes the first site. Migration preserves existing tokens and verifies every
-   store before checkpointing. Interrupted runs resume with the same key.
-4. Release traffic only after verification succeeds for all relevant sites and
-   private-response cache exclusions are in place. The background network worker
-   continues discovery/recovery afterwards; it does not replace this deployment
-   gate. A shared cron snapshot read before migration must never be written later.
-5. Keep the gate closed on failure. Do not delete migration state, generate a new
-   key, or replace failed stores with `[]`. Restore the complete database and its
-   matching key if recovery requires it. Reverting plugin code alone cannot read
-   ciphertext. After reopening, restoring an older backup can lose new bookings
-   and requires a separate, explicit recovery procedure.
+| Field | Purpose |
+| --- | --- |
+| `state_version=2` | Format of `rrze_appointment_storage_state_v2`. Its MAC covers the site ID, random context, key ID, `mode=mixed` and `write_data_version=2`. |
+| `data_version=2` | Format of the record or index inside the authenticated envelope. An ordinary business edit preserves its schema version. |
+| `envelope.version=1` | Existing XChaCha20-Poly1305 encoding, with a fresh nonce for each write. |
 
-### Controlled CLI maintenance
+The encrypted `rrze_appointment_record_index_v2` authenticates record membership,
+ciphertext digests, slot/token lookups and keyed fingerprints of retired fields.
+Exact replays of removed source fields are hidden; unexpected conflicting data
+stops booking operations for review. The directory and all indexed records must
+agree. Missing policies, keys or rows, unknown versions and invalid
+authentication tags cause errors. The earlier V1 marker remains authoritative
+for the original five options, including its individual completion checkpoints.
 
-Use the deployed plugin's absolute path and the actual site's URL. Always skip
-normal plugins and themes: ordinary Appointment initialization would otherwise
-start migration before a read-only check. MU plugins and database drop-ins still
-load; deployment must account for their writers as well.
+The first V2 write creates the policy and index with its record. Mutations
+hold a named site lock across the availability check. On the same native mysqli
+connection an InnoDB transaction compares the observed source rows, writes the
+record and index, and removes only the adopted fields from their source options.
+An unconverted V1 source keeps its prior format when other entries remain.
+An interrupted transaction can be retried. After a lost commit acknowledgement,
+a fresh request reads the committed state. Confirmation mail follows the
+commit. An SMTP acceptance followed by a process crash can cause duplicate delivery.
 
-```sh
-wp --url=https://SITE.example --skip-plugins --skip-themes eval-file /PATH/rrze-appointment/bin/storage-maintenance.php preflight network
-wp --url=https://SITE.example --skip-plugins --skip-themes eval-file /PATH/rrze-appointment/bin/storage-maintenance.php migrate network
-wp --url=https://SITE.example --skip-plugins --skip-themes eval-file /PATH/rrze-appointment/bin/storage-maintenance.php verify network
-```
+## Scheduled work
 
-Omit `network` for one site. With multiple networks, run once per network using
-an appropriate URL. All modes require a valid configured key; unlike ordinary
-legacy operation, the helper never reports an unencrypted installation as ready
-for encrypted rollout. `preflight` checks InnoDB, keys, Sodium, payload round trips
-and cron structure without writing. `migrate` runs a full preflight, migration and
-verification pass. `verify` reads and authenticates all five stores, requires a
-complete state and rejects plaintext/malformed Appointment cron arguments. It
-never silently repairs a queue or claims to reconstruct lost foreign events.
+Expiration, reminder and opening jobs include their due times and delivery
+state inside the encrypted record. WordPress runs `rrze_appointment_run_jobs`
+with no arguments when work is due. The next plugin/cron start repairs a lost
+wake from committed work. Timely delivery requires a working cron runner for
+the site. Legacy jobs retain their original due times and may contain plaintext
+arguments until they run or are removed. Their callbacks resolve the current
+owner and honor its job state. The former network migration event is retired.
 
-Network passes use primary-key batches of ten, including inactive sites with
-stored data, and release site locks/snapshots after each site. Empty inactive
-sites are skipped; missing tables and corrupt sites fail. Their network lock is
-shared with the background worker. Output is JSON lines with site IDs, phases,
-counters and generic error codes only. Any failing pass returns a nonzero exit
-status. An interrupted migration is safely rerun from the beginning: authenticated
-per-site progress is authoritative, and completed payloads are not rewritten.
+## Staging rollout and verification
 
-These checks take advisory locks but do not pause unrelated writers themselves.
-The migration gate is an operational prerequisite, not a claim that an ordinary
-plugin can control code that ignores its locks.
+1. Preserve a consistent database backup and a separate copy of the configured
+   key. The staging candidate requires PHP Sodium, native mysqli and InnoDB
+   for atomic updates. Test against the intended WordPress hosting configuration.
+2. Verify the update boundary on all servers which can run Appointment. Old
+   2.3.3 web, background and CLI processes must finish before the first new
+   encrypted booking write. An old booking request can already have passed its
+   availability check and still write into its original option afterwards.
+   Draining old requests protects that first transition. This condition does
+   not require pausing unrelated database writes across the network.
+3. Optionally exclude the four old Appointment hooks in the actual WP-CLI cron
+   launcher during the switch. Resume the normal launcher afterwards. Exclusion
+   only affects that launcher; visitor-triggered cron and other runners have
+   their own execution paths.
+4. On the target site, inspect **Appointments** or **Settings → RRZE Appointment**.
+   Only superadministrators receive these diagnostics on multisite. The indicated
+   policy applies to new and changed data. It does not certify that every
+   historical record is encrypted.
 
-Diagnostics distinguish legacy mode (no key), ready (not yet initialized),
-migrating, encrypted and errors. Status inspection itself is read-only; normal
-plugin initialization starts or resumes migration before rendering the UI.
-Malformed configured keys cause
-errors even before migration; they never silently select legacy mode. Missing
-or wrong keys, invalid authentication tags, malformed legacy arrays, database
-failures and missing encrypted rows block booking access. Administrator recovery
-pages and unrelated WordPress routes remain available; cleanup is not allowed
-to treat these errors as empty data.
-
-## Networks with thousands of sites
-
-`NetworkMigration` automatically schedules the recurring
-`rrze_appointment_migrate_network` event once a key is configured. There is one
-coordinator per network, preferably the main site. With individual plugin
-activation, a site where the plugin is active is chosen instead. A later request
-can replace a deleted, archived, spammed or deactivated coordinator; event health
-checks run at most every five minutes. Separate networks have separate locks,
-site queries and progress.
-
-Each event processes at most **10 sites**, with a **10-second soft time budget**
-checked between sites. It reads only the next bounded set of IDs from `blogs`
-using a primary-key cursor, not all sites or ever-growing SQL offsets. A pass
-captures its upper ID once; newly created sites are reached in a subsequent pass
-or immediately through their ordinary booking access. Network activation covers
-all sites. With individual activation, inactive sites with existing booking
-stores are also protected; empty inactive sites are skipped. Archived/spam sites
-are included when their tables still exist; missing tables are reported as
-failures, not as empty data.
-
-Only one network worker can run at a time, using a non-waiting advisory lock.
-For each site it switches the WordPress table/cache context, initializes the
-existing storage layer, releases the site lock and decrypted snapshots, then
-restores the original context. At most one booking lock and the network lock are
-held by this worker. There is one shutdown cleanup callback, whose registry
-retains only live locks, rather than retaining an object for every visited site.
-Other long-running integrations must still explicitly release storage at their
-own work-unit boundaries; arbitrary nested `switch_to_blog()` calls do not imply
-that a booking operation is finished.
-
-Progress is saved **before and after each site** in the network option
-`rrze_appointment_network_migration`. A normal failure advances the cursor and
-increments the error count. An interrupted in-flight site is counted as failed
-on the next run so a repeatedly fatal site cannot block all later sites. The
-site's own authenticated checkpoints allow its migration to resume safely.
-Passes with errors are retried after one hour; successful passes are rechecked
-daily to discover new or restored data. Already completed stores are validated
-without re-encryption. The network option contains only counters, site IDs,
-timestamps and generic error codes; it is **not** an authenticated security
-marker and cannot authorize plaintext access or replace per-site verification.
-
-The Appointment administration screens show superadministrators the current/last
-pass counts, coordinator ID and
-last failing site ID. An active pass without worker progress for 15 minutes
-shows an attention notice; scheduling health checks do not reset that timer.
-Visit a failing site's administration for its storage diagnosis. A pass that
-has ended with failures is not a successful migration of the whole network.
-
-**Reliable cron execution is required on the coordinator site**, including when
-`DISABLE_WP_CRON` is enabled. Use the platform's existing server cron integration;
-for example, regularly run the following with the coordinator's actual URL:
+Run optional read-only checks with the exact URL and the installed plugin path:
 
 ```sh
-wp --url=https://COORDINATOR.example cron event run --due-now
+wp --url=https://SITE.example --skip-plugins --skip-themes eval-file /PATH/rrze-appointment/bin/storage-maintenance.php preflight
+wp --url=https://SITE.example --skip-plugins --skip-themes eval-file /PATH/rrze-appointment/bin/storage-maintenance.php verify-mixed
+wp --url=https://SITE.example --skip-plugins --skip-themes eval-file /PATH/rrze-appointment/bin/storage-maintenance.php verify
 ```
 
-Do not use `--skip-plugins=rrze-appointment` for that worker. A visitor-triggered
-WP-Cron alone cannot guarantee completion on quiet networks. At one event per
-minute, 1,000 sites require at least 100 batches, potentially more for slow or
-failed sites. This limits network breadth; a **single site's existing option
-arrays must still fit in PHP memory and finish within the worker's execution
-limit**. Large per-site datasets require separate load testing or a later
-record-based storage design, not merely a larger site batch.
+Append `network` for an explicit, bounded inventory of the current network.
+`verify-mixed` requires the configured key and InnoDB and validates both the mixed storage format and known job structures.
+`verify` requires complete encryption, including the stricter legacy cron checks.
+`migrate` exits with an explanation before writing. Ordinary requests never
+schedule a network-wide conversion. Operations on an unconfigured site with
+no protected data continue in legacy mode.
 
-Restore the complete database, its `rrze_appointment_storage_state` marker and
-the matching master key together. The marker contains the persistent random
-site context, so moving the site to another URL does not change its keys. Test a
-restore in isolation. Reverting only the plugin code is **not** a rollback:
-older versions cannot read ciphertext. Restoring a pre-migration database also
-discards subsequent booking changes; arrange an explicit recovery procedure.
-
-Existing backups, database logs, mail archives and cache snapshots made before
-migration may still contain plaintext. Migration changes current storage; it
-does not erase historical copies. PHP code with access to the configured key
-can decrypt bookings. This protects database-only disclosure, not a compromised
-WordPress runtime. Access controls and operational security remain necessary.
+Restore the site database, including its original site ID, policy, index and
+records, with the matching master key. A rollback to a complete older snapshot
+can discard later bookings. V2 data requires a compatible plugin reader.
+Backups made before the update can still contain plaintext. PHP code with
+access to the key can decrypt stored bookings.
 
 ## Auxiliary stores and error boundaries
 
@@ -173,7 +98,7 @@ is not configured where applicable:
 
 | Location | Content and protection |
 | --- | --- |
-| WordPress cron | Purpose-bound HMAC references once migration starts; no new token/slot plaintext on retries. Execution timestamps and counts remain operational metadata. |
+| WordPress cron | V2 uses an argument-free site wake. Older jobs can contain historical tokens, slots or V1 HMAC references. Execution timestamps and counts remain operational metadata. |
 | Slot lock options | Site- and purpose-bound HMAC names (`v2_…`) and creation timestamps. Encrypted sites derive the HMAC key from their persistent context; legacy sites use the WordPress auth salt and site ID. |
 | Guest rate limits | Existing keyed hashes of email/IP identity, counters and expiry only; no plaintext address or IP. Daily cleanup removes expired counters. |
 | Object cache | Decrypted booking arrays stay request-local. Replacements invalidate individual options, `alloptions` and `notoptions`, including after a failed verification. |
@@ -182,13 +107,8 @@ is not configured where applicable:
 | Personal HTTP responses | Token pages and booking AJAX receive private/no-store headers early, plus `no-referrer` and `noindex`. REST booker/booking responses use the same policy after dispatch, including permission and storage errors. Ordinary public content keeps its normal cache behavior. |
 | Network diagnostics | Counts, site IDs, timestamps and generic error codes only; no exception dumps or booking payloads. |
 
-Startup removes at most 100 expired locks per site, restricted to the exact two
-known slot-lock prefixes and their old/current formats. It does not delete live
-locks or unrelated options. This also runs for already encrypted sites through
-normal requests and the network worker, so the earlier MD5 names are removed
-without resetting encryption state. Both lock types expire after five minutes;
-physical removal depends on a later initialization of that site. No encrypted
-booking payload needs to be rewritten for this cleanup.
+Daily background maintenance removes expired historical slot-lock options in bounded batches.
+This includes the older MD5 lock names and the newer purpose-bound lock names.
 
 Unexpected dependency errors are converted into a fixed message. Safe domain
 messages and status codes survive, but original exception objects and chains do
@@ -221,76 +141,6 @@ Operational limits remain explicit:
 - The browser's SSO-resume state stores only the selected public slot and return
   page in per-tab session storage, not names, addresses or question answers.
 
-## Concurrency and cache behavior
-
-`OptionDatabase` reads raw SQL values and does not put decrypted arrays in the
-WordPress object cache. Writes turn off autoload and invalidate the individual
-option, `alloptions` and `notoptions`. Plaintext snapshots are request-local.
-Public availability sent to the frontend is intentionally still public.
-
-Every access takes a MySQL/MariaDB named lock scoped to database and site table.
-It waits at most five seconds and otherwise fails with a retryable storage error.
-The lock spans a request's read/modify/write operations and is released at PHP
-shutdown (or explicitly with `BookingStorage::release()`). Startup maintenance
-releases it before registering the request handlers. Long-running CLI workers
-must release it at their work-unit boundaries. See the [MySQL lock semantics](https://dev.mysql.com/doc/refman/8.4/en/locking-functions.html).
-
-This deliberately serializes booking operations, including reads and mail work
-in a booking request. Slow mail delivery can therefore cause other requests to
-time out. It is a conservative solution for the existing whole-array schema,
-not a high-throughput queue. It requires one primary MySQL/MariaDB connection
-with working `GET_LOCK`, `IS_USED_LOCK`, `RELEASE_LOCK` and `SHA2`; connection
-multiplexing, read-replica routing and multi-primary clusters need separate
-validation. Lock ownership is checked to detect reconnects/lost connections.
-
-Conditional SQL updates additionally compare a SHA-256 digest of the observed
-raw value, so the old plaintext is not copied into the update predicate. A
-conflict stops the workflow instead of overwriting a newer value. The lock is
-**not a transaction**. Confirmation additionally uses `setMany()` to commit the
-reservation removal, booked slot, metadata and cancellation token in one InnoDB
-transaction. Every replacement is encoded and round-trip checked first; exact
-raw values are verified before COMMIT. Native mysqli calls on the captured lock
-connection avoid wpdb's reconnect-and-replay behavior. Existing caller transactions
-and non-InnoDB tables are rejected before writes; the plugin does not change engines.
-
-A pre-commit failure preserves the reservation for retry. If COMMIT succeeds but
-its acknowledgement is lost, the next request sees a complete booking and cannot
-confirm the consumed token again. Notifications and mail run only after commit;
-mail errors report that the booking was saved. Question answers remain request-local.
-Other multi-option operations and external delivery do not acquire rollback or
-exactly-once delivery through this change. Duplicate reminders and slow mail under
-the existing request lock remain separate follow-up work. Migration is independently
-resumable because every option replacement is verified and checkpointed.
-
-## Migration marker and scheduled jobs
-
-`rrze_appointment_storage_state` is a non-autoloaded JSON object containing
-`version`, `phase`, `context`, `key_id`, `completed`, and `mac`. Its MAC is hex
-HMAC-SHA-256 over the JSON array `[version,phase,context,key_id,completed]`.
-The authentication key is HKDF-SHA-256, 32 bytes, info
-`rrze-appointment:state:v1`, with the ASCII context as salt. Changing progress
-cannot silently re-enable plaintext acceptance. Before a store is checkpointed,
-both valid legacy arrays and valid ciphertext are accepted, which handles a
-crash between the data write and its checkpoint. Checkpointed stores require
-ciphertext, including encrypted empty arrays. Old valid data/state replays are
-not detected; this is not a database rollback-protection system.
-
-Cron arguments use `rrze-appt-job:v1:` plus hex HMAC-SHA-256 of
-`hook + NUL + original_argument`. Their independent HKDF key uses info
-`rrze-appointment:jobs:v1` and the same context salt. Callbacks resolve these
-references using the encrypted stores. Times and random action tokens no longer
-appear directly in those arguments. The scheduler's execution timestamps and
-job counts remain visible as operational metadata.
-
-Migration converts existing cron event arguments and event keys while retaining
-timestamps and unrelated events. Conditional writes retry concurrent cron
-changes three times. Unsupported serialized objects or malformed plugin events
-stop migration rather than damaging another plugin's queue. Pending expiry,
-opening notification and reminder callbacks understand references and already
-dispatched legacy arguments. Opaque jobs are deferred on storage errors without
-requiring the unavailable key; ordinary cleanup repairs missing opening jobs,
-expires pending requests, and the daily reminder scan provides a fallback.
-
 ## Configuration contract
 
 `EncryptionKey::fromConfiguration()` reads the string constant
@@ -307,27 +157,6 @@ key separately from the database and preserve it when restoring or moving a
 site. Key identifiers prepare the format for rotation; this stage does not
 implement a keyring or rotation workflow. Replacing the configured key prevents
 decryption of values created with the previous key.
-
-## Site context and scope
-
-The storage layer supplies a persistent site context: a lowercase 32-character
-hex encoding of 16 random bytes, generated once when migration starts. It is
-not secret and must survive domain changes and
-database restores. Do not derive it from the current URL or regenerate it on
-each request. A separate site's storage gets a separate context. This binding
-does not isolate plugins or administrators sharing the same PHP runtime and
-master key.
-
-The codec accepts these option names as the expected storage scope:
-
-- `rrze_appointment_booked_slots`
-- `rrze_appointment_booked_slots_meta`
-- `rrze_appointment_pending_slots`
-- `rrze_appointment_cancel_tokens`
-- `rrze_appointment_booking_opening_notifications`
-
-Pass the expected name from trusted application code, not from the encrypted
-envelope. Settings, public blocks, and mail templates are outside this scope.
 
 ## Version-one wire format
 
@@ -362,30 +191,3 @@ encoding uses `JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION` with depth 64;
 decoding returns associative arrays. Objects, resources, recursive/excessively
 nested arrays, non-finite floats, and invalid UTF-8 are rejected. No PHP object
 unserialization is used. Sparse array keys and scalar types are retained.
-
-## Failure and integration requirements
-
-Decrypting malformed, unsupported, modified, or wrong-context ciphertext throws
-`AppointmentException`; it never returns an empty array as a fallback. A valid
-encrypted empty array is distinguishable from failure. Exceptions do not chain
-cryptographic/JSON errors containing input arguments. Sensitive PHP parameters
-are annotated to reduce accidental disclosure through stack traces.
-
-The automated storage tests use synthetic keys, real PHP/Sodium and conditional
-SQL against isolated SQLite tables without loading `wp-config.php`. They cover
-legacy compatibility, automatic startup and recovery, no repeated writes after
-completion, interruption before/after checkpointing, concurrent writes, key
-failures, corruption, missing rows, marker tampering, multisite, cron and old
-action links. A frozen independent codec vector guards format compatibility.
-The network fixture covers 1,005 synthetic sites, isolated corruption and repair,
-crash recovery, bounded site counts/time, released snapshots/locks, coordinator
-replacement, dormant installations, network isolation and checkpoint/query
-failures. This is a functional scale regression test, not a production load test
-of 1,005 real sites or their largest booking arrays.
-
-An optional native database smoke test uses only synthetic data in a temporary
-table and two connections; it never reads booking data or the encryption key:
-
-```sh
-wp --skip-plugins --skip-themes eval-file wp-content/plugins/rrze-appointment/tests/fixtures/native-option-database.php
-```

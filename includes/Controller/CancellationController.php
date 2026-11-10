@@ -27,7 +27,7 @@ final class CancellationController
     private const WAITLIST_ACTION_FIELD = 'rrze_appt_waitlist_action';
     private const WAITLIST_NONCE_FIELD = 'rrze_appt_waitlist_nonce';
     private const WAITLIST_OPT_IN_ACTION = 'optin';
-    private const WAITLIST_NONCE_PREFIX = 'rrze_appointment_waitlist_optin_';
+    private const WAITLIST_OPT_OUT_ACTION = 'optout';
 
     private PublicPageRenderer $renderer;
 
@@ -85,7 +85,7 @@ final class CancellationController
             }
 
             $reason = $this->getPostValue(self::CANCELLATION_REASON_FIELD, 'textarea');
-            $this->cancelAppointment($entry, $slot, $token, $reason);
+            $this->cancelAppointment($entry, $slot, $reason);
             $this->renderer->renderCancellationSuccess($appointmentDetails);
         } catch (\Throwable $exception) {
             wp_die(esc_html(AppointmentException::fromThrowable($exception)->getMessage()), '', ['response' => 500]);
@@ -115,31 +115,23 @@ final class CancellationController
             $appointmentMeta = $this->getStoredBookingMeta($slot);
             $appointmentDetails = $this->renderer->getAppointmentDetails($slot, $appointmentMeta);
 
-            if ($this->isWaitlistOptInRequest()) {
-                if (!$this->hasValidNonce(
-                    self::WAITLIST_NONCE_FIELD,
-                    self::WAITLIST_NONCE_PREFIX . $token
-                )) {
-                    $this->renderer->renderError(
-                        __('The form has expired. Please try again.', 'rrze-appointment'),
-                        403
-                    );
-                    return;
-                }
-
-                if (!Bookings::enableWaitlistNotifications($slot)) {
-                    $this->renderInvalidWaitlistLink();
-                    return;
-                }
-                $this->renderer->renderWaitlistStatus($token, true, $appointmentDetails);
+            if ($this->getRequestMethod() !== 'POST') {
+                $this->renderer->renderWaitlistStatus($token, !empty($appointmentMeta['booker_waitlist']), $appointmentDetails, true);
                 return;
             }
-
-            if (!Bookings::disableWaitlistNotifications($slot)) {
+            $action = $this->getPostValue(self::WAITLIST_ACTION_FIELD, 'key');
+            if (!in_array($action, [self::WAITLIST_OPT_IN_ACTION, self::WAITLIST_OPT_OUT_ACTION], true)
+                || !$this->hasValidNonce(self::WAITLIST_NONCE_FIELD, 'rrze_appointment_waitlist_' . $action . '_' . $token)) {
+                $this->renderer->renderError(__('The form has expired. Please try again.', 'rrze-appointment'), 403);
+                return;
+            }
+            $enabled = $action === self::WAITLIST_OPT_IN_ACTION;
+            $saved = $enabled ? Bookings::enableWaitlistNotifications($slot) : Bookings::disableWaitlistNotifications($slot);
+            if (!$saved) {
                 $this->renderInvalidWaitlistLink();
                 return;
             }
-            $this->renderer->renderWaitlistStatus($token, false, $appointmentDetails);
+            $this->renderer->renderWaitlistStatus($token, $enabled, $appointmentDetails);
         } catch (\Throwable $exception) {
             wp_die(esc_html(AppointmentException::fromThrowable($exception)->getMessage()), '', ['response' => 500]);
         }
@@ -166,14 +158,13 @@ final class CancellationController
      *
      * @param array<string, mixed> $entry Validated cancellation token entry.
      */
-    private function cancelAppointment(#[\SensitiveParameter] array $entry, #[\SensitiveParameter] string $slot, #[\SensitiveParameter] string $token, #[\SensitiveParameter] string $reason): void
+    private function cancelAppointment(#[\SensitiveParameter] array $entry, #[\SensitiveParameter] string $slot, #[\SensitiveParameter] string $reason): void
     {
         if (($entry['type'] ?? '') === 'pending') {
             TokenManager::deletePending((string) ($entry['pending_token'] ?? ''));
             return;
         }
 
-        TokenManager::deleteCancelToken($token);
         Bookings::cancel($slot, $reason);
     }
 
@@ -195,15 +186,6 @@ final class CancellationController
     {
         return $this->getRequestMethod() === 'POST'
             && $this->getPostValue(self::CANCELLATION_ACTION_FIELD, 'key') === self::CANCELLATION_ACTION;
-    }
-
-    /**
-     * Determines whether the request re-enables waitlist notifications.
-     */
-    private function isWaitlistOptInRequest(): bool
-    {
-        return $this->getRequestMethod() === 'POST'
-            && $this->getPostValue(self::WAITLIST_ACTION_FIELD, 'key') === self::WAITLIST_OPT_IN_ACTION;
     }
 
     /**

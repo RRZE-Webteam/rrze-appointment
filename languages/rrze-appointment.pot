@@ -2433,44 +2433,6 @@ msgstr ""
 msgid "Appointment storage or scheduled jobs need attention. Check the encryption key, database connection and migration state."
 msgstr ""
 
-#: includes/Admin/StorageStatus.php
-msgid "Booking data is not encrypted. Configuring RRZE_APPOINTMENT_ENCRYPTION_KEY on the server starts migration automatically on the next request."
-msgstr ""
-
-#: includes/Admin/StorageStatus.php
-msgid "The encryption key is configured. Migration starts automatically when the plugin initializes or booking data are accessed."
-msgstr ""
-
-#: includes/Admin/StorageStatus.php
-#, php-format
-msgid "Encryption migration is incomplete (%1$d of %2$d stores). It resumes automatically on the next request. Storage errors must be corrected before booking operations can continue."
-msgstr ""
-
-#: includes/Admin/StorageStatus.php
-msgid "Booking and notification stores are encrypted. Scheduled jobs use opaque references."
-msgstr ""
-
-#: includes/Storage/NetworkMigration.php
-msgid "Appointment network migration (every minute)"
-msgstr ""
-
-#: includes/Storage/NetworkMigration.php
-#, php-format
-msgid "Appointment network migration: %1$d sites checked, %2$d encrypted, %3$d skipped, %4$d failed. Coordinator site: %5$d. Last failed site: %6$d."
-msgstr ""
-
-#: includes/Storage/NetworkMigration.php
-msgid "Migration needs attention. Check the encryption key, database and cron execution on the coordinator site."
-msgstr ""
-
-#: includes/Storage/NetworkMigration.php
-msgid "This pass has finished. Failed sites are retried in a later pass."
-msgstr ""
-
-#: includes/Storage/NetworkMigration.php
-msgid "Migration continues automatically in small batches."
-msgstr ""
-
 #: includes/AppointmentException.php includes/Mail/Mailer.php
 msgid "The appointment operation could not be completed. Please try again."
 msgstr ""
@@ -2741,4 +2703,36 @@ msgstr ""
 
 #: includes/Controller/ConfirmationController.php
 msgid "Your appointment is booked, but its notifications could not be prepared. Please contact the appointment organizer."
+msgstr ""
+
+#: includes/Admin/StorageStatus.php
+msgid "Booking data is stored in the legacy format. Configure RRZE_APPOINTMENT_ENCRYPTION_KEY to encrypt new and changed data."
+msgstr ""
+
+#: includes/Admin/StorageStatus.php
+msgid "Encryption is active for new and changed data."
+msgstr ""
+
+#: templates/confirmation-page.php
+msgid "Please check the appointment details and confirm your booking."
+msgstr ""
+
+#: templates/confirmation-page.php
+msgid "Reserve this appointment"
+msgstr ""
+
+#: templates/confirmation-page.php
+msgid "Reserve the appointment to continue to booking confirmation."
+msgstr ""
+
+#: templates/confirmation-page.php
+msgid "Earlier appointment notifications"
+msgstr ""
+
+#: templates/confirmation-page.php
+msgid "Choose whether to receive an email when an earlier appointment becomes available."
+msgstr ""
+
+#: includes/Booking/Bookings.php
+msgid "Your appointment has been cancelled, but its notification emails could not be sent completely."
 msgstr ""

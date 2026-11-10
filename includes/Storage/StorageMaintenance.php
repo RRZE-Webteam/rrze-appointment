@@ -6,17 +6,13 @@ use RRZE\Appointment\AppointmentException;
 
 defined('ABSPATH') || exit;
 
-/** Runs explicit, bounded maintenance passes while external writers are drained. */
+/** Inspects selected sites in bounded batches using the current site’s storage lock. */
 final class StorageMaintenance
 {
     /**
-     * Checks every target before migration and verifies every target afterwards.
+     * Verifies the requested storage contract without starting migration or dispatching jobs.
      *
-     * No coordinator options or cron events are scheduled here. Preflight/verify
-     * take locks but do not write stored data. The network lock coordinates our
-     * workers only; callers must pause all other web, cron and CLI writers.
-     *
-     * @param string $mode One of preflight, migrate or verify.
+     * @param string $mode One of preflight, verify-mixed or strict verify.
      * @param bool $network Include the current network's active/dormant installations.
      * @param callable(array): void $report Receives safe per-site results and phase totals.
      * @return bool True only if every required pass completed without failures.
@@ -25,10 +21,12 @@ final class StorageMaintenance
     public static function run(string $mode, bool $network, callable $report): bool
     {
         global $wpdb;
-        if (!in_array($mode, ['preflight', 'migrate', 'verify'], true) || ($network && !is_multisite())) {
+        if ($mode === 'migrate') {
+            throw new AppointmentException('Bulk migration is disabled. New and changed records are encrypted automatically.');
+        }
+        if (!in_array($mode, ['preflight', 'verify-mixed', 'verify'], true) || ($network && !is_multisite())) {
             throw new AppointmentException('Invalid appointment maintenance mode or network scope.');
         }
-        EncryptionKey::fromConfiguration();
         BookingStorage::release();
         $lock = $network ? NetworkMigration::lockName(get_current_network_id()) : null;
         if ($lock !== null && $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 0)', $lock)) !== '1') {
@@ -39,50 +37,44 @@ final class StorageMaintenance
                 'SELECT MAX(blog_id) FROM %i WHERE site_id = %d', $wpdb->blogs, get_current_network_id()
             )) : get_current_blog_id();
             self::assertQuery();
-            $phases = $mode === 'migrate' ? ['preflight', 'migrate', 'verify'] : [$mode];
-            foreach ($phases as $phase) {
-                $counts = ['phase' => $phase, 'checked' => 0, 'skipped' => 0, 'failed' => 0];
-                foreach (self::siteIds($network, (int) $upper) as $id) {
-                    if ($lock !== null && $wpdb->get_var($wpdb->prepare('SELECT IS_USED_LOCK(%s) = CONNECTION_ID()', $lock)) !== '1') {
-                        throw new AppointmentException('The appointment network maintenance lock was lost.');
+            $counts = ['phase' => $mode, 'checked' => 0, 'skipped' => 0, 'failed' => 0];
+            foreach (self::siteIds($network, (int) $upper) as $id) {
+                if ($lock !== null && $wpdb->get_var($wpdb->prepare('SELECT IS_USED_LOCK(%s) = CONNECTION_ID()', $lock)) !== '1') {
+                    throw new AppointmentException('The appointment network maintenance lock was lost.');
+                }
+                $switched = $id !== get_current_blog_id();
+                if ($switched) {
+                    switch_to_blog($id);
+                }
+                $result = 'ok';
+                try {
+                    if ($network && !NetworkMigration::isRelevantSite()) {
+                        $counts['skipped']++;
+                        $result = 'skipped';
+                    } else {
+                        $counts['checked']++;
+                        match ($mode) {
+                            'preflight' => BookingStorage::preflight(),
+                            'verify-mixed' => BookingStorage::verifyMixed(),
+                            'verify' => BookingStorage::verify(),
+                        };
                     }
-                    $switched = $id !== get_current_blog_id();
-                    if ($switched) {
-                        switch_to_blog($id);
-                    }
-                    $result = 'ok';
+                } catch (\Throwable) {
+                    $counts['failed']++;
+                    $result = 'storage_error';
+                } finally {
                     try {
-                        if ($network && !NetworkMigration::isRelevantSite()) {
-                            $counts['skipped']++;
-                            $result = 'skipped';
-                        } else {
-                            $counts['checked']++;
-                            match ($phase) {
-                                'preflight' => BookingStorage::preflight(),
-                                'migrate' => BookingStorage::initialize(),
-                                'verify' => BookingStorage::verify(),
-                            };
-                        }
-                    } catch (\Throwable) {
-                        $counts['failed']++;
-                        $result = 'storage_error';
+                        BookingStorage::release();
                     } finally {
-                        try {
-                            BookingStorage::release();
-                        } finally {
-                            if ($switched) {
-                                restore_current_blog();
-                            }
+                        if ($switched) {
+                            restore_current_blog();
                         }
                     }
-                    $report(['phase' => $phase, 'site_id' => $id, 'result' => $result]);
                 }
-                $report($counts);
-                if ($counts['failed']) {
-                    return false;
-                }
+                $report(['phase' => $mode, 'site_id' => $id, 'result' => $result]);
             }
-            return true;
+            $report($counts);
+            return $counts['failed'] === 0;
         } finally {
             BookingStorage::release();
             if ($lock !== null) {

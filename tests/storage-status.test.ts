@@ -10,7 +10,7 @@ const run = ( overrides: Record< string, unknown > = {} ) =>
 				resolve( process.cwd(), 'tests/fixtures/storage-status.php' ),
 				JSON.stringify( {
 					admin: true,
-					phase: 'ready',
+					phase: 'mixed',
 					page: 'rrze-appointment-settings',
 					...overrides,
 				} ),
@@ -19,18 +19,17 @@ const run = ( overrides: Record< string, unknown > = {} ) =>
 		)
 	);
 
-describe( 'automatic migration status', () => {
-	it( 'shows startup failures even before a migration marker could be persisted', () => {
-		const result = run( {
-			phase: 'ready',
-			page: 'rrze-appointment-bookings',
-			initializationError: 'Safe startup failure.',
-		} );
-		expect( result.html ).toContain( 'notice-error' );
-		expect( result.html ).toContain( 'Safe startup failure.' );
-		expect( result.html ).not.toContain( 'Migration starts automatically' );
+describe( 'site storage status', () => {
+	it( 'reports the write policy for mixed data', () => {
+		expect( run().html ).toContain(
+			'Encryption is active for new and changed data.'
+		);
+		expect( run( { phase: 'legacy' } ).html ).toContain( 'legacy format' );
+		expect( run( { phase: 'error' } ).html ).toContain(
+			'Safe storage error.'
+		);
 	} );
-	it.each( [ 'legacy', 'ready', 'migrating', 'encrypted', 'error' ] )(
+	it.each( [ 'legacy', 'mixed', 'error' ] )(
 		'displays %s without offering or invoking a migration action',
 		( phase ) => {
 			const result = run( { phase } );
@@ -42,14 +41,7 @@ describe( 'automatic migration status', () => {
 		}
 	);
 
-	it.each( [ 'legacy', 'ready', 'migrating' ] )(
-		'explains automatic startup or recovery in %s state',
-		( phase ) => {
-			expect( run( { phase } ).html ).toContain( 'automatically' );
-		}
-	);
-
-	it.each( [ 'legacy', 'ready', 'migrating', 'encrypted', 'error' ] )(
+	it.each( [ 'legacy', 'mixed', 'error' ] )(
 		'restricts %s diagnostics before reading storage',
 		( phase ) => {
 			for ( const overrides of [
@@ -75,18 +67,4 @@ describe( 'automatic migration status', () => {
 			}
 		}
 	);
-	it( 'hides startup errors on unrelated screens and from site admins', () => {
-		expect(
-			run( {
-				page: 'dashboard',
-				initializationError: 'Safe startup failure.',
-			} ).html
-		).toBe( '' );
-		expect(
-			run( {
-				multisite: true,
-				initializationError: 'Safe startup failure.',
-			} ).html
-		).toBe( '' );
-	} );
 } );

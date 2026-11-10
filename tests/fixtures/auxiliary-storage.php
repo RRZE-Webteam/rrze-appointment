@@ -53,12 +53,12 @@ namespace {
     $wpdb->seed($new, (string) time());
     $staleNew = 'rrze_appointment_waitlist_lock_v2_' . hash('sha256', 'stale');
     $wpdb->seed($staleNew, '1');
-    BookingStorage::initialize();
+    BookingStorage::pruneExpiredLocks();
     $remaining = (int) $wpdb->db->querySingle("SELECT COUNT(*) FROM wp_options WHERE option_name REGEXP '^rrze_appointment_waitlist_lock_[a-f0-9]{32}$'");
     $result['boundedCleanup'] = $remaining === 25;
     $result['unrelatedLocksPreserved'] = $wpdb->raw($live) !== null && $wpdb->raw($foreign) !== null && $wpdb->raw($new) !== null;
     BookingStorage::release();
-    BookingStorage::initialize();
+    BookingStorage::pruneExpiredLocks();
     $result['cleanupResumed'] = (int) $wpdb->db->querySingle("SELECT COUNT(*) FROM wp_options WHERE option_name REGEXP '^rrze_appointment_waitlist_lock_[a-f0-9]{32}$'") === 0;
     $result['expiredCurrentLockRemoved'] = $wpdb->raw($staleNew) === null;
     $result['bookingUnchanged'] = $cipherBefore === $wpdb->raw(BookingStorage::OPTIONS[0]);

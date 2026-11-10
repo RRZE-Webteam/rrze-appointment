@@ -12,6 +12,7 @@ type Mail = {
 type ReminderResult = {
 	actions: string[];
 	dailySchedule: { timestamp: number; recurrence: string; hook: string };
+	dailyBeforeWrite: { hook: string } | null;
 	singleSchedules: { timestamp: number; hook: string; args: string[] }[];
 	storedFutureMeta: Record< string, unknown >;
 	mails: Mail[];
@@ -24,7 +25,8 @@ const getReminderResult = (
 		reminder_booker_days: 2,
 		reminder_host_days: 2,
 	},
-	now = '2026-08-21 06:00:00'
+	now = '2026-08-21 06:00:00',
+	hasExistingData = true
 ): ReminderResult => {
 	const pluginSettingsPath = resolve(
 		process.cwd(),
@@ -100,6 +102,7 @@ const getReminderResult = (
 			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 			$GLOBALS['actions'] = [];
 			$GLOBALS['daily_schedule'] = null;
+			$GLOBALS['fixtureHasBookingData'] = ${ hasExistingData ? 'true' : 'false' };
 			$GLOBALS['single_schedules'] = [];
 			$GLOBALS['options'] = [
 				'rrze_appointment_settings' => json_decode( ${ JSON.stringify(
@@ -162,10 +165,12 @@ const getReminderResult = (
 
 			$reminder = new \\RRZE\\Appointment\\Notification\\Reminder();
 			$reminder->register();
+			$dailyBeforeWrite = $GLOBALS['daily_schedule'];
 			\\RRZE\\Appointment\\Notification\\Reminder::scheduleForSlot(
 				'2099-09-01 08:00-08:30',
 				[ 'title' => 'Future' ]
 			);
+			\\RRZE\\Appointment\\Storage\\BookingScheduler::afterCommit();
 			$reminder->sendReminder( '2026-08-23 10:00-10:30' );
 			$mails = \\RRZE\\Appointment\\Mail\\Mailer::$mails;
 			\\RRZE\\Appointment\\Mail\\Mailer::$mails = [];
@@ -173,6 +178,7 @@ const getReminderResult = (
 			echo json_encode( [
 				'actions' => $GLOBALS['actions'],
 				'dailySchedule' => $GLOBALS['daily_schedule'],
+				'dailyBeforeWrite' => $dailyBeforeWrite,
 				'singleSchedules' => $GLOBALS['single_schedules'],
 				'storedFutureMeta' => $GLOBALS['options']['booking_meta']['2099-09-01 08:00-08:30'],
 				'mails' => $mails,
@@ -188,6 +194,11 @@ const getReminderResult = (
 };
 
 describe( 'appointment reminders', () => {
+	it( 'adds no daily event to an unused site and installs it at the first successful booking write', () => {
+		const result = getReminderResult( {}, '2026-08-21 06:00:00', false );
+		expect( result.dailyBeforeWrite ).toBeNull();
+		expect( result.dailySchedule.hook ).toBe( 'rrze_appointment_daily_check' );
+	} );
 	it( 'registers site-local daily and slot-specific schedules', () => {
 		const result = getReminderResult();
 

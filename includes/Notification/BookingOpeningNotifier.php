@@ -44,7 +44,6 @@ final class BookingOpeningNotifier
         int $closesAt
     ): array {
         try {
-            self::cleanup();
             $entries = self::getEntries();
             $email = sanitize_email((string) ($meta['booker_email'] ?? ''));
 
@@ -72,6 +71,7 @@ final class BookingOpeningNotifier
         foreach ($entries as $token => $entry) {
             if (
                 is_array($entry)
+                && time() < (int) ($entry['closes_at'] ?? 0)
                 && hash_equals((string) ($entry['slot'] ?? ''), $slot)
                 && hash_equals((string) ($entry['meta']['booker_email'] ?? ''), $email)
             ) {
@@ -226,41 +226,51 @@ final class BookingOpeningNotifier
     }
 
     /**
-     * Claims a notification link and creates the regular pending booking.
+     * Reads a live opening link for its preview or the subsequent reservation.
+     *
+     * @return array<string, mixed>|\WP_Error Available subscription or the reason it cannot be used.
+     */
+    public static function getClaimableSubscription(#[\SensitiveParameter] string $token): array|\WP_Error
+    {
+        $entry = self::getEntries()[$token] ?? null;
+        if (!is_array($entry)) {
+            return new \WP_Error(
+                'rrze_appointment_opening_invalid',
+                __('This booking notification link is invalid or has expired.', 'rrze-appointment')
+            );
+        }
+        $now = time();
+        if ($now < (int) ($entry['opens_at'] ?? 0)) {
+            return new \WP_Error(
+                'rrze_appointment_opening_too_early',
+                __('This appointment is not open for booking yet.', 'rrze-appointment')
+            );
+        }
+        if ($now >= (int) ($entry['closes_at'] ?? 0)) {
+            return new \WP_Error(
+                'rrze_appointment_opening_closed',
+                __('This appointment can no longer be booked.', 'rrze-appointment')
+            );
+        }
+        return $entry;
+    }
+
+    /**
+     * Consumes a notification link and stores its pending booking in one transaction.
      *
      * @return string|\WP_Error Confirmation URL or a public-safe error.
      */
-    public static function claim(#[\SensitiveParameter] string $token)
+    public static function claim(#[\SensitiveParameter] string $token): string|\WP_Error
     {
         try {
-            self::cleanup();
-            $entries = self::getEntries();
-            $entry = $entries[$token] ?? null;
-            if (!is_array($entry)) {
-                return new \WP_Error(
-                    'rrze_appointment_opening_invalid',
-                    __('This booking notification link is invalid or has expired.', 'rrze-appointment')
-                );
-            }
-
-            $now = time();
-            if ($now < (int) ($entry['opens_at'] ?? 0)) {
-                return new \WP_Error(
-                    'rrze_appointment_opening_too_early',
-                    __('This appointment is not open for booking yet.', 'rrze-appointment')
-                );
-            }
-            if ($now >= (int) ($entry['closes_at'] ?? 0)) {
-                self::delete($token);
-                return new \WP_Error(
-                    'rrze_appointment_opening_closed',
-                    __('This appointment can no longer be booked.', 'rrze-appointment')
-                );
+            $entry = self::getClaimableSubscription($token);
+            if ($entry instanceof \WP_Error) {
+                return $entry;
             }
 
             $slot = (string) ($entry['slot'] ?? '');
             $lockOption = self::getClaimLockOption($slot);
-            if (!self::acquireClaimLock($lockOption, $now)) {
+            if (!self::acquireClaimLock($lockOption, time())) {
                 return new \WP_Error(
                     'rrze_appointment_opening_busy',
                     __('This appointment is currently being requested. Please try again shortly.', 'rrze-appointment')
@@ -276,8 +286,7 @@ final class BookingOpeningNotifier
                 }
 
                 $meta = is_array($entry['meta'] ?? null) ? $entry['meta'] : [];
-                $pendingToken = TokenManager::createPending($slot, $meta);
-                self::delete($token);
+                $pendingToken = TokenManager::createPending($slot, $meta, $token);
                 return TokenManager::confirmUrl($pendingToken);
             } finally {
                 delete_option($lockOption);
@@ -319,10 +328,10 @@ final class BookingOpeningNotifier
      */
     public static function getSubscriptionByStatusToken(#[\SensitiveParameter] string $statusToken): ?array
     {
-        self::cleanup();
         foreach (self::getEntries() as $entry) {
             if (
                 is_array($entry)
+                && time() < (int) ($entry['closes_at'] ?? 0)
                 && ($entry['status_token'] ?? '') !== ''
                 && hash_equals((string) $entry['status_token'], $statusToken)
             ) {
@@ -340,28 +349,38 @@ final class BookingOpeningNotifier
         return add_query_arg(self::STATUS_QUERY_KEY, $statusToken, home_url('/'));
     }
 
+    /** Returns the existing opening-link URL for emails and the reservation preview. */
+    public static function claimUrl(#[\SensitiveParameter] string $token): string
+    {
+        return add_query_arg(self::CLAIM_QUERY_KEY, $token, home_url('/'));
+    }
+
     /**
      * Removes subscriptions after their latest booking time.
      */
     public static function cleanup(): void
     {
         $entries = self::getEntries();
-        $changed = false;
+        $expired = [];
         $now = time();
 
         foreach ($entries as $token => $entry) {
             if (!is_array($entry) || $now >= (int) ($entry['closes_at'] ?? 0)) {
                 unset($entries[$token]);
-                BookingScheduler::clear(self::CRON_HOOK, (string) $token);
-                $changed = true;
-            } elseif (empty($entry['notified_at'])) {
-                // A one-shot cron event may have been consumed during a key outage.
-                self::schedule((string) $token, (int) ($entry['opens_at'] ?? $now));
+                $expired[] = (string) $token;
             }
         }
 
-        if ($changed) {
+        if ($expired) {
             BookingStorage::set(self::OPTION, $entries);
+            foreach ($expired as $token) {
+                BookingScheduler::clear(self::CRON_HOOK, $token);
+            }
+        }
+        foreach ($entries as $token => $entry) {
+            if (empty($entry['notified_at'])) {
+                self::schedule((string) $token, (int) ($entry['opens_at'] ?? $now));
+            }
         }
     }
 
@@ -442,7 +461,7 @@ final class BookingOpeningNotifier
     {
         [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
         [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
-        $bookingUrl = add_query_arg(self::CLAIM_QUERY_KEY, $token, home_url('/'));
+        $bookingUrl = self::claimUrl($token);
 
         return [
             '[title]' => (string) ($meta['title'] ?? ''),

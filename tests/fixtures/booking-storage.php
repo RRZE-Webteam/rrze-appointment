@@ -14,6 +14,7 @@ if (PHP_SAPI !== 'cli') {
 }
 define('DB_NAME', 'isolated-appointment-tests');
 define('MINUTE_IN_SECONDS', 60);
+require_once __DIR__ . '/storage-mysqli.php';
 
 /** Loads real plugin classes without WordPress or the configured application key. */
 spl_autoload_register(static function (string $class): void {
@@ -117,6 +118,26 @@ final class BookingTestDatabase
         return $rows;
     }
 
+    /** Returns associative rows for the physical V2 inventory. */
+    public function get_results(string $query, string $format): array
+    {
+        $this->last_error = $this->failReads ? 'synthetic failure' : '';
+        $rows = [];
+        if ($this->last_error === '') {
+            $result = $this->db->query($query);
+            while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
+                $rows[] = $row;
+            }
+        }
+        return $rows;
+    }
+
+    /** Preserves the difference between an absent SQLite row and a stored empty value. */
+    public function get_row(string $query, string $format): ?array
+    {
+        return $this->get_results($query, $format)[0] ?? null;
+    }
+
     /** Runs real conditional writes, optionally injecting a crash or concurrent write. */
     public function query(string $query): int|false
     {
@@ -215,250 +236,248 @@ if (defined('RRZE_APPOINTMENT_STORAGE_TEST_BOOTSTRAP_ONLY')) {
     return;
 }
 
+/** Maps synthetic wp_options tables to separate WordPress sites. */
+if (!function_exists('get_current_blog_id')) {
+    /** Selects the synthetic subsite without loading WordPress. */
+    function get_current_blog_id(): int { return $GLOBALS['wpdb']->options === 'wp_options' ? 1 : 2; }
+}
+if (!function_exists('get_option')) {
+    /** Reads scalar, serialized fixture configuration just as WordPress would. */
+    function get_option(string $name, mixed $default = false): mixed
+    {
+        $raw = $GLOBALS['wpdb']->raw($name);
+        return $raw === null ? $default : unserialize($raw, ['allowed_classes' => false]);
+    }
+}
+if (!function_exists('wp_timezone')) {
+    /** Supplies a deterministic site timezone for legacy reminder schedules. */
+    function wp_timezone(): DateTimeZone { return new DateTimeZone('Europe/Berlin'); }
+}
+
+/** Constructs a real signed V1 checkpoint from the fixture's independent configuration key. */
+function seedV1(array $data, string $key, bool $partial): void
+{
+    global $wpdb;
+    $context = str_repeat('a', 32);
+    $material = EncryptionKey::fromBase64($key);
+    $cipher = new BookingCipher($material, $context);
+    $completed = $partial ? [Bookings::SLOTS_OPTION] : BookingStorage::OPTIONS;
+    foreach ($completed as $name) {
+        $wpdb->seed($name, $cipher->encrypt($data[$name], $name));
+    }
+    $state = ['version' => 1, 'phase' => $partial ? 'migrating' : 'encrypted',
+        'context' => $context, 'key_id' => $material->identifier($context), 'completed' => $completed];
+    $state['mac'] = hash_hmac('sha256', json_encode(array_values($state)), $material->forState($context));
+    $wpdb->seed(BookingStorage::STATE_OPTION, json_encode($state));
+}
+
+/** Removes a physical row without using plugin code to simulate data loss. */
+function dropRow(string $name): void
+{
+    global $wpdb;
+    $wpdb->db->exec($wpdb->prepare('DELETE FROM %i WHERE option_name = %s', $wpdb->options, $name));
+}
+
+/** Changes one historical booking's waitlist preference using the storage contract. */
+function changePreference(string $slot): string
+{
+    $meta = BookingStorage::get(Bookings::META_OPTION);
+    $meta[$slot]['booker_waitlist'] = !($meta[$slot]['booker_waitlist'] ?? false);
+    BookingStorage::set(Bookings::META_OPTION, $meta);
+    return BookingStorage::recordId('booking', $slot);
+}
+
 $input = json_decode($argv[1] ?? '{}', true, 64, JSON_THROW_ON_ERROR);
-$scenario = $input['scenario'] ?? 'migrate';
+$scenario = $input['scenario'] ?? 'read';
 $key = base64_encode(str_repeat('test-key', 8));
 if (!in_array($scenario, ['legacy', 'missing-key'], true)) {
-    define('RRZE_APPOINTMENT_ENCRYPTION_KEY', $scenario === 'wrong-key' ? base64_encode(str_repeat('otherkey', 8)) : ($scenario === 'invalid-key' ? 'invalid' : $key));
+    define('RRZE_APPOINTMENT_ENCRYPTION_KEY', match ($scenario) {
+        'invalid-key' => 'invalid',
+        'wrong-key' => base64_encode(str_repeat('otherkey', 8)),
+        default => $key,
+    });
 }
 $wpdb = new BookingTestDatabase();
 $GLOBALS['uuid'] = 0;
 $GLOBALS['evicted'] = [];
 $slot = '2099-01-02 10:00-10:30';
+$other = '2099-01-09 10:00-10:30';
+$pending = '2099-01-03 11:00-11:30';
 $data = [
-    Bookings::SLOTS_OPTION => [$slot],
-    Bookings::META_OPTION => [$slot => ['booker_name' => 'Synthetic Patient', 'booker_email' => 'synthetic@example.test', 'cancel_token' => 'old-cancel', 'waitlist_optout_token' => 'old-optout']],
-    TokenManager::PENDING_OPTION => ['old-confirm' => ['slot' => '2099-01-03 11:00-11:30', 'meta' => ['booker_name' => 'Pending Patient'], 'expires' => time() + 1800]],
-    TokenManager::CANCEL_OPTION => ['old-cancel' => $slot],
-    BookingStorage::OPTIONS[4] => ['old-opening' => ['slot' => '2099-01-04 09:00-09:30', 'meta' => ['booker_email' => 'opening@example.test'], 'closes_at' => time() + 86400]],
+    Bookings::SLOTS_OPTION => [$slot, $other],
+    Bookings::META_OPTION => [$slot => ['booker_name' => 'Synthetic Patient', 'booker_email' => 'synthetic@example.test', 'cancel_token' => 'old-cancel', 'waitlist_optout_token' => 'old-optout'], $other => ['booker_name' => 'Untouched']],
+    TokenManager::PENDING_OPTION => ['old-confirm' => ['slot' => $pending, 'meta' => ['booker_name' => 'Pending Patient'], 'expires' => time() + 1800]],
+    TokenManager::CANCEL_OPTION => ['old-cancel' => $slot, 'pending-cancel' => ['type' => 'pending', 'slot' => $pending]],
+    BookingStorage::OPTIONS[4] => ['old-opening' => ['slot' => '2099-01-04 09:00-09:30', 'meta' => ['booker_email' => 'opening@example.test'], 'opens_at' => time() + 3600, 'closes_at' => time() + 86400]],
 ];
 foreach ($data as $name => $value) {
     $wpdb->seed($name, serialize($value));
 }
 $wpdb->seed('public-settings', serialize(['title' => 'Public office hours']));
-$hooks = ['rrze_appointment_send_reminder' => $slot, TokenManager::PENDING_EXPIRY_HOOK => 'old-confirm', 'rrze_appointment_booking_opened' => 'old-opening'];
-$cron = ['version' => 2, 4000000000 => ['unrelated_job' => ['untouched' => ['schedule' => 'daily', 'interval' => 86400, 'args' => ['public']]]]];
-foreach ($hooks as $hook => $argument) {
-    $cron[4000000000][$hook][md5(serialize([$argument]))] = ['schedule' => false, 'args' => [$argument]];
-}
-$wpdb->seed('cron', serialize($cron));
+$before = $wpdb->rows();
 $result = [];
 
-if ($scenario === 'read-only-checks') {
-    $before = $wpdb->rows();
-    BookingStorage::preflight();
-    $result['preflightUnchanged'] = $wpdb->rows() === $before;
-    $result['notStarted'] = $wpdb->raw(BookingStorage::STATE_OPTION) === null;
+if ($scenario === 'legacy') {
     BookingStorage::initialize();
-    $before = $wpdb->rows();
-    BookingStorage::verify();
-    $result['verifyUnchanged'] = $wpdb->rows() === $before;
-} elseif ($scenario === 'cron-reintroduced') {
+    $result['phase'] = BookingStorage::status()['phase'];
+    BookingStorage::set(Bookings::SLOTS_OPTION, [$slot, $other, 'new-slot']);
+    $result['written'] = unserialize($wpdb->raw(Bookings::SLOTS_OPTION)) === [$slot, $other, 'new-slot'];
+    $result['marker'] = BookingStorage::hasMixedState();
+} elseif ($scenario === 'read') {
     BookingStorage::initialize();
-    $wpdb->seed('cron', serialize($cron));
-    BookingStorage::release();
-    $before = $wpdb->rows();
-    $result['verification'] = failure(static fn() => BookingStorage::verify());
-    $result['diagnostics'] = failure(static fn() => BookingStorage::status());
-    $result['unchanged'] = $wpdb->rows() === $before;
-} elseif ($scenario === 'malformed-cron-preflight') {
-    $cron[4000000000]['rrze_appointment_send_reminder'] = ['broken' => ['args' => [false]]];
-    $wpdb->seed('cron', serialize($cron));
-    $before = $wpdb->rows();
-    $result = failure(static fn() => BookingStorage::initialize());
-    $result['unchanged'] = $wpdb->rows() === $before;
-    $result['notStarted'] = $wpdb->raw(BookingStorage::STATE_OPTION) === null;
-} elseif (in_array($scenario, ['wrong-key', 'missing-key', 'tamper', 'missing-option', 'plaintext-replacement', 'missing-state', 'invalid-state', 'swapped', 'downgraded-state'], true)) {
-    $context = str_repeat('a', 32);
-    $cipher = new BookingCipher(EncryptionKey::fromBase64($key), $context);
+    $result['phase'] = BookingStorage::status()['phase'];
+    $result['same'] = true;
     foreach ($data as $name => $value) {
-        $wpdb->seed($name, $cipher->encrypt($value, $name));
+        $result['same'] = $result['same'] && BookingStorage::get($name) === $value;
     }
-    $state = ['version' => 1, 'phase' => 'encrypted', 'context' => $context, 'key_id' => EncryptionKey::fromBase64($key)->identifier($context), 'completed' => BookingStorage::OPTIONS];
-    $state['mac'] = hash_hmac('sha256', json_encode(array_values($state)), EncryptionKey::fromBase64($key)->forState($context));
-    $wpdb->seed(BookingStorage::STATE_OPTION, json_encode($state));
-    if ($scenario === 'downgraded-state') {
-        $state['completed'] = [];
-        $state['phase'] = 'migrating';
-        $wpdb->seed(BookingStorage::STATE_OPTION, json_encode($state));
-        $wpdb->seed(Bookings::META_OPTION, serialize($data[Bookings::META_OPTION]));
-    } elseif ($scenario === 'missing-option') {
-        $wpdb->db->exec($wpdb->prepare('DELETE FROM %i WHERE option_name = %s', $wpdb->options, Bookings::META_OPTION));
-    } elseif ($scenario === 'missing-state') {
-        $wpdb->db->exec($wpdb->prepare('DELETE FROM %i WHERE option_name = %s', $wpdb->options, BookingStorage::STATE_OPTION));
-    } elseif ($scenario === 'plaintext-replacement') {
-        $wpdb->seed(Bookings::META_OPTION, serialize($data[Bookings::META_OPTION]));
-    } elseif ($scenario === 'tamper') {
-        $wpdb->seed(Bookings::META_OPTION, $wpdb->raw(Bookings::META_OPTION) . 'broken');
-    } elseif ($scenario === 'invalid-state') {
-        $wpdb->seed(BookingStorage::STATE_OPTION, '{}');
-    } elseif ($scenario === 'swapped') {
-        $wpdb->seed(Bookings::META_OPTION, $wpdb->raw(TokenManager::PENDING_OPTION));
-    }
-    $before = $wpdb->rows();
-    $result = failure(static fn() => TokenManager::cleanupPendingState());
+    BookingStorage::preflight();
+    BookingStorage::verifyMixed();
+    $result['strictRejected'] = failure(static fn() => BookingStorage::verify())['rejected'];
+    $result['disabledMigrate'] = failure(static fn() => BookingStorage::migrate())['rejected'];
     $result['unchanged'] = $wpdb->rows() === $before;
-} elseif (in_array($scenario, ['invalid-key', 'corrupt-legacy', 'object-legacy', 'database-error', 'lock-busy'], true)) {
-    if ($scenario === 'corrupt-legacy') { $wpdb->seed(Bookings::META_OPTION, 'broken'); }
-    if ($scenario === 'object-legacy') { $wpdb->seed(Bookings::META_OPTION, serialize(['object' => new stdClass()])); }
-    if ($scenario === 'database-error') { $wpdb->failReads = true; }
+} elseif ($scenario === 'new') {
+    $list = $data[TokenManager::PENDING_OPTION];
+    $list['private-confirm'] = ['slot' => '2099-01-06 11:00-11:30', 'meta' => ['booker_name' => 'New Secret'], 'expires' => time() + 1800];
+    BookingStorage::set(TokenManager::PENDING_OPTION, $list);
+    $id = BookingStorage::recordId('pending', 'private-confirm');
+    $rows = $wpdb->rows();
+    $name = 'rrze_appointment_v2_record_pending_' . $id;
+    $result['oldUnchanged'] = !array_filter($before, static fn($row) => $row !== $rows[$row['option_name']]);
+    $result['nonAutoloaded'] = $rows[$name]['autoload'] === 'no' && $rows[BookingStorage::MIXED_STATE_OPTION]['autoload'] === 'no' && $rows['rrze_appointment_record_index_v2']['autoload'] === 'no';
+    $result['protected'] = !str_contains(json_encode($rows), 'New Secret') && !str_contains(json_encode($rows), 'private-confirm');
+    $state = json_decode($rows[BookingStorage::MIXED_STATE_OPTION]['option_value'], true);
+    $body = (new BookingCipher(EncryptionKey::fromBase64($key), $state['context']))->decrypt($rows[$name]['option_value'], $name);
+    $result['versions'] = [$state['state_version'], $state['write_data_version'], $body['data_version'],
+        json_decode(substr($rows[$name]['option_value'], strlen(BookingCipher::PREFIX)), true)['version']];
+    BookingStorage::release();
+    $result['persisted'] = BookingStorage::recordId('pending', 'private-confirm') === $id && BookingStorage::get(TokenManager::PENDING_OPTION) === $list;
+} elseif ($scenario === 'lifecycle') {
+    $newSlot = '2099-02-11 11:00-11:30';
+    $meta = ['booker_name' => 'V2 User', 'booker_email' => 'v2@example.test'];
+    $token = TokenManager::createPending($newSlot, $meta);
+    $id = BookingStorage::recordId('pending', $token);
+    $jobs = BookingStorage::managedJobs();
+    $result['expiry'] = isset($jobs[$id]) && count($jobs[$id]['jobs']) === 1;
+    $pendingCancel = TokenManager::getPending($token)['cancel_token'];
+    $result['confirmed'] = TokenManager::completePending($token, $meta)['slot'] === $newSlot;
+    BookingStorage::release();
+    $result['idPreserved'] = $id !== null && BookingStorage::recordId('booking', $newSlot) === $id
+        && BookingStorage::recordId('pending', $token) === null;
+    $result['consumed'] = TokenManager::getPending($token) === null && TokenManager::validateCancelToken($pendingCancel) === null;
+} elseif (in_array($scenario, ['transfer', 'replay', 'rebook', 'late-conflict', 'missing-index', 'missing-record', 'missing-marker', 'orphan-record', 'tampered-state', 'tampered-v2', 'unknown-version', 'cross-site'], true)) {
+    $id = changePreference($slot);
+    BookingStorage::release();
+    $name = 'rrze_appointment_v2_record_booking_' . $id;
+    $state = json_decode($wpdb->raw(BookingStorage::MIXED_STATE_OPTION), true);
+    if ($scenario === 'transfer') {
+        $result['separate'] = unserialize($wpdb->raw(Bookings::META_OPTION)) === [$other => $data[Bookings::META_OPTION][$other]];
+        $result['relatedRemoved'] = !in_array($slot, unserialize($wpdb->raw(Bookings::SLOTS_OPTION)), true)
+            && !isset(unserialize($wpdb->raw(TokenManager::CANCEL_OPTION))['old-cancel']);
+        $result['otherSources'] = $wpdb->raw(TokenManager::PENDING_OPTION) === $before[TokenManager::PENDING_OPTION]['option_value'];
+        $result['oldLinks'] = BookingStorage::get(TokenManager::CANCEL_OPTION)['old-cancel'] === $slot
+            && BookingStorage::get(Bookings::META_OPTION)[$slot]['waitlist_optout_token'] === 'old-optout';
+        $result['stable'] = changePreference($slot) === $id;
+        BookingStorage::verifyMixed();
+    } elseif ($scenario === 'replay' || $scenario === 'rebook') {
+        if ($scenario === 'rebook') {
+            $meta = BookingStorage::get(Bookings::META_OPTION);
+            unset($meta[$slot]);
+            $cancel = BookingStorage::get(TokenManager::CANCEL_OPTION);
+            unset($cancel['old-cancel']);
+            BookingStorage::setMany([Bookings::SLOTS_OPTION => [$other], Bookings::META_OPTION => $meta, TokenManager::CANCEL_OPTION => $cancel]);
+            $meta[$slot] = ['booker_name' => 'New person'];
+            BookingStorage::setMany([Bookings::SLOTS_OPTION => [$other, $slot], Bookings::META_OPTION => $meta]);
+            $result['newId'] = BookingStorage::recordId('booking', $slot) !== $id;
+        }
+        BookingStorage::release();
+        foreach ($data as $key => $old) {
+            $wpdb->seed($key, serialize($old));
+        }
+        $meta = BookingStorage::get(Bookings::META_OPTION);
+        $result['latest'] = $scenario === 'replay' ? $meta[$slot]['booker_waitlist'] : $meta[$slot]['booker_name'] === 'New person';
+        $result['oldLink'] = isset(BookingStorage::get(TokenManager::CANCEL_OPTION)['old-cancel']);
+        $result['strictRejected'] = failure(static fn() => BookingStorage::verify())['rejected'];
+    } else {
+        if ($scenario === 'late-conflict') {
+            $cancel = unserialize($wpdb->raw(TokenManager::CANCEL_OPTION));
+            $cancel['late-token'] = $slot;
+            $wpdb->seed(TokenManager::CANCEL_OPTION, serialize($cancel));
+        } elseif ($scenario === 'tampered-state') {
+            $state['write_data_version'] = 1;
+            $wpdb->seed(BookingStorage::MIXED_STATE_OPTION, json_encode($state));
+        } elseif ($scenario === 'unknown-version') {
+            $codec = new BookingCipher(EncryptionKey::fromBase64($key), $state['context']);
+            $record = $codec->decrypt($wpdb->raw($name), $name);
+            $record['data_version'] = 3;
+            $wpdb->seed($name, $codec->encrypt($record, $name));
+        } elseif ($scenario === 'tampered-v2') {
+            $wpdb->seed($name, $wpdb->raw($name) . 'broken');
+        } elseif ($scenario === 'cross-site') {
+            $rows = $wpdb->rows();
+            $wpdb->options = 'wp_2_options';
+            foreach ($rows as $row) {
+                $wpdb->seed($row['option_name'], $row['option_value']);
+            }
+        } else {
+            if (in_array($scenario, ['missing-index', 'orphan-record'], true)) { dropRow('rrze_appointment_record_index_v2'); }
+            if (in_array($scenario, ['missing-marker', 'orphan-record'], true)) { dropRow(BookingStorage::MIXED_STATE_OPTION); }
+            if ($scenario === 'missing-record') { dropRow($name); }
+        }
+        $result = failure(static fn() => BookingStorage::initialize());
+    }
+} elseif (in_array($scenario, ['wrong-key', 'missing-key', 'missing-v1-option', 'foreign-v1-envelope', 'downgraded-v1', 'tamper-v1', 'v1', 'partial-v1'], true)) {
+    seedV1($data, $key, $scenario === 'partial-v1');
+    if ($scenario === 'v1' || $scenario === 'partial-v1') {
+        $before = $wpdb->rows();
+        BookingStorage::verifyMixed();
+        $result['unchanged'] = $before === $wpdb->rows();
+        changePreference($slot);
+        BookingStorage::release();
+        BookingStorage::verifyMixed();
+        $result['linked'] = BookingStorage::get(TokenManager::CANCEL_OPTION)['old-cancel'] === $slot;
+        $result['sourceFormats'] = str_starts_with($wpdb->raw(Bookings::META_OPTION), BookingCipher::PREFIX)
+            === str_starts_with($before[Bookings::META_OPTION]['option_value'], BookingCipher::PREFIX)
+            && str_starts_with($wpdb->raw(Bookings::SLOTS_OPTION), BookingCipher::PREFIX)
+            && $wpdb->raw(BookingStorage::STATE_OPTION) === $before[BookingStorage::STATE_OPTION]['option_value'];
+        $result['strict'] = !failure(static fn() => BookingStorage::verify())['rejected'];
+        $result['untouched'] = $wpdb->raw(TokenManager::PENDING_OPTION) === $before[TokenManager::PENDING_OPTION]['option_value'];
+    } else {
+        if ($scenario === 'missing-v1-option') { dropRow(Bookings::META_OPTION); }
+        if ($scenario === 'foreign-v1-envelope') { $wpdb->seed(Bookings::META_OPTION, $wpdb->raw(TokenManager::PENDING_OPTION)); }
+        if ($scenario === 'tamper-v1') { $wpdb->seed(Bookings::META_OPTION, 'damaged'); }
+        if ($scenario === 'downgraded-v1') {
+            $state = json_decode($wpdb->raw(BookingStorage::STATE_OPTION), true);
+            $state['completed'] = []; $state['phase'] = 'migrating';
+            $wpdb->seed(BookingStorage::STATE_OPTION, json_encode($state));
+        }
+        $before = $wpdb->rows();
+        $result = failure(static fn() => BookingStorage::initialize());
+        $result['unchanged'] = $before === $wpdb->rows();
+    }
+} elseif ($scenario === 'rollback') {
+    $wpdb->failWrite = 3;
+    $result['failure'] = failure(static fn() => changePreference($slot))['rejected'];
+    $result['unchanged'] = $before === $wpdb->rows();
+    BookingStorage::release();
+    $result['retry'] = strlen(changePreference($slot)) === 32;
+} elseif ($scenario === 'readset') {
+    BookingStorage::get(Bookings::META_OPTION);
+    $wpdb->seed(TokenManager::PENDING_OPTION, serialize([]));
+    $result = failure(static fn() => changePreference($slot));
+    $result['preserved'] = $wpdb->raw(TokenManager::PENDING_OPTION) === serialize([]) && !BookingStorage::hasMixedState();
+} else {
+    if ($scenario === 'invalid-legacy') { $wpdb->seed(Bookings::META_OPTION, serialize([new stdClass()])); }
+    if ($scenario === 'corrupt-legacy') { $wpdb->seed(Bookings::META_OPTION, 'bad'); }
     if ($scenario === 'lock-busy') { $wpdb->denyLock = true; }
+    if ($scenario === 'database-error') { $wpdb->failReads = true; }
+    if ($scenario === 'duplicate-slot') {
+        $list = $data[TokenManager::PENDING_OPTION];
+        $list['duplicate'] = ['slot' => $slot, 'expires' => time() + 500, 'meta' => []];
+        $wpdb->seed(TokenManager::PENDING_OPTION, serialize($list));
+    }
     $before = $wpdb->rows();
     $result = failure(static fn() => BookingStorage::initialize());
-    $result['unchanged'] = $wpdb->rows() === $before;
-} elseif ($scenario === 'legacy') {
-    BookingStorage::initialize();
-    $result['status'] = BookingStorage::status();
-    $result['data'] = BookingStorage::get(Bookings::META_OPTION) === $data[Bookings::META_OPTION];
-    BookingStorage::set(Bookings::SLOTS_OPTION, [$slot, 'new-slot']);
-    $result['legacyWrite'] = unserialize($wpdb->raw(Bookings::SLOTS_OPTION)) === [$slot, 'new-slot'];
-    $result['noState'] = $wpdb->raw(BookingStorage::STATE_OPTION) === null;
-} elseif ($scenario === 'automatic-write-failure') {
-    $before = $wpdb->raw(TokenManager::PENDING_OPTION);
-    $wpdb->failWrite = 4;
-    $result = failure(static fn() => BookingStorage::set(TokenManager::PENDING_OPTION, ['unexpected' => 'plaintext']));
-    $result['secondAttempt'] = failure(static fn() => BookingStorage::set(TokenManager::PENDING_OPTION, []));
-    $result['originalPendingUntouched'] = $wpdb->raw(TokenManager::PENDING_OPTION) === $before;
-    $result['migrationStarted'] = json_decode($wpdb->raw(BookingStorage::STATE_OPTION), true)['phase'] === 'migrating';
-} elseif ($scenario === 'write-conflict') {
-    BookingStorage::get(Bookings::SLOTS_OPTION);
-    $newer = [$slot, 'concurrent-booking'];
-    $wpdb->beforeWrite = static function ($query) use ($wpdb, $newer): void {
-        $wpdb->beforeWrite = null;
-        $wpdb->seed(Bookings::SLOTS_OPTION, serialize($newer));
-    };
-    $result = failure(static fn() => BookingStorage::set(Bookings::SLOTS_OPTION, []));
-    $result['newerPreserved'] = unserialize($wpdb->raw(Bookings::SLOTS_OPTION)) === $newer;
-} elseif ($scenario === 'verification-failure') {
-    BookingStorage::get(Bookings::SLOTS_OPTION);
-    $GLOBALS['evicted'] = [];
-    $wpdb->beforeWrite = static function ($query) use ($wpdb): void {
-        $wpdb->beforeWrite = null;
-        $wpdb->lostLock = true;
-    };
-    $result = failure(static fn() => BookingStorage::set(Bookings::SLOTS_OPTION, ['changed']));
-    $context = json_decode($wpdb->raw(BookingStorage::STATE_OPTION), true)['context'];
-    $cipher = new BookingCipher(EncryptionKey::fromBase64($key), $context);
-    $result['writeReachedDatabase'] = $cipher->decrypt($wpdb->raw(Bookings::SLOTS_OPTION), Bookings::SLOTS_OPTION) === ['changed'];
-    $result['cacheEvicted'] = in_array([Bookings::SLOTS_OPTION, 'options'], $GLOBALS['evicted'], true)
-        && in_array(['alloptions', 'options'], $GLOBALS['evicted'], true)
-        && in_array(['notoptions', 'options'], $GLOBALS['evicted'], true);
-} elseif ($scenario === 'job-outage') {
-    BookingStorage::initialize();
-    $hook = 'rrze_appointment_booking_opened';
-    $reference = BookingStorage::jobReference($hook, 'old-opening');
-    wp_clear_scheduled_hook($hook, [$reference]);
-    BookingStorage::release();
-    $original = $wpdb->raw(Bookings::META_OPTION);
-    $wpdb->seed(Bookings::META_OPTION, 'broken');
-    BookingScheduler::notifyOpening($reference);
-    $result['opaqueRetry'] = wp_next_scheduled($hook, [$reference]) !== false;
-    $result['noPlaintextToken'] = !str_contains($wpdb->raw('cron'), 'old-opening');
-    $wpdb->seed(Bookings::META_OPTION, $original);
-    wp_clear_scheduled_hook($hook, [$reference]);
-    \RRZE\Appointment\Notification\BookingOpeningNotifier::cleanup();
-    $result['missingJobRepaired'] = wp_next_scheduled($hook, [$reference]) !== false;
-} elseif ($scenario === 'cron-failure') {
-    /** Fails the cron replacement after all five payload checkpoints, not the earlier structural preflight. */
-    $wpdb->beforeWrite = static function (string $query): void {
-        if (str_contains($query, "option_name = 'cron'")) {
-            throw new AppointmentException('Synthetic cron write failure.');
-        }
-    };
-    $result['failure'] = failure(static fn() => BookingStorage::initialize());
-    BookingStorage::release();
-    $result['phaseAfterFailure'] = BookingStorage::status()['phase'];
-    $result['completedAfterFailure'] = BookingStorage::status()['completed'];
-    $wpdb->beforeWrite = null;
-    BookingStorage::initialize();
-    $result['phaseAfterResume'] = BookingStorage::status()['phase'];
-} elseif ($scenario === 'lost-lock') {
-    BookingStorage::get(Bookings::SLOTS_OPTION);
-    $before = $wpdb->raw(Bookings::SLOTS_OPTION);
-    $wpdb->lostLock = true;
-    $result = failure(static fn() => BookingStorage::set(Bookings::SLOTS_OPTION, []));
-    $result['unchanged'] = $wpdb->raw(Bookings::SLOTS_OPTION) === $before;
-} else {
-    if ($scenario === 'resume' || $scenario === 'checkpoint-failure') {
-        $wpdb->failWrite = $scenario === 'resume' ? 4 : 3;
-        $result['interrupted'] = failure(static fn() => BookingStorage::initialize());
-        BookingStorage::release();
-        $wpdb->failWrite = 0;
-        $result['partialStatus'] = BookingStorage::status();
-        $result['newToken'] = TokenManager::createPending('2099-02-03 11:00-11:30', ['booker_name' => 'During Migration']);
-        $result['newWriteEncrypted'] = str_starts_with($wpdb->raw(TokenManager::PENDING_OPTION), BookingCipher::PREFIX);
-        $result['automaticallyResumed'] = BookingStorage::status()['phase'] === 'encrypted';
-    } elseif ($scenario === 'cron-conflict') {
-        $wpdb->beforeWrite = static function ($query) use ($wpdb): void {
-            if (str_contains($query, "option_name = 'cron'")) {
-                $wpdb->beforeWrite = null;
-                $cron = unserialize($wpdb->raw('cron'));
-                $cron[4000000001]['another_plugin']['added'] = ['schedule' => false, 'args' => []];
-                $wpdb->seed('cron', serialize($cron));
-            }
-        };
-    } elseif ($scenario === 'empty') {
-        foreach (BookingStorage::OPTIONS as $name) {
-            $wpdb->db->exec($wpdb->prepare('DELETE FROM %i WHERE option_name = %s', $wpdb->options, $name));
-        }
-    }
-    if ($scenario === 'first-access') {
-        BookingStorage::get(Bookings::META_OPTION);
-    } else {
-        BookingStorage::initialize();
-    }
-    BookingStorage::release();
-    $result['status'] = BookingStorage::status();
-    $result['allEncrypted'] = true;
-    $result['autoloadOff'] = true;
-    foreach (BookingStorage::OPTIONS as $name) {
-        $result['allEncrypted'] = $result['allEncrypted'] && str_starts_with($wpdb->raw($name), BookingCipher::PREFIX);
-        $result['autoloadOff'] = $result['autoloadOff'] && $wpdb->rows()[$name]['autoload'] === 'no';
-    }
-    $result['payloadPreserved'] = $scenario === 'empty' ? BookingStorage::get(Bookings::META_OPTION) === [] : BookingStorage::get(Bookings::META_OPTION) === $data[Bookings::META_OPTION];
-    $result['publicUntouched'] = unserialize($wpdb->raw('public-settings')) === ['title' => 'Public office hours'];
-    $afterCron = unserialize($wpdb->raw('cron'));
-    $result['otherCronUntouched'] = $afterCron[4000000000]['unrelated_job'] === $cron[4000000000]['unrelated_job'];
-    $result['concurrentCronPreserved'] = isset($afterCron[4000000001]['another_plugin']);
-    $result['rawClean'] = !preg_match('/Synthetic Patient|synthetic@example|old-confirm|old-cancel|old-optout|old-opening|2099-01-0/', json_encode($wpdb->rows()));
-    $result['referencesResolve'] = true;
-    foreach ($hooks as $hook => $argument) {
-        $event = reset($afterCron[4000000000][$hook]);
-        $result['referencesResolve'] = $result['referencesResolve'] && BookingScheduler::resolve($hook, $event['args'][0]) === ($scenario === 'empty' ? null : $argument);
-    }
-    if ($scenario !== 'empty') {
-        $result['oldCancellation'] = TokenManager::validateCancelToken('old-cancel')['slot'] === $slot;
-        $result['oldUrl'] = TokenManager::getCancelUrlForSlot($slot) === 'https://booking.test/?rrze_appt_cancel=old-cancel';
-        $result['oldOptout'] = TokenManager::validateWaitlistOptOutToken('old-optout') === $slot;
-        $result['oldConfirmation'] = TokenManager::confirmPending('old-confirm')['meta']['booker_name'] === 'Pending Patient';
-        $result['pendingConsumed'] = TokenManager::getPending('old-confirm') === null;
-        if (isset($result['newToken'])) {
-            $result['newBookingPreserved'] = TokenManager::getPending($result['newToken'])['meta']['booker_name'] === 'During Migration';
-        }
-        $token = TokenManager::createPending('2099-03-04 09:00-09:30', ['booker_name' => 'After Migration']);
-        $reference = BookingStorage::jobReference(TokenManager::PENDING_EXPIRY_HOOK, $token);
-        $result['newJobOpaque'] = $reference !== $token && wp_next_scheduled(TokenManager::PENDING_EXPIRY_HOOK, [$reference]) !== false;
-        BookingScheduler::expirePending($reference);
-        $result['dispatchWorks'] = TokenManager::getPending($token) === null;
-    }
-    $before = $wpdb->raw(BookingStorage::STATE_OPTION);
-    $writes = $wpdb->writeCount;
-    $beforeRows = $wpdb->rows();
-    BookingStorage::release();
-    BookingStorage::initialize();
-    $result['noRepeatedWrites'] = $wpdb->writeCount === $writes && $wpdb->rows() === $beforeRows;
-    $result['idempotentState'] = $wpdb->raw(BookingStorage::STATE_OPTION) === $before;
-    if ($scenario === 'multisite') {
-        $first = json_decode($before, true);
-        $wpdb->options = 'wp_2_options';
-        BookingStorage::get(Bookings::META_OPTION);
-        $second = json_decode($wpdb->raw(BookingStorage::STATE_OPTION), true);
-        $result['separateContext'] = $first['context'] !== $second['context'];
-        $result['separateData'] = BookingStorage::get(Bookings::META_OPTION) === [];
-        $result['separateLocks'] = count(array_unique($wpdb->locks)) === 2;
-        $wpdb->options = 'wp_options';
-        $result['firstSitePreserved'] = BookingStorage::get(Bookings::META_OPTION) === $data[Bookings::META_OPTION];
-    }
+    $result['unchanged'] = $before === $wpdb->rows();
 }
 BookingStorage::release();
 echo json_encode($result, JSON_THROW_ON_ERROR);

@@ -9,7 +9,6 @@ use RRZE\Appointment\Admin\MailTemplatesPage;
 use RRZE\Appointment\Admin\SettingsPage;
 use RRZE\Appointment\Admin\StorageStatus;
 use RRZE\Appointment\Storage\BookingScheduler;
-use RRZE\Appointment\Storage\BookingStorage;
 use RRZE\Appointment\Booking\TokenManager;
 use RRZE\Appointment\Booking\GuestRequestLimiter;
 use RRZE\Appointment\Controller\AdminBookingsController;
@@ -74,21 +73,17 @@ final class Main
     }
 
     /**
-     * Initializes plugin state and registers runtime WordPress hooks.
+     * Registers runtime hooks without changing reservations or migrating stored bookings.
      */
     public function onInit(): void
     {
-        $storageInitializationError = null;
+        $templateError = null;
         try {
-            $this->initializePluginState();
+            MailTemplatePost::ensureEditableDefaultTemplateExists();
         } catch (AppointmentException $exception) {
-            $storageInitializationError = $exception->getMessage();
-            // Keep admin recovery and routes available. Every booking access still
-            // validates storage and fails closed; cleanup must not use empty defaults.
-        } finally {
-            BookingStorage::release();
+            $templateError = $exception->getMessage();
         }
-        (new StorageStatus($storageInitializationError))->register();
+        (new StorageStatus($templateError))->register();
 
         $mailTemplatesPage = new MailTemplatesPage();
         (new SettingsPage($mailTemplatesPage))->register();
@@ -96,23 +91,13 @@ final class Main
         (new AccessSettings())->register();
         (new BookingsPage())->register();
         (new Reminder())->register();
+        BookingScheduler::register();
 
         $this->registerAssetHooks();
         $this->registerAjaxHooks();
         $this->registerPublicPageHooks();
         $this->registerBackgroundHooks();
         add_action('rest_api_init', [$this, 'registerRestRoutes']);
-    }
-
-    /**
-     * Runs one-time maintenance needed before request hooks execute.
-     */
-    private function initializePluginState(): void
-    {
-        BookingStorage::initialize();
-        MailTemplatePost::ensureEditableDefaultTemplateExists();
-        TokenManager::cleanupPendingState();
-        BookingOpeningNotifier::cleanup();
     }
 
     /**
