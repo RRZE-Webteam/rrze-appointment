@@ -9,7 +9,8 @@
 
 use RRZE\Appointment\Storage\StorageMaintenance;
 
-if (!defined('WP_CLI') || !WP_CLI || !defined('ABSPATH')) {
+if (PHP_SAPI !== 'cli' || !defined('WP_CLI') || !WP_CLI || !defined('ABSPATH')) {
+    http_response_code(403);
     exit;
 }
 if (class_exists(\RRZE\Appointment\Main::class, false)) {

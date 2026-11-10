@@ -268,13 +268,22 @@ class Audit:
         log = self.command(['node', str(dependencies / '@wordpress/scripts/bin/wp-scripts.js'),
                             'build', '--webpack-copy-php'], cwd=candidate)
         log += '\n' + self.command(['npm', 'run', 'build:email'], cwd=candidate)
+        package = json.loads((candidate / 'package.json').read_text())
+        version = package['version']
+        if 'files' in package:
+            # Stage exactly the release packer's entries, including hidden access rules.
+            log += '\n' + self.command(['npm', 'run', 'plugin-zip'], cwd=candidate)
+            with zipfile.ZipFile(candidate / (package['name'] + '.zip')) as release:
+                paths = [candidate / Path(entry.filename).relative_to(package['name'])
+                         for entry in release.infolist() if not entry.is_dir()]
+        else:
+            # Historical V1 candidates predate the release manifest.
+            paths = [path for path in candidate.rglob('*') if path.is_file()
+                     and not {'node_modules', 'tests'}.intersection(path.relative_to(candidate).parts)]
         (self.root / 'build.log').write_text(log)
-        version = json.loads((candidate / 'package.json').read_text())['version']
         with zipfile.ZipFile(self.root / 'candidate.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
-            for path in sorted(candidate.rglob('*')):
+            for path in sorted(paths):
                 relative = path.relative_to(candidate)
-                if 'node_modules' in relative.parts or 'tests' in relative.parts or not path.is_file():
-                    continue
                 entry = zipfile.ZipInfo('rrze-appointment/' + relative.as_posix(), (2026, 10, 23, 0, 0, 0))
                 entry.compress_type = zipfile.ZIP_DEFLATED
                 entry.external_attr = 0o644 << 16
