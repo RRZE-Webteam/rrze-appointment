@@ -71,6 +71,7 @@ const getWaitlistNotifierResult = (): WaitlistNotifierResult => {
 		}
 		namespace {
 			define( 'ABSPATH', __DIR__ );
+			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 			$GLOBALS['is_revision'] = false;
 			$GLOBALS['is_autosave'] = false;
 			$GLOBALS['options'] = [

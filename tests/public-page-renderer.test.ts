@@ -172,9 +172,9 @@ describe( 'public page renderer', () => {
 		expect( result.waitlist ).toMatchObject( {
 			isWaitlistOptOut: true,
 			waitlistNotificationsEnabled: true,
-			waitlistOptInAction: 'waitlist:waitlist-token',
-			waitlistOptInNonce:
-				'nonce:rrze_appointment_waitlist_optin_waitlist-token',
+			waitlistActionUrl: 'waitlist:waitlist-token',
+			waitlistNonce:
+				'nonce:rrze_appointment_waitlist_optout_waitlist-token',
 		} );
 		expect( result.opening ).toMatchObject( {
 			isOpeningNotification: true,

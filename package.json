@@ -16,9 +16,9 @@
   "textDomain": "rrze-appointment",
   "main": "build/index.js",
   "compatibility": {
-    "wprequires": "6.0",
-    "wptestedup": "6.5",
-    "phprequires": "7.4"
+    "wprequires": "6.8",
+    "wptestedup": "7.1.4",
+    "phprequires": "8.2"
   },
   "tags": [
     "appointments",

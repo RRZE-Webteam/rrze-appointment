@@ -1,0 +1,1610 @@
+{
+  "tested_on": "2026-11-10",
+  "scope": "isolated synthetic staging networks",
+  "package_version": "2.3.3",
+  "package_sha256": "0385cecfd4ab8d4dc3e25ef69496201f3bbdccae80f1aa009f5afcc93ca3b432",
+  "source_snapshot": "working-tree:03be016012cee0ea4e3c1f978e322725e197afb9860e77f633fefc4c107e0304",
+  "baseline": "28b5552dc96171826ce22603964f4c67dd06a0b7",
+  "runtime_and_language_files_verified_against_workspace": 60,
+  "unit": {
+    "suites": 53,
+    "passed": 535,
+    "php": "8.5.12"
+  },
+  "runs": [
+    {
+      "environment": {
+        "php": "8.2.35",
+        "wordpress": "7.1.4",
+        "mysql": "5.7.44",
+        "theme": "FAU-Elemental",
+        "timezone": "Europe/Berlin",
+        "sites": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "checks": [
+        {
+          "name": "candidate-build-without-version-bump",
+          "status": "pass",
+          "evidence": {
+            "version": "2.3.3",
+            "sha256": "0385cecfd4ab8d4dc3e25ef69496201f3bbdccae80f1aa009f5afcc93ca3b432"
+          }
+        },
+        {
+          "name": "legacy-confirmation-booked",
+          "status": "pass",
+          "evidence": {
+            "status": 200
+          }
+        },
+        {
+          "name": "legacy-confirmation-cancel",
+          "status": "pass",
+          "evidence": {
+            "status": 200
+          }
+        },
+        {
+          "name": "legacy-confirmation-optout",
+          "status": "pass",
+          "evidence": {
+            "status": 200
+          }
+        },
+        {
+          "name": "legacy-baseline-real-bookings",
+          "status": "pass",
+          "evidence": {
+            "mails": 6
+          }
+        },
+        {
+          "name": "mixed-http-previews-and-management-preserve-source-bytes",
+          "status": "pass",
+          "evidence": {
+            "protected_rows_identical": true,
+            "preview_statuses": [
+              200,
+              200,
+              200,
+              200,
+              200,
+              200,
+              200
+            ],
+            "management_rendered": true,
+            "authenticated_rest": 200,
+            "private_headers": true
+          }
+        },
+        {
+          "name": "mixed-new-public-reservation-encrypted-from-first-write",
+          "status": "pass",
+          "evidence": {
+            "reservation_ciphertexts": 1,
+            "confirmed_ciphertexts": 1,
+            "stable_id": true,
+            "rejected_nonce_status": 200,
+            "retry_token_status": 410,
+            "source_rows_identical": true
+          }
+        },
+        {
+          "name": "mixed-concurrent-http-reservations-have-one-owner",
+          "status": "pass",
+          "evidence": {
+            "successes": 1,
+            "attempts": 4,
+            "statuses": [
+              200,
+              200,
+              200,
+              200
+            ]
+          }
+        },
+        {
+          "name": "mixed-legacy-action-links-apply-one-business-change",
+          "status": "pass",
+          "evidence": {
+            "consumed_statuses": [
+              410,
+              410,
+              410
+            ],
+            "booked_count": 5,
+            "encrypted_bookings": 4,
+            "untouched_legacy_booking_preserved": true
+          }
+        },
+        {
+          "name": "mixed-update-isolated-to-active-site-and-owned-jobs",
+          "status": "pass",
+          "evidence": {
+            "unaffected_sites": 4,
+            "foreign_jobs_before": 1,
+            "foreign_jobs_after": 1
+          }
+        },
+        {
+          "name": "mixed-negative-control-undrained-legacy-writer-conflicts",
+          "status": "pass",
+          "evidence": {
+            "writer_held_after_slot_check": true,
+            "legacy_response_status": 200,
+            "legacy_success": true,
+            "new_success": true,
+            "legacy_write_seen": true,
+            "encrypted_record_bytes_identical": true,
+            "intact_encrypted_pending_rows": 1,
+            "blocked_views": 5
+          }
+        },
+        {
+          "name": "mixed-real-package-update-after-legacy-writer-finished",
+          "status": "pass",
+          "evidence": {
+            "legacy_completed_before_update": true,
+            "new_same_slot_accepted": false,
+            "different_slot_accepted": true
+          }
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-innodb-and-local-mail",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-foreign-snapshot-ready",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-encrypted-at-creation",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-wake-actually-lost",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-wake-repaired-by-new-bootstrap",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-only-argumentless-wake",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-opening-dispatched-once",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-retry-promotes-and-preserves-times",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-early-old-callback-is-harmless",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-foreign-events-preserved",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-read-rrze_appointment_booked_slots",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-read-rrze_appointment_booked_slots_meta",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-read-rrze_appointment_pending_slots",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-read-rrze_appointment_cancel_tokens",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-read-rrze_appointment_booking_opening_notifications",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-strict-before",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-reads-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-record-created",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-untouched-booking",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-v1-checkpoints-preserved",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-remaining-source-format",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-links-preserved",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-v1-hmac-job-due-preserved",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-strict-after",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-read-rrze_appointment_booked_slots",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-read-rrze_appointment_booked_slots_meta",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-read-rrze_appointment_pending_slots",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-read-rrze_appointment_cancel_tokens",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-read-rrze_appointment_booking_opening_notifications",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-strict-before",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-reads-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-signed-v1-checkpoint-rejects-plaintext",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-record-created",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-untouched-booking",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-v1-checkpoints-preserved",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-remaining-source-format",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-links-preserved",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-v1-hmac-job-due-preserved",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-strict-after",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-changed-policy-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-changed-policy-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-policy-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-policy-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-index-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-index-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-record-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-record-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-foreign-index-envelope-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-foreign-index-envelope-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-damaged-record-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-damaged-record-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-unknown-data-version-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-unknown-data-version-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-unknown-state-version-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-unknown-state-version-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-orphan-without-index-and-policy-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-orphan-without-index-and-policy-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-v2-only-key-outage-fixture-ready",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-same-site-used-for-key-outage",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-key-is-absent",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-key-outage-blocks-verification",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-key-outage-blocks-write",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-key-outage-retains-all-bytes",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-wrong-same-site-used-for-key-outage",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-wrong-wrong-key-present",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-wrong-key-outage-blocks-verification",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-wrong-key-outage-blocks-write",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-wrong-key-outage-retains-all-bytes",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-scratch-table-removed",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-isolated-table",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-fault-installed",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-write-failure-reached-rrze_appointment_booked_slots",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-rollback-rrze_appointment_booked_slots",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-old-token-retained",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-retry-confirms-once",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-new-cancel-token-valid",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-repeat-token-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-pending-cancel-token-removed",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-write-failure-reached-rrze_appointment_booked_slots_meta",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-rollback-rrze_appointment_booked_slots_meta",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-write-failure-reached-rrze_appointment_cancel_tokens",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-rollback-rrze_appointment_cancel_tokens",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-write-failure-reached-rrze_appointment_pending_slots",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-rollback-rrze_appointment_pending_slots",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-process-exit-before-commit-rolls-back",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-retry-after-process-exit",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-uncertain-commit-is-complete",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-uncertain-commit-retry-cannot-duplicate",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-ambient-transaction-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-myisam-rejected-before-write",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-connection-killed-during-transaction",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-disconnect-rolled-back-without-replay",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-retry-after-disconnect",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-isolated-table",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-fault-installed",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-write-failure-reached-insert-policy",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-rollback-insert-policy",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-old-token-retained",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-retry-confirms-once",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-new-cancel-token-valid",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-repeat-token-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-pending-cancel-token-removed",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-write-failure-reached-insert-index",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-rollback-insert-index",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-write-failure-reached-insert-booking",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-rollback-insert-booking",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-write-failure-reached-remove-source-pending",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-rollback-remove-source-pending",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-write-failure-reached-remove-source-cancel",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-rollback-remove-source-cancel",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-managed-reservation-seeded",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-write-failure-reached-update-index",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-rollback-update-index",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-immutable-id-through-retry",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-write-failure-reached-delete-pending-record",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-rollback-delete-pending-record",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-process-exit-before-commit-rolls-back",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-retry-after-process-exit",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-uncertain-commit-is-complete",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-uncertain-commit-retry-cannot-duplicate",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-ambient-transaction-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-myisam-rejected-before-write",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-connection-killed-during-transaction",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-disconnect-rolled-back-without-replay",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-retry-after-disconnect",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "cli-verify-mixed",
+          "status": "pass",
+          "evidence": {
+            "exit": 0
+          }
+        },
+        {
+          "name": "cli-verify",
+          "status": "pass",
+          "evidence": {
+            "exit": 1
+          }
+        },
+        {
+          "name": "cli-migrate",
+          "status": "pass",
+          "evidence": {
+            "exit": 1
+          }
+        },
+        {
+          "name": "cli-inspects-actual-network",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "cli-leaves-source-bytes-untouched",
+          "status": "pass",
+          "evidence": {}
+        }
+      ]
+    },
+    {
+      "environment": {
+        "php": "8.2.35",
+        "wordpress": "6.8",
+        "mysql": "5.7.44",
+        "theme": "FAU-Elemental",
+        "timezone": "Europe/Berlin",
+        "sites": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "checks": [
+        {
+          "name": "legacy-confirmation-booked",
+          "status": "pass",
+          "evidence": {
+            "status": 200
+          }
+        },
+        {
+          "name": "legacy-confirmation-cancel",
+          "status": "pass",
+          "evidence": {
+            "status": 200
+          }
+        },
+        {
+          "name": "legacy-confirmation-optout",
+          "status": "pass",
+          "evidence": {
+            "status": 200
+          }
+        },
+        {
+          "name": "legacy-baseline-real-bookings",
+          "status": "pass",
+          "evidence": {
+            "mails": 6
+          }
+        },
+        {
+          "name": "mixed-http-previews-and-management-preserve-source-bytes",
+          "status": "pass",
+          "evidence": {
+            "protected_rows_identical": true,
+            "preview_statuses": [
+              200,
+              200,
+              200,
+              200,
+              200,
+              200,
+              200
+            ],
+            "management_rendered": true,
+            "authenticated_rest": 200,
+            "private_headers": true
+          }
+        },
+        {
+          "name": "mixed-new-public-reservation-encrypted-from-first-write",
+          "status": "pass",
+          "evidence": {
+            "reservation_ciphertexts": 1,
+            "confirmed_ciphertexts": 1,
+            "stable_id": true,
+            "rejected_nonce_status": 200,
+            "retry_token_status": 410,
+            "source_rows_identical": true
+          }
+        },
+        {
+          "name": "mixed-concurrent-http-reservations-have-one-owner",
+          "status": "pass",
+          "evidence": {
+            "successes": 1,
+            "attempts": 4,
+            "statuses": [
+              200,
+              200,
+              200,
+              200
+            ]
+          }
+        },
+        {
+          "name": "mixed-legacy-action-links-apply-one-business-change",
+          "status": "pass",
+          "evidence": {
+            "consumed_statuses": [
+              410,
+              410,
+              410
+            ],
+            "booked_count": 5,
+            "encrypted_bookings": 4,
+            "untouched_legacy_booking_preserved": true
+          }
+        },
+        {
+          "name": "mixed-update-isolated-to-active-site-and-owned-jobs",
+          "status": "pass",
+          "evidence": {
+            "unaffected_sites": 4,
+            "foreign_jobs_before": 1,
+            "foreign_jobs_after": 1
+          }
+        },
+        {
+          "name": "mixed-negative-control-undrained-legacy-writer-conflicts",
+          "status": "pass",
+          "evidence": {
+            "writer_held_after_slot_check": true,
+            "legacy_response_status": 200,
+            "legacy_success": true,
+            "new_success": true,
+            "legacy_write_seen": true,
+            "encrypted_record_bytes_identical": true,
+            "intact_encrypted_pending_rows": 1,
+            "blocked_views": 5
+          }
+        },
+        {
+          "name": "mixed-real-package-update-after-legacy-writer-finished",
+          "status": "pass",
+          "evidence": {
+            "legacy_completed_before_update": true,
+            "new_same_slot_accepted": false,
+            "different_slot_accepted": true
+          }
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-innodb-and-local-mail",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-foreign-snapshot-ready",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-encrypted-at-creation",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-wake-actually-lost",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-wake-repaired-by-new-bootstrap",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-only-argumentless-wake",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-opening-dispatched-once",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-retry-promotes-and-preserves-times",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-early-old-callback-is-harmless",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-jobs-mixed-jobs-foreign-events-preserved",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-read-rrze_appointment_booked_slots",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-read-rrze_appointment_booked_slots_meta",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-read-rrze_appointment_pending_slots",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-read-rrze_appointment_cancel_tokens",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-read-rrze_appointment_booking_opening_notifications",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-strict-before",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-reads-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-record-created",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-untouched-booking",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-v1-checkpoints-preserved",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-remaining-source-format",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-links-preserved",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-v1-hmac-job-due-preserved",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-complete-v1-strict-after",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-read-rrze_appointment_booked_slots",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-read-rrze_appointment_booked_slots_meta",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-read-rrze_appointment_pending_slots",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-read-rrze_appointment_cancel_tokens",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-read-rrze_appointment_booking_opening_notifications",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-strict-before",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-reads-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-signed-v1-checkpoint-rejects-plaintext",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-record-created",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-untouched-booking",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-v1-checkpoints-preserved",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-remaining-source-format",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-links-preserved",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-v1-hmac-job-due-preserved",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-partial-v1-strict-after",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-changed-policy-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-changed-policy-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-policy-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-policy-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-index-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-index-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-record-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-record-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-foreign-index-envelope-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-foreign-index-envelope-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-damaged-record-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-damaged-record-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-unknown-data-version-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-unknown-data-version-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-unknown-state-version-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-unknown-state-version-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-orphan-without-index-and-policy-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-orphan-without-index-and-policy-unchanged",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-v2-only-key-outage-fixture-ready",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-same-site-used-for-key-outage",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-key-is-absent",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-key-outage-blocks-verification",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-key-outage-blocks-write",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-missing-key-outage-retains-all-bytes",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-wrong-same-site-used-for-key-outage",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-wrong-wrong-key-present",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-wrong-key-outage-blocks-verification",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-wrong-key-outage-blocks-write",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-wrong-key-outage-retains-all-bytes",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "mixed-compat-scratch-table-removed",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-isolated-table",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-fault-installed",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-write-failure-reached-rrze_appointment_booked_slots",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-rollback-rrze_appointment_booked_slots",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-old-token-retained",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-retry-confirms-once",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-new-cancel-token-valid",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-repeat-token-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-pending-cancel-token-removed",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-write-failure-reached-rrze_appointment_booked_slots_meta",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-rollback-rrze_appointment_booked_slots_meta",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-write-failure-reached-rrze_appointment_cancel_tokens",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-rollback-rrze_appointment_cancel_tokens",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-write-failure-reached-rrze_appointment_pending_slots",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-rollback-rrze_appointment_pending_slots",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-process-exit-before-commit-rolls-back",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-retry-after-process-exit",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-uncertain-commit-is-complete",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-uncertain-commit-retry-cannot-duplicate",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-ambient-transaction-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-myisam-rejected-before-write",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-connection-killed-during-transaction",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-disconnect-rolled-back-without-replay",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-legacy-retry-after-disconnect",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-isolated-table",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-fault-installed",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-write-failure-reached-insert-policy",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-rollback-insert-policy",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-old-token-retained",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-retry-confirms-once",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-new-cancel-token-valid",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-repeat-token-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-pending-cancel-token-removed",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-write-failure-reached-insert-index",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-rollback-insert-index",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-write-failure-reached-insert-booking",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-rollback-insert-booking",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-write-failure-reached-remove-source-pending",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-rollback-remove-source-pending",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-write-failure-reached-remove-source-cancel",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-rollback-remove-source-cancel",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-managed-reservation-seeded",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-write-failure-reached-update-index",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-rollback-update-index",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-immutable-id-through-retry",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-write-failure-reached-delete-pending-record",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-rollback-delete-pending-record",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-process-exit-before-commit-rolls-back",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-retry-after-process-exit",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-uncertain-commit-is-complete",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-uncertain-commit-retry-cannot-duplicate",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-ambient-transaction-rejected",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-myisam-rejected-before-write",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-connection-killed-during-transaction",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-disconnect-rolled-back-without-replay",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "atomic-mixed-retry-after-disconnect",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "cli-verify-mixed",
+          "status": "pass",
+          "evidence": {
+            "exit": 0
+          }
+        },
+        {
+          "name": "cli-verify",
+          "status": "pass",
+          "evidence": {
+            "exit": 1
+          }
+        },
+        {
+          "name": "cli-migrate",
+          "status": "pass",
+          "evidence": {
+            "exit": 1
+          }
+        },
+        {
+          "name": "cli-inspects-actual-network",
+          "status": "pass",
+          "evidence": {}
+        },
+        {
+          "name": "cli-leaves-source-bytes-untouched",
+          "status": "pass",
+          "evidence": {}
+        }
+      ]
+    }
+  ]
+}

@@ -10,9 +10,10 @@ interface CancelBookingModalProps {
 	showReason: boolean;
 	onClose: () => void;
 	onSuccess: ( message: string ) => void;
-	onAccessError: ( message: string ) => void;
+	onAccessError: ( error: unknown ) => void;
 }
 
+/** Displays the cancellation form and reports session failures to its parent. */
 export function CancelBookingModal( {
 	booking,
 	config,
@@ -26,6 +27,7 @@ export function CancelBookingModal( {
 	const [ submitting, setSubmitting ] = useState( false );
 	const pending = useRef( false );
 
+	/** Prevents duplicate submissions and handles authorization loss centrally. */
 	async function submit(): Promise< void > {
 		if ( pending.current ) {
 			return;
@@ -43,7 +45,7 @@ export function CancelBookingModal( {
 		} catch ( requestError ) {
 			const message = requestErrorMessage( requestError );
 			if ( isAccessError( requestError ) ) {
-				onAccessError( message );
+				onAccessError( requestError );
 			} else {
 				setError( message );
 			}

@@ -60,6 +60,112 @@ past, and closed slots are omitted. Future slots whose booking window has not
 opened retain the **Notify me** option. The editor's planning calendar remains
 available; existing blocks use the calendar view by default.
 
+### Encrypted booking storage
+
+With a valid `RRZE_APPOINTMENT_ENCRYPTION_KEY` in `wp-config.php`, each new
+reservation, booking and opening subscription is immediately stored as an
+authenticated V2 record. An existing booking is adopted on its first business
+change. Reading the calendar, opening an old guest link or viewing the
+administration leaves its stored booking data untouched. Old links show a
+preview and use a nonce-protected form to confirm the action.
+
+Activation is site-local. The first encrypted write commits the record, its
+index, the signed site policy and its scheduled work in one InnoDB transaction.
+Existing plaintext records and their old cron arguments can remain until they
+change, run or expire. **Appointments** and **Settings → RRZE Appointment** show
+the current write policy to administrators (superadministrators on multisite).
+
+Use Base64 for 32 or 64 cryptographically random bytes and back up the key
+separately from the database. This version is a staging candidate. Before the
+first production write, verify that all web, cron and CLI requests still using
+2.3.3 have finished. An old request can already have accepted a slot that the
+new booking process claims. Other sites can continue serving traffic during the
+switch. See the [storage guide](includes/Storage/README.md) for format details,
+read-only verification, scheduling and restore requirements.
+
+### Optional SSO protection for appointment management
+
+The general settings contain an independent **SSO protection for appointment management** section.
+It is disabled by default, separately for every site. Setup can activate an installed and permitted
+RRZE-AC plugin on the current site, then requires a fresh request and a matching SSO login before
+protection can be enabled. Public bookings, emails, cron and encrypted-storage migration remain independent.
+
+The management page and its REST list/cancellation routes require both the existing WordPress
+permission and an active SSO session mapped to the same WordPress account. RRZE-AC and RRZE-SSO
+must be active and configured; the RRZE-SSO helper requires its `force_sso` configuration and
+initialized identity providers. Setup never changes that configuration or existing AC rules.
+An unrecognized IdP, missing mapping or dependency failure denies access. Local accounts without
+a matching SSO identity cannot access protected appointment data, including network administrators.
+
+Before explicit user restrictions are configured, site administrators need matching SSO to disable protection or change legacy appointment managers. After setup, only responsible administrators may change SSO protection; responsible editors may manage grants.
+Network administrators have a separate, nonce-protected emergency reset in the same settings section.
+It explicitly removes the additional requirement on that site; it is not a data-access bypass.
+Deactivating AC later leaves protection enabled and denies management access until repaired or reset.
+
+The non-autoloaded site option is `rrze_appointment_backend_sso_required`. Ordinary settings saves
+do not modify it. Activation honors WordPress capabilities, plugin visibility (`all_plugins`),
+network-only restrictions, WordPress dependency checks and the optional
+`rrze_appointment_can_activate_access_control` filter (boolean, current blog ID).
+Networks with a separate plugin allowlist should enforce it through that filter if they do not
+already expose it through capabilities or plugin visibility. No other sites are scanned or activated.
+
+REST failures use `rrze_appointment_sso_required` (401),
+`rrze_appointment_sso_identity_mismatch` (403), and `rrze_appointment_sso_unavailable` (503).
+They never redirect; the management UI clears displayed data on a failed request and offers an
+explicit login when appropriate. Already displayed information cannot be recalled when an SSO
+session expires: access is checked on every subsequent request. No SSO attributes or authorization
+results are stored by this integration. Settings, management, login and error responses are private
+and non-cacheable. Server configuration and other plugins remain trusted administrative components.
+
+### Explicit appointment permissions and responsible people
+
+Each site can deliberately set up **user restrictions** in the general settings. Existing installations
+retain their administrator access and legacy manager list until this confirmation; no site is converted
+by an update or a network scan. The preview makes the acting administrator responsible and offers
+eligible previous managers for confirmation. Other administrators must be explicitly selected.
+A new SSO activation requires this setup first; an already enabled SSO requirement remains unchanged.
+
+After setup, only listed responsible people and ordinary authorized users may view and cancel
+appointments. Administrators and network administrators have no implicit data access. Eligible users
+must currently belong to the site and have `read` plus `edit_others_posts` or `manage_options`.
+Roles, membership and the matching SSO session (when required) are rechecked on every request.
+Deleting or demoting users removes their effective access immediately. Local accounts without a
+matching SSO identity cannot use an SSO-protected management screen even when listed.
+
+Responsible people use **Appointments → Manage access**, including editors without `manage_options`,
+to grant view/cancellation access or appoint other responsible people. At least one eligible owner
+must remain after each change. Restrictions persist independently of SSO and never revert to
+administrator access because a list becomes empty or invalid. There is no regular "allow all admins"
+action after setup. Other administrators see read-only responsibility information in settings.
+
+Only a responsible administrator with matching SSO may normally enable/disable SSO. A network
+administrator can explicitly **reassign responsibility** without SSO if owners are unavailable; this
+preserves ordinary grants and the SSO requirement. If a damaged policy cannot be decoded, recovery
+creates a valid policy from the explicitly selected owners without trusting damaged grants.
+The separate **SSO emergency reset** removes only SSO, leaving explicit user restrictions intact.
+Neither recovery action automatically adds its actor to the list. All writes require authenticated
+POSTs and site/action/revision-bound WordPress nonces.
+
+The non-autoloaded, per-site option `rrze_appointment_access_policy` stores a version, the restricted
+state, owners, managers and a revision. It is separate from ordinary settings and booking encryption.
+The old `appointment_manager_user_ids` field is ignored and preserved after setup. Security writes
+share a bounded database advisory lock, refresh option caches, reject stale forms (409), and preserve
+the previous policy on failure. Policy writes use compare-and-swap; failures deny access (503).
+No SSO claims or authentication results are persisted. Server code and database administrators remain
+trusted infrastructure; these application permissions do not isolate data from someone controlling PHP.
+
+Users without a base grant do not see the Appointments menu. Direct links display a private, data-free
+explanation. Users who only need to renew SSO still see the menu and an explicit sign-in action.
+Responsible names are shown only to authenticated site members, never in denied REST responses.
+The open application clears its list and cancellation dialog on access failures and rejects late responses.
+The existing REST list/cancellation URLs and their SSO status codes remain unchanged.
+
+Validation covers setup/legacy compatibility, ordinary and responsible editors, excluded admins,
+SSO failures, nonce manipulation, last-owner protection, stale forms, role/member loss, network recovery,
+site isolation, and late frontend responses. Public booking, mail, cron and encrypted migration retain
+independent authorization paths. Build without a version bump using
+`./node_modules/.bin/wp-scripts build --webpack-copy-php` followed by `npm run build:email`.
+
 ### Email addresses for bookings without SSO
 
 Guest bookings and booking-opening notifications validate the submitted email

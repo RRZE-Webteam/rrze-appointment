@@ -2,6 +2,10 @@ import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
 type TokenManagerResult = {
+	readOnly: boolean;
+	legacyPendingCancellation: Record< string, unknown >;
+	duplicateReservationRejected: boolean;
+	duplicateConfirmation: null;
 	cleanedPending: Record< string, Record< string, unknown > >;
 	cleanedTokens: Record< string, unknown >;
 	clearedTokens: string[];
@@ -24,12 +28,12 @@ type TokenManagerResult = {
 	unknownWaitlistSlot: null;
 	actionUrls: string[];
 	imprintUrl: string;
-	corruptOptionsIgnored: string[];
+	corruptOptionsRejected: boolean;
 	wrappedFailure: {
 		className: string;
 		message: string;
-		previousClass: string;
-		previousMessage: string;
+		previousClass: string | null;
+		previousMessage: string | null;
 	};
 };
 
@@ -40,15 +44,18 @@ const getTokenManagerResult = (): TokenManagerResult => {
 	);
 	const php = `
 		namespace RRZE\\Appointment {
-			class AppointmentException extends \\Exception {}
+			defined('ABSPATH') || define('ABSPATH', __DIR__);
+            require_once getcwd() . '/includes/AppointmentException.php';
 		}
 		namespace RRZE\\Appointment\\Booking {
 			class Bookings {
 				public const META_OPTION = 'rrze_appointment_booked_slots_meta';
+				public const SLOTS_OPTION = 'rrze_appointment_booked_slots';
 			}
 		}
 		namespace {
-			define( 'ABSPATH', __DIR__ );
+			defined('ABSPATH') || define( 'ABSPATH', __DIR__ );
+			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 			$now = time();
 			$GLOBALS['options'] = [
 				'rrze_appointment_pending_slots' => [
@@ -81,6 +88,7 @@ const getTokenManagerResult = (): TokenManagerResult => {
 					'legacy-booked' => '2099-01-03 10:00-10:30',
 					'malformed' => [ 'type' => 'booked', 'slot' => [ 'invalid' ] ],
 				],
+				'rrze_appointment_booked_slots' => [ '2099-01-03 10:00-10:30' ],
 				'rrze_appointment_booked_slots_meta' => [
 					'2099-01-03 10:00-10:30' => [ 'title' => 'Confirmed' ],
 				],
@@ -90,7 +98,8 @@ const getTokenManagerResult = (): TokenManagerResult => {
 			$GLOBALS['uuid_counter'] = 0;
 			$GLOBALS['throw_on_get'] = false;
 
-			function get_option( $key, $default = false ) {
+			function __( $message, $domain ) { return $message; }
+            function get_option( $key, $default = false ) {
 				if ( $GLOBALS['throw_on_get'] ) { throw new \\RuntimeException( 'storage failed' ); }
 				return array_key_exists( $key, $GLOBALS['options'] )
 					? $GLOBALS['options'][ $key ]
@@ -121,6 +130,11 @@ const getTokenManagerResult = (): TokenManagerResult => {
 
 			require ${ JSON.stringify( tokenManagerPath ) };
 
+			$beforeRead = serialize( $GLOBALS['options'] );
+			\\RRZE\\Appointment\\Booking\\TokenManager::getPending( 'pending-expired' );
+			\\RRZE\\Appointment\\Booking\\TokenManager::getPendingSlots();
+			$legacyPendingCancellation = \\RRZE\\Appointment\\Booking\\TokenManager::validateCancelToken( 'legacy-pending-cancel' );
+			$readOnly = $beforeRead === serialize( $GLOBALS['options'] ) && $GLOBALS['cleared_tokens'] === [];
 			\\RRZE\\Appointment\\Booking\\TokenManager::cleanupPendingState();
 			$cleanedPending = $GLOBALS['options']['rrze_appointment_pending_slots'];
 			$cleanedTokens = $GLOBALS['options']['rrze_appointment_cancel_tokens'];
@@ -135,9 +149,16 @@ const getTokenManagerResult = (): TokenManagerResult => {
 			$pendingCancellation = \\RRZE\\Appointment\\Booking\\TokenManager::validateCancelToken(
 				$pendingCancelToken
 			);
-			$confirmedPending = \\RRZE\\Appointment\\Booking\\TokenManager::confirmPending(
-				$createdPendingToken
+			$duplicateReservationRejected = false;
+			try {
+				\\RRZE\\Appointment\\Booking\\TokenManager::createPending( '2099-01-04 10:00-10:30', [] );
+			} catch ( \\RRZE\\Appointment\\AppointmentException $error ) {
+				$duplicateReservationRejected = true;
+			}
+			$confirmedPending = \\RRZE\\Appointment\\Booking\\TokenManager::completePending(
+				$createdPendingToken, [ 'title' => 'Created' ]
 			);
+			$duplicateConfirmation = \\RRZE\\Appointment\\Booking\\TokenManager::completePending( $createdPendingToken, [] );
 			$pendingRemoved = !isset(
 				$GLOBALS['options']['rrze_appointment_pending_slots'][ $createdPendingToken ]
 			);
@@ -174,7 +195,12 @@ const getTokenManagerResult = (): TokenManagerResult => {
 			$imprintUrl = \\RRZE\\Appointment\\Booking\\TokenManager::imprintUrl();
 
 			$GLOBALS['options']['rrze_appointment_pending_slots'] = 'corrupt';
-			$corruptOptionsIgnored = \\RRZE\\Appointment\\Booking\\TokenManager::getPendingSlots();
+			$corruptOptionsRejected = false;
+            try {
+                \\RRZE\\Appointment\\Booking\\TokenManager::getPendingSlots();
+            } catch (\\RRZE\\Appointment\\AppointmentException $exception) {
+                $corruptOptionsRejected = true;
+            }
 			$GLOBALS['throw_on_get'] = true;
 			$wrappedFailure = [];
 			try {
@@ -183,12 +209,16 @@ const getTokenManagerResult = (): TokenManagerResult => {
 				$wrappedFailure = [
 					'className' => get_class( $exception ),
 					'message' => $exception->getMessage(),
-					'previousClass' => get_class( $exception->getPrevious() ),
-					'previousMessage' => $exception->getPrevious()->getMessage(),
+					'previousClass' => $exception->getPrevious() ? get_class( $exception->getPrevious() ) : null,
+					'previousMessage' => $exception->getPrevious()?->getMessage(),
 				];
 			}
 
 			echo json_encode( [
+				'readOnly' => $readOnly,
+				'legacyPendingCancellation' => $legacyPendingCancellation,
+				'duplicateReservationRejected' => $duplicateReservationRejected,
+				'duplicateConfirmation' => $duplicateConfirmation,
 				'cleanedPending' => $cleanedPending,
 				'cleanedTokens' => $cleanedTokens,
 				'clearedTokens' => $GLOBALS['cleared_tokens'],
@@ -207,7 +237,7 @@ const getTokenManagerResult = (): TokenManagerResult => {
 				'unknownWaitlistSlot' => $unknownWaitlistSlot,
 				'actionUrls' => $actionUrls,
 				'imprintUrl' => $imprintUrl,
-				'corruptOptionsIgnored' => $corruptOptionsIgnored,
+				'corruptOptionsRejected' => $corruptOptionsRejected,
 				'wrappedFailure' => $wrappedFailure,
 			] );
 		}
@@ -219,19 +249,29 @@ const getTokenManagerResult = (): TokenManagerResult => {
 };
 
 describe( 'token manager', () => {
-	it( 'removes invalid pending state and migrates linked legacy tokens', () => {
+	it( 'reads both legacy links and expired reservations without cleaning their source', () => {
+		const result = getTokenManagerResult();
+
+		expect( result.readOnly ).toBe( true );
+		expect( result.legacyPendingCancellation ).toMatchObject( {
+			slot: '2099-01-02 10:00-10:30',
+			pending_token: 'pending-valid',
+		} );
+	} );
+
+	it( 'cleans expired reservations while leaving valid legacy data readable in place', () => {
 		const result = getTokenManagerResult();
 
 		expect( Object.keys( result.cleanedPending ) ).toEqual( [
 			'pending-valid',
 		] );
-		expect( result.cleanedPending[ 'pending-valid' ] ).toMatchObject( {
-			cancel_token: 'legacy-pending-cancel',
-		} );
+		expect( result.cleanedPending[ 'pending-valid' ] ).not.toHaveProperty(
+			'cancel_token'
+		);
 		expect( result.cleanedTokens[ 'legacy-pending-cancel' ] ).toMatchObject(
 			{
 				type: 'pending',
-				pending_token: 'pending-valid',
+				slot: '2099-01-02 10:00-10:30',
 			}
 		);
 		expect( result.cleanedTokens ).not.toHaveProperty(
@@ -264,6 +304,8 @@ describe( 'token manager', () => {
 		} );
 		expect( result.pendingRemoved ).toBe( true );
 		expect( result.pendingCancellationRemoved ).toBe( true );
+		expect( result.duplicateReservationRejected ).toBe( true );
+		expect( result.duplicateConfirmation ).toBeNull();
 	} );
 
 	it( 'supports legacy booked tokens and rejects malformed token entries', () => {
@@ -280,8 +322,8 @@ describe( 'token manager', () => {
 	it( 'stores stable action tokens and builds local URLs', () => {
 		const result = getTokenManagerResult();
 
-		expect( result.cancelUrl ).toMatch(
-			/^https:\/\/example\.test\/\?rrze_appt_cancel=[a-f0-9]{64}$/
+		expect( result.cancelUrl ).toBe(
+			'https://example.test/?rrze_appt_cancel=legacy-booked'
 		);
 		expect( result.waitlistUrl ).toMatch(
 			/^https:\/\/example\.test\/\?rrze_appt_waitlist_optout=[a-f0-9]{64}$/
@@ -296,15 +338,16 @@ describe( 'token manager', () => {
 		expect( result.imprintUrl ).toBe( 'https://example.test/impressum/' );
 	} );
 
-	it( 'ignores corrupt option shapes and wraps storage failures', () => {
+	it( 'rejects corrupt option shapes and wraps storage failures', () => {
 		const result = getTokenManagerResult();
 
-		expect( result.corruptOptionsIgnored ).toEqual( [] );
+		expect( result.corruptOptionsRejected ).toBe( true );
 		expect( result.wrappedFailure ).toEqual( {
 			className: 'RRZE\\Appointment\\AppointmentException',
-			message: 'storage failed',
-			previousClass: 'RuntimeException',
-			previousMessage: 'storage failed',
+			message:
+				'The appointment operation could not be completed. Please try again.',
+			previousClass: null,
+			previousMessage: null,
 		} );
 	} );
 } );

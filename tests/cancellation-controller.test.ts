@@ -20,7 +20,8 @@ const runCancellationScenarios = (): CancellationResults => {
 	);
 	const php = `
 		namespace RRZE\\Appointment {
-			class AppointmentException extends \\Exception {}
+			defined('ABSPATH') || define('ABSPATH', __DIR__);
+            require_once getcwd() . '/includes/AppointmentException.php';
 		}
 		namespace RRZE\\Appointment\\Configuration {
 			class PluginSettings {
@@ -111,7 +112,8 @@ const runCancellationScenarios = (): CancellationResults => {
 			}
 		}
 		namespace {
-			define( 'ABSPATH', __DIR__ );
+			defined('ABSPATH') || define( 'ABSPATH', __DIR__ );
+			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 			$GLOBALS['options'] = [
 				'booking_meta' => [
 					'2026-08-22 10:00-10:30' => [ 'name' => 'Confirmed' ],
@@ -198,8 +200,17 @@ const runCancellationScenarios = (): CancellationResults => {
 				'invalidQueryValue' => run_scenario(
 					[ 'rrze_appt_cancel' => [ 'confirmed-token' ] ], [], 'GET', 'handleCancellation'
 				),
-				'waitlistOptOut' => run_scenario(
+				'waitlistPreview' => run_scenario(
 					[ 'rrze_appt_waitlist_optout' => 'waitlist-token' ], [], 'GET', 'handleWaitlistPreference'
+				),
+				'waitlistOptOut' => run_scenario(
+					[ 'rrze_appt_waitlist_optout' => 'waitlist-token' ],
+					[
+						'rrze_appt_waitlist_action' => 'optout',
+						'rrze_appt_waitlist_nonce' => 'valid:rrze_appointment_waitlist_optout_waitlist-token',
+					],
+					'POST',
+					'handleWaitlistPreference'
 				),
 				'waitlistOptIn' => run_scenario(
 					[ 'rrze_appt_waitlist_optout' => 'waitlist-token' ],
@@ -247,9 +258,7 @@ describe( 'cancellation controller', () => {
 			'cancelled',
 			'2026-08-21 09:00-09:30',
 		] );
-		expect( results.confirmed.deletedCancel ).toEqual( [
-			'confirmed-token',
-		] );
+		expect( results.confirmed.deletedCancel ).toEqual( [] );
 		expect( results.confirmed.cancelledSlots ).toEqual( [
 			'2026-08-22 10:00-10:30',
 		] );
@@ -261,6 +270,8 @@ describe( 'cancellation controller', () => {
 	it( 'disables and explicitly re-enables waitlist notifications', () => {
 		const results = runCancellationScenarios();
 
+		expect( results.waitlistPreview.disabledSlots ).toEqual( [] );
+		expect( results.waitlistPreview.enabledSlots ).toEqual( [] );
 		expect( results.waitlistOptOut.disabledSlots ).toEqual( [
 			'2026-08-22 10:00-10:30',
 		] );

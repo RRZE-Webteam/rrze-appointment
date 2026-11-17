@@ -6,6 +6,7 @@ use RRZE\Appointment\Booking\Bookings;
 use RRZE\Appointment\Booking\TokenManager;
 use RRZE\Appointment\AppointmentException;
 use RRZE\Appointment\Configuration\PluginSettings;
+use RRZE\Appointment\Storage\BookingStorage;
 
 defined('ABSPATH') || exit;
 
@@ -72,7 +73,7 @@ final class AssetManager
      */
     private function getFrontendConfiguration(): array
     {
-        $bookedSlots = (array) get_option(Bookings::SLOTS_OPTION, []);
+        $bookedSlots = BookingStorage::get(Bookings::SLOTS_OPTION);
         $pendingSlots = TokenManager::getPendingSlots();
 
         return [

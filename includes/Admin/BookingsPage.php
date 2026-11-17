@@ -15,10 +15,12 @@ final class BookingsPage
     public const PAGE_SLUG = 'rrze-appointment-bookings';
     private const ADMIN_MENU_ICON_PATH = 'assets/svg/approval_delegation_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg';
 
+    /** Registers the management menu and its assets. */
     public function register(): void
     {
         add_action('admin_menu', [$this, 'addMenuPage']);
         add_action('admin_enqueue_scripts', [$this, 'enqueueAssets']);
+        add_action('load-' . self::screenHook(), [$this, 'prepareResponse']);
     }
 
     /**
@@ -26,10 +28,6 @@ final class BookingsPage
      */
     public function addMenuPage(): void
     {
-        if (!AppointmentPermissions::currentUserCanManage()) {
-            return;
-        }
-
         add_menu_page(
             __('Appointments', 'rrze-appointment'),
             _x('Appointments', 'Admin menu label', 'rrze-appointment'),
@@ -39,13 +37,18 @@ final class BookingsPage
             self::getAdminMenuIcon(),
             30
         );
+        if (!AppointmentPermissions::currentUserCanManage()) {
+            remove_menu_page(self::PAGE_SLUG);
+        }
     }
 
+    /** Returns the WordPress screen identifier. */
     public static function screenHook(): string
     {
         return 'toplevel_page_' . self::PAGE_SLUG;
     }
 
+    /** Loads the bundled menu icon, with a WordPress fallback. */
     private static function getAdminMenuIcon(): string
     {
         $iconPath = plugin()->getPath() . self::ADMIN_MENU_ICON_PATH;
@@ -64,7 +67,8 @@ final class BookingsPage
     /** Loads the React application only for authorized appointment managers. */
     public function enqueueAssets(string $hook): void
     {
-        if ($hook !== self::screenHook() || !AppointmentPermissions::currentUserCanManage()) {
+        if ($hook !== self::screenHook() || !AppointmentPermissions::currentUserCanManage()
+            || is_wp_error(AppointmentPermissions::dataAccess()) || self::accessTab()) {
             return;
         }
         $assetPath = plugin()->getPath() . 'build/admin-bookings.asset.php';
@@ -97,14 +101,48 @@ final class BookingsPage
                 'url' => rest_url(AdminBookingsController::REST_NAMESPACE . AdminBookingsController::ROUTE),
                 'cancelUrl' => rest_url(AdminBookingsController::REST_NAMESPACE . AdminBookingsController::ROUTE . '/cancel'),
                 'nonce' => wp_create_nonce('wp_rest'),
+                'loginUrl' => BackendSsoSettings::loginUrl(),
+                'dashboardUrl' => admin_url(),
+                'accessMessages' => AccessNotice::messages(),
             ]) . ';',
             'before'
         );
     }
 
+    /** Identifies the independent permissions tab without coercing malformed request values. */
+    private static function accessTab(): bool
+    {
+        return ($_GET['tab'] ?? '') === 'access';
+    }
+
+    /** Sets the denial status before WordPress emits the admin header. */
+    public function prepareResponse(): void
+    {
+        $access = self::accessTab() ? AppointmentPermissions::grantsAccess() : AppointmentPermissions::dataAccess();
+        if (is_wp_error($access)) {
+            status_header($access->get_error_data()['status'] ?? 403);
+        }
+    }
+
+    /** Renders a useful denial, the owner-only forms, or the authorized booking application. */
     public function render(): void
     {
-        if (!AppointmentPermissions::currentUserCanManage()) {
+        $access = AppointmentPermissions::dataAccess();
+        if (is_wp_error($access)) {
+            echo '<div class="wrap"><h1>' . esc_html__('Appointments', 'rrze-appointment') . '</h1>';
+            AccessNotice::render($access);
+            echo '</div>';
+            return;
+        }
+        if (AccessPolicy::owner()) {
+            echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__('Appointment management', 'rrze-appointment') . '">';
+            echo '<a class="nav-tab' . (!self::accessTab() ? ' nav-tab-active' : '') . '" href="' . esc_url(BackendSsoSettings::destination('bookings')) . '">' . esc_html__('Appointments', 'rrze-appointment') . '</a>';
+            echo '<a class="nav-tab' . (self::accessTab() ? ' nav-tab-active' : '') . '" href="' . esc_url(AccessSettings::url()) . '">' . esc_html__('Manage access', 'rrze-appointment') . '</a></nav>';
+        }
+        if (self::accessTab()) {
+            echo '<div class="wrap"><h1>' . esc_html__('Manage access', 'rrze-appointment') . '</h1>';
+            AccessSettings::renderManagement();
+            echo '</div>';
             return;
         }
         ?>

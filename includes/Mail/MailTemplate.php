@@ -51,7 +51,7 @@ final class MailTemplate
      * plugin's email templates. User-provided values must be escaped before
      * they are inserted into that HTML.
      */
-    public static function wrap(string $content, string $subject = '', string $status = self::STATUS_NEUTRAL): string
+    public static function wrap(#[\SensitiveParameter] string $content, #[\SensitiveParameter] string $subject = '', string $status = self::STATUS_NEUTRAL): string
     {
         $siteName = (string) get_bloginfo('name');
         $siteUrl = (string) home_url('/');

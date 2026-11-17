@@ -28,6 +28,9 @@ namespace RRZE\Appointment\Booking {
     class TokenManager {
         public static function getPendingSlots(): array { return []; }
         public static function createPending($slot, $meta): string {
+            if ($GLOBALS['scenario']['storageFailure'] ?? false) {
+                throw new \RuntimeException('Synthetic Patient synthetic@example.test secret-token');
+            }
             $GLOBALS['pending'][] = compact('slot', 'meta');
             return 'test-token';
         }
@@ -40,6 +43,9 @@ namespace RRZE\Appointment\Booking {
 namespace RRZE\Appointment\Notification {
     class BookingOpeningNotifier {
         public static function subscribe($slot, $meta, $opens, $closes): array {
+            if ($GLOBALS['scenario']['storageFailure'] ?? false) {
+                throw new \RuntimeException('Synthetic Patient synthetic@example.test secret-token');
+            }
             $GLOBALS['subscriptions'][] = compact('slot', 'meta');
             return ['statusToken' => 'test-status'];
         }
@@ -69,6 +75,7 @@ namespace RRZE\Appointment\Controller {
 }
 namespace {
     define('ABSPATH', __DIR__);
+    require_once __DIR__ . '/legacy-booking-storage.php';
     $input = json_decode(stream_get_contents(STDIN), true) ?: [];
     require __DIR__ . '/guest-rate-limit-storage.php';
     $GLOBALS['wpdb'] = new RateLimitTestDatabase();

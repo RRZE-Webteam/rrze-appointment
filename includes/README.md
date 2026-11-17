@@ -10,6 +10,9 @@ used for groups with a single, clear responsibility:
 - `Mail/` renders and persists reusable email templates.
 - `Notification/` schedules or sends event-driven notifications.
 - `Presentation/` delivers frontend assets and public appointment pages.
+- `Storage/` owns booking persistence, mixed-format encryption and
+  scheduled work stored with its owning record. Its [operating and format contract](Storage/README.md) documents
+  activation, recovery, locking and compatibility.
 
 Classes remain at the root when they represent a core appointment concept or
 when no meaningful group exists yet. Avoid catch-all directories such as

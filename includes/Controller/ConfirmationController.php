@@ -11,6 +11,7 @@ use RRZE\Appointment\Mail\MailTemplatePost;
 use RRZE\Appointment\Mail\Mailer;
 use RRZE\Appointment\Notification\Reminder;
 use RRZE\Appointment\Presentation\PublicPageRenderer;
+use RRZE\Appointment\Storage\BookingScheduler;
 
 defined('ABSPATH') || exit;
 
@@ -26,7 +27,6 @@ final class ConfirmationController
     private const MAX_ANSWER_LENGTH = 5000;
     private const BOOKER_TEMPLATE_TYPE = 'booking_booker';
     private const HOST_TEMPLATE_TYPE = 'booking_host';
-    private const CALENDAR_FILE_PREFIX = 'rrze_appt_';
     private const PERSISTABLE_META_KEYS = [
         'title',
         'location',
@@ -56,6 +56,8 @@ final class ConfirmationController
      */
     public function handleConfirmation(): void
     {
+        $committed = false;
+        $sendingMail = false;
         try {
             $token = $this->getConfirmationToken();
             if ($token === '') {
@@ -83,28 +85,29 @@ final class ConfirmationController
                 return;
             }
 
-            $entry = TokenManager::confirmPending($token);
+            $meta = $this->getPersistableBookingMeta($pendingMeta);
+            $entry = TokenManager::completePending($token, $meta);
             if (!is_array($entry)) {
                 $this->renderInvalidConfirmation();
                 return;
             }
 
-            $slot = (string) $entry['slot'];
-            $meta = $this->getPersistableBookingMeta(
-                is_array($entry['meta'] ?? null) ? $entry['meta'] : []
-            );
+            $committed = true;
+            $slot = $entry['slot'];
+            $meta = $entry['meta'];
             [$datePart, $startTime, $endTime] = $this->parseSlot($slot);
 
-            $this->markSlotAsBooked($slot);
-            Reminder::scheduleForSlot($slot, $meta);
+            BookingScheduler::clear(TokenManager::PENDING_EXPIRY_HOOK, $token);
+            Reminder::schedulePersistedSlot($slot);
 
             $variables = $this->buildTemplateVariables(
                 $datePart,
                 $startTime,
                 $endTime,
                 $meta,
-                TokenManager::getCancelUrlForSlot($slot)
+                TokenManager::cancelUrl($meta['cancel_token'])
             );
+            $sendingMail = true;
             $this->sendConfirmationEmails(
                 $meta,
                 $variables,
@@ -113,8 +116,15 @@ final class ConfirmationController
             );
 
             $this->renderer->renderConfirmation('', [], [], '', '', $appointmentDetails);
-        } catch (AppointmentException $exception) {
-            wp_die(esc_html($exception->getMessage()), '', ['response' => 500]);
+        } catch (\Throwable $exception) {
+            if ($committed) {
+                $message = $sendingMail
+                    ? __('Your appointment is booked, but the confirmation emails could not be sent completely. Please contact the appointment organizer.', 'rrze-appointment')
+                    : __('Your appointment is booked, but its notifications could not be prepared. Please contact the appointment organizer.', 'rrze-appointment');
+                $this->renderer->renderError($message, 500);
+                return;
+            }
+            wp_die(esc_html(AppointmentException::fromThrowable($exception)->getMessage()), '', ['response' => 500]);
         }
     }
 
@@ -128,14 +138,10 @@ final class ConfirmationController
      * @return array<int, array{label: string, answer: string}>|null Null after rendering a response.
      */
     private function collectQuestionAnswers(
-        string $token,
-        array $questions,
-        array $appointmentDetails
+        #[\SensitiveParameter] string $token,
+        #[\SensitiveParameter] array $questions,
+        #[\SensitiveParameter] array $appointmentDetails
     ): ?array {
-        if ($questions === []) {
-            return [];
-        }
-
         if ($this->getRequestMethod() !== 'POST') {
             $this->renderer->renderConfirmation($token, $questions, [], '', '', $appointmentDetails);
             return null;
@@ -184,7 +190,7 @@ final class ConfirmationController
     /**
      * Reads and sanitizes a scalar form value.
      */
-    private function getPostText(string $key): string
+    private function getPostText(#[\SensitiveParameter] string $key): string
     {
         $value = wp_unslash($_POST[$key] ?? '');
         return is_string($value) ? sanitize_text_field($value) : '';
@@ -201,7 +207,7 @@ final class ConfirmationController
     /**
      * Truncates an answer without splitting multibyte characters when possible.
      */
-    private function truncateAnswer(string $answer): string
+    private function truncateAnswer(#[\SensitiveParameter] string $answer): string
     {
         return function_exists('mb_substr')
             ? mb_substr($answer, 0, self::MAX_ANSWER_LENGTH)
@@ -213,7 +219,7 @@ final class ConfirmationController
      *
      * @return array{0: string, 1: string, 2: string}
      */
-    private function parseSlot(string $slot): array
+    private function parseSlot(#[\SensitiveParameter] string $slot): array
     {
         [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
         [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
@@ -228,7 +234,7 @@ final class ConfirmationController
      * @param array<string, mixed>             $postedAnswers Submitted answer values.
      * @return array{answers: array<int, array{label: string, answer: string}>, values: array<string, string>, error: string, errorField: string}
      */
-    private function validateQuestionAnswers(array $questions, array $postedAnswers): array
+    private function validateQuestionAnswers(#[\SensitiveParameter] array $questions, #[\SensitiveParameter] array $postedAnswers): array
     {
         $answers = [];
         $values = [];
@@ -297,7 +303,7 @@ final class ConfirmationController
      * @param array<string, mixed> $meta Pending metadata.
      * @return array<string, mixed>
      */
-    private function getPersistableBookingMeta(array $meta): array
+    private function getPersistableBookingMeta(#[\SensitiveParameter] array $meta): array
     {
         $persistableMeta = array_intersect_key($meta, array_flip(self::PERSISTABLE_META_KEYS));
 
@@ -311,27 +317,17 @@ final class ConfirmationController
     }
 
     /**
-     * Adds a confirmed slot to the public booked-slot option.
-     */
-    private function markSlotAsBooked(string $slot): void
-    {
-        $booked = (array) get_option(Bookings::SLOTS_OPTION, []);
-        $booked[] = $slot;
-        update_option(Bookings::SLOTS_OPTION, array_unique($booked), false);
-    }
-
-    /**
      * Builds email placeholder values for a confirmed booking.
      *
      * @param array<string, mixed> $meta Confirmed booking metadata.
      * @return array<string, string>
      */
     private function buildTemplateVariables(
-        string $datePart,
-        string $startTime,
-        string $endTime,
-        array $meta,
-        string $cancelUrl
+        #[\SensitiveParameter] string $datePart,
+        #[\SensitiveParameter] string $startTime,
+        #[\SensitiveParameter] string $endTime,
+        #[\SensitiveParameter] array $meta,
+        #[\SensitiveParameter] string $cancelUrl
     ): array {
         return [
             '[title]' => $meta['title'] ?? '',
@@ -355,10 +351,10 @@ final class ConfirmationController
      * @param array<string, mixed> $meta Confirmed booking metadata.
      */
     private function createCalendarAttachment(
-        string $datePart,
-        string $startTime,
-        string $endTime,
-        array $meta
+        #[\SensitiveParameter] string $datePart,
+        #[\SensitiveParameter] string $startTime,
+        #[\SensitiveParameter] string $endTime,
+        #[\SensitiveParameter] array $meta
     ): string {
         $timezone = wp_timezone();
         $utc = new \DateTimeZone('UTC');
@@ -389,7 +385,7 @@ final class ConfirmationController
     /**
      * Escapes a value according to the iCalendar text format.
      */
-    private function escapeCalendarValue(string $value): string
+    private function escapeCalendarValue(#[\SensitiveParameter] string $value): string
     {
         $value = str_replace(["\r\n", "\r"], "\n", $value);
         return str_replace(['\\', ';', ',', "\n"], ['\\\\', '\;', '\,', '\n'], $value);
@@ -403,10 +399,10 @@ final class ConfirmationController
      * @param array<int, array{label: string, answer: string}> $questionAnswers Request-scoped answers.
      */
     private function sendConfirmationEmails(
-        array $meta,
-        array $variables,
-        array $questionAnswers,
-        string $calendarContent
+        #[\SensitiveParameter] array $meta,
+        #[\SensitiveParameter] array $variables,
+        #[\SensitiveParameter] array $questionAnswers,
+        #[\SensitiveParameter] string $calendarContent
     ): void {
         $templateId = (int) ($meta['tpl_id'] ?? 0);
         [$bookerSubject, $bookerPlain, $bookerHtml] = $this->renderBookerEmail(
@@ -419,63 +415,28 @@ final class ConfirmationController
             $questionAnswers
         );
 
-        $temporaryFile = $this->createTemporaryCalendarFile($calendarContent);
-        try {
+        Mailer::send(
+            (string) ($meta['booker_email'] ?? ''),
+            $bookerSubject,
+            $bookerPlain,
+            $bookerHtml,
+            [],
+            MailTemplate::STATUS_SUCCESS,
+            ['appointment.ics' => $calendarContent]
+        );
+
+        $hostEmail = sanitize_email((string) ($meta['person_email'] ?? ''));
+        if ($hostEmail !== '') {
             Mailer::send(
-                (string) ($meta['booker_email'] ?? ''),
-                $bookerSubject,
-                $bookerPlain,
-                $bookerHtml,
-                [$temporaryFile],
-                MailTemplate::STATUS_SUCCESS
-            );
-
-            $hostEmail = sanitize_email((string) ($meta['person_email'] ?? ''));
-            if ($hostEmail !== '') {
-                Mailer::send(
-                    $hostEmail,
-                    $hostSubject,
-                    $hostPlain,
-                    $hostHtml,
-                    [$temporaryFile],
-                    MailTemplate::STATUS_SUCCESS
-                );
-            }
-        } finally {
-            wp_delete_file($temporaryFile);
-        }
-    }
-
-    /**
-     * Writes calendar content to a temporary .ics file.
-     *
-     * @throws AppointmentException When a temporary attachment cannot be created.
-     */
-    private function createTemporaryCalendarFile(string $calendarContent): string
-    {
-        $temporaryFile = tempnam(get_temp_dir(), self::CALENDAR_FILE_PREFIX);
-        if ($temporaryFile === false) {
-            throw new AppointmentException(
-                __('The calendar attachment could not be created.', 'rrze-appointment')
+                $hostEmail,
+                $hostSubject,
+                $hostPlain,
+                $hostHtml,
+                [],
+                MailTemplate::STATUS_SUCCESS,
+                ['appointment.ics' => $calendarContent]
             );
         }
-
-        $calendarFile = $temporaryFile . '.ics';
-        if (!rename($temporaryFile, $calendarFile)) {
-            wp_delete_file($temporaryFile);
-            throw new AppointmentException(
-                __('The calendar attachment could not be created.', 'rrze-appointment')
-            );
-        }
-
-        if (file_put_contents($calendarFile, $calendarContent, LOCK_EX) === false) {
-            wp_delete_file($calendarFile);
-            throw new AppointmentException(
-                __('The calendar attachment could not be created.', 'rrze-appointment')
-            );
-        }
-
-        return $calendarFile;
     }
 
     /**
@@ -484,7 +445,7 @@ final class ConfirmationController
      * @param array<string, string> $variables Template variables.
      * @return array{0: string, 1: string, 2: string}
      */
-    private function renderBookerEmail(int $templateId, array $variables): array
+    private function renderBookerEmail(int $templateId, #[\SensitiveParameter] array $variables): array
     {
         $template = $templateId > 0
             ? (MailTemplatePost::getTemplateForType($templateId, self::BOOKER_TEMPLATE_TYPE) ?? [])
@@ -514,8 +475,8 @@ final class ConfirmationController
      */
     private function renderHostEmail(
         int $templateId,
-        array $variables,
-        array $questionAnswers
+        #[\SensitiveParameter] array $variables,
+        #[\SensitiveParameter] array $questionAnswers
     ): array {
         $template = $templateId > 0
             ? (MailTemplatePost::getTemplateForType($templateId, self::HOST_TEMPLATE_TYPE) ?? [])
@@ -554,7 +515,7 @@ final class ConfirmationController
      *
      * @return array{0: string, 1: string}
      */
-    private function appendRequiredLinks(string $plainTemplate, string $htmlTemplate): array
+    private function appendRequiredLinks(#[\SensitiveParameter] string $plainTemplate, #[\SensitiveParameter] string $htmlTemplate): array
     {
         if (strpos($plainTemplate, '[cancel_link]') === false) {
             $plainTemplate .= "\n\n" . __('Cancel', 'rrze-appointment') . ': [cancel_link]';
@@ -582,7 +543,7 @@ final class ConfirmationController
      * @param array<int, array{label: string, answer: string}> $answers Answers to format.
      * @return array{plain: string, html: string}
      */
-    private function formatQuestionAnswers(array $answers): array
+    private function formatQuestionAnswers(#[\SensitiveParameter] array $answers): array
     {
         if ($answers === []) {
             return ['plain' => '', 'html' => ''];

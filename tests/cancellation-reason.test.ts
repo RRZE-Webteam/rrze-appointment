@@ -20,10 +20,11 @@ const getCancellationReasonResult = (): CancellationReasonResult => {
 	);
 	const php = `
 		namespace RRZE\\Appointment {
-			class AppointmentException extends \\Exception {}
+			defined('ABSPATH') || define('ABSPATH', __DIR__);
+            require_once getcwd() . '/includes/AppointmentException.php';
 		}
 		namespace RRZE\\Appointment\\Notification {
-			class Reminder { public const CRON_HOOK = 'reminder'; }
+			class Reminder { public const CRON_HOOK = 'rrze_appointment_send_reminder'; }
 		}
 		namespace RRZE\\Appointment\\Configuration {
 			class PluginSettings {
@@ -37,7 +38,7 @@ const getCancellationReasonResult = (): CancellationReasonResult => {
 			class TokenManager {
 				public const CANCEL_OPTION = 'cancel';
 				public const PENDING_OPTION = 'pending';
-				public const PENDING_EXPIRY_HOOK = 'pending_expiry';
+				public const PENDING_EXPIRY_HOOK = 'rrze_appointment_expire_pending';
 				public static function imprintUrl(): string { return 'https://example.test/legal'; }
 			}
 		}
@@ -75,7 +76,8 @@ const getCancellationReasonResult = (): CancellationReasonResult => {
 			}
 		}
 		namespace {
-			define( 'ABSPATH', __DIR__ );
+			defined('ABSPATH') || define( 'ABSPATH', __DIR__ );
+			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 			define( 'MINUTE_IN_SECONDS', 60 );
 			function __( $value, $domain ) { return $value; }
 			function esc_html__( $value, $domain ) { return esc_html( $value ); }

@@ -8,6 +8,8 @@ use RRZE\Appointment\AppointmentException;
 use RRZE\Appointment\Mail\MailTemplate;
 use RRZE\Appointment\Mail\MailTemplatePost;
 use RRZE\Appointment\Mail\Mailer;
+use RRZE\Appointment\Storage\BookingStorage;
+use RRZE\Appointment\Storage\BookingScheduler;
 
 defined('ABSPATH') || exit;
 
@@ -36,13 +38,12 @@ final class BookingOpeningNotifier
      * @return array{token: string, statusToken: string, created: bool}
      */
     public static function subscribe(
-        string $slot,
-        array $meta,
+        #[\SensitiveParameter] string $slot,
+        #[\SensitiveParameter] array $meta,
         int $opensAt,
         int $closesAt
     ): array {
         try {
-            self::cleanup();
             $entries = self::getEntries();
             $email = sanitize_email((string) ($meta['booker_email'] ?? ''));
 
@@ -52,8 +53,8 @@ final class BookingOpeningNotifier
             }
 
             return self::createSubscription($entries, $slot, $meta, $opensAt, $closesAt);
-        } catch (\Exception $exception) {
-            throw new AppointmentException($exception->getMessage(), $exception->getCode(), $exception);
+        } catch (\Throwable $exception) {
+            throw AppointmentException::fromThrowable($exception);
         }
     }
 
@@ -63,13 +64,14 @@ final class BookingOpeningNotifier
      * @param array<string, array<string, mixed>> $entries Stored subscriptions.
      */
     private static function findSubscriptionToken(
-        array $entries,
-        string $slot,
-        string $email
+        #[\SensitiveParameter] array $entries,
+        #[\SensitiveParameter] string $slot,
+        #[\SensitiveParameter] string $email
     ): ?string {
         foreach ($entries as $token => $entry) {
             if (
                 is_array($entry)
+                && time() < (int) ($entry['closes_at'] ?? 0)
                 && hash_equals((string) ($entry['slot'] ?? ''), $slot)
                 && hash_equals((string) ($entry['meta']['booker_email'] ?? ''), $email)
             ) {
@@ -86,14 +88,14 @@ final class BookingOpeningNotifier
      * @param array<string, array<string, mixed>> $entries Stored subscriptions.
      * @return array{token: string, statusToken: string, created: bool}
      */
-    private static function reuseSubscription(array $entries, string $token, int $opensAt): array
+    private static function reuseSubscription(#[\SensitiveParameter] array $entries, #[\SensitiveParameter] string $token, int $opensAt): array
     {
         $entry = $entries[$token];
         $statusToken = (string) ($entry['status_token'] ?? '');
         if ($statusToken === '') {
             $statusToken = wp_generate_uuid4();
             $entries[$token]['status_token'] = $statusToken;
-            update_option(self::OPTION, $entries, false);
+            BookingStorage::set(self::OPTION, $entries);
         }
 
         self::schedule($token, (int) ($entry['opens_at'] ?? $opensAt));
@@ -113,9 +115,9 @@ final class BookingOpeningNotifier
      * @return array{token: string, statusToken: string, created: bool}
      */
     private static function createSubscription(
-        array $entries,
-        string $slot,
-        array $meta,
+        #[\SensitiveParameter] array $entries,
+        #[\SensitiveParameter] string $slot,
+        #[\SensitiveParameter] array $meta,
         int $opensAt,
         int $closesAt
     ): array {
@@ -130,7 +132,7 @@ final class BookingOpeningNotifier
             'created_at' => time(),
             'notified_at' => 0,
         ];
-        update_option(self::OPTION, $entries, false);
+        BookingStorage::set(self::OPTION, $entries);
         self::schedule($token, $opensAt);
 
         return [
@@ -143,7 +145,7 @@ final class BookingOpeningNotifier
     /**
      * Sends the opening email for a subscription when its booking window opens.
      */
-    public static function notify(string $token): void
+    public static function notify(#[\SensitiveParameter] string $token): void
     {
         try {
             $entries = self::getEntries();
@@ -180,23 +182,23 @@ final class BookingOpeningNotifier
             }
 
             self::markNotified($token, $now);
-        } catch (\Exception $exception) {
-            throw new AppointmentException($exception->getMessage(), $exception->getCode(), $exception);
+        } catch (\Throwable $exception) {
+            throw AppointmentException::fromThrowable($exception);
         }
     }
 
     /**
      * Determines whether a slot is already booked.
      */
-    private static function isBooked(string $slot): bool
+    private static function isBooked(#[\SensitiveParameter] string $slot): bool
     {
-        return in_array($slot, (array) get_option(Bookings::SLOTS_OPTION, []), true);
+        return in_array($slot, BookingStorage::get(Bookings::SLOTS_OPTION), true);
     }
 
     /**
      * Determines whether a slot is waiting for booking confirmation.
      */
-    private static function isPending(string $slot): bool
+    private static function isPending(#[\SensitiveParameter] string $slot): bool
     {
         return in_array($slot, TokenManager::getPendingSlots(), true);
     }
@@ -204,7 +206,7 @@ final class BookingOpeningNotifier
     /**
      * Schedules another delivery attempt without crossing the booking cutoff.
      */
-    private static function scheduleRetry(string $token, int $now, int $closesAt): void
+    private static function scheduleRetry(#[\SensitiveParameter] string $token, int $now, int $closesAt): void
     {
         self::schedule($token, min($closesAt, $now + self::RETRY_SECONDS));
     }
@@ -212,7 +214,7 @@ final class BookingOpeningNotifier
     /**
      * Marks a subscription as successfully notified if it still exists.
      */
-    private static function markNotified(string $token, int $notifiedAt): void
+    private static function markNotified(#[\SensitiveParameter] string $token, int $notifiedAt): void
     {
         $entries = self::getEntries();
         if (!isset($entries[$token]) || !is_array($entries[$token])) {
@@ -220,45 +222,55 @@ final class BookingOpeningNotifier
         }
 
         $entries[$token]['notified_at'] = $notifiedAt;
-        update_option(self::OPTION, $entries, false);
+        BookingStorage::set(self::OPTION, $entries);
     }
 
     /**
-     * Claims a notification link and creates the regular pending booking.
+     * Reads a live opening link for its preview or the subsequent reservation.
+     *
+     * @return array<string, mixed>|\WP_Error Available subscription or the reason it cannot be used.
+     */
+    public static function getClaimableSubscription(#[\SensitiveParameter] string $token): array|\WP_Error
+    {
+        $entry = self::getEntries()[$token] ?? null;
+        if (!is_array($entry)) {
+            return new \WP_Error(
+                'rrze_appointment_opening_invalid',
+                __('This booking notification link is invalid or has expired.', 'rrze-appointment')
+            );
+        }
+        $now = time();
+        if ($now < (int) ($entry['opens_at'] ?? 0)) {
+            return new \WP_Error(
+                'rrze_appointment_opening_too_early',
+                __('This appointment is not open for booking yet.', 'rrze-appointment')
+            );
+        }
+        if ($now >= (int) ($entry['closes_at'] ?? 0)) {
+            return new \WP_Error(
+                'rrze_appointment_opening_closed',
+                __('This appointment can no longer be booked.', 'rrze-appointment')
+            );
+        }
+        return $entry;
+    }
+
+    /**
+     * Consumes a notification link and stores its pending booking in one transaction.
      *
      * @return string|\WP_Error Confirmation URL or a public-safe error.
      */
-    public static function claim(string $token)
+    public static function claim(#[\SensitiveParameter] string $token): string|\WP_Error
     {
         try {
-            self::cleanup();
-            $entries = self::getEntries();
-            $entry = $entries[$token] ?? null;
-            if (!is_array($entry)) {
-                return new \WP_Error(
-                    'rrze_appointment_opening_invalid',
-                    __('This booking notification link is invalid or has expired.', 'rrze-appointment')
-                );
-            }
-
-            $now = time();
-            if ($now < (int) ($entry['opens_at'] ?? 0)) {
-                return new \WP_Error(
-                    'rrze_appointment_opening_too_early',
-                    __('This appointment is not open for booking yet.', 'rrze-appointment')
-                );
-            }
-            if ($now >= (int) ($entry['closes_at'] ?? 0)) {
-                self::delete($token);
-                return new \WP_Error(
-                    'rrze_appointment_opening_closed',
-                    __('This appointment can no longer be booked.', 'rrze-appointment')
-                );
+            $entry = self::getClaimableSubscription($token);
+            if ($entry instanceof \WP_Error) {
+                return $entry;
             }
 
             $slot = (string) ($entry['slot'] ?? '');
             $lockOption = self::getClaimLockOption($slot);
-            if (!self::acquireClaimLock($lockOption, $now)) {
+            if (!self::acquireClaimLock($lockOption, time())) {
                 return new \WP_Error(
                     'rrze_appointment_opening_busy',
                     __('This appointment is currently being requested. Please try again shortly.', 'rrze-appointment')
@@ -274,29 +286,28 @@ final class BookingOpeningNotifier
                 }
 
                 $meta = is_array($entry['meta'] ?? null) ? $entry['meta'] : [];
-                $pendingToken = TokenManager::createPending($slot, $meta);
-                self::delete($token);
+                $pendingToken = TokenManager::createPending($slot, $meta, $token);
                 return TokenManager::confirmUrl($pendingToken);
             } finally {
                 delete_option($lockOption);
             }
-        } catch (\Exception $exception) {
-            throw new AppointmentException($exception->getMessage(), $exception->getCode(), $exception);
+        } catch (\Throwable $exception) {
+            throw AppointmentException::fromThrowable($exception);
         }
     }
 
     /**
      * Returns the option name used to serialize claims for one slot.
      */
-    private static function getClaimLockOption(string $slot): string
+    private static function getClaimLockOption(#[\SensitiveParameter] string $slot): string
     {
-        return self::CLAIM_LOCK_PREFIX . md5($slot);
+        return self::CLAIM_LOCK_PREFIX . BookingStorage::lockReference('opening', $slot);
     }
 
     /**
      * Acquires a claim lock, replacing it only when it has expired.
      */
-    private static function acquireClaimLock(string $lockOption, int $now): bool
+    private static function acquireClaimLock(#[\SensitiveParameter] string $lockOption, int $now): bool
     {
         if (add_option($lockOption, $now, '', false)) {
             return true;
@@ -315,12 +326,12 @@ final class BookingOpeningNotifier
      *
      * @return array<string, mixed>|null
      */
-    public static function getSubscriptionByStatusToken(string $statusToken): ?array
+    public static function getSubscriptionByStatusToken(#[\SensitiveParameter] string $statusToken): ?array
     {
-        self::cleanup();
         foreach (self::getEntries() as $entry) {
             if (
                 is_array($entry)
+                && time() < (int) ($entry['closes_at'] ?? 0)
                 && ($entry['status_token'] ?? '') !== ''
                 && hash_equals((string) $entry['status_token'], $statusToken)
             ) {
@@ -333,9 +344,15 @@ final class BookingOpeningNotifier
     /**
      * Builds the public success-page URL for a subscription.
      */
-    public static function registrationUrl(string $statusToken): string
+    public static function registrationUrl(#[\SensitiveParameter] string $statusToken): string
     {
         return add_query_arg(self::STATUS_QUERY_KEY, $statusToken, home_url('/'));
+    }
+
+    /** Returns the existing opening-link URL for emails and the reservation preview. */
+    public static function claimUrl(#[\SensitiveParameter] string $token): string
+    {
+        return add_query_arg(self::CLAIM_QUERY_KEY, $token, home_url('/'));
     }
 
     /**
@@ -344,46 +361,53 @@ final class BookingOpeningNotifier
     public static function cleanup(): void
     {
         $entries = self::getEntries();
-        $changed = false;
+        $expired = [];
         $now = time();
 
         foreach ($entries as $token => $entry) {
             if (!is_array($entry) || $now >= (int) ($entry['closes_at'] ?? 0)) {
                 unset($entries[$token]);
-                wp_clear_scheduled_hook(self::CRON_HOOK, [(string) $token]);
-                $changed = true;
+                $expired[] = (string) $token;
             }
         }
 
-        if ($changed) {
-            update_option(self::OPTION, $entries, false);
+        if ($expired) {
+            BookingStorage::set(self::OPTION, $entries);
+            foreach ($expired as $token) {
+                BookingScheduler::clear(self::CRON_HOOK, $token);
+            }
+        }
+        foreach ($entries as $token => $entry) {
+            if (empty($entry['notified_at'])) {
+                self::schedule((string) $token, (int) ($entry['opens_at'] ?? $now));
+            }
         }
     }
 
     /**
      * Deletes one subscription and its scheduled delivery.
      */
-    private static function delete(string $token): void
+    private static function delete(#[\SensitiveParameter] string $token): void
     {
         $entries = self::getEntries();
         if (isset($entries[$token])) {
             unset($entries[$token]);
-            update_option(self::OPTION, $entries, false);
+            BookingStorage::set(self::OPTION, $entries);
         }
-        wp_clear_scheduled_hook(self::CRON_HOOK, [$token]);
+        BookingScheduler::clear(self::CRON_HOOK, $token);
     }
 
     /**
      * Schedules a subscription once, normalizing past timestamps.
      */
-    private static function schedule(string $token, int $timestamp): void
+    private static function schedule(#[\SensitiveParameter] string $token, int $timestamp): void
     {
         $now = time();
         if ($timestamp <= $now) {
             $timestamp = $now + 1;
         }
-        if (!wp_next_scheduled(self::CRON_HOOK, [$token])) {
-            wp_schedule_single_event($timestamp, self::CRON_HOOK, [$token]);
+        if (!BookingScheduler::next(self::CRON_HOOK, $token)) {
+            BookingScheduler::schedule($timestamp, self::CRON_HOOK, $token);
         }
     }
 
@@ -394,13 +418,13 @@ final class BookingOpeningNotifier
      */
     private static function getEntries(): array
     {
-        return (array) get_option(self::OPTION, []);
+        return BookingStorage::get(self::OPTION);
     }
 
     /**
      * @param array<string, mixed> $entry Stored subscription.
      */
-    private static function sendOpeningMail(string $token, array $entry): bool
+    private static function sendOpeningMail(#[\SensitiveParameter] string $token, #[\SensitiveParameter] array $entry): bool
     {
         $meta = is_array($entry['meta'] ?? null) ? $entry['meta'] : [];
         $variables = self::getOpeningMailVariables(
@@ -433,11 +457,11 @@ final class BookingOpeningNotifier
      * @param array<string, mixed> $meta Stored subscription metadata.
      * @return array<string, string>
      */
-    private static function getOpeningMailVariables(string $slot, string $token, array $meta): array
+    private static function getOpeningMailVariables(#[\SensitiveParameter] string $slot, #[\SensitiveParameter] string $token, #[\SensitiveParameter] array $meta): array
     {
         [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
         [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
-        $bookingUrl = add_query_arg(self::CLAIM_QUERY_KEY, $token, home_url('/'));
+        $bookingUrl = self::claimUrl($token);
 
         return [
             '[title]' => (string) ($meta['title'] ?? ''),
@@ -472,7 +496,7 @@ final class BookingOpeningNotifier
      *
      * @return array{0: string, 1: string}
      */
-    private static function ensureRequiredMailLinks(string $plain, string $html): array
+    private static function ensureRequiredMailLinks(#[\SensitiveParameter] string $plain, #[\SensitiveParameter] string $html): array
     {
         if (strpos($plain, '[booking_link]') === false) {
             $plain .= "\n\n" . __('Book appointment', 'rrze-appointment') . ': [booking_link]';

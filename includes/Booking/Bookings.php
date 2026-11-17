@@ -8,6 +8,8 @@ use RRZE\Appointment\Mail\MailTemplate;
 use RRZE\Appointment\Mail\MailTemplatePost;
 use RRZE\Appointment\Mail\Mailer;
 use RRZE\Appointment\Notification\Reminder;
+use RRZE\Appointment\Storage\BookingStorage;
+use RRZE\Appointment\Storage\BookingScheduler;
 
 defined('ABSPATH') || exit;
 
@@ -60,11 +62,10 @@ final class Bookings
                 return 0;
             }
 
-            self::removeExpiredBookings($expiredSlots, $slots, $allMeta);
-            self::removeExpiredTokens($expiredSlots);
+            self::removeBookings($expiredSlots, $slots, $allMeta);
 
             return count($expiredSlots);
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -94,7 +95,7 @@ final class Bookings
      * }>
      * @throws AppointmentException When persisted booking data cannot be processed.
      */
-    public static function getAll(array $filter = []): array
+    public static function getAll(#[\SensitiveParameter] array $filter = []): array
     {
         try {
             $showPast = ($filter['view'] ?? 'current') === 'past';
@@ -138,7 +139,7 @@ final class Bookings
             );
 
             return $bookings;
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -149,7 +150,7 @@ final class Bookings
      * @return bool False when the requested slot is not booked.
      * @throws AppointmentException When the cancellation cannot be completed.
      */
-    public static function cancel(string $slot, string $reason = ''): bool
+    public static function cancel(#[\SensitiveParameter] string $slot, #[\SensitiveParameter] string $reason = ''): bool
     {
         try {
             $slots = self::getStoredSlots();
@@ -160,36 +161,18 @@ final class Bookings
             $allMeta = self::getStoredMetadata();
             $meta = self::getSlotMetadata($allMeta, $slot);
 
-            wp_clear_scheduled_hook(Reminder::CRON_HOOK, [$slot]);
-            self::sendCancellationMail($slot, $meta, $reason);
-            $remainingMeta = self::removeStoredBooking($slot, $slots, $allMeta);
+            $remainingMeta = self::removeBookings([$slot => true], $slots, $allMeta);
+            try {
+                self::sendCancellationMail($slot, $meta, $reason);
+            } catch (\Throwable) {
+                throw new AppointmentException(__('Your appointment has been cancelled, but its notification emails could not be sent completely.', 'rrze-appointment'));
+            }
             self::notifyWaitlist($slot, $meta, $remainingMeta);
 
             return true;
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
-    }
-
-    /**
-     * Removes one booking from the slot and metadata options.
-     *
-     * @param array<int, mixed>    $slots   Stored slot values.
-     * @param array<string, mixed> $allMeta Stored metadata keyed by slot.
-     * @return array<string, mixed> Remaining booking metadata.
-     */
-    private static function removeStoredBooking(string $slot, array $slots, array $allMeta): array
-    {
-        $remainingSlots = array_values(array_filter(
-            $slots,
-            static fn($bookedSlot): bool => $bookedSlot !== $slot
-        ));
-        update_option(self::SLOTS_OPTION, $remainingSlots, false);
-
-        unset($allMeta[$slot]);
-        update_option(self::META_OPTION, $allMeta, false);
-
-        return $allMeta;
     }
 
     /**
@@ -205,10 +188,10 @@ final class Bookings
      * @throws \Exception When a dependency throws while preparing or sending the email.
      */
     public static function sendWaitlistNotificationStatic(
-        string $availableSlot,
-        array $newSlotMeta,
-        string $bookedSlot,
-        array $bookedMeta
+        #[\SensitiveParameter] string $availableSlot,
+        #[\SensitiveParameter] array $newSlotMeta,
+        #[\SensitiveParameter] string $bookedSlot,
+        #[\SensitiveParameter] array $bookedMeta
     ): bool {
         $bookedMeta = self::mergeCurrentBookingMetadata($bookedSlot, $bookedMeta);
         if (!self::shouldSendWaitlistNotification($availableSlot, $bookedSlot, $bookedMeta)) {
@@ -279,7 +262,7 @@ final class Bookings
      *
      * @return bool False when the booking does not exist.
      */
-    public static function disableWaitlistNotifications(string $slot): bool
+    public static function disableWaitlistNotifications(#[\SensitiveParameter] string $slot): bool
     {
         return self::setWaitlistNotifications($slot, false);
     }
@@ -289,7 +272,7 @@ final class Bookings
      *
      * @return bool False when the booking does not exist.
      */
-    public static function enableWaitlistNotifications(string $slot): bool
+    public static function enableWaitlistNotifications(#[\SensitiveParameter] string $slot): bool
     {
         return self::setWaitlistNotifications($slot, true);
     }
@@ -325,7 +308,7 @@ final class Bookings
 
             asort($persons);
             return $persons;
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -337,7 +320,7 @@ final class Bookings
      * @param array<string, mixed>         $allMeta
      * @return array<string, true> Expired slots represented as a lookup set.
      */
-    private static function findExpiredSlots(array $slots, array $allMeta, int $retentionDays): array
+    private static function findExpiredSlots(#[\SensitiveParameter] array $slots, #[\SensitiveParameter] array $allMeta, int $retentionDays): array
     {
         $slotNames = array_filter(
             array_merge($slots, array_keys($allMeta)),
@@ -358,54 +341,52 @@ final class Bookings
     }
 
     /**
-     * Removes expired slots, metadata, reminders, and notification locks.
+     * Atomically removes bookings, their metadata and all linked action tokens.
+     * Legacy one-shot events are cleared only after the data commit succeeds.
      *
-     * @param array<string, true>  $expiredSlots
-     * @param array<int, mixed>    $slots
-     * @param array<string, mixed> $allMeta
+     * @param array<string, true> $remove Slots to cancel or expire.
+     * @param array<int, mixed> $slots Stored booked slots.
+     * @param array<string, mixed> $allMeta Stored booking metadata.
+     * @return array<string, mixed> Remaining bookings' metadata for waitlist notification.
      */
-    private static function removeExpiredBookings(array $expiredSlots, array $slots, array $allMeta): void
-    {
+    private static function removeBookings(
+        #[\SensitiveParameter] array $remove,
+        #[\SensitiveParameter] array $slots,
+        #[\SensitiveParameter] array $allMeta
+    ): array {
         $remainingSlots = array_values(array_filter(
             $slots,
-            static fn($slot): bool => !is_string($slot) || !isset($expiredSlots[$slot])
+            static fn($slot): bool => !is_string($slot) || !isset($remove[$slot])
         ));
-        update_option(self::SLOTS_OPTION, $remainingSlots, false);
-
-        foreach ($expiredSlots as $slot => $_unused) {
-            unset($allMeta[$slot]);
-            wp_clear_scheduled_hook(Reminder::CRON_HOOK, [$slot]);
-            delete_option(self::getWaitlistLockOption($slot));
-        }
-
-        update_option(self::META_OPTION, $allMeta, false);
-    }
-
-    /**
-     * Removes cancellation and pending tokens associated with expired slots.
-     *
-     * @param array<string, true> $expiredSlots
-     */
-    private static function removeExpiredTokens(array $expiredSlots): void
-    {
-        $tokens = (array) get_option(TokenManager::CANCEL_OPTION, []);
+        $remainingMeta = array_diff_key($allMeta, $remove);
+        $pending = BookingStorage::get(TokenManager::PENDING_OPTION);
+        $removedPending = array_filter(
+            $pending,
+            static fn($entry): bool => is_array($entry) && is_string($entry['slot'] ?? null) && isset($remove[$entry['slot']])
+        );
+        $tokens = BookingStorage::get(TokenManager::CANCEL_OPTION);
         foreach ($tokens as $token => $entry) {
-            $slot = is_array($entry) ? ($entry['slot'] ?? '') : $entry;
-            if (is_string($slot) && isset($expiredSlots[$slot])) {
+            $slot = is_array($entry) ? ($entry['slot'] ?? null) : $entry;
+            $pendingToken = is_array($entry) ? ($entry['pending_token'] ?? null) : null;
+            if ((is_string($slot) && isset($remove[$slot]))
+                || (is_string($pendingToken) && isset($removedPending[$pendingToken]))) {
                 unset($tokens[$token]);
             }
         }
-        update_option(TokenManager::CANCEL_OPTION, $tokens, false);
-
-        $pending = (array) get_option(TokenManager::PENDING_OPTION, []);
-        foreach ($pending as $token => $entry) {
-            $slot = is_array($entry) ? ($entry['slot'] ?? '') : '';
-            if (is_string($slot) && isset($expiredSlots[$slot])) {
-                unset($pending[$token]);
-                wp_clear_scheduled_hook(TokenManager::PENDING_EXPIRY_HOOK, [$token]);
-            }
+        BookingStorage::setMany([
+            self::SLOTS_OPTION => $remainingSlots,
+            self::META_OPTION => $remainingMeta,
+            TokenManager::CANCEL_OPTION => $tokens,
+            TokenManager::PENDING_OPTION => array_diff_key($pending, $removedPending),
+        ]);
+        foreach (array_keys($remove) as $slot) {
+            BookingScheduler::clear(Reminder::CRON_HOOK, $slot);
+            delete_option(self::getWaitlistLockOption($slot));
         }
-        update_option(TokenManager::PENDING_OPTION, $pending, false);
+        foreach (array_keys($removedPending) as $token) {
+            BookingScheduler::clear(TokenManager::PENDING_EXPIRY_HOOK, (string) $token);
+        }
+        return $remainingMeta;
     }
 
     /**
@@ -414,7 +395,7 @@ final class Bookings
      * @param array<string, mixed> $meta
      * @return array<string, mixed>
      */
-    private static function buildBooking(string $slot, array $meta, bool $hideDetails): array
+    private static function buildBooking(#[\SensitiveParameter] string $slot, #[\SensitiveParameter] array $meta, bool $hideDetails): array
     {
         $parts = self::parseSlot($slot);
         $isAnonymized = $hideDetails || !empty($meta[self::ADMIN_ANONYMIZED_META_KEY]);
@@ -439,7 +420,7 @@ final class Bookings
      * @param array<string, mixed> $booking
      * @param array<string, mixed> $filter
      */
-    private static function matchesFilter(array $booking, array $filter): bool
+    private static function matchesFilter(#[\SensitiveParameter] array $booking, #[\SensitiveParameter] array $filter): bool
     {
         if (!empty($filter['date_from']) && $booking['date'] < $filter['date_from']) {
             return false;
@@ -463,7 +444,7 @@ final class Bookings
      * @param array<string, mixed> $cancelledMeta
      * @param array<string, mixed> $allMeta Remaining metadata after cancellation.
      */
-    private static function notifyWaitlist(string $cancelledSlot, array $cancelledMeta, array $allMeta): void
+    private static function notifyWaitlist(#[\SensitiveParameter] string $cancelledSlot, #[\SensitiveParameter] array $cancelledMeta, #[\SensitiveParameter] array $allMeta): void
     {
         try {
             $cancelledDate = self::getSlotDate($cancelledSlot);
@@ -503,11 +484,11 @@ final class Bookings
 
     /** @param array<string, mixed> $bookedMeta */
     private static function isEligibleWaitlistBooking(
-        string $bookedSlot,
-        array $bookedMeta,
-        string $availableSlot,
+        #[\SensitiveParameter] string $bookedSlot,
+        #[\SensitiveParameter] array $bookedMeta,
+        #[\SensitiveParameter] string $availableSlot,
         int $personId,
-        string $today
+        #[\SensitiveParameter] string $today
     ): bool {
         return !empty($bookedMeta['booker_waitlist'])
             && (int) ($bookedMeta['person_id'] ?? 0) === $personId
@@ -520,9 +501,9 @@ final class Bookings
      * @param array<string, mixed> $bookedMeta
      */
     private static function shouldSendWaitlistNotification(
-        string $availableSlot,
-        string $bookedSlot,
-        array $bookedMeta
+        #[\SensitiveParameter] string $availableSlot,
+        #[\SensitiveParameter] string $bookedSlot,
+        #[\SensitiveParameter] array $bookedMeta
     ): bool {
         if (empty($bookedMeta['booker_waitlist'])) {
             return false;
@@ -540,7 +521,7 @@ final class Bookings
     }
 
     /** @param array<string, mixed> $fallbackMeta */
-    private static function mergeCurrentBookingMetadata(string $slot, array $fallbackMeta): array
+    private static function mergeCurrentBookingMetadata(#[\SensitiveParameter] string $slot, #[\SensitiveParameter] array $fallbackMeta): array
     {
         $currentMeta = self::getSlotMetadata(self::getStoredMetadata(), $slot);
         return $currentMeta === [] ? $fallbackMeta : array_merge($fallbackMeta, $currentMeta);
@@ -551,7 +532,7 @@ final class Bookings
      *
      * @return string Lock option name, or an empty string when already locked.
      */
-    private static function acquireWaitlistNotificationLock(string $bookedSlot): string
+    private static function acquireWaitlistNotificationLock(#[\SensitiveParameter] string $bookedSlot): string
     {
         $option = self::getWaitlistLockOption($bookedSlot);
         $now = time();
@@ -574,15 +555,15 @@ final class Bookings
     /**
      * Returns the lock option name for a booked slot.
      */
-    private static function getWaitlistLockOption(string $slot): string
+    private static function getWaitlistLockOption(#[\SensitiveParameter] string $slot): string
     {
-        return self::WAITLIST_LOCK_PREFIX . md5($slot);
+        return self::WAITLIST_LOCK_PREFIX . BookingStorage::lockReference('waitlist', $slot);
     }
 
     /**
      * Records that an available slot was already sent to a waitlisted booker.
      */
-    private static function rememberWaitlistNotification(string $bookedSlot, string $availableSlot): void
+    private static function rememberWaitlistNotification(#[\SensitiveParameter] string $bookedSlot, #[\SensitiveParameter] string $availableSlot): void
     {
         $allMeta = self::getStoredMetadata();
         if (!isset($allMeta[$bookedSlot]) || !is_array($allMeta[$bookedSlot])) {
@@ -597,7 +578,7 @@ final class Bookings
         $notifiedSlots[] = $availableSlot;
         $allMeta[$bookedSlot][self::WAITLIST_NOTIFIED_SLOTS_KEY] = $notifiedSlots;
         unset($allMeta[$bookedSlot]['waitlist_notified_slot']);
-        update_option(self::META_OPTION, $allMeta, false);
+        BookingStorage::set(self::META_OPTION, $allMeta);
     }
 
     /**
@@ -606,7 +587,7 @@ final class Bookings
      * @param array<string, mixed> $bookedMeta
      * @return array<int, string>
      */
-    private static function getWaitlistNotifiedSlots(array $bookedMeta): array
+    private static function getWaitlistNotifiedSlots(#[\SensitiveParameter] array $bookedMeta): array
     {
         $notifiedSlots = $bookedMeta[self::WAITLIST_NOTIFIED_SLOTS_KEY] ?? [];
         if (!is_array($notifiedSlots)) {
@@ -624,7 +605,7 @@ final class Bookings
     /**
      * Updates the earlier-slot notification preference for one booking.
      */
-    private static function setWaitlistNotifications(string $slot, bool $enabled): bool
+    private static function setWaitlistNotifications(#[\SensitiveParameter] string $slot, bool $enabled): bool
     {
         try {
             $allMeta = self::getStoredMetadata();
@@ -637,11 +618,11 @@ final class Bookings
                 : null;
             if ($currentValue !== $enabled) {
                 $allMeta[$slot]['booker_waitlist'] = $enabled;
-                update_option(self::META_OPTION, $allMeta, false);
+                BookingStorage::set(self::META_OPTION, $allMeta);
             }
 
             return true;
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -649,7 +630,7 @@ final class Bookings
     /**
      * @param array<string, mixed> $meta
      */
-    private static function sendCancellationMail(string $slot, array $meta, string $reason): void
+    private static function sendCancellationMail(#[\SensitiveParameter] string $slot, #[\SensitiveParameter] array $meta, #[\SensitiveParameter] string $reason): void
     {
         try {
             $parts = self::parseSlot($slot) ?? ['date' => '', 'start' => '', 'end' => ''];
@@ -726,7 +707,7 @@ final class Bookings
                     $htmlVariables
                 );
             }
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -737,10 +718,10 @@ final class Bookings
      * @return array<string, mixed>
      */
     private static function buildWaitlistTemplateVariables(
-        string $availableSlot,
-        array $newSlotMeta,
-        string $bookedSlot,
-        array $bookedMeta
+        #[\SensitiveParameter] string $availableSlot,
+        #[\SensitiveParameter] array $newSlotMeta,
+        #[\SensitiveParameter] string $bookedSlot,
+        #[\SensitiveParameter] array $bookedMeta
     ): array {
         $available = self::parseSlot($availableSlot) ?? ['date' => '', 'start' => '', 'end' => ''];
         $booked = self::parseSlot($bookedSlot) ?? ['date' => '', 'start' => '', 'end' => ''];
@@ -770,7 +751,7 @@ final class Bookings
      *
      * @return array{subject: string, body: string, body_html: string}
      */
-    private static function getMailTemplate(int $templateId, string $type): array
+    private static function getMailTemplate(int $templateId, #[\SensitiveParameter] string $type): array
     {
         $custom = $templateId > 0
             ? (MailTemplatePost::getTemplateForType($templateId, $type) ?? [])
@@ -788,10 +769,10 @@ final class Bookings
      * Appends a required placeholder link to a plain-text template.
      */
     private static function ensurePlainTemplateLink(
-        string $template,
-        string $placeholder,
-        string $label,
-        string $separator = "\n\n"
+        #[\SensitiveParameter] string $template,
+        #[\SensitiveParameter] string $placeholder,
+        #[\SensitiveParameter] string $label,
+        #[\SensitiveParameter] string $separator = "\n\n"
     ): string {
         if (strpos($template, $placeholder) !== false) {
             return $template;
@@ -804,9 +785,9 @@ final class Bookings
      * Appends a placeholder when an older custom template does not contain it.
      */
     private static function ensureTemplatePlaceholder(
-        string $template,
-        string $placeholder,
-        string $separator = ''
+        #[\SensitiveParameter] string $template,
+        #[\SensitiveParameter] string $placeholder,
+        #[\SensitiveParameter] string $separator = ''
     ): string {
         if (strpos($template, $placeholder) !== false) {
             return $template;
@@ -818,7 +799,7 @@ final class Bookings
     /**
      * Sanitizes and limits a user-provided cancellation reason.
      */
-    private static function normalizeCancellationReason(string $reason): string
+    private static function normalizeCancellationReason(#[\SensitiveParameter] string $reason): string
     {
         $reason = sanitize_textarea_field($reason);
         if (function_exists('mb_substr')) {
@@ -832,9 +813,9 @@ final class Bookings
      * Appends a required placeholder link to an HTML template.
      */
     private static function ensureHtmlTemplateLink(
-        string $template,
-        string $placeholder,
-        string $label
+        #[\SensitiveParameter] string $template,
+        #[\SensitiveParameter] string $placeholder,
+        #[\SensitiveParameter] string $label
     ): string {
         if (strpos($template, $placeholder) !== false) {
             return $template;
@@ -848,11 +829,11 @@ final class Bookings
      * @param array<string, mixed> $variables
      */
     private static function sendRenderedMail(
-        string $recipient,
-        array $template,
-        array $variables,
-        string $status = MailTemplate::STATUS_NEUTRAL,
-        ?array $htmlVariables = null
+        #[\SensitiveParameter] string $recipient,
+        #[\SensitiveParameter] array $template,
+        #[\SensitiveParameter] array $variables,
+        #[\SensitiveParameter] string $status = MailTemplate::STATUS_NEUTRAL,
+        #[\SensitiveParameter] ?array $htmlVariables = null
     ): bool {
         $subject = Mailer::render($template['subject'], $variables);
         $plain = Mailer::render($template['body'], $variables);
@@ -867,7 +848,7 @@ final class Bookings
      *
      * @param array<string, mixed> $meta
      */
-    private static function resolvePersonName(int $personId, array $meta = []): string
+    private static function resolvePersonName(int $personId, #[\SensitiveParameter] array $meta = []): string
     {
         $storedName = trim((string) ($meta['person_name'] ?? ''));
         if ($storedName !== '') {
@@ -895,7 +876,7 @@ final class Bookings
     /**
      * Parses the ending time of a slot in the site timezone.
      */
-    private static function getSlotEnd(string $slot): ?\DateTimeImmutable
+    private static function getSlotEnd(#[\SensitiveParameter] string $slot): ?\DateTimeImmutable
     {
         $parts = self::parseSlot($slot);
         return $parts === null ? null : self::createDateTime($parts['date'], $parts['end']);
@@ -904,7 +885,7 @@ final class Bookings
     /**
      * Returns the date component of a slot, or an empty string when malformed.
      */
-    private static function getSlotDate(string $slot): string
+    private static function getSlotDate(#[\SensitiveParameter] string $slot): string
     {
         $parts = self::parseSlot($slot);
         return $parts['date'] ?? '';
@@ -913,7 +894,7 @@ final class Bookings
     /**
      * @return array{date: string, start: string, end: string}|null
      */
-    private static function parseSlot(string $slot): ?array
+    private static function parseSlot(#[\SensitiveParameter] string $slot): ?array
     {
         [$date, $timeRange] = array_pad(explode(' ', $slot, 2), 2, '');
         [$start, $end] = array_pad(explode('-', $timeRange, 2), 2, '');
@@ -928,7 +909,7 @@ final class Bookings
     /**
      * Creates a strictly validated date-time in the site timezone.
      */
-    private static function createDateTime(string $date, string $time): ?\DateTimeImmutable
+    private static function createDateTime(#[\SensitiveParameter] string $date, #[\SensitiveParameter] string $time): ?\DateTimeImmutable
     {
         $value = $date . ' ' . $time;
         $dateTime = \DateTimeImmutable::createFromFormat('!Y-m-d H:i', $value, wp_timezone());
@@ -943,7 +924,7 @@ final class Bookings
     /**
      * Formats an ISO date using the site's configured date format.
      */
-    private static function formatDate(string $date): string
+    private static function formatDate(#[\SensitiveParameter] string $date): string
     {
         return date_i18n(get_option('date_format'), strtotime($date));
     }
@@ -951,7 +932,7 @@ final class Bookings
     /**
      * Formats a human-readable appointment time range.
      */
-    private static function formatTimeRange(string $start, string $end): string
+    private static function formatTimeRange(#[\SensitiveParameter] string $start, #[\SensitiveParameter] string $end): string
     {
         return $start . ' – ' . $end;
     }
@@ -963,7 +944,7 @@ final class Bookings
      */
     private static function getStoredSlots(): array
     {
-        return (array) get_option(self::SLOTS_OPTION, []);
+        return BookingStorage::get(self::SLOTS_OPTION);
     }
 
     /**
@@ -973,14 +954,14 @@ final class Bookings
      */
     private static function getStoredMetadata(): array
     {
-        return (array) get_option(self::META_OPTION, []);
+        return BookingStorage::get(self::META_OPTION);
     }
 
     /**
      * @param array<string, mixed> $allMeta
      * @return array<string, mixed>
      */
-    private static function getSlotMetadata(array $allMeta, string $slot): array
+    private static function getSlotMetadata(#[\SensitiveParameter] array $allMeta, #[\SensitiveParameter] string $slot): array
     {
         $meta = $allMeta[$slot] ?? [];
         return is_array($meta) ? $meta : [];
@@ -989,8 +970,8 @@ final class Bookings
     /**
      * Converts internal exceptions to the plugin's public exception type.
      */
-    private static function createException(\Exception $exception): AppointmentException
+    private static function createException(\Throwable $exception): AppointmentException
     {
-        return new AppointmentException($exception->getMessage(), $exception->getCode(), $exception);
+        return AppointmentException::fromThrowable($exception);
     }
 }

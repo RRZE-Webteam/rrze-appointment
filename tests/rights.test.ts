@@ -19,7 +19,8 @@ const getRightsResult = (): RightsResult => {
 	const rightsPath = resolve( process.cwd(), 'includes/Rights.php' );
 	const php = `
 		namespace RRZE\\Appointment {
-			class AppointmentException extends \\Exception {}
+			defined('ABSPATH') || define('ABSPATH', __DIR__);
+            require_once getcwd() . '/includes/AppointmentException.php';
 		}
 		namespace RRZE\\AccessControl {
 			class AuthStub {
@@ -50,7 +51,7 @@ const getRightsResult = (): RightsResult => {
 			}
 		}
 		namespace {
-			define( 'ABSPATH', __DIR__ );
+			defined('ABSPATH') || define( 'ABSPATH', __DIR__ );
 			function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
 			function sanitize_email( $value ) {
 				return filter_var( $value, FILTER_VALIDATE_EMAIL ) ? $value : '';

@@ -4,6 +4,7 @@ namespace RRZE\Appointment\Presentation;
 
 use RRZE\Appointment\Booking\TokenManager;
 use RRZE\Appointment\Configuration\PluginSettings;
+use RRZE\Appointment\Notification\BookingOpeningNotifier;
 use function RRZE\Appointment\plugin;
 
 defined('ABSPATH') || exit;
@@ -21,9 +22,9 @@ final class PublicPageRenderer
     private const MODE_CANCELLATION_CONFIRMATION = 'cancellation_confirmation';
     private const MODE_WAITLIST = 'waitlist';
     private const MODE_OPENING_NOTIFICATION = 'opening_notification';
+    private const MODE_OPENING_CLAIM = 'opening_claim';
     private const QUESTION_NONCE_PREFIX = 'rrze_appointment_confirm_questions_';
     private const CANCELLATION_NONCE_PREFIX = 'rrze_appointment_cancel_';
-    private const WAITLIST_NONCE_PREFIX = 'rrze_appointment_waitlist_optin_';
 
     /**
      * Builds the non-personal appointment summary shown on public pages.
@@ -113,15 +114,31 @@ final class PublicPageRenderer
      * Renders the waitlist notification status page.
      *
      * @param array<string, string> $appointmentDetails Public appointment details.
+     * @param bool $preview Whether this is the current setting before user submission.
      */
     public function renderWaitlistStatus(
         string $token,
         bool $notificationsEnabled = false,
-        array $appointmentDetails = []
+        array $appointmentDetails = [],
+        bool $preview = false
     ): void {
         $this->renderConfirmationPage(self::MODE_WAITLIST, [
             'token' => $token,
             'notificationsEnabled' => $notificationsEnabled,
+            'appointmentDetails' => $appointmentDetails,
+            'waitlistPreview' => $preview,
+        ]);
+    }
+
+    /**
+     * Renders the POST form which claims an opening subscription.
+     *
+     * @param array<string, string> $appointmentDetails Public appointment details.
+     */
+    public function renderOpeningClaim(#[\SensitiveParameter] string $token, array $appointmentDetails): void
+    {
+        $this->renderConfirmationPage(self::MODE_OPENING_CLAIM, [
+            'token' => $token,
             'appointmentDetails' => $appointmentDetails,
         ]);
     }
@@ -155,9 +172,11 @@ final class PublicPageRenderer
         $isCancellationConfirmation = $context['isCancellationConfirmation'];
         $isWaitlistOptOut = $context['isWaitlistOptOut'];
         $isOpeningNotification = $context['isOpeningNotification'];
+        $isOpeningClaim = $context['isOpeningClaim'];
+        $waitlistPreview = $context['waitlistPreview'];
         $waitlistNotificationsEnabled = $context['waitlistNotificationsEnabled'];
-        $waitlistOptInAction = $context['waitlistOptInAction'];
-        $waitlistOptInNonce = $context['waitlistOptInNonce'];
+        $waitlistActionUrl = $context['waitlistActionUrl'];
+        $waitlistNonce = $context['waitlistNonce'];
         $cancellationAction = $context['cancellationAction'];
         $cancellationNonce = $context['cancellationNonce'];
         $showCancellationReason = $context['showCancellationReason'];
@@ -184,9 +203,7 @@ final class PublicPageRenderer
     {
         $token = is_string($data['token'] ?? null) ? $data['token'] : '';
         $questions = is_array($data['questions'] ?? null) ? $data['questions'] : [];
-        $isQuestionForm = $mode === self::MODE_CONFIRMATION
-            && $token !== ''
-            && $questions !== [];
+        $isQuestionForm = $mode === self::MODE_CONFIRMATION && $token !== '';
 
         $context = [
             'homeUrl' => (string) home_url('/'),
@@ -196,9 +213,11 @@ final class PublicPageRenderer
             'isCancellationConfirmation' => $mode === self::MODE_CANCELLATION_CONFIRMATION,
             'isWaitlistOptOut' => $mode === self::MODE_WAITLIST,
             'isOpeningNotification' => $mode === self::MODE_OPENING_NOTIFICATION,
+            'isOpeningClaim' => $mode === self::MODE_OPENING_CLAIM,
+            'waitlistPreview' => !empty($data['waitlistPreview']),
             'waitlistNotificationsEnabled' => !empty($data['notificationsEnabled']),
-            'waitlistOptInAction' => '',
-            'waitlistOptInNonce' => '',
+            'waitlistActionUrl' => '',
+            'waitlistNonce' => '',
             'cancellationAction' => '',
             'cancellationNonce' => '',
             'showCancellationReason' => !empty($data['showCancellationReason']),
@@ -230,8 +249,13 @@ final class PublicPageRenderer
             $context['cancellationNonce'] = wp_create_nonce(self::CANCELLATION_NONCE_PREFIX . $token);
         } elseif ($mode === self::MODE_WAITLIST) {
             $context['illustrationUrl'] = $this->getIllustrationUrl('waitlist_preference');
-            $context['waitlistOptInAction'] = TokenManager::waitlistOptOutUrl($token);
-            $context['waitlistOptInNonce'] = wp_create_nonce(self::WAITLIST_NONCE_PREFIX . $token);
+            $context['waitlistActionUrl'] = TokenManager::waitlistOptOutUrl($token);
+            $action = $context['waitlistNotificationsEnabled'] ? 'optout' : 'optin';
+            $context['waitlistNonce'] = wp_create_nonce('rrze_appointment_waitlist_' . $action . '_' . $token);
+        } elseif ($mode === self::MODE_OPENING_CLAIM) {
+            $context['illustrationUrl'] = $this->getIllustrationUrl('opening_notification');
+            $context['formAction'] = BookingOpeningNotifier::claimUrl($token);
+            $context['formNonce'] = wp_create_nonce('rrze_appointment_opening_claim_' . $token);
         } elseif ($mode === self::MODE_OPENING_NOTIFICATION) {
             $context['illustrationUrl'] = $this->getIllustrationUrl('opening_notification');
         }

@@ -4,6 +4,7 @@ namespace RRZE\Appointment\Notification;
 
 use RRZE\Appointment\Booking\Bookings;
 use RRZE\Appointment\Booking\SlotGenerator;
+use RRZE\Appointment\Storage\BookingStorage;
 
 defined('ABSPATH') || exit;
 
@@ -82,7 +83,7 @@ final class WaitlistNotifier
      * @param array<string, array<string, mixed>> $allMeta Booking metadata keyed by slot.
      * @return array<int, array<int, array{slot: string, meta: array<string, mixed>}>>
      */
-    private function getWaitlistedBookings(array $allMeta, string $today): array
+    private function getWaitlistedBookings(#[\SensitiveParameter] array $allMeta, #[\SensitiveParameter] string $today): array
     {
         $waitlisted = [];
         foreach ($allMeta as $slot => $meta) {
@@ -115,7 +116,7 @@ final class WaitlistNotifier
      *
      * @return array<int, array<string, array<string, mixed>>>
      */
-    private function collectAppointmentSlots(string $postContent): array
+    private function collectAppointmentSlots(#[\SensitiveParameter] string $postContent): array
     {
         $slotsByPerson = [];
         $blocks = parse_blocks($postContent);
@@ -132,7 +133,7 @@ final class WaitlistNotifier
      * @param array<int, array<string, mixed>>                $blocks        Parsed blocks.
      * @param array<int, array<string, array<string, mixed>>> $slotsByPerson Collected slots.
      */
-    private function collectAppointmentSlotsFromBlocks(array $blocks, array &$slotsByPerson): void
+    private function collectAppointmentSlotsFromBlocks(#[\SensitiveParameter] array $blocks, array &$slotsByPerson): void
     {
         foreach ($blocks as $block) {
             if (!is_array($block)) {
@@ -172,10 +173,10 @@ final class WaitlistNotifier
      * @return array<string, array<string, mixed>>
      */
     private function getAddedAvailableSlots(
-        array $currentSlots,
-        array $previousSlots,
-        array $bookedSlots,
-        string $today
+        #[\SensitiveParameter] array $currentSlots,
+        #[\SensitiveParameter] array $previousSlots,
+        #[\SensitiveParameter] array $bookedSlots,
+        #[\SensitiveParameter] string $today
     ): array {
         $availableSlots = [];
         foreach (array_diff_key($currentSlots, $previousSlots) as $slot => $attributes) {
@@ -193,7 +194,7 @@ final class WaitlistNotifier
      * @param array<int, array{slot: string, meta: array<string, mixed>}> $entries
      * @param array<string, array<string, mixed>>                         $addedSlots
      */
-    private function notifyWaitlistedBookings(array $entries, array $addedSlots): void
+    private function notifyWaitlistedBookings(#[\SensitiveParameter] array $entries, #[\SensitiveParameter] array $addedSlots): void
     {
         foreach ($entries as $entry) {
             $earliestSlot = $this->findEarliestSlotBefore(array_keys($addedSlots), $entry['slot']);
@@ -219,7 +220,7 @@ final class WaitlistNotifier
      *
      * @param array<int, string> $slots
      */
-    private function findEarliestSlotBefore(array $slots, string $bookedSlot): ?string
+    private function findEarliestSlotBefore(#[\SensitiveParameter] array $slots, #[\SensitiveParameter] string $bookedSlot): ?string
     {
         $earliestSlot = null;
         foreach ($slots as $slot) {
@@ -253,16 +254,15 @@ final class WaitlistNotifier
      *
      * @return array<mixed>
      */
-    private function getOptionArray(string $optionName): array
+    private function getOptionArray(#[\SensitiveParameter] string $optionName): array
     {
-        $value = get_option($optionName, []);
-        return is_array($value) ? $value : [];
+        return BookingStorage::get($optionName);
     }
 
     /**
      * Determines whether a slot uses the sortable persisted format.
      */
-    private function isValidSlot(string $slot): bool
+    private function isValidSlot(#[\SensitiveParameter] string $slot): bool
     {
         return preg_match(self::SLOT_PATTERN, $slot) === 1;
     }
@@ -270,7 +270,7 @@ final class WaitlistNotifier
     /**
      * Extracts the ISO date prefix from a validated slot.
      */
-    private function getSlotDate(string $slot): string
+    private function getSlotDate(#[\SensitiveParameter] string $slot): string
     {
         return substr($slot, 0, 10);
     }

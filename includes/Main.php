@@ -3,8 +3,12 @@
 namespace RRZE\Appointment;
 
 use RRZE\Appointment\Admin\BookingsPage;
+use RRZE\Appointment\Admin\AccessSettings;
+use RRZE\Appointment\Admin\BackendSsoSettings;
 use RRZE\Appointment\Admin\MailTemplatesPage;
 use RRZE\Appointment\Admin\SettingsPage;
+use RRZE\Appointment\Admin\StorageStatus;
+use RRZE\Appointment\Storage\BookingScheduler;
 use RRZE\Appointment\Booking\TokenManager;
 use RRZE\Appointment\Booking\GuestRequestLimiter;
 use RRZE\Appointment\Controller\AdminBookingsController;
@@ -69,32 +73,31 @@ final class Main
     }
 
     /**
-     * Initializes plugin state and registers runtime WordPress hooks.
+     * Registers runtime hooks without changing reservations or migrating stored bookings.
      */
     public function onInit(): void
     {
-        $this->initializePluginState();
+        $templateError = null;
+        try {
+            MailTemplatePost::ensureEditableDefaultTemplateExists();
+        } catch (AppointmentException $exception) {
+            $templateError = $exception->getMessage();
+        }
+        (new StorageStatus($templateError))->register();
 
         $mailTemplatesPage = new MailTemplatesPage();
         (new SettingsPage($mailTemplatesPage))->register();
+        (new BackendSsoSettings())->register();
+        (new AccessSettings())->register();
         (new BookingsPage())->register();
         (new Reminder())->register();
+        BookingScheduler::register();
 
         $this->registerAssetHooks();
         $this->registerAjaxHooks();
         $this->registerPublicPageHooks();
         $this->registerBackgroundHooks();
         add_action('rest_api_init', [$this, 'registerRestRoutes']);
-    }
-
-    /**
-     * Runs one-time maintenance needed before request hooks execute.
-     */
-    private function initializePluginState(): void
-    {
-        MailTemplatePost::ensureEditableDefaultTemplateExists();
-        TokenManager::cleanupPendingState();
-        BookingOpeningNotifier::cleanup();
     }
 
     /**
@@ -156,8 +159,8 @@ final class Main
     private function registerBackgroundHooks(): void
     {
         add_action('delete_expired_transients', [GuestRequestLimiter::class, 'cleanup']);
-        add_action(TokenManager::PENDING_EXPIRY_HOOK, [TokenManager::class, 'expirePending']);
-        add_action(BookingOpeningNotifier::CRON_HOOK, [BookingOpeningNotifier::class, 'notify']);
+        add_action(TokenManager::PENDING_EXPIRY_HOOK, [BookingScheduler::class, 'expirePending']);
+        add_action(BookingOpeningNotifier::CRON_HOOK, [BookingScheduler::class, 'notifyOpening']);
         add_action('post_updated', [$this->waitlistNotifier, 'handlePostUpdated'], 10, 3);
     }
 

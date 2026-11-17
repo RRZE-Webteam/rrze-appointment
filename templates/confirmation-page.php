@@ -5,13 +5,20 @@ defined('ABSPATH') || exit;
 $waitlistNotificationsEnabled = !empty($waitlistNotificationsEnabled);
 $isCancellationConfirmation = !empty($isCancellationConfirmation);
 $isOpeningNotification = !empty($isOpeningNotification);
+$isOpeningClaim = !empty($isOpeningClaim);
 $appointmentDetails = is_array($appointmentDetails ?? null) ? $appointmentDetails : [];
 $hasAppointmentDetails = count(array_filter($appointmentDetails, static fn($value): bool => $value !== '')) > 0;
 
 if ($isQuestionForm) {
     $statusText = __('Confirmation required', 'rrze-appointment');
     $headingText = __('Complete your appointment request', 'rrze-appointment');
-    $messageText = __('Please answer the remaining questions below. Your appointment will be confirmed when you submit this form.', 'rrze-appointment');
+    $messageText = $questions
+        ? __('Please answer the remaining questions below. Your appointment will be confirmed when you submit this form.', 'rrze-appointment')
+        : __('Please check the appointment details and confirm your booking.', 'rrze-appointment');
+} elseif ($isOpeningClaim) {
+    $statusText = __('Appointment', 'rrze-appointment');
+    $headingText = __('Reserve this appointment', 'rrze-appointment');
+    $messageText = __('Reserve the appointment to continue to booking confirmation.', 'rrze-appointment');
 } elseif ($isCancellationConfirmation) {
     $statusText = __('Cancellation', 'rrze-appointment');
     $headingText = __('Cancel this appointment?', 'rrze-appointment');
@@ -24,12 +31,16 @@ if ($isQuestionForm) {
     $statusText = $waitlistNotificationsEnabled
         ? __('Notifications enabled', 'rrze-appointment')
         : __('Notifications disabled', 'rrze-appointment');
-    $headingText = $waitlistNotificationsEnabled
-        ? __('You are subscribed again', 'rrze-appointment')
-        : __('You have unsubscribed', 'rrze-appointment');
-    $messageText = $waitlistNotificationsEnabled
-        ? __('You will receive an email again when an earlier appointment becomes available.', 'rrze-appointment')
-        : __('Your appointment remains confirmed. You will no longer receive emails when an earlier appointment becomes available.', 'rrze-appointment');
+    if (!empty($waitlistPreview)) {
+        $headingText = __('Earlier appointment notifications', 'rrze-appointment');
+        $messageText = __('Choose whether to receive an email when an earlier appointment becomes available.', 'rrze-appointment');
+    } elseif ($waitlistNotificationsEnabled) {
+        $headingText = __('You are subscribed again', 'rrze-appointment');
+        $messageText = __('You will receive an email again when an earlier appointment becomes available.', 'rrze-appointment');
+    } else {
+        $headingText = __('You have unsubscribed', 'rrze-appointment');
+        $messageText = __('Your appointment remains confirmed. You will no longer receive emails when an earlier appointment becomes available.', 'rrze-appointment');
+    }
 } elseif ($isOpeningNotification) {
     $statusText = __('Notification registered', 'rrze-appointment');
     $headingText = __('We will let you know', 'rrze-appointment');
@@ -589,6 +600,13 @@ $pageTitle = sprintf(
                         <?php esc_html_e('Confirm appointment', 'rrze-appointment'); ?>
                     </button>
                 </form>
+            <?php elseif ($isOpeningClaim) : ?>
+                <form class="rrze-appointment-confirmation__form" method="post" action="<?php echo esc_url($formAction); ?>">
+                    <input type="hidden" name="rrze_appt_opening_nonce" value="<?php echo esc_attr($formNonce); ?>">
+                    <button class="rrze-appointment-confirmation__action" type="submit">
+                        <?php esc_html_e('Reserve this appointment', 'rrze-appointment'); ?>
+                    </button>
+                </form>
             <?php elseif ($isCancellationConfirmation) : ?>
                 <form class="rrze-appointment-confirmation__form" method="post" action="<?php echo esc_url($cancellationAction); ?>">
                     <input type="hidden" name="rrze_appt_cancel_action" value="cancel">
@@ -632,19 +650,21 @@ $pageTitle = sprintf(
                     <a class="rrze-appointment-confirmation__action" href="<?php echo esc_url($homeUrl); ?>">
                         <?php esc_html_e('Back to website', 'rrze-appointment'); ?>
                     </a>
-                    <?php if ($isWaitlistOptOut && !$waitlistNotificationsEnabled) : ?>
+                    <?php if ($isWaitlistOptOut) : ?>
                         <form
                             class="rrze-appointment-confirmation__optin-form"
                             method="post"
-                            action="<?php echo esc_url($waitlistOptInAction); ?>"
+                            action="<?php echo esc_url($waitlistActionUrl); ?>"
                         >
-                            <input type="hidden" name="rrze_appt_waitlist_action" value="optin">
-                            <input type="hidden" name="rrze_appt_waitlist_nonce" value="<?php echo esc_attr($waitlistOptInNonce); ?>">
+                            <input type="hidden" name="rrze_appt_waitlist_action" value="<?php echo $waitlistNotificationsEnabled ? 'optout' : 'optin'; ?>">
+                            <input type="hidden" name="rrze_appt_waitlist_nonce" value="<?php echo esc_attr($waitlistNonce); ?>">
                             <button
                                 class="rrze-appointment-confirmation__action rrze-appointment-confirmation__action--secondary"
                                 type="submit"
                             >
-                                <?php esc_html_e('Enable notifications again', 'rrze-appointment'); ?>
+                                <?php echo esc_html($waitlistNotificationsEnabled
+                                    ? __('Stop earlier appointment notifications', 'rrze-appointment')
+                                    : __('Enable notifications again', 'rrze-appointment')); ?>
                             </button>
                         </form>
                     <?php endif; ?>

@@ -2,6 +2,7 @@
 
 // Run the real booking query and admin renderer against isolated test data.
 define('ABSPATH', __DIR__);
+require_once __DIR__ . '/legacy-booking-storage.php';
 define('MINUTE_IN_SECONDS', 60);
 $scenario = json_decode(stream_get_contents(STDIN), true) ?: [];
 $GLOBALS['scenario'] = $scenario;
@@ -15,6 +16,11 @@ $GLOBALS['options'] = [
         'sensitive_mode_enabled' => $scenario['sensitive'] ?? false,
         'cancellation_reason_enabled' => $scenario['showReason'] ?? true,
         'appointment_manager_user_ids' => $scenario['allowedUsers'] ?? [7],
+    ],
+    'rrze_appointment_cancel_tokens' => [
+        'old-string' => '2026-08-20 12:30-13:00',
+        'old-structured' => ['type' => 'booked', 'slot' => '2026-08-20 12:30-13:00'],
+        'other-booking' => '2026-08-23 10:00-10:30',
     ],
     'rrze_appointment_booked_slots_meta' => [
         '2026-08-23 10:00-10:30' => ['title' => 'Future appointment', 'person_id' => 2],
@@ -43,6 +49,9 @@ $GLOBALS['options']['rrze_appointment_booked_slots'] = array_keys(
 
 function get_option($key, $default = false) { return $GLOBALS['options'][$key] ?? $default; }
 function update_option($key, $value, $autoload = null) {
+    if (!empty($GLOBALS['scenario']['failFirstWrite']) && $key === 'rrze_appointment_booked_slots') {
+        throw new RuntimeException('Simulated failed booking write.');
+    }
     ++$GLOBALS['writes'];
     $GLOBALS['options'][$key] = $value;
     return true;
@@ -77,7 +86,7 @@ function esc_html__($text, $domain) { return esc_html($text); }
 function esc_html_e($text, $domain) { echo esc_html($text); }
 function esc_attr_e($text, $domain) { echo esc_attr($text); }
 function selected($current, $value) { if ((string) $current === (string) $value) { echo ' selected="selected"'; } }
-function admin_url($path) { return 'https://example.test/wp-admin/' . $path; }
+function admin_url($path = '') { return 'https://example.test/wp-admin/' . $path; }
 function add_query_arg($args, $url) {
     $parts = parse_url($url);
     parse_str($parts['query'] ?? '', $query);
@@ -97,6 +106,10 @@ function wp_verify_nonce($nonce, $action) { return $action === 'wp_rest' && $non
 function is_wp_error($value) { return $value instanceof WP_Error; }
 function register_rest_route($namespace, $route, $args) { $GLOBALS['routes'][] = compact('namespace', 'route', 'args'); }
 class WP_Error {
+    /** Returns the synthetic error code. */
+    public function get_error_code() { return $this->code; }
+    /** Returns the safe synthetic message. */
+    public function get_error_message() { return $this->message; }
     public function __construct(public string $code, public string $message, public array $data = []) {}
 }
 class WP_REST_Response {
@@ -113,9 +126,14 @@ require $root . '/includes/AppointmentException.php';
 require $root . '/includes/Configuration/PluginSettings.php';
 require $root . '/includes/Booking/Bookings.php';
 require $root . '/includes/Admin/Request.php';
+require $root . '/includes/Admin/AccessPolicy.php';
+require $root . '/includes/Admin/AccessNotice.php';
+require $root . '/includes/Admin/AccessSettings.php';
+require $root . '/includes/Admin/BackendSsoSettings.php';
 require $root . '/includes/Admin/AppointmentPermissions.php';
 require $root . '/includes/Admin/BookingsPage.php';
 require $root . '/includes/Controller/AdminBookingsController.php';
+require $root . '/includes/Admin/BackendSsoAccess.php';
 require __DIR__ . '/booking-mail-stubs.php';
 
 $_GET = $scenario['query'] ?? [];
@@ -132,6 +150,7 @@ echo json_encode([
     'html' => $html,
     'bookings' => \RRZE\Appointment\Booking\Bookings::getAll($scenario['filter'] ?? []),
     'storedSlots' => get_option('rrze_appointment_booked_slots'),
+    'cancelTokens' => array_keys(get_option('rrze_appointment_cancel_tokens', [])),
     'writes' => $GLOBALS['writes'],
     'api' => $api,
     'mails' => \RRZE\Appointment\Mail\Mailer::$mails,

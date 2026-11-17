@@ -15,6 +15,7 @@ final class AdminBookingsController
     public const REST_NAMESPACE = 'rrze/v2/appointment';
     public const ROUTE = '/bookings';
 
+    /** Registers the authenticated booking list and cancellation endpoints. */
     public function registerRoutes(): void
     {
         register_rest_route(self::REST_NAMESPACE, self::ROUTE, [
@@ -44,13 +45,6 @@ final class AdminBookingsController
     /** Requires the same site-specific permission as the page and a REST nonce. */
     public function allowRequest(\WP_REST_Request $request): bool|\WP_Error
     {
-        if (!AppointmentPermissions::currentUserCanManage()) {
-            return new \WP_Error(
-                'rrze_appointment_forbidden',
-                __('You do not have permission to manage appointments.', 'rrze-appointment'),
-                ['status' => 403]
-            );
-        }
         if (!wp_verify_nonce($request->get_header('X-WP-Nonce'), 'wp_rest')) {
             return new \WP_Error(
                 'rrze_appointment_invalid_nonce',
@@ -58,9 +52,10 @@ final class AdminBookingsController
                 ['status' => 403]
             );
         }
-        return true;
+        return AppointmentPermissions::dataAccess();
     }
 
+    /** Returns only authorized display fields, with a safe failure response. */
     public function getBookings(\WP_REST_Request $request): \WP_REST_Response|\WP_Error
     {
         $permission = $this->allowRequest($request);
@@ -93,7 +88,7 @@ final class AdminBookingsController
                 'sensitiveMode' => (bool) PluginSettings::get('sensitive_mode_enabled'),
                 'cancellationReasonEnabled' => (bool) PluginSettings::get('cancellation_reason_enabled'),
             ]);
-        } catch (AppointmentException $exception) {
+        } catch (\Throwable $exception) {
             return new \WP_Error(
                 'rrze_appointment_load_failed',
                 __('Appointments could not be loaded. Please try again.', 'rrze-appointment'),
@@ -102,6 +97,7 @@ final class AdminBookingsController
         }
     }
 
+    /** Cancels an authorized booking without exposing internal exception details. */
     public function cancelBooking(\WP_REST_Request $request): \WP_REST_Response|\WP_Error
     {
         $permission = $this->allowRequest($request);
@@ -131,7 +127,7 @@ final class AdminBookingsController
             return $this->response([
                 'message' => __('Booking cancelled and cancellation emails sent.', 'rrze-appointment'),
             ]);
-        } catch (AppointmentException $exception) {
+        } catch (\Throwable $exception) {
             return new \WP_Error(
                 'rrze_appointment_cancel_failed',
                 __('The booking could not be cancelled. Refresh the list and try again.', 'rrze-appointment'),
@@ -141,7 +137,7 @@ final class AdminBookingsController
     }
 
     /** @param array<string, mixed> $data */
-    private function response(array $data): \WP_REST_Response
+    private function response(#[\SensitiveParameter] array $data): \WP_REST_Response
     {
         return new \WP_REST_Response($data, 200, ['Cache-Control' => 'private, no-store']);
     }

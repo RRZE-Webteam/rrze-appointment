@@ -7,6 +7,7 @@ use RRZE\Appointment\Booking\TokenManager;
 use RRZE\Appointment\Configuration\PluginSettings;
 use RRZE\Appointment\AppointmentException;
 use RRZE\Appointment\Presentation\PublicPageRenderer;
+use RRZE\Appointment\Storage\BookingStorage;
 
 defined('ABSPATH') || exit;
 
@@ -26,7 +27,7 @@ final class CancellationController
     private const WAITLIST_ACTION_FIELD = 'rrze_appt_waitlist_action';
     private const WAITLIST_NONCE_FIELD = 'rrze_appt_waitlist_nonce';
     private const WAITLIST_OPT_IN_ACTION = 'optin';
-    private const WAITLIST_NONCE_PREFIX = 'rrze_appointment_waitlist_optin_';
+    private const WAITLIST_OPT_OUT_ACTION = 'optout';
 
     private PublicPageRenderer $renderer;
 
@@ -84,10 +85,10 @@ final class CancellationController
             }
 
             $reason = $this->getPostValue(self::CANCELLATION_REASON_FIELD, 'textarea');
-            $this->cancelAppointment($entry, $slot, $token, $reason);
+            $this->cancelAppointment($entry, $slot, $reason);
             $this->renderer->renderCancellationSuccess($appointmentDetails);
-        } catch (AppointmentException $exception) {
-            wp_die(esc_html($exception->getMessage()), '', ['response' => 500]);
+        } catch (\Throwable $exception) {
+            wp_die(esc_html(AppointmentException::fromThrowable($exception)->getMessage()), '', ['response' => 500]);
         }
     }
 
@@ -114,33 +115,25 @@ final class CancellationController
             $appointmentMeta = $this->getStoredBookingMeta($slot);
             $appointmentDetails = $this->renderer->getAppointmentDetails($slot, $appointmentMeta);
 
-            if ($this->isWaitlistOptInRequest()) {
-                if (!$this->hasValidNonce(
-                    self::WAITLIST_NONCE_FIELD,
-                    self::WAITLIST_NONCE_PREFIX . $token
-                )) {
-                    $this->renderer->renderError(
-                        __('The form has expired. Please try again.', 'rrze-appointment'),
-                        403
-                    );
-                    return;
-                }
-
-                if (!Bookings::enableWaitlistNotifications($slot)) {
-                    $this->renderInvalidWaitlistLink();
-                    return;
-                }
-                $this->renderer->renderWaitlistStatus($token, true, $appointmentDetails);
+            if ($this->getRequestMethod() !== 'POST') {
+                $this->renderer->renderWaitlistStatus($token, !empty($appointmentMeta['booker_waitlist']), $appointmentDetails, true);
                 return;
             }
-
-            if (!Bookings::disableWaitlistNotifications($slot)) {
+            $action = $this->getPostValue(self::WAITLIST_ACTION_FIELD, 'key');
+            if (!in_array($action, [self::WAITLIST_OPT_IN_ACTION, self::WAITLIST_OPT_OUT_ACTION], true)
+                || !$this->hasValidNonce(self::WAITLIST_NONCE_FIELD, 'rrze_appointment_waitlist_' . $action . '_' . $token)) {
+                $this->renderer->renderError(__('The form has expired. Please try again.', 'rrze-appointment'), 403);
+                return;
+            }
+            $enabled = $action === self::WAITLIST_OPT_IN_ACTION;
+            $saved = $enabled ? Bookings::enableWaitlistNotifications($slot) : Bookings::disableWaitlistNotifications($slot);
+            if (!$saved) {
                 $this->renderInvalidWaitlistLink();
                 return;
             }
-            $this->renderer->renderWaitlistStatus($token, false, $appointmentDetails);
-        } catch (AppointmentException $exception) {
-            wp_die(esc_html($exception->getMessage()), '', ['response' => 500]);
+            $this->renderer->renderWaitlistStatus($token, $enabled, $appointmentDetails);
+        } catch (\Throwable $exception) {
+            wp_die(esc_html(AppointmentException::fromThrowable($exception)->getMessage()), '', ['response' => 500]);
         }
     }
 
@@ -150,7 +143,7 @@ final class CancellationController
      * @param array<string, mixed> $entry Validated cancellation token entry.
      * @return array<string, mixed>
      */
-    private function getCancellationMeta(array $entry, string $slot): array
+    private function getCancellationMeta(#[\SensitiveParameter] array $entry, #[\SensitiveParameter] string $slot): array
     {
         if (($entry['type'] ?? '') === 'pending') {
             $pendingEntry = TokenManager::getPending((string) ($entry['pending_token'] ?? ''));
@@ -165,14 +158,13 @@ final class CancellationController
      *
      * @param array<string, mixed> $entry Validated cancellation token entry.
      */
-    private function cancelAppointment(array $entry, string $slot, string $token, string $reason): void
+    private function cancelAppointment(#[\SensitiveParameter] array $entry, #[\SensitiveParameter] string $slot, #[\SensitiveParameter] string $reason): void
     {
         if (($entry['type'] ?? '') === 'pending') {
             TokenManager::deletePending((string) ($entry['pending_token'] ?? ''));
             return;
         }
 
-        TokenManager::deleteCancelToken($token);
         Bookings::cancel($slot, $reason);
     }
 
@@ -181,9 +173,9 @@ final class CancellationController
      *
      * @return array<string, mixed>
      */
-    private function getStoredBookingMeta(string $slot): array
+    private function getStoredBookingMeta(#[\SensitiveParameter] string $slot): array
     {
-        $allMeta = (array) get_option(Bookings::META_OPTION, []);
+        $allMeta = BookingStorage::get(Bookings::META_OPTION);
         return is_array($allMeta[$slot] ?? null) ? $allMeta[$slot] : [];
     }
 
@@ -197,18 +189,9 @@ final class CancellationController
     }
 
     /**
-     * Determines whether the request re-enables waitlist notifications.
-     */
-    private function isWaitlistOptInRequest(): bool
-    {
-        return $this->getRequestMethod() === 'POST'
-            && $this->getPostValue(self::WAITLIST_ACTION_FIELD, 'key') === self::WAITLIST_OPT_IN_ACTION;
-    }
-
-    /**
      * Reads and sanitizes a scalar query-string value.
      */
-    private function getQueryValue(string $key): string
+    private function getQueryValue(#[\SensitiveParameter] string $key): string
     {
         $value = wp_unslash($_GET[$key] ?? '');
         return is_string($value) ? sanitize_text_field($value) : '';
@@ -219,7 +202,7 @@ final class CancellationController
      *
      * @param 'key'|'text'|'textarea' $format Sanitization format.
      */
-    private function getPostValue(string $key, string $format = 'text'): string
+    private function getPostValue(#[\SensitiveParameter] string $key, #[\SensitiveParameter] string $format = 'text'): string
     {
         $value = wp_unslash($_POST[$key] ?? '');
         if (!is_string($value)) {
@@ -246,7 +229,7 @@ final class CancellationController
     /**
      * Verifies a nonce from a named form field.
      */
-    private function hasValidNonce(string $field, string $action): bool
+    private function hasValidNonce(#[\SensitiveParameter] string $field, #[\SensitiveParameter] string $action): bool
     {
         return (bool) wp_verify_nonce($this->getPostValue($field), $action);
     }

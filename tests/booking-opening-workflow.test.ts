@@ -24,12 +24,12 @@ describe( 'booking opening notification workflow', () => {
 		expect( main ).toContain( 'rrze_appointment_notify_opening' );
 		expect( main ).toContain( 'BookingOpeningNotifier::CRON_HOOK' );
 		expect( controller ).toContain( 'BookingOpeningNotifier::subscribe(' );
-		expect( notifier ).toContain( 'wp_schedule_single_event(' );
+		expect( notifier ).toContain( 'BookingScheduler::schedule(' );
 	} );
 
 	it( 'claims a slot through the regular pending confirmation workflow', () => {
 		expect( notifier ).toContain(
-			'TokenManager::createPending($slot, $meta)'
+			'TokenManager::createPending($slot, $meta, $token)'
 		);
 		expect( notifier ).toContain(
 			'TokenManager::confirmUrl($pendingToken)'

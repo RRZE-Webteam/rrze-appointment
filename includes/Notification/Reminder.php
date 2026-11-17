@@ -9,6 +9,8 @@ use RRZE\Appointment\Configuration\PluginSettings;
 use RRZE\Appointment\Mail\MailTemplate;
 use RRZE\Appointment\Mail\MailTemplatePost;
 use RRZE\Appointment\Mail\Mailer;
+use RRZE\Appointment\Storage\BookingStorage;
+use RRZE\Appointment\Storage\BookingScheduler;
 
 defined('ABSPATH') || exit;
 
@@ -25,24 +27,27 @@ final class Reminder
     private const ADMIN_TEMPLATE_TYPE = 'reminder_admin';
     private const BOOKER_TEMPLATE_TYPE = 'reminder_booker';
 
-    /**
-     * Registers reminder hooks and ensures the daily fallback check exists.
-     */
+    /** Registers both callbacks and repairs the fallback on sites with existing booking data. */
     public function register(): void
     {
-        try {
-            add_action(self::CRON_HOOK, [$this, 'sendReminder'], 10, 1);
+        add_action(self::CRON_HOOK, [BookingScheduler::class, 'sendReminder'], 10, 1);
+        add_action(self::DAILY_CHECK_HOOK, [$this, 'runDaily']);
+        self::ensureDailyCheck();
+    }
 
-            if (!wp_next_scheduled(self::DAILY_CHECK_HOOK)) {
-                wp_schedule_event(
-                    $this->getNextDailyCheckTimestamp(),
-                    'daily',
-                    self::DAILY_CHECK_HOOK
-                );
+    /**
+     * Schedules retention and the reminder fallback on this site's first booking or next active startup.
+     *
+     * @param bool $afterWrite Whether a successful business commit already established local data.
+     */
+    public static function ensureDailyCheck(bool $afterWrite = false): void
+    {
+        try {
+            if (!wp_next_scheduled(self::DAILY_CHECK_HOOK) && ($afterWrite || BookingStorage::hasStoredData())) {
+                wp_schedule_event(self::getNextDailyCheckTimestamp(), 'daily', self::DAILY_CHECK_HOOK);
             }
-            add_action(self::DAILY_CHECK_HOOK, [$this, 'checkAndSendReminders']);
-        } catch (\Exception $exception) {
-            throw self::createException($exception);
+        } catch (\Throwable) {
+            // The next startup with stored data repairs an unavailable schedule.
         }
     }
 
@@ -51,77 +56,111 @@ final class Reminder
      *
      * @param array<string, mixed> $meta Confirmed booking metadata.
      */
-    public static function scheduleForSlot(string $slot, array $meta): void
+    public static function scheduleForSlot(#[\SensitiveParameter] string $slot, #[\SensitiveParameter] array $meta): void
     {
         try {
-            $allMeta = (array) get_option(Bookings::META_OPTION, []);
+            $allMeta = BookingStorage::get(Bookings::META_OPTION);
             $allMeta[$slot] = $meta;
-            update_option(Bookings::META_OPTION, $allMeta, false);
-
-            $reminderDays = array_unique([
-                (int) PluginSettings::get('reminder_booker_days'),
-                (int) PluginSettings::get('reminder_host_days'),
-            ]);
-            foreach ($reminderDays as $days) {
-                if ($days < 1) {
-                    continue;
-                }
-
-                $reminderTimestamp = self::getReminderTimestamp($slot, $days);
-                if ($reminderTimestamp === null || $reminderTimestamp <= time()) {
-                    continue;
-                }
-
-                wp_schedule_single_event($reminderTimestamp, self::CRON_HOOK, [$slot]);
-            }
-        } catch (\Exception $exception) {
+            BookingStorage::set(Bookings::META_OPTION, $allMeta);
+            self::schedulePersistedSlot($slot);
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
 
     /**
-     * Sends host and booker reminders for a confirmed slot.
+     * Schedules reminders after a committed confirmation without replacing metadata.
+     *
+     * @param string $slot Confirmed slot whose metadata and cancellation token already exist.
+     * @throws AppointmentException When a reminder cannot be scheduled.
      */
-    public function sendReminder(string $slot): void
+    public static function schedulePersistedSlot(#[\SensitiveParameter] string $slot): void
     {
         try {
-            $hostDue = self::isReminderDue($slot, (int) PluginSettings::get('reminder_host_days'));
-            $bookerDue = self::isReminderDue($slot, (int) PluginSettings::get('reminder_booker_days'));
-            if (!$hostDue && !$bookerDue) {
+            if (BookingStorage::recordId('booking', $slot) !== null) {
+                // Its reminders were committed with the booking and already have a stable ID.
                 return;
             }
+            foreach (array_unique(self::plannedTimes($slot)) as $timestamp) {
+                if ($timestamp > time()) {
+                    BookingScheduler::schedule($timestamp, self::CRON_HOOK, $slot);
+                }
+            }
+        } catch (\Throwable $exception) {
+            throw self::createException($exception);
+        }
+    }
 
+    /**
+     * Resolves the configured local-clock due time for each enabled recipient role.
+     *
+     * @return array<string,int> UNIX timestamps keyed by booker or host.
+     */
+    public static function plannedTimes(#[\SensitiveParameter] string $slot): array
+    {
+        $times = [];
+        foreach (['booker', 'host'] as $role) {
+            $days = (int) PluginSettings::get('reminder_' . $role . '_days');
+            if ($days > 0) {
+                $time = self::getReminderTimestamp($slot, $days);
+                if ($time !== null) {
+                    $times[$role] = $time;
+                }
+            }
+        }
+        return $times;
+    }
+
+    /** Returns the site-local date used by both eligibility checks and delivery receipts. */
+    public static function today(): string
+    {
+        return current_datetime()->format('Y-m-d');
+    }
+
+    /** Sends the reminders due for an older single-event or daily callback. */
+    public function sendReminder(#[\SensitiveParameter] string $slot): void
+    {
+        if (BookingStorage::recordId('booking', $slot) !== null) {
+            BookingScheduler::sendReminder($slot);
+            return;
+        }
+        foreach (['host', 'booker'] as $role) {
+            if ($this->sendToRecipient($slot, $role)) {
+                BookingScheduler::acknowledgeLegacyReminder($slot, $role);
+            }
+        }
+    }
+
+    /**
+     * Sends to one recipient when eligible according to today's date and current settings.
+     *
+     * @param string $slot Confirmed slot.
+     * @param string $role Host or booker reminder role.
+     * @return bool True when the transport accepted a message for this role.
+     */
+    public function sendToRecipient(#[\SensitiveParameter] string $slot, string $role): bool
+    {
+        try {
+            $templateType = match ($role) {
+                'host' => self::ADMIN_TEMPLATE_TYPE,
+                'booker' => self::BOOKER_TEMPLATE_TYPE,
+                default => throw new AppointmentException('Unsupported reminder recipient.'),
+            };
+            if (!self::isReminderDue($slot, (int) PluginSettings::get('reminder_' . $role . '_days'))) {
+                return false;
+            }
             $meta = $this->getBookingMeta($slot);
-            if ($meta === []) {
-                return;
+            $recipient = sanitize_email((string) ($meta[$role === 'host' ? 'person_email' : 'booker_email'] ?? ''));
+            if ($recipient === '') {
+                return false;
             }
-
-            $templateId = (int) ($meta['tpl_id'] ?? 0);
-            $variables = $this->buildTemplateVariables($slot, $meta);
-
-            if ($hostDue) {
-                $adminMail = $this->renderMail(
-                    $this->resolveTemplate($templateId, self::ADMIN_TEMPLATE_TYPE),
-                    $variables
-                );
-                $this->sendRenderedMail(
-                    sanitize_email((string) ($meta['person_email'] ?? '')),
-                    $adminMail,
-                    self::ADMIN_TEMPLATE_TYPE
-                );
-            }
-            if ($bookerDue) {
-                $bookerMail = $this->renderMail(
-                    $this->resolveTemplate($templateId, self::BOOKER_TEMPLATE_TYPE),
-                    $variables
-                );
-                $this->sendRenderedMail(
-                    sanitize_email((string) ($meta['booker_email'] ?? '')),
-                    $bookerMail,
-                    self::BOOKER_TEMPLATE_TYPE
-                );
-            }
-        } catch (\Exception $exception) {
+            $mail = $this->renderMail(
+                $this->resolveTemplate((int) ($meta['tpl_id'] ?? 0), $templateType),
+                $this->buildTemplateVariables($slot, $meta)
+            );
+            $this->sendRenderedMail($recipient, $mail, $templateType);
+            return true;
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -131,9 +170,9 @@ final class Reminder
      *
      * @return array<string, mixed>
      */
-    private function getBookingMeta(string $slot): array
+    private function getBookingMeta(#[\SensitiveParameter] string $slot): array
     {
-        $allMeta = (array) get_option(Bookings::META_OPTION, []);
+        $allMeta = BookingStorage::get(Bookings::META_OPTION);
         return is_array($allMeta[$slot] ?? null) ? $allMeta[$slot] : [];
     }
 
@@ -143,7 +182,7 @@ final class Reminder
      * @param array<string, mixed> $meta Confirmed booking metadata.
      * @return array<string, string>
      */
-    private function buildTemplateVariables(string $slot, array $meta): array
+    private function buildTemplateVariables(#[\SensitiveParameter] string $slot, #[\SensitiveParameter] array $meta): array
     {
         [$datePart, $startTime, $endTime] = self::parseSlot($slot);
         $personName = sanitize_text_field((string) ($meta['person_name'] ?? ''));
@@ -194,7 +233,7 @@ final class Reminder
      *
      * @return array{subject: string, body: string, body_html: string}
      */
-    private function resolveTemplate(int $templateId, string $type): array
+    private function resolveTemplate(int $templateId, #[\SensitiveParameter] string $type): array
     {
         $custom = $templateId > 0
             ? (MailTemplatePost::getTemplateForType($templateId, $type) ?? [])
@@ -216,7 +255,7 @@ final class Reminder
      * @param array<string, string>                                  $variables
      * @return array{subject: string, plain: string, html: string}
      */
-    private function renderMail(array $template, array $variables): array
+    private function renderMail(#[\SensitiveParameter] array $template, #[\SensitiveParameter] array $variables): array
     {
         $htmlVariables = array_map(
             static fn (string $value): string => esc_html($value),
@@ -235,12 +274,8 @@ final class Reminder
      *
      * @param array{subject: string, plain: string, html: string} $mail Rendered mail parts.
      */
-    private function sendRenderedMail(string $recipient, array $mail, string $templateType): void
+    private function sendRenderedMail(#[\SensitiveParameter] string $recipient, #[\SensitiveParameter] array $mail, #[\SensitiveParameter] string $templateType): void
     {
-        if ($recipient === '') {
-            return;
-        }
-
         Mailer::send(
             $recipient,
             $mail['subject'],
@@ -251,6 +286,22 @@ final class Reminder
         );
     }
 
+    /** Runs site-local housekeeping and lets the cron runner continue other hooks on a storage error. */
+    public function runDaily(): void
+    {
+        try {
+            BookingStorage::pruneExpiredLocks();
+            TokenManager::cleanupPendingState();
+            BookingOpeningNotifier::cleanup();
+            $this->checkAndSendReminders();
+        } catch (AppointmentException) {
+            // Storage diagnostics remain available; durable jobs keep their separate generic wake.
+        } finally {
+            BookingStorage::release();
+        }
+    }
+
+    /** Cleans expired bookings and sends reminders due on the current site date. */
     public function checkAndSendReminders(): void
     {
         try {
@@ -263,16 +314,18 @@ final class Reminder
                 return;
             }
 
-            $allMeta = (array) get_option(Bookings::META_OPTION, []);
+            $allMeta = BookingStorage::get(Bookings::META_OPTION);
 
             foreach ($allMeta as $slot => $meta) {
                 if (!is_string($slot) || !is_array($meta)) {
                     continue;
                 }
 
-                $this->sendReminder($slot);
+                if (!BookingScheduler::dailyReminder($slot)) {
+                    $this->sendReminder($slot);
+                }
             }
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -280,7 +333,7 @@ final class Reminder
     /**
      * Checks the current recipient setting, including for previously scheduled events.
      */
-    private static function isReminderDue(string $slot, int $days): bool
+    private static function isReminderDue(#[\SensitiveParameter] string $slot, int $days): bool
     {
         if ($days < 1) {
             return false;
@@ -293,7 +346,7 @@ final class Reminder
     /**
      * Returns the next site-local daily fallback check timestamp.
      */
-    private function getNextDailyCheckTimestamp(): int
+    private static function getNextDailyCheckTimestamp(): int
     {
         $now = current_datetime();
         $nextCheck = $now->setTime(self::DAILY_CHECK_HOUR, 0);
@@ -307,7 +360,7 @@ final class Reminder
     /**
      * Calculates a site-local reminder timestamp for a stored slot.
      */
-    private static function getReminderTimestamp(string $slot, int $days): ?int
+    private static function getReminderTimestamp(#[\SensitiveParameter] string $slot, int $days): ?int
     {
         [$datePart] = self::parseSlot($slot);
         $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $datePart, wp_timezone());
@@ -326,7 +379,7 @@ final class Reminder
      *
      * @return array{0: string, 1: string, 2: string}
      */
-    private static function parseSlot(string $slot): array
+    private static function parseSlot(#[\SensitiveParameter] string $slot): array
     {
         [$datePart, $timePart] = array_pad(explode(' ', $slot, 2), 2, '');
         [$startTime, $endTime] = array_pad(explode('-', $timePart, 2), 2, '');
@@ -337,12 +390,8 @@ final class Reminder
     /**
      * Converts infrastructure errors to the plugin's shared exception type.
      */
-    private static function createException(\Exception $exception): AppointmentException
+    private static function createException(#[\SensitiveParameter] \Throwable $exception): AppointmentException
     {
-        if ($exception instanceof AppointmentException) {
-            return $exception;
-        }
-
-        return new AppointmentException($exception->getMessage(), (int) $exception->getCode(), $exception);
+        return AppointmentException::fromThrowable($exception);
     }
 }

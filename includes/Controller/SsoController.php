@@ -126,7 +126,7 @@ final class SsoController
     /**
      * Normalize an HTTP(S) URL to its origin without trusting the Host header.
      */
-    private static function urlOrigin(string $url): string
+    private static function urlOrigin(#[\SensitiveParameter] string $url): string
     {
         if ($url === '' || preg_match('/[\s,\\\\]/', $url)) {
             return '';
@@ -176,7 +176,7 @@ final class SsoController
     /**
      * Builds the explicit login URL for the public booking dialog.
      */
-    private function buildLoginUrl(string $requestedReturnUrl): string
+    private function buildLoginUrl(#[\SensitiveParameter] string $requestedReturnUrl): string
     {
         $homeUrl = home_url('/');
         $referer = wp_get_referer();
@@ -225,7 +225,7 @@ final class SsoController
      * @param array<string, mixed> $booker Passive SSO identity.
      * @return array{bookerEmail: string, bookerName: string}
      */
-    private function normalizeBooker(array $booker): array
+    private function normalizeBooker(#[\SensitiveParameter] array $booker): array
     {
         return [
             'bookerEmail' => sanitize_email(self::normalizeString($booker['bookerEmail'] ?? '')),
@@ -240,7 +240,7 @@ final class SsoController
      * @return WP_REST_Response|null
      */
     private function sendResponse(
-        array $response,
+        #[\SensitiveParameter] array $response,
         bool $isRestRequest,
         bool $success,
         int $status = 200
@@ -266,7 +266,7 @@ final class SsoController
     /**
      * Starts or resumes authentication through supported AccessControl APIs.
      */
-    private function startAuthentication(object $permissions, string $returnTo): bool
+    private function startAuthentication(#[\SensitiveParameter] object $permissions, #[\SensitiveParameter] string $returnTo): bool
     {
         if ($this->isLoggedIn($permissions)) {
             return true;
@@ -300,7 +300,7 @@ final class SsoController
     /**
      * Performs the passive access-control login check without starting auth.
      */
-    private function isLoggedIn(object $permissions): bool
+    private function isLoggedIn(#[\SensitiveParameter] object $permissions): bool
     {
         if (!method_exists($permissions, 'checkSSOLoggedIn')) {
             return false;
@@ -316,7 +316,7 @@ final class SsoController
     /**
      * Redirects to a validated local URL and stops request processing.
      */
-    private function redirect(string $url): void
+    private function redirect(#[\SensitiveParameter] string $url): void
     {
         wp_safe_redirect($url);
         exit;
@@ -325,7 +325,7 @@ final class SsoController
     /**
      * Stops an explicit login request with a generic public error.
      */
-    private function abortLogin(string $message): void
+    private function abortLogin(#[\SensitiveParameter] string $message): void
     {
         wp_die(esc_html($message), '', ['response' => 500]);
     }
@@ -335,7 +335,7 @@ final class SsoController
      *
      * @param array<string, mixed> $source Request values.
      */
-    private static function getRequestString(array $source, string $key): string
+    private static function getRequestString(#[\SensitiveParameter] array $source, #[\SensitiveParameter] string $key): string
     {
         return self::normalizeString(wp_unslash($source[$key] ?? ''));
     }
@@ -343,7 +343,7 @@ final class SsoController
     /**
      * Reads a string query parameter.
      */
-    private static function getQueryString(string $key): string
+    private static function getQueryString(#[\SensitiveParameter] string $key): string
     {
         return self::getRequestString($_GET, $key);
     }

@@ -22,6 +22,7 @@ const normalizeQuestions = ( questions: Question[] ) => {
 	const encodedQuestions = JSON.stringify( JSON.stringify( { questions } ) );
 	const php = `
 		define( 'ABSPATH', __DIR__ );
+			require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
 		function sanitize_key( $value ) {
 			return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $value ) );
 		}

@@ -61,7 +61,7 @@ final class MailTemplatePost
             }
         } catch (AppointmentException $exception) {
             return;
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -304,7 +304,7 @@ final class MailTemplatePost
                 'title' => $post->post_title,
                 'status' => $post->post_status,
             ], self::getTemplatePosts(['publish', 'draft']));
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -321,7 +321,7 @@ final class MailTemplatePost
                 'id' => $post->ID,
                 'title' => $post->post_title,
             ], self::getTemplatePosts('publish'));
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -344,7 +344,7 @@ final class MailTemplatePost
                 'body'      => (string) get_post_meta($postId, "tpl_{$type}_body", true),
                 'body_html' => (string) get_post_meta($postId, "tpl_{$type}_body_html", true),
             ];
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -380,7 +380,7 @@ final class MailTemplatePost
             self::saveTemplateMeta($result, $data, $canEditHtml);
 
             return $result;
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -518,7 +518,7 @@ final class MailTemplatePost
                 'title' => $post->post_title ?: __('(no title)', 'rrze-appointment'),
                 'edit' => get_edit_post_link($post->ID),
             ], $query->posts);
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -533,7 +533,7 @@ final class MailTemplatePost
             if (self::isTemplatePost($post)) {
                 wp_delete_post($postId, true);
             }
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -581,7 +581,7 @@ final class MailTemplatePost
                 update_post_meta($newId, self::EDITABLE_DEFAULT_META_KEY, '1');
                 update_option(self::EDITABLE_DEFAULT_CREATED_OPTION, 1, false);
             }
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             throw self::createException($exception);
         }
     }
@@ -589,12 +589,8 @@ final class MailTemplatePost
     /**
      * Converts infrastructure errors to the plugin's shared exception type.
      */
-    private static function createException(\Exception $exception): AppointmentException
+    private static function createException(#[\SensitiveParameter] \Throwable $exception): AppointmentException
     {
-        if ($exception instanceof AppointmentException) {
-            return $exception;
-        }
-
-        return new AppointmentException($exception->getMessage(), (int) $exception->getCode(), $exception);
+        return AppointmentException::fromThrowable($exception);
     }
 }
