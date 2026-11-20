@@ -31,7 +31,9 @@ final class MailTemplatePost
     /**
      * Registers the private post type and its REST-visible template fields.
      *
-     * @throws AppointmentException When WordPress registration fails.
+     * Registration stops if an AppointmentException is caught.
+     *
+     * @throws AppointmentException When an unexpected exception interrupts registration.
      */
     public static function register(): void
     {
@@ -75,7 +77,7 @@ final class MailTemplatePost
     }
 
     /**
-     * Returns the bundled default for a supported template type.
+     * Returns the bundled template fields, each set to an empty string for an unknown type.
      *
      * @return array{subject: string, body: string, body_html: string}
      */
@@ -295,6 +297,7 @@ final class MailTemplatePost
      * Returns published and draft templates for the settings screen.
      *
      * @return array<int, array{id: int, title: string, status: string}>
+     * @throws AppointmentException If the template query or result mapping fails.
      */
     public static function getAll(): array
     {
@@ -313,6 +316,7 @@ final class MailTemplatePost
      * Returns published templates for editor-facing selectors.
      *
      * @return array<int, array{id: int, title: string}>
+     * @throws AppointmentException If the template query or result mapping fails.
      */
     public static function getPublished(): array
     {
@@ -329,7 +333,8 @@ final class MailTemplatePost
     /**
      * Returns the stored fields for one supported template type.
      *
-     * @return array{subject: string, body: string, body_html: string}|null
+     * @return array{subject: string, body: string, body_html: string}|null Null for an invalid post or unsupported type.
+     * @throws AppointmentException If reading the template fails.
      */
     public static function getTemplateForType(int $postId, string $type): ?array
     {
@@ -356,6 +361,7 @@ final class MailTemplatePost
      *
      * @param array<string, mixed> $data Submitted template values.
      * @return int|\WP_Error Saved template ID or WordPress error.
+     * @throws AppointmentException If a template read or write raises an exception.
      */
     public static function save(array $data, bool $isDraft = false, bool $canEditHtml = false): int|\WP_Error
     {
@@ -501,6 +507,7 @@ final class MailTemplatePost
      * Returns posts whose block content references the supplied template.
      *
      * @return array<int, array{id: int, title: string, edit: string|null}>
+     * @throws AppointmentException If looking up posts that use the template fails.
      */
     public static function isInUse(int $postId): array
     {
@@ -525,6 +532,8 @@ final class MailTemplatePost
 
     /**
      * Permanently deletes a mail-template post.
+     *
+     * @throws AppointmentException If looking up or deleting the post raises an exception.
      */
     public static function delete(int $postId): void
     {
@@ -540,6 +549,8 @@ final class MailTemplatePost
 
     /**
      * Creates the editable copy of the bundled defaults once per site.
+     *
+     * @throws AppointmentException If initializing the site template raises an exception.
      */
     public static function ensureEditableDefaultTemplateExists(): void
     {

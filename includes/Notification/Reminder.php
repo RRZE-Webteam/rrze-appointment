@@ -135,8 +135,10 @@ final class Reminder
      * Sends to one recipient when eligible according to today's date and current settings.
      *
      * @param string $slot Confirmed slot.
-     * @param string $role Host or booker reminder role.
-     * @return bool True when the transport accepted a message for this role.
+     * @param 'host'|'booker' $role Recipient of the reminder.
+     * @return bool True when the mail transport accepts the message. False when no reminder is due
+     *              or the recipient has no usable email address.
+     * @throws AppointmentException When the role is unsupported or the reminder cannot be prepared or sent.
      */
     public function sendToRecipient(#[\SensitiveParameter] string $slot, string $role): bool
     {
@@ -270,7 +272,7 @@ final class Reminder
     }
 
     /**
-     * Sends a rendered reminder when the recipient is valid.
+     * Sends the prepared reminder to the recipient selected by sendToRecipient().
      *
      * @param array{subject: string, plain: string, html: string} $mail Rendered mail parts.
      */

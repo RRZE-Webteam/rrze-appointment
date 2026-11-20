@@ -136,7 +136,11 @@ final class AdminBookingsController
         }
     }
 
-    /** @param array<string, mixed> $data */
+    /**
+     * Returns a successful management response with private, non-cacheable booking data.
+     *
+     * @param array<string, mixed> $data Payload for the booking list or cancellation response.
+     */
     private function response(#[\SensitiveParameter] array $data): \WP_REST_Response
     {
         return new \WP_REST_Response($data, 200, ['Cache-Control' => 'private, no-store']);

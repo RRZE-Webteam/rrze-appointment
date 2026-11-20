@@ -4,13 +4,22 @@ namespace RRZE\Appointment\Booking;
 
 defined('ABSPATH') || exit;
 
+/**
+ * Expands current and legacy appointment schedules into future slot identifiers.
+ * Booking window limits and reservations are checked by the callers.
+ *
+ * @phpstan-type AvailabilityWindow array{
+ *     date: string, startTime: mixed, endTime: mixed, duration: mixed, breakDuration: int,
+ *     removedSlots: array, extraSlots: array
+ * }
+ */
 class SlotGenerator
 {
     /**
-     * Generates slot value strings from block attributes.
-     * Mirrors the TypeScript generateTimeSlots() logic.
+     * Generates future slots for the published schedule, mirroring generateTimeSlots() in TypeScript.
      *
-     * @return string[]
+     * @param array<string, mixed> $attrs Saved appointment block attributes.
+     * @return string[] Up to 1,000 unique, sorted slots in the format "Y-m-d HH:MM-HH:MM".
      */
     public static function fromAttributes(array $attrs): array
     {
@@ -104,55 +113,86 @@ class SlotGenerator
         return array_slice($slots, 0, 1000);
     }
 
+    /**
+     * Selects the window format from the saved block. An empty availability list is authoritative.
+     *
+     * @param array<string, mixed> $attrs Saved appointment block attributes.
+     * @param array<string, mixed> $dateOverrides Per-date settings keyed by calendar date.
+     * @return array<int, AvailabilityWindow> Windows with saved timing values and per-date slot edits.
+     */
     private static function getAvailabilityWindows(array $attrs, array $dateOverrides): array
     {
         if (array_key_exists('availabilities', $attrs) && is_array($attrs['availabilities'])) {
-            $windows = [];
-            foreach ($attrs['availabilities'] as $entry) {
-                if (!is_array($entry) || !self::isDate($entry['date'] ?? null)) {
-                    continue;
-                }
-
-                $date = $entry['date'];
-                $recurrence = is_array($entry['recurrence'] ?? null)
-                    ? $entry['recurrence']
-                    : [];
-                $dates = [$date];
-                if (!empty($recurrence['freq']) && is_array($recurrence['dates'] ?? null)) {
-                    $dates = $recurrence['dates'];
-                }
-                $dates = self::normalizeDates($dates);
-                $excludedDates = array_flip(self::normalizeDates($recurrence['excludedDates'] ?? []));
-
-                foreach ($dates as $occurrenceDate) {
-                    if (isset($excludedDates[$occurrenceDate])) {
-                        continue;
-                    }
-                    $override = is_array($dateOverrides[$occurrenceDate] ?? null)
-                        ? $dateOverrides[$occurrenceDate]
-                        : [];
-                    $windows[] = [
-                        'date' => $occurrenceDate,
-                        'startTime' => is_string($entry['startTime'] ?? null)
-                            ? $entry['startTime']
-                            : '09:00',
-                        'endTime' => is_string($entry['endTime'] ?? null)
-                            ? $entry['endTime']
-                            : '17:00',
-                        'duration' => $entry['duration'] ?? 30,
-                        'breakDuration' => (int) ($entry['breakDuration'] ?? 0),
-                        'removedSlots' => is_array($override['removedSlots'] ?? null)
-                            ? $override['removedSlots']
-                            : [],
-                        'extraSlots' => is_array($override['extraSlots'] ?? null)
-                            ? $override['extraSlots']
-                            : [],
-                    ];
-                }
-            }
-            return $windows;
+            return self::getWindowsFromEntries($attrs['availabilities'], $dateOverrides);
         }
 
+        return self::getLegacyWindows($attrs, $dateOverrides);
+    }
+
+    /**
+     * Expands each entry into windows for its included dates, applying extra and removed slots by date.
+     *
+     * @param array<array-key, mixed> $entries Saved availability entries with optional recurrence dates.
+     * @param array<string, mixed> $dateOverrides Slot edits keyed by occurrence date.
+     * @return array<int, AvailabilityWindow> One window per included occurrence of each entry.
+     */
+    private static function getWindowsFromEntries(array $entries, array $dateOverrides): array
+    {
+        $windows = [];
+        foreach ($entries as $entry) {
+            if (!is_array($entry) || !self::isDate($entry['date'] ?? null)) {
+                continue;
+            }
+
+            $date = $entry['date'];
+            $recurrence = is_array($entry['recurrence'] ?? null)
+                ? $entry['recurrence']
+                : [];
+            $dates = [$date];
+            if (!empty($recurrence['freq']) && is_array($recurrence['dates'] ?? null)) {
+                $dates = $recurrence['dates'];
+            }
+            $dates = self::normalizeDates($dates);
+            $excludedDates = array_flip(self::normalizeDates($recurrence['excludedDates'] ?? []));
+
+            foreach ($dates as $occurrenceDate) {
+                if (isset($excludedDates[$occurrenceDate])) {
+                    continue;
+                }
+                $override = is_array($dateOverrides[$occurrenceDate] ?? null)
+                    ? $dateOverrides[$occurrenceDate]
+                    : [];
+                $windows[] = [
+                    'date' => $occurrenceDate,
+                    'startTime' => is_string($entry['startTime'] ?? null)
+                        ? $entry['startTime']
+                        : '09:00',
+                    'endTime' => is_string($entry['endTime'] ?? null)
+                        ? $entry['endTime']
+                        : '17:00',
+                    'duration' => $entry['duration'] ?? 30,
+                    'breakDuration' => (int) ($entry['breakDuration'] ?? 0),
+                    'removedSlots' => is_array($override['removedSlots'] ?? null)
+                        ? $override['removedSlots']
+                        : [],
+                    'extraSlots' => is_array($override['extraSlots'] ?? null)
+                        ? $override['extraSlots']
+                        : [],
+                ];
+            }
+        }
+        return $windows;
+    }
+
+    /**
+     * Builds windows from legacy calendar dates. Day-specific settings override matching series settings.
+     *
+     * @param array<string, mixed> $attrs Legacy calendar and timing attributes.
+     * @param array<string, mixed> $dateOverrides Settings keyed by series anchor or calendar date.
+     * @return array<int, AvailabilityWindow> One window per calendar date.
+     */
+    private static function getLegacyWindows(array $attrs, array $dateOverrides): array
+    {
         $startTime = $attrs['startTime'] ?? '09:00';
         $endTime = $attrs['endTime'] ?? '17:00';
         $duration = $attrs['duration'] ?? 30;
@@ -191,6 +231,13 @@ class SlotGenerator
         return $windows;
     }
 
+    /**
+     * Finds the legacy series whose settings apply to an occurrence.
+     *
+     * @param array<string, mixed> $attrs Legacy attributes with multiple rules or a single recurrence.
+     * @param string $date Occurrence date in Y-m-d format.
+     * @return string Series anchor date, or an empty string when the date belongs to no series.
+     */
     private static function getRecurrenceAnchor(array $attrs, string $date): string
     {
         $rules = is_array($attrs['recurrences'] ?? null) ? $attrs['recurrences'] : [];
@@ -210,6 +257,12 @@ class SlotGenerator
         return (string) ($legacyRule['anchor'] ?? ($legacyDates[0] ?? ''));
     }
 
+    /**
+     * Uses the selected legacy dates, falling back to the configured start and end dates.
+     *
+     * @param array<string, mixed> $attrs Legacy calendar attributes.
+     * @return string[] Calendar dates in Y-m-d format.
+     */
     private static function getCalendarDates(array $attrs): array
     {
         $selected = self::normalizeDates($attrs['selectedDates'] ?? []);
@@ -228,6 +281,12 @@ class SlotGenerator
         return self::getDateRange($startDate, $endDate);
     }
 
+    /**
+     * Reads the first ten characters of each date string and drops duplicates and invalid dates.
+     *
+     * @param mixed $values Candidate date list from saved attributes.
+     * @return string[] Sorted calendar dates in Y-m-d format, or an empty list for a non-array input.
+     */
     private static function normalizeDates($values): array
     {
         if (!is_array($values)) {
@@ -247,6 +306,11 @@ class SlotGenerator
         return $dates;
     }
 
+    /**
+     * Checks that a value represents an existing calendar day in the exact Y-m-d format.
+     *
+     * @param mixed $value Candidate date from saved attributes.
+     */
     private static function isDate($value): bool
     {
         if (!is_string($value)) {
@@ -256,6 +320,13 @@ class SlotGenerator
         return $date !== false && $date->format('Y-m-d') === $value;
     }
 
+    /**
+     * Expands an inclusive legacy date range to a maximum of 366 days.
+     *
+     * @param string $start First calendar date in Y-m-d format.
+     * @param string $end Last calendar date in Y-m-d format.
+     * @return string[] Consecutive dates, or an empty list when the end precedes the start.
+     */
     private static function getDateRange(string $start, string $end): array
     {
         $dates = [];
@@ -271,6 +342,12 @@ class SlotGenerator
         return $dates;
     }
 
+    /**
+     * Converts the hour and minute components of a saved time to minutes since midnight.
+     *
+     * @param string $time Saved time with hour and minute separated by a colon.
+     * @return int|null Null when the separator is missing or a component's integer value is outside the clock range.
+     */
     private static function timeToMinutes(string $time): ?int
     {
         $parts = explode(':', $time);
@@ -285,6 +362,12 @@ class SlotGenerator
         return $hours * 60 + $minutes;
     }
 
+    /**
+     * Validates the saved slot duration before it is used to advance through a window.
+     *
+     * @param mixed $value Duration supplied by the saved schedule.
+     * @return int|null A positive whole number of minutes, or null when validation fails.
+     */
     private static function positiveWholeMinutes($value): ?int
     {
         if (!is_int($value) && !is_float($value) && !is_string($value)) {
@@ -300,11 +383,21 @@ class SlotGenerator
         return $minutes === false ? null : $minutes;
     }
 
+    /**
+     * Formats minutes since midnight for a slot identifier, including 24:00 at the end of the day.
+     */
     private static function minutesToTime(int $minutes): string
     {
         return sprintf('%02d:%02d', intdiv($minutes, 60), $minutes % 60);
     }
 
+    /**
+     * Resolves a slot start in the WordPress site timezone.
+     *
+     * @param string $date Calendar date in Y-m-d format.
+     * @param string $time Local start time in HH:MM format.
+     * @return int Unix timestamp, or zero if the date and time cannot be parsed.
+     */
     private static function slotStartTimestamp(string $date, string $time): int
     {
         $dateTime = \DateTime::createFromFormat('Y-m-d H:i', $date . ' ' . $time, wp_timezone());

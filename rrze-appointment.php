@@ -91,14 +91,16 @@ add_action('plugins_loaded', __NAMESPACE__ . '\loaded');
  */
 
 /**
- * Deactivation callback function.
+ * Leaves settings, bookings, and scheduled events in place on deactivation.
  */
 function deactivation(): void
 {
     // Cleanup could go here if needed.
 }
 
-
+/**
+ * Returns the shared Plugin instance for reading plugin headers and resolving asset paths.
+ */
 function plugin(): Plugin
 {
     static $instance;
@@ -110,6 +112,11 @@ function plugin(): Plugin
     return $instance;
 }
 
+/**
+ * Creates the runtime services and registers their startup hooks on first use.
+ *
+ * @return Main The same instance on subsequent calls in this request.
+ */
 function main(): Main
 {
     static $instance;
@@ -121,6 +128,9 @@ function main(): Main
     return $instance;
 }
 
+/**
+ * Registers the plugin's languages directory for WordPress translations on init.
+ */
 function load_textdomain(): void
 {
     load_plugin_textdomain(
@@ -130,6 +140,11 @@ function load_textdomain(): void
     );
 }
 
+/**
+ * Registers the appointment block from its build metadata and sets its editor script translations.
+ *
+ * The bundled editor stylesheet declares the WordPress component styles as a dependency.
+ */
 function register_blocks(): void
 {
     $editor_style_path = __DIR__ . '/build/index.css';
@@ -186,7 +201,7 @@ function restrict_appointment_block_to_content($allowedBlockTypes, $editorContex
 }
 
 /**
- * Handle the loading of the plugin.
+ * Loads plugin metadata and registers runtime hooks when WordPress and PHP meet the requirements.
  */
 function loaded(): void
 {

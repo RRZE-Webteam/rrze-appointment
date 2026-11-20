@@ -20,10 +20,12 @@ final class SettingsPage
     private const ADMIN_CSS_PATH = 'assets/css/rrze-appointment-admin.css';
     private const ADMIN_JS_PATH = 'assets/js/rrze-appointment-admin.js';
 
+    /** Uses the supplied mail templates page to register its actions and render the templates tab. */
     public function __construct(private readonly MailTemplatesPage $mailTemplates)
     {
     }
 
+    /** Registers the settings page, its fields and assets, and the mail template hooks. */
     public function register(): void
     {
         add_action('admin_menu', [$this, 'addMenuPage']);
@@ -32,6 +34,7 @@ final class SettingsPage
         $this->mailTemplates->register();
     }
 
+    /** Adds the Appointment page to the Settings menu for users with the manage_options capability. */
     public function addMenuPage(): void
     {
         add_options_page(
@@ -43,11 +46,13 @@ final class SettingsPage
         );
     }
 
+    /** Returns the WordPress screen ID for the Appointment settings page. */
     public static function screenHook(): string
     {
         return 'settings_page_' . self::PAGE_SLUG;
     }
 
+    /** Registers the shared site option and the fields shown on the general and illustrations tabs. */
     public function registerSettings(): void
     {
         register_setting(
@@ -120,6 +125,8 @@ final class SettingsPage
 
     /**
      * Renders the reminder-days settings field.
+     *
+     * @param array{label_for: string} $args The booker or host reminder option key doubles as the select ID.
      */
     public function renderReminderDaysField(array $args): void
     {
@@ -445,6 +452,7 @@ final class SettingsPage
         BackendSsoSettings::render();
     }
 
+    /** Renders the illustrations form with the scope used to preserve the general settings. */
     private function renderTabIllustrations(): void
     {
         ?>
@@ -466,7 +474,7 @@ final class SettingsPage
     }
 
     /**
-     * Loads the settings UI stylesheet on the plugin's administration pages.
+     * Loads shared admin styles, the settings controls for the active tab, and the illustration media picker.
      */
     public function enqueueAdminAssets(string $hook): void
     {

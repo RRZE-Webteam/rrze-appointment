@@ -9,6 +9,8 @@ defined('ABSPATH') || exit;
 /**
  * Presents one site-local view of legacy arrays, authenticated V1 options and V2 records.
  * A business mutation transfers only its affected aggregates in one native transaction.
+ *
+ * @phpstan-import-type RecordJob from RecordJobs
  */
 final class BookingStorage
 {
@@ -257,7 +259,7 @@ final class BookingStorage
     /**
      * Returns the encrypted queue's live owners and jobs under the site lock.
      *
-     * @return array<string,array{type:string,target:string,jobs:array}> Entries keyed by immutable record ID.
+     * @return array<string,array{type:'pending'|'booking'|'opening',target:string,jobs:array<string,RecordJob>}> Entries keyed by immutable record ID.
      */
     public static function managedJobs(): array
     {
@@ -303,7 +305,8 @@ final class BookingStorage
      * Atomically saves a worker lease, retry or acknowledgement on its owning record.
      *
      * @param string $id Current immutable record ID.
-     * @param array<string,array> $jobs Replacement work for this owner.
+     * @param array<string,RecordJob> $jobs Complete replacement job map, including any reminder receipts to retain.
+     * @throws AppointmentException When the record is missing, its jobs are invalid or the update cannot be committed.
      */
     public static function setRecordJobs(string $id, #[\SensitiveParameter] array $jobs): void
     {

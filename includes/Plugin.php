@@ -5,15 +5,9 @@ namespace RRZE\Appointment;
 defined('ABSPATH') || exit;
 
 /**
- * Plugin class
- * 
- * This class represents a WordPress plugin and provides methods to retrieve various properties
- * and metadata about the plugin, such as its file path, basename, directory, URL, and other details.
- * It also includes methods for setting and getting plugin data, such as the name, version,
- * required WordPress version, and required PHP version.
- * 
+ * Provides paths, URLs, and WordPress plugin headers initialized by loaded() during startup.
+ *
  * @package RRZE\Appointment
- * @since 1.0.0x
  */
 class Plugin
 {
@@ -53,10 +47,9 @@ class Plugin
     protected $data;
 
     /**
-     * Constructor.
-     * 
-     * @param string $pluginFile The full path and filename of the plugin.
-     * @return void
+     * Loads the WordPress functions needed to read the plugin headers.
+     *
+     * @param string $pluginFile Absolute path to the plugin entry file.
      */
     public function __construct(string $pluginFile)
     {
@@ -234,15 +227,12 @@ class Plugin
     }
 
     /**
-     * This method is called when an undefined method is called on the object.
-     * It checks if the method exists in the class and throws an exception if it does not.
-     * This is useful for debugging and ensuring that only defined methods are called.
-     * 
-     * @param string $name The name of the method being called.
-     * @param array $arguments The arguments passed to the method.
-     * @throws \Exception If the method does not exist.
-     * 
+     * Reports calls to undefined methods when WordPress debugging is enabled.
+     *
+     * @param string $name Requested method name.
+     * @param array $arguments Arguments supplied by the caller.
      * @return void
+     * @throws \Exception When the method does not exist and WP_DEBUG is enabled.
      */
     public function __call(string $name, array $arguments)
     {

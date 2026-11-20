@@ -9,6 +9,8 @@ defined('ABSPATH') || exit;
 /**
  * Request-local, authenticated V2 directory. A clone stages changes until the owning
  * BookingStorage commits this directory, its records and the affected sources together.
+ *
+ * @phpstan-import-type RecordJob from RecordJobs
  */
 final class MixedRecordStore
 {
@@ -243,7 +245,11 @@ final class MixedRecordStore
         return $this->owners[RecordProjection::owner($type, $target)] ?? null;
     }
 
-    /** Returns work only for currently indexed records. All data stays request-local. */
+    /**
+     * Returns the current job map for every indexed record, including empty maps.
+     *
+     * @return array<string,array{type:'pending'|'booking'|'opening',target:string,jobs:array<string,RecordJob>}> Entries keyed by immutable record ID.
+     */
     public function managedJobs(): array
     {
         $jobs = [];
@@ -253,7 +259,13 @@ final class MixedRecordStore
         return $jobs;
     }
 
-    /** Stages a worker acknowledgement or claim against a still-live record. */
+    /**
+     * Stages a replacement job map and its index update in the request-local record store.
+     *
+     * @param string $id Immutable record ID.
+     * @param array<string,RecordJob> $jobs Complete job map to stage for this owner.
+     * @throws AppointmentException When the record is missing or its replacement data cannot be validated or encoded.
+     */
     public function setJobs(string $id, #[\SensitiveParameter] array $jobs): void
     {
         if (!isset($this->records[$id])) {

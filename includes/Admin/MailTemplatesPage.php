@@ -26,6 +26,7 @@ final class MailTemplatesPage
         'waitlist_earlier_slot',
     ];
 
+    /** Registers the template submission handlers and the settings screen's footer script. */
     public function register(): void
     {
         add_action('admin_init', [$this, 'handleTemplatePost']);
@@ -262,6 +263,7 @@ final class MailTemplatesPage
         }
     }
 
+    /** Lists the bundled default alongside draft and published templates and their available actions. */
     private function renderTemplateList(): void
     {
         $templates = MailTemplatePost::getAll();
@@ -324,6 +326,11 @@ final class MailTemplatesPage
         <?php
     }
 
+    /**
+     * Renders the editor for all message types in a mail template.
+     *
+     * @param int $id Template post ID. A non-positive ID starts a new template.
+     */
     private function renderTemplateForm(int $id): void
     {
         $backUrl  = add_query_arg(['page' => SettingsPage::PAGE_SLUG, 'tab' => 'templates'], admin_url('options-general.php'));
@@ -460,6 +467,16 @@ final class MailTemplatesPage
         <?php
     }
 
+    /**
+     * Renders the plain-text editor and, for users with HTML editing permission, the HTML editor.
+     *
+     * @param string $plainId DOM ID for the plain-text field.
+     * @param string $htmlId DOM ID for the WordPress rich-text editor.
+     * @param string $nameKey Message type used as the submitted field name prefix.
+     * @param string $plainValue Stored plain-text override.
+     * @param string $htmlValue Stored HTML override.
+     * @param array{subject: string, body: string, body_html: string} $defaults Bundled content for the previews.
+     */
     private function renderMailTabs(string $plainId, string $htmlId, string $nameKey, string $plainValue, string $htmlValue, array $defaults): void
     {
         $canEditHtml = MailTemplatePost::canEditHtml();
@@ -533,6 +550,12 @@ final class MailTemplatesPage
         <?php
     }
 
+    /**
+     * Renders the placeholder menu for a template field.
+     *
+     * @param string $targetId DOM ID of the field that receives the placeholder.
+     * @param bool $isTinymce Whether the target supports inserting a placeholder at a TinyMCE selection.
+     */
     private function renderInsertButton(string $targetId, bool $isTinymce = false): void
     {
         echo '<div class="rrze-appt-insert">';

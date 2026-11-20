@@ -55,6 +55,11 @@ final class EmailAddress
         return $email;
     }
 
+    /**
+     * Lowercases the domain and converts internationalized labels to ASCII for length and address checks.
+     *
+     * @throws AppointmentException If the Unicode domain is invalid or the required IDNA conversion fails or is unavailable.
+     */
     private static function normalizeDomain(string $domain): string
     {
         $domain = strtolower($domain);

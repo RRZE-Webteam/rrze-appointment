@@ -8,7 +8,17 @@ use RRZE\Appointment\Notification\Reminder;
 
 defined('ABSPATH') || exit;
 
-/** The schedule and delivery receipts embedded in one authenticated V2 record. */
+/**
+ * The schedule and delivery receipts embedded in one authenticated V2 record.
+ *
+ * Jobs are keyed by action and original Unix timestamp (`action:due`). The worker
+ * uses `run_at` for the next eligible attempt. While a worker holds a claim,
+ * `claim` contains its 32-character hexadecimal token and `run_at` is the retry time.
+ * A finished booking reminder has a zero `run_at` and an empty claim. Its `sent_on`
+ * is the site-local delivery date (Y-m-d), or empty if this attempt sent no mail.
+ *
+ * @phpstan-type RecordJob array{action:'expire'|'notify'|'host'|'booker',due:positive-int,run_at:non-negative-int,claim:string,sent_on:string}
+ */
 final class RecordJobs
 {
     /** The action names allowed for each record type. */
@@ -21,12 +31,16 @@ final class RecordJobs
     /**
      * Builds work for a newly created or adopted record and retains outstanding retries on edits.
      *
-     * @param string $type Storage record type.
-     * @param string $target Slot or action token.
-     * @param array $entry Domain fields for this record.
-     * @param array|null $previous Jobs retained from the same record and lifecycle stage.
-     * @param int[] $legacyTimes Existing WordPress event times belonging to this target.
-     * @return array<string,array> Jobs for the transaction containing the domain change.
+     * An opening already marked as notified has no jobs. Otherwise existing job
+     * state takes precedence over legacy event times and newly calculated times.
+     *
+     * @param 'pending'|'booking'|'opening' $type Owner's lifecycle stage.
+     * @param string $target Booking slot, pending confirmation token or opening token.
+     * @param array $entry Business entry containing expires for a reservation or opens_at and optional notified_at for an opening.
+     * @param array<string,RecordJob>|null $previous Jobs from this stage, or null when creating its first schedule.
+     * @param list<int> $legacyTimes Unix timestamps to carry forward, including any newly requested follow-up.
+     * @return array<string,RecordJob> Jobs and reminder receipts to commit with the owner.
+     * @throws AppointmentException When the owner type, due time or previous job data is invalid.
      */
     public static function forRecord(
         string $type, #[\SensitiveParameter] string $target, #[\SensitiveParameter] array $entry,
@@ -83,8 +97,8 @@ final class RecordJobs
     /**
      * Adds one action at its original due time. A retry or receipt keeps its identity.
      *
-     * @param array $jobs Mutable job collection.
-     * @param string $action expire, notify, host or booker.
+     * @param array<string,RecordJob> $jobs Job collection to update in place.
+     * @param 'expire'|'notify'|'host'|'booker' $action Action for this owner.
      * @param int $time UNIX timestamp of the intended event.
      */
     public static function add(array &$jobs, string $action, int $time): void
@@ -102,7 +116,8 @@ final class RecordJobs
      * Rejects unknown actions or incoherent receipts before interpreting an authenticated record.
      *
      * @param string $type Expected owner type.
-     * @param array $jobs Decoded V2 record jobs.
+     * @param array<array-key,mixed> $jobs Unvalidated job entries from a decoded record.
+     * @throws AppointmentException When a job key or its fields violate the owner's job format.
      */
     public static function validate(string $type, #[\SensitiveParameter] array $jobs): void
     {
@@ -124,7 +139,7 @@ final class RecordJobs
     /**
      * Checks whether this role already received today's reminder for this same booking ID.
      *
-     * @param array $jobs Jobs and completed receipts for a single record.
+     * @param array<string,RecordJob> $jobs Jobs and completed receipts for a single record.
      * @param string $role host or booker.
      * @param string $day Site-local delivery date.
      */
