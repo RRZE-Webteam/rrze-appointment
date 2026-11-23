@@ -44,33 +44,39 @@ final class WaitlistNotifier
                 return;
             }
 
-            $previousSlotsByPerson = [];
-            if (
-                $postBefore->post_status === self::PUBLISHED_STATUS
-                && has_blocks($postBefore->post_content)
-            ) {
-                $previousSlotsByPerson = $this->collectAppointmentSlots($postBefore->post_content);
-            }
-            $currentSlotsByPerson = $this->collectAppointmentSlots($postAfter->post_content);
-            $bookedSlots = $this->getBookedSlotSet();
+            $before = $postBefore->post_status === self::PUBLISHED_STATUS
+                ? $this->schedulesByPerson(parse_blocks($postBefore->post_content)) : [];
+            $after = $this->schedulesByPerson(parse_blocks($postAfter->post_content));
+            $booked = $this->getBookedSlotSet();
 
             foreach ($waitlisted as $personId => $entries) {
-                $currentSlots = $currentSlotsByPerson[$personId] ?? [];
-                if ($currentSlots === []) {
-                    continue;
+                $schedules = $after[$personId] ?? [];
+                $latest = $this->getSlotDate(max(array_column($entries, 'slot')));
+                $months = [];
+                foreach ($schedules as $attributes) {
+                    foreach (SlotGenerator::months($attributes, $today) as $month) {
+                        $months[$month] = true;
+                    }
                 }
-
-                $addedSlots = $this->getAddedAvailableSlots(
-                    $currentSlots,
-                    $previousSlotsByPerson[$personId] ?? [],
-                    $bookedSlots,
-                    $today
-                );
-                if ($addedSlots === []) {
-                    continue;
+                ksort($months);
+                foreach (array_keys($months) as $month) {
+                    $from = max($today, $month . '-01');
+                    if ($from > $latest) {
+                        break;
+                    }
+                    $until = min($latest, $month . '-31');
+                    $added = array_diff_key(
+                        $this->slotsInRange($schedules, $from, $until),
+                        $this->slotsInRange($before[$personId] ?? [], $from, $until),
+                        $booked
+                    );
+                    if ($added !== []) {
+                        // Every eligible recipient gets the earliest addition for this host.
+                        $earliest = min(array_keys($added));
+                        $this->notifyWaitlistedBookings($entries, $earliest, $added[$earliest]);
+                        break;
+                    }
                 }
-
-                $this->notifyWaitlistedBookings($entries, $addedSlots);
             }
         } catch (\Throwable $exception) {
             // Waitlist notifications are ancillary to the completed post save.
@@ -112,124 +118,72 @@ final class WaitlistNotifier
     }
 
     /**
-     * Collects generated appointment slots from all blocks in post content.
+     * Groups schedule definitions by host before expanding any appointments.
      *
-     * @return array<int, array<string, array<string, mixed>>>
+     * @param array $blocks Parsed WordPress blocks.
+     * @return array<int, array<int, array<string, mixed>>> Schedules by host ID.
      */
-    private function collectAppointmentSlots(#[\SensitiveParameter] string $postContent): array
+    private function schedulesByPerson(#[\SensitiveParameter] array $blocks): array
     {
-        $slotsByPerson = [];
-        $blocks = parse_blocks($postContent);
-        if (is_array($blocks)) {
-            $this->collectAppointmentSlotsFromBlocks($blocks, $slotsByPerson);
-        }
-
-        return $slotsByPerson;
-    }
-
-    /**
-     * Recursively traverses appointment and nested blocks.
-     *
-     * @param array<int, array<string, mixed>>                $blocks        Parsed blocks.
-     * @param array<int, array<string, array<string, mixed>>> $slotsByPerson Collected slots.
-     */
-    private function collectAppointmentSlotsFromBlocks(#[\SensitiveParameter] array $blocks, array &$slotsByPerson): void
-    {
+        $schedules = [];
         foreach ($blocks as $block) {
-            if (!is_array($block)) {
-                continue;
+            $attributes = $block['attrs'] ?? [];
+            $person = (int) ($attributes['personId'] ?? 0);
+            if (($block['blockName'] ?? '') === self::APPOINTMENT_BLOCK && $person > 0) {
+                $schedules[$person][] = $attributes;
             }
-
-            if (($block['blockName'] ?? '') === self::APPOINTMENT_BLOCK) {
-                $attributes = is_array($block['attrs'] ?? null) ? $block['attrs'] : [];
-                $personId = (int) ($attributes['personId'] ?? 0);
-                if ($personId > 0) {
-                    try {
-                        $generatedSlots = SlotGenerator::fromAttributes($attributes);
-                    } catch (\Throwable $exception) {
-                        $generatedSlots = [];
-                    }
-
-                    foreach ($generatedSlots as $slot) {
-                        if (is_string($slot) && $this->isValidSlot($slot)) {
-                            $slotsByPerson[$personId][$slot] = $attributes;
-                        }
-                    }
-                }
-            }
-
-            if (!empty($block['innerBlocks']) && is_array($block['innerBlocks'])) {
-                $this->collectAppointmentSlotsFromBlocks($block['innerBlocks'], $slotsByPerson);
+            foreach ($this->schedulesByPerson($block['innerBlocks'] ?? []) as $host => $nested) {
+                $schedules[$host] = array_merge($schedules[$host] ?? [], $nested);
             }
         }
+        return $schedules;
     }
 
     /**
-     * Returns newly introduced, unbooked, non-past slots.
+     * Collects the host's slots across all blocks for one comparison period.
      *
-     * @param array<string, array<string, mixed>> $currentSlots
-     * @param array<string, array<string, mixed>> $previousSlots
-     * @param array<string, true>                 $bookedSlots
-     * @return array<string, array<string, mixed>>
+     * @param array $schedules Schedule definitions for one host.
+     * @param string $from Inclusive ISO start date.
+     * @param string $until Inclusive ISO end date.
+     * @return array<string, array<string, mixed>> Slots and their originating attributes.
      */
-    private function getAddedAvailableSlots(
-        #[\SensitiveParameter] array $currentSlots,
-        #[\SensitiveParameter] array $previousSlots,
-        #[\SensitiveParameter] array $bookedSlots,
-        #[\SensitiveParameter] string $today
-    ): array {
-        $availableSlots = [];
-        foreach (array_diff_key($currentSlots, $previousSlots) as $slot => $attributes) {
-            if (!isset($bookedSlots[$slot]) && $this->getSlotDate($slot) >= $today) {
-                $availableSlots[$slot] = $attributes;
-            }
-        }
-
-        return $availableSlots;
-    }
-
-    /**
-     * Sends each waitlisted booking the earliest newly available earlier slot.
-     *
-     * @param array<int, array{slot: string, meta: array<string, mixed>}> $entries
-     * @param array<string, array<string, mixed>>                         $addedSlots
-     */
-    private function notifyWaitlistedBookings(#[\SensitiveParameter] array $entries, #[\SensitiveParameter] array $addedSlots): void
+    private function slotsInRange(#[\SensitiveParameter] array $schedules, string $from, string $until): array
     {
+        $slots = [];
+        foreach ($schedules as $attributes) {
+            try {
+                foreach (SlotGenerator::fromAttributes($attributes, $from, $until) as $slot) {
+                    $slots[$slot] = $attributes;
+                }
+            } catch (\Throwable $exception) {
+                // Other blocks can still contain valid earlier appointments.
+            }
+        }
+        return $slots;
+    }
+
+    /**
+     * Notifies recipients whose existing appointment is later than the earliest addition.
+     *
+     * @param array<int, array{slot: string, meta: array<string, mixed>}> $entries Host's waitlisted bookings.
+     * @param string $earliest Earliest newly available time.
+     * @param array<string, mixed> $attributes Originating block attributes.
+     */
+    private function notifyWaitlistedBookings(
+        #[\SensitiveParameter] array $entries,
+        string $earliest,
+        #[\SensitiveParameter] array $attributes
+    ): void {
         foreach ($entries as $entry) {
-            $earliestSlot = $this->findEarliestSlotBefore(array_keys($addedSlots), $entry['slot']);
-            if ($earliestSlot === null) {
+            if ($earliest >= $entry['slot']) {
                 continue;
             }
-
             try {
-                Bookings::sendWaitlistNotificationStatic(
-                    $earliestSlot,
-                    $addedSlots[$earliestSlot],
-                    $entry['slot'],
-                    $entry['meta']
-                );
+                Bookings::sendWaitlistNotificationStatic($earliest, $attributes, $entry['slot'], $entry['meta']);
             } catch (\Throwable $exception) {
                 // One failed email must not prevent other waitlist notifications.
             }
         }
-    }
-
-    /**
-     * Finds the earliest candidate that sorts before an existing booking.
-     *
-     * @param array<int, string> $slots
-     */
-    private function findEarliestSlotBefore(#[\SensitiveParameter] array $slots, #[\SensitiveParameter] string $bookedSlot): ?string
-    {
-        $earliestSlot = null;
-        foreach ($slots as $slot) {
-            if ($slot < $bookedSlot && ($earliestSlot === null || $slot < $earliestSlot)) {
-                $earliestSlot = $slot;
-            }
-        }
-
-        return $earliestSlot;
     }
 
     /**

@@ -10,7 +10,9 @@ use function RRZE\Appointment\plugin;
 defined('ABSPATH') || exit;
 
 /**
- * Renders public confirmation, cancellation, waitlist, and error pages.
+ * Renders public booking forms, status pages, and errors.
+ *
+ * Each render method sets the response headers, displays the page template, and ends the request.
  */
 final class PublicPageRenderer
 {
@@ -58,8 +60,11 @@ final class PublicPageRenderer
     /**
      * Renders the question form or the completed confirmation page.
      *
+     * @param string                           $token              Pending confirmation token. An empty token shows the success page.
      * @param array<int, array<string, mixed>> $questions          Configured questions.
-     * @param array<string, string>            $submittedAnswers   Submitted answers.
+     * @param array<string, string>            $submittedAnswers   Submitted answers keyed by question ID.
+     * @param string                           $formError          Validation message to show on the form.
+     * @param string                           $formErrorField     ID of the question with the validation error, if any.
      * @param array<string, string>            $appointmentDetails Public appointment details.
      */
     public function renderConfirmation(

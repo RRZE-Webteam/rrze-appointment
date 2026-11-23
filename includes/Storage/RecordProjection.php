@@ -146,7 +146,19 @@ final class RecordProjection
         }
     }
 
-    /** Returns occupied slots and typed action tokens with their unique owners. */
+    /**
+     * Indexes slots and action tokens by the owner keys supplied in $groups.
+     *
+     * In the active view each occupied slot maps to one owner. A pending reservation
+     * stops occupying its slot when it expires. The persisted index keeps a list of
+     * owners per slot, including expired reservations. In both modes a token key
+     * includes its action prefix and maps to one owner, regardless of expiry.
+     *
+     * @param array<string,array{type:string,target:string,fields:array<string,array>}> $groups Groups keyed by logical owner or immutable record ID.
+     * @param bool $activeOnly True for the current occupancy check, false for the persisted index.
+     * @return array{slots:array<string,string>|array<string,list<string>>,tokens:array<string,string>} Lookups using the input owner keys.
+     * @throws AppointmentException When owners share an action token or claim the same active slot in the occupancy check.
+     */
     public static function lookups(#[\SensitiveParameter] array $groups, bool $activeOnly): array
     {
         $slots = $tokens = [];

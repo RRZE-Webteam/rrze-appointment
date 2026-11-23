@@ -11,7 +11,14 @@ final class AccessPolicy
 {
     public const OPTION_NAME = 'rrze_appointment_access_policy';
 
-    /** Returns null only for an unconfigured site; malformed policies remain closed. */
+    /**
+     * Reads the site's grants and their revision for use in access checks.
+     *
+     * @return array{
+     *     version: 1, restricted: true, revision: positive-int,
+     *     owners: non-empty-array<array-key, positive-int>, managers: array<array-key, positive-int>
+     * }|\WP_Error|null Valid grants, null for an unconfigured site, or a WP_Error for unreadable or malformed grants.
+     */
     public static function read(): array|\WP_Error|null
     {
         $missing = new \stdClass();
@@ -70,7 +77,12 @@ final class AccessPolicy
         return hash('sha256', serialize([get_option(self::OPTION_NAME, null), BackendSsoAccess::required()]));
     }
 
-    /** Serializes all security writes and refreshes their shared option snapshots. */
+    /**
+     * Runs one access-policy or SSO update under the site's options lock after clearing the shared option caches.
+     *
+     * @param callable(OptionDatabase): (true|\WP_Error) $operation Update to perform with the locked database.
+     * @return true|\WP_Error The callback result, or an unavailable-policy error if an exception occurs.
+     */
     public static function locked(callable $operation): true|\WP_Error
     {
         global $wpdb;

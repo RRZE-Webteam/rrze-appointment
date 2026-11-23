@@ -32,7 +32,12 @@ final class BackendSsoAccess
         return is_plugin_active($plugin);
     }
 
-    /** Returns a usable AC authentication client or a neutral integration error. */
+    /**
+     * Loads the authentication client supplied by RRZE Access Control for the active SSO integration.
+     *
+     * @return object A client providing isAuthenticated(), requireAuth() and getAuthData(),
+     *                or a WP_Error when the integration is unavailable.
+     */
     public static function authClient(): object
     {
         try {

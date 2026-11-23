@@ -23,6 +23,8 @@ final class PluginSettings
     ];
 
     /**
+     * Returns the initial settings for a site, with reminders disabled and a 30-day retention period.
+     *
      * @return array{
      *     reminder_booker_days: int,
      *     reminder_host_days: int,
@@ -48,6 +50,14 @@ final class PluginSettings
         ];
     }
 
+    /**
+     * Reads a site setting, falling back to its default when the stored value is missing, null or an empty string.
+     *
+     * Each recipient's reminder interval falls back to the legacy reminder_days value
+     * and is clamped to the range from zero through MAX_REMINDER_DAYS.
+     *
+     * @return mixed The effective value, or null if the key has neither a stored value nor a default.
+     */
     public static function get(string $key): mixed
     {
         $storedOptions = get_option(self::OPTION_NAME, []);
@@ -68,7 +78,13 @@ final class PluginSettings
     }
 
     /**
-     * @param array<string, mixed> $input
+     * Builds the complete site option from a settings form submission.
+     *
+     * When one tab is submitted, values for the other tab are read from storage
+     * before validation. Unscoped submissions take both groups from the input.
+     * The recurrence limit always comes from the stored option or its default.
+     *
+     * @param array<string, mixed> $input Submitted settings, optionally scoped by _settings_scope.
      * @return array{
      *     reminder_booker_days: int,
      *     reminder_host_days: int,

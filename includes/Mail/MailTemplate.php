@@ -155,6 +155,7 @@ final class MailTemplate
         return esc_url($url);
     }
 
+    /** Loads the compiled email layout, using the bundled fallback if the file or any runtime marker is missing. */
     private static function getLayout(): string
     {
         $path = dirname(__DIR__, 2) . '/' . self::LAYOUT_PATH;
@@ -182,6 +183,7 @@ final class MailTemplate
         return true;
     }
 
+    /** Renders the custom logo at an Outlook-compatible size, falling back to the escaped site name. */
     private static function getLogoHtml(string $siteName): string
     {
         if (has_custom_logo()) {
@@ -203,6 +205,7 @@ final class MailTemplate
             . '</span>';
     }
 
+    /** Builds links for the available privacy and imprint URLs, returning an empty string when both are absent. */
     private static function getFooterLinksHtml(): string
     {
         $links = [];
@@ -262,6 +265,7 @@ final class MailTemplate
         return $styles[$status] ?? $styles[self::STATUS_NEUTRAL];
     }
 
+    /** Provides a self-contained HTML email layout with the markers consumed by wrap(). */
     private static function getFallbackLayout(): string
     {
         return '<!DOCTYPE html><html lang="___RRZE_EMAIL_LANG___" dir="___RRZE_EMAIL_DIR___"><head>'

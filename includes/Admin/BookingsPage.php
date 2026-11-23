@@ -8,7 +8,7 @@ use function RRZE\Appointment\plugin;
 defined('ABSPATH') || exit;
 
 /**
- * Handles appointment administration and host-initiated cancellations.
+ * Registers the Appointments admin screen and renders the bookings application or access management forms.
  */
 final class BookingsPage
 {

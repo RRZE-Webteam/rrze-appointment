@@ -28,6 +28,8 @@ final class BookingOpeningController
     private PublicPageRenderer $renderer;
 
     /**
+     * Connects opening-notification requests to the public appointment pages.
+     *
      * @param PublicPageRenderer $renderer Renderer for public status and error pages.
      */
     public function __construct(PublicPageRenderer $renderer)
@@ -201,9 +203,12 @@ final class BookingOpeningController
     }
 
     /**
-     * @param array<string, mixed> $request Request values; the email is still unvalidated.
-     * @param array<string, mixed> $context Published appointment context.
-     * @return array{0: string, 1: string}
+     * Uses the submitted guest identity when SSO is disabled, or the server's authenticated identity.
+     *
+     * @param array<string, mixed> $request Submitted guest name and raw email address.
+     * @param array<string, mixed> $context Published appointment context including the SSO setting.
+     * @return array{0: string, 1: string} Subscriber email address and name, in that order.
+     * @throws AppointmentException When the guest email is invalid or the SSO identity lacks an authenticated address.
      */
     private function resolveBooker(#[\SensitiveParameter] array $request, #[\SensitiveParameter] array $context): array
     {

@@ -42,6 +42,8 @@ export interface FrontendI18n {
 	unavailable?: string;
 	notOpen?: string;
 	bookingDetailsLoading?: string;
+	loadingAppointments?: string;
+	monthLoadError?: string;
 	bookingDetailsError?: string;
 	waitlist?: string;
 	yourAppointment?: string;

@@ -111,6 +111,7 @@ const getMainResult = ( storageFailure = false ): MainResult => {
 			defined('ABSPATH') || define( 'ABSPATH', __DIR__ );
             require_once getcwd() . '/tests/fixtures/legacy-booking-storage.php';
             require_once getcwd() . '/includes/Admin/StorageStatus.php';
+            require_once getcwd() . '/includes/Controller/AvailabilityController.php';
 			$GLOBALS['storageInitFails'] = ${ storageFailure ? 'true' : 'false' };
             $GLOBALS['storageInitOrder'] = [];
             $GLOBALS['actions'] = [];
@@ -194,6 +195,8 @@ describe( 'plugin bootstrap', () => {
 			expect.arrayContaining( [
 				'init',
 				'wp_enqueue_scripts',
+				'wp_ajax_rrze_appointment_get_month',
+				'wp_ajax_nopriv_rrze_appointment_get_month',
 				'wp_ajax_rrze_appointment_book',
 				'wp_ajax_nopriv_rrze_appointment_book',
 				'wp_ajax_rrze_appointment_notify_opening',

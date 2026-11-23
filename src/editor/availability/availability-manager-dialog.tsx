@@ -7,14 +7,19 @@ import {
 	Modal,
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
-import { useState } from '@wordpress/element';
-import type { AvailabilityEntry, TimeSlot } from '../../scheduling/types';
+import { useMemo, useState } from '@wordpress/element';
+import { generateTimeSlots } from '../../scheduling/schedule';
+import type {
+	AppointmentAttributes,
+	AvailabilityEntry,
+	TimeSlot,
+} from '../../scheduling/types';
 import { AppointmentDataView } from './appointment-data-view';
 import { AvailabilityDataView } from './availability-data-view';
 
 interface AvailabilityManagerDialogProps {
 	entries: AvailabilityEntry[];
-	slots: TimeSlot[];
+	attributes: AppointmentAttributes;
 	onAdd: () => void;
 	onClose: () => void;
 	onDelete: ( entry: AvailabilityEntry ) => void;
@@ -29,7 +34,7 @@ interface AvailabilityManagerDialogProps {
  *
  * @param root0                       Component properties.
  * @param root0.entries               Configured appointment schedules.
- * @param root0.slots                 Generated and manual appointments.
+ * @param root0.attributes            Draft schedule for the full appointments table.
  * @param root0.onAdd                 Opens schedule creation.
  * @param root0.onClose               Closes the manager.
  * @param root0.onDelete              Requests schedule deletion.
@@ -41,7 +46,7 @@ interface AvailabilityManagerDialogProps {
  */
 export function AvailabilityManagerDialog( {
 	entries,
-	slots,
+	attributes,
 	onAdd,
 	onClose,
 	onDelete,
@@ -53,6 +58,14 @@ export function AvailabilityManagerDialog( {
 	const [ activeView, setActiveView ] = useState<
 		'schedules' | 'appointments'
 	>( 'schedules' );
+
+	const slots = useMemo(
+		() =>
+			activeView === 'appointments'
+				? generateTimeSlots( attributes, { includeExcluded: true } )
+				: [],
+		[ attributes, activeView ]
+	);
 
 	return (
 		<Modal

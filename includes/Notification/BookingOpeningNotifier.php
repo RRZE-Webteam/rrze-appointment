@@ -422,7 +422,12 @@ final class BookingOpeningNotifier
     }
 
     /**
-     * @param array<string, mixed> $entry Stored subscription.
+     * Sends the subscriber an email with the link to claim the available slot.
+     *
+     * @param string $token Claim token used to build the booking link.
+     * @param array<string, mixed> $entry Stored subscription containing the slot and recipient metadata.
+     * @return true When WordPress accepts the message for delivery.
+     * @throws AppointmentException When the mailer cannot send the message.
      */
     private static function sendOpeningMail(#[\SensitiveParameter] string $token, #[\SensitiveParameter] array $entry): bool
     {

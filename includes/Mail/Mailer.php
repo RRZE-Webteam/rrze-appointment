@@ -12,7 +12,11 @@ defined('ABSPATH') || exit;
 final class Mailer
 {
     /**
-     * @param array<string, mixed> $variables
+     * Substitutes scalar placeholder values in a template.
+     *
+     * Non-scalar values and the retired [message] placeholder expand to empty strings.
+     *
+     * @param array<string, mixed> $variables Placeholder tokens mapped to values prepared for the target format.
      */
     public static function render(#[\SensitiveParameter] string $template, #[\SensitiveParameter] array $variables): string
     {
@@ -28,8 +32,17 @@ final class Mailer
     }
 
     /**
+     * Submits a multipart message to wp_mail() and removes its temporary PHPMailer hook and message data on exit.
+     *
+     * @param string $to Recipient address.
+     * @param string $subject Message subject.
+     * @param string $plain Plain-text alternative.
+     * @param string $html Trusted HTML body for the shared layout.
      * @param array<int, string> $attachments Absolute attachment paths.
-     * @param array<string, string> $stringAttachments Attachment filename => in-memory content.
+     * @param string $status MailTemplate status used to style the layout.
+     * @param array<string, string> $stringAttachments Calendar filenames mapped to their in-memory contents.
+     * @return true When WordPress accepts the message for sending.
+     * @throws AppointmentException If preparation or submission fails.
      */
     public static function send(
         #[\SensitiveParameter] string $to,
@@ -57,7 +70,11 @@ final class Mailer
         }
     }
 
-    /** Adds HTML and calendar bytes directly to this message without creating files. */
+    /**
+     * Sets the HTML body and plain-text alternative and attaches calendar data in memory.
+     *
+     * @throws AppointmentException If PHPMailer rejects an in-memory attachment.
+     */
     public static function addHtmlPart(#[\SensitiveParameter] \PHPMailer\PHPMailer\PHPMailer $phpmailer): void
     {
         $html = $GLOBALS['rrze_appointment_html_body'] ?? '';

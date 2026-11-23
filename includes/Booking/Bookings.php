@@ -417,8 +417,10 @@ final class Bookings
     }
 
     /**
-     * @param array<string, mixed> $booking
-     * @param array<string, mixed> $filter
+     * Tests a display booking against the inclusive date range and host filter.
+     *
+     * @param array<string, mixed> $booking Booking returned by {@see self::buildBooking()}.
+     * @param array{date_from?: string, date_to?: string, person_id?: int|string, view?: string} $filter List filters.
      */
     private static function matchesFilter(#[\SensitiveParameter] array $booking, #[\SensitiveParameter] array $filter): bool
     {
@@ -482,7 +484,15 @@ final class Bookings
         }
     }
 
-    /** @param array<string, mixed> $bookedMeta */
+    /**
+     * Checks whether a later booking for the same host can receive an earlier-slot notification.
+     *
+     * @param string $bookedSlot Canonical slot identifier of the existing booking.
+     * @param array<string, mixed> $bookedMeta Existing booker's preferences and contact details.
+     * @param string $availableSlot Canonical slot identifier released by the cancellation.
+     * @param int $personId Host of the released slot.
+     * @param string $today Current calendar date at the site in Y-m-d format.
+     */
     private static function isEligibleWaitlistBooking(
         #[\SensitiveParameter] string $bookedSlot,
         #[\SensitiveParameter] array $bookedMeta,
@@ -498,7 +508,11 @@ final class Bookings
     }
 
     /**
-     * @param array<string, mixed> $bookedMeta
+     * Checks the recipient's opt-in, address and notification history for the earlier slot.
+     *
+     * @param string $availableSlot Newly available slot identifier.
+     * @param string $bookedSlot Slot identifier for the recipient's existing booking.
+     * @param array<string, mixed> $bookedMeta Metadata for the existing booking.
      */
     private static function shouldSendWaitlistNotification(
         #[\SensitiveParameter] string $availableSlot,
@@ -520,7 +534,13 @@ final class Bookings
         return !in_array($availableSlot, self::getWaitlistNotifiedSlots($bookedMeta), true);
     }
 
-    /** @param array<string, mixed> $fallbackMeta */
+    /**
+     * Refreshes the snapshot used for a waitlist notification, giving stored fields precedence.
+     *
+     * @param string $slot Slot identifier for the existing booking.
+     * @param array<string, mixed> $fallbackMeta Snapshot supplied by the caller.
+     * @return array<string, mixed> Current metadata supplemented by fields from the snapshot.
+     */
     private static function mergeCurrentBookingMetadata(#[\SensitiveParameter] string $slot, #[\SensitiveParameter] array $fallbackMeta): array
     {
         $currentMeta = self::getSlotMetadata(self::getStoredMetadata(), $slot);
@@ -628,7 +648,12 @@ final class Bookings
     }
 
     /**
-     * @param array<string, mixed> $meta
+     * Sends the cancellation to the host and booker, including the reason when enabled.
+     *
+     * @param string $slot Cancelled slot identifier.
+     * @param array<string, mixed> $meta Booking metadata retained for notification.
+     * @param string $reason Submitted reason, sanitized before rendering.
+     * @throws AppointmentException If message preparation or delivery fails.
      */
     private static function sendCancellationMail(#[\SensitiveParameter] string $slot, #[\SensitiveParameter] array $meta, #[\SensitiveParameter] string $reason): void
     {
@@ -713,9 +738,13 @@ final class Bookings
     }
 
     /**
-     * @param array<string, mixed> $newSlotMeta
-     * @param array<string, mixed> $bookedMeta
-     * @return array<string, mixed>
+     * Builds the template values for an earlier-slot notification addressed to an existing booker.
+     *
+     * @param string $availableSlot Newly available slot identifier.
+     * @param array<string, mixed> $newSlotMeta Metadata for the available slot.
+     * @param string $bookedSlot Recipient's current slot identifier.
+     * @param array<string, mixed> $bookedMeta Recipient's stored booking metadata.
+     * @return array<string, mixed> Placeholder values for both slots and the recipient's opt-out link.
      */
     private static function buildWaitlistTemplateVariables(
         #[\SensitiveParameter] string $availableSlot,
@@ -825,8 +854,15 @@ final class Bookings
     }
 
     /**
-     * @param array{subject: string, body: string, body_html: string} $template
-     * @param array<string, mixed> $variables
+     * Renders the subject and both message bodies and sends them as one message.
+     *
+     * @param string $recipient Delivery address.
+     * @param array{subject: string, body: string, body_html: string} $template Unrendered templates.
+     * @param array<string, mixed> $variables Placeholder values shared by subject and bodies.
+     * @param string $status Status used to style the message.
+     * @param array<string, mixed>|null $htmlVariables Complete replacement values for the HTML body when supplied.
+     * @return bool True when the mail transport accepts the message.
+     * @throws AppointmentException If the message cannot be sent.
      */
     private static function sendRenderedMail(
         #[\SensitiveParameter] string $recipient,
@@ -892,7 +928,10 @@ final class Bookings
     }
 
     /**
-     * @return array{date: string, start: string, end: string}|null
+     * Splits a stored slot identifier into its date and two clock times.
+     *
+     * @param string $slot Stored slot in the format "Y-m-d HH:MM-HH:MM".
+     * @return array{date: string, start: string, end: string}|null Null when any component is missing.
      */
     private static function parseSlot(#[\SensitiveParameter] string $slot): ?array
     {
@@ -958,8 +997,11 @@ final class Bookings
     }
 
     /**
-     * @param array<string, mixed> $allMeta
-     * @return array<string, mixed>
+     * Looks up a slot's metadata in a stored booking snapshot.
+     *
+     * @param array<string, mixed> $allMeta Snapshot indexed by slot identifier.
+     * @param string $slot Slot identifier to look up.
+     * @return array<string, mixed> Metadata fields, or an empty array for an absent or malformed entry.
      */
     private static function getSlotMetadata(#[\SensitiveParameter] array $allMeta, #[\SensitiveParameter] string $slot): array
     {

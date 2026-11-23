@@ -44,7 +44,9 @@ final class ConfirmationController
     private PublicPageRenderer $renderer;
 
     /**
-     * @param PublicPageRenderer $renderer Public appointment page renderer.
+     * Connects booking confirmations to the public appointment pages.
+     *
+     * @param PublicPageRenderer $renderer Renderer for the question form, confirmation and error pages.
      */
     public function __construct(PublicPageRenderer $renderer)
     {
@@ -52,7 +54,10 @@ final class ConfirmationController
     }
 
     /**
-     * Handles confirmation links and optional question submission.
+     * Shows the confirmation form and commits a reservation after a valid submission.
+     *
+     * Once the booking is committed, failures in reminder handling or mail preparation
+     * and delivery are reported to the visitor together with the booking confirmation.
      */
     public function handleConfirmation(): void
     {

@@ -1,7 +1,8 @@
 import type { Booker, FrontendSlot } from './types';
 import { bookerErrorMessage, loadCurrentBooker, requestBooker } from './api';
 import { openBookingDialog } from './booking-dialog';
-import { buildSlotsByDate, parseSlotValue } from './slot-parser';
+import { parseSlotValue } from './slot-parser';
+import { MonthSchedule } from './month-schedule';
 import {
 	isBookingClosed,
 	isBookingNotOpen,
@@ -18,16 +19,24 @@ import {
 	toDateString,
 } from './calendar';
 
+/** Attaches the calendar, list navigation and booking controls to each rendered block. */
 export function initializeAppointmentForms(): void {
 	const i18n = window.rrze_appointment?.i18n || {};
 	const frontendLocale = resolveFrontendLocale();
 	const weekdays = getWeekdayLabels( frontendLocale );
 
+	/**
+	 * Initializes independent selection and navigation state for this form.
+	 *
+	 * @param form       Published appointment form.
+	 * @param instanceId Unique namespace for accessible control IDs.
+	 */
 	function initializeAppointmentForm(
 		form: HTMLFormElement,
 		instanceId: string
 	): void {
 		const showSlotsAsList = form.dataset.showSlotsAsList === '1';
+		const readOnly = form.dataset.readOnly === '1';
 		const dateList = form.querySelector< HTMLElement >(
 			'.rrze-appointment__date-list'
 		);
@@ -96,19 +105,27 @@ export function initializeAppointmentForms(): void {
 			selectedInfoElement.classList.toggle( 'is-hidden', ! message );
 		}
 
-		const slotInputs = Array.from(
-			slotDataElement.querySelectorAll< HTMLInputElement >(
-				'input[name="rrze_appointment_slot"]'
-			)
-		);
-		if ( slotInputs.length === 0 ) {
+		const schedule = new MonthSchedule( form, slotDataElement );
+		const slotsByDate = schedule.dates;
+		const months = schedule.months;
+		if ( ! months.length ) {
 			return;
 		}
-
-		const slotsByDate = buildSlotsByDate( slotInputs );
+		const moreButton = form.querySelector< HTMLButtonElement >(
+			'.rrze-appointment__more'
+		);
+		const retryButton = form.querySelector< HTMLButtonElement >(
+			'.rrze-appointment__retry'
+		);
+		const monthLinks = form.querySelector< HTMLElement >(
+			'.rrze-appointment__month-links:not([data-linked-page])'
+		);
+		const listMonths = new Set( schedule.paged ? [ months[ 0 ] ] : months );
 		let availableDates: string[] = [];
 		let availableDateSet = new Set< string >();
-
+		let currentMonthIndex = 0;
+		let requestedIndex = 0;
+		let navigationVersion = 0;
 		let activeDate = '';
 		let selectedSlotValue = '';
 
@@ -126,7 +143,16 @@ export function initializeAppointmentForms(): void {
 		const allowBookingsWithoutSso = form.dataset.disableSso === '1';
 		const hideWeekends = form.dataset.hideWeekends === '1';
 
+		/**
+		 * Resolves a slot's absolute start, including times from cached radio markup.
+		 * @param slotValue Canonical appointment identifier.
+		 * @return Instant used to check the booking window.
+		 */
 		function parseSlotStart( slotValue: string ): Date | null {
+			const timestamp = schedule.timestamps.get( slotValue );
+			if ( timestamp !== undefined ) {
+				return new Date( timestamp * 1000 );
+			}
 			const parsedSlot = parseSlotValue( slotValue );
 			if ( ! parsedSlot.date || ! parsedSlot.time ) {
 				return null;
@@ -157,9 +183,14 @@ export function initializeAppointmentForms(): void {
 			);
 		}
 
+		/**
+		 * Checks the opening window for interactive booking controls.
+		 * @param slotValue Canonical appointment identifier.
+		 * @return Whether the visitor must wait before booking.
+		 */
 		function isSlotTooFarInAdvance( slotValue: string ): boolean {
 			const slotStart = parseSlotStart( slotValue );
-			if ( ! slotStart ) {
+			if ( readOnly || ! slotStart ) {
 				return false;
 			}
 			return isBookingNotOpen(
@@ -191,58 +222,45 @@ export function initializeAppointmentForms(): void {
 			return template.replace( '%d', String( days ) );
 		}
 
-		function refreshAvailabilityMessage(): void {
-			const hasAvailableSlot = Array.from( slotsByDate.values() ).some(
-				( slots ) =>
-					slots.some( ( slot ) => ! isSlotUnavailable( slot.value ) )
-			);
-			if ( hasAvailableSlot ) {
-				clearAvailabilityMessage();
-				return;
-			}
-			showAvailabilityMessage(
-				i18n.noSlotsAvailable || 'No time slots available.'
-			);
+		/** Includes only visible dates in the loaded portion of the schedule. */
+		function refreshDates(): void {
+			availableDates = Array.from( slotsByDate.keys() )
+				.filter(
+					( date ) =>
+						slotsByDate
+							.get( date )
+							?.some(
+								( slot ) => ! isSlotUnavailable( slot.value )
+							)
+				)
+				.sort();
+			availableDateSet = new Set( availableDates );
 		}
 
-		slotsByDate.forEach( ( slots, date ) => {
-			const availableSlots = slots.filter(
-				( slot ) => ! isSlotUnavailable( slot.value )
-			);
-			if ( availableSlots.length > 0 ) {
-				slotsByDate.set(
-					date,
-					availableSlots.sort( ( left, right ) =>
-						left.time
-							.padStart( 5, '0' )
-							.localeCompare( right.time.padStart( 5, '0' ) )
-					)
-				);
-			} else {
-				slotsByDate.delete( date );
-			}
-		} );
-
-		availableDates = Array.from( slotsByDate.keys() ).sort();
-		if ( availableDates.length === 0 ) {
-			calendarElement?.replaceChildren();
-			daySlotsContainerElement?.classList.add( 'is-hidden' );
-			showAvailabilityMessage(
-				i18n.noSlotsAvailable || 'No time slots available.'
-			);
-			return;
-		}
-		clearAvailabilityMessage();
-		availableDateSet = new Set( availableDates );
-		const firstDate = new Date( `${ availableDates[ 0 ] }T00:00:00` );
-		activeDate = availableDates[ 0 ];
-		let currentYear = firstDate.getFullYear();
-		let currentMonth = firstDate.getMonth();
-
+		/**
+		 * Keeps one selection value for submission and supports radio markup from cached pages.
+		 *
+		 * @param slotValue Selected canonical appointment identifier.
+		 */
 		function selectHiddenSlotInput( slotValue: string ): void {
-			slotInputs.forEach( ( input ) => {
-				input.checked = input.value === slotValue;
-			} );
+			slotDataElement
+				.querySelectorAll< HTMLInputElement >(
+					'input[name="rrze_appointment_slot"]'
+				)
+				.forEach( ( input ) => {
+					if ( input.type === 'hidden' ) {
+						input.value = slotValue;
+					} else {
+						input.checked = input.value === slotValue;
+					}
+				} );
+		}
+
+		refreshDates();
+		activeDate = availableDates[ 0 ] || '';
+		if ( activeDate ) {
+			currentMonthIndex = months.indexOf( activeDate.slice( 0, 7 ) );
+			requestedIndex = currentMonthIndex;
 		}
 
 		function showBookingDialog(
@@ -271,6 +289,11 @@ export function initializeAppointmentForms(): void {
 			} );
 		}
 
+		/**
+		 * Builds the time button that starts a guest booking or restores SSO on return.
+		 * @param slot Display name and canonical appointment value.
+		 * @return Interactive appointment button.
+		 */
 		function createSlotButton( slot: FrontendSlot ): HTMLButtonElement {
 			const isUnavailable = isSlotUnavailable( slot.value );
 			const button = document.createElement( 'button' );
@@ -339,6 +362,10 @@ export function initializeAppointmentForms(): void {
 								return;
 							}
 							sessionStorage.setItem(
+								'rrze_appt_block',
+								form.dataset.blockId || ''
+							);
+							sessionStorage.setItem(
 								'rrze_appt_slot',
 								slot.value
 							);
@@ -364,6 +391,13 @@ export function initializeAppointmentForms(): void {
 			return button;
 		}
 
+		/**
+		 * Displays a day's appointments as booking controls or read-only times.
+		 * @param date       Selected ISO date.
+		 * @param container  The group containing its heading and times.
+		 * @param list       Element that receives the times.
+		 * @param focusTitle Whether to focus the heading after selecting a day.
+		 */
 		function renderDateSlots(
 			date: string,
 			container: HTMLElement,
@@ -414,7 +448,13 @@ export function initializeAppointmentForms(): void {
 			}
 
 			slots.forEach( ( slot ) => {
-				list.appendChild( createSlotButton( slot ) );
+				if ( readOnly ) {
+					const time = document.createElement( 'span' );
+					time.textContent = slot.label;
+					list.appendChild( time );
+				} else {
+					list.appendChild( createSlotButton( slot ) );
+				}
 			} );
 
 			if ( focusTitle && slotsTitleElement instanceof HTMLElement ) {
@@ -433,55 +473,242 @@ export function initializeAppointmentForms(): void {
 			}
 		}
 
+		/** Displays the loaded list months in chronological, labeled date groups. */
 		function renderDateList(): void {
 			if ( ! dateList ) {
 				return;
 			}
 			const dateGroups = document.createDocumentFragment();
-			availableDates.forEach( ( date ) => {
-				const slots = slotsByDate.get( date ) || [];
-				if (
-					! slots.some(
-						( slot ) => ! isSlotUnavailable( slot.value )
-					)
-				) {
-					return;
-				}
-				const section = document.createElement( 'section' );
-				section.className = 'rrze-appointment__day-slots';
-				section.dataset.date = date;
-				const heading = document.createElement( 'h3' );
-				heading.className = 'rrze-appointment__day-slots-title';
-				heading.id = `${ instanceId }-date-${ date }`;
-				section.setAttribute( 'aria-labelledby', heading.id );
-				const list = document.createElement( 'div' );
-				section.append( heading, list );
-				renderDateSlots( date, section, list );
-				dateGroups.appendChild( section );
-			} );
+			availableDates
+				.filter( ( date ) => listMonths.has( date.slice( 0, 7 ) ) )
+				.forEach( ( date ) => {
+					const slots = slotsByDate.get( date ) || [];
+					if (
+						! slots.some(
+							( slot ) => ! isSlotUnavailable( slot.value )
+						)
+					) {
+						return;
+					}
+					const section = document.createElement( 'section' );
+					section.className = 'rrze-appointment__day-slots';
+					section.dataset.date = date;
+					const heading = document.createElement( 'h3' );
+					heading.className = 'rrze-appointment__day-slots-title';
+					heading.id = `${ instanceId }-date-${ date }`;
+					section.setAttribute( 'aria-labelledby', heading.id );
+					const list = document.createElement( 'div' );
+					section.append( heading, list );
+					renderDateSlots( date, section, list );
+					dateGroups.appendChild( section );
+				} );
 			dateList.replaceChildren( dateGroups );
 		}
 
-		function renderAvailability(): void {
+		/**
+		 * Refreshes the visible controls after bookings and completed requests.
+		 * @param focusMonth Move keyboard focus to the new calendar month heading.
+		 */
+		function renderAvailability( focusMonth = false ): void {
+			refreshDates();
 			if ( showSlotsAsList ) {
 				renderDateList();
+				if ( moreButton ) {
+					moreButton.hidden = months.every( ( month ) =>
+						listMonths.has( month )
+					);
+				}
 			} else {
-				renderCalendar();
+				renderCalendar( focusMonth );
 				renderDaySlots( activeDate );
 			}
-			refreshAvailabilityMessage();
+			const visible = availableDates.some( ( date ) =>
+				showSlotsAsList
+					? listMonths.has( date.slice( 0, 7 ) )
+					: date.startsWith( months[ currentMonthIndex ] )
+			);
+			if ( visible ) {
+				clearAvailabilityMessage();
+			} else {
+				showAvailabilityMessage(
+					i18n.noSlotsAvailable || 'No time slots available.'
+				);
+			}
 		}
 
-		function renderCalendar(
-			focusNavigation: 'previous' | 'next' | null = null
-		): void {
+		/**
+		 * Resumes an SSO booking only while its month and appointment are still selected.
+		 *
+		 * @param slotValue Saved canonical appointment identifier.
+		 * @param version   Navigation that initiated identity lookup.
+		 */
+		async function reopenBooking(
+			slotValue: string,
+			version: number
+		): Promise< void > {
+			const exists = slotsByDate
+				.get( activeDate )
+				?.some( ( slot ) => slot.value === slotValue );
+			if ( ! exists || isSlotUnavailable( slotValue ) ) {
+				setInteractionStatus(
+					i18n.noSlotsAvailable || 'No time slots available.'
+				);
+				return;
+			}
+			form.setAttribute( 'aria-busy', 'true' );
+			setInteractionStatus(
+				i18n.bookingDetailsLoading || 'Loading booking details…'
+			);
+			const booker = await loadCurrentBooker();
+			if ( version === navigationVersion ) {
+				setInteractionStatus();
+				showBookingDialog( slotValue, booker );
+			}
+		}
+
+		/** Clears the recovery controls when the visitor navigates again. */
+		function clearMonthError(): void {
+			if ( retryButton ) {
+				retryButton.hidden = true;
+			}
+			if ( monthLinks ) {
+				monthLinks.hidden = true;
+			}
+		}
+
+		/**
+		 * Offers a normal WordPress page request for the exact month that failed to load.
+		 *
+		 * @param month Requested YYYY-MM from this block's month index.
+		 */
+		function showMonthLink( month: string ): void {
+			if ( ! monthLinks ) {
+				return;
+			}
+			const url = new URL( window.location.href );
+			// The password form restores the fragment from the last calendar parameter.
+			url.searchParams.delete( form.id );
+			url.searchParams.set( form.id, month );
+			url.hash = form.id;
+			const link = document.createElement( 'a' );
+			link.href = url.href;
+			link.textContent = formatMonthTitle(
+				new Date( month + '-01T00:00:00' ),
+				frontendLocale
+			);
+			monthLinks.replaceChildren( link );
+			monthLinks.hidden = false;
+		}
+
+		/**
+		 * Loads months until the requested navigation can be displayed.
+		 * Older responses may populate the cache but cannot change the selected view.
+		 *
+		 * @param index     First candidate in the chronological month index.
+		 * @param mode      Initial selection, calendar navigation, list extension or SSO resumption.
+		 * @param slotValue Canonical appointment to restore after login.
+		 */
+		async function navigate(
+			index: number,
+			mode: 'initial' | 'calendar' | 'more' | 'restore',
+			slotValue = ''
+		): Promise< void > {
+			const version = ++navigationVersion;
+			clearMonthError();
+			const firstIndex = index;
+			try {
+				while ( index >= 0 && index < months.length ) {
+					const month = months[ index ];
+					requestedIndex = index;
+					if ( ! schedule.has( month ) ) {
+						form.setAttribute( 'aria-busy', 'true' );
+						setInteractionStatus(
+							i18n.loadingAppointments || 'Loading appointments…'
+						);
+						if ( ! showSlotsAsList ) {
+							renderCalendar();
+						}
+						await schedule.load( month );
+					}
+					if ( version !== navigationVersion ) {
+						return;
+					}
+					refreshDates();
+					if ( showSlotsAsList ) {
+						listMonths.add( month );
+					}
+					const first = availableDates.find( ( date ) =>
+						date.startsWith( month )
+					);
+					if ( mode === 'initial' && ! first ) {
+						++index;
+						continue;
+					}
+					if ( mode === 'more' && ! first ) {
+						index = months.findIndex(
+							( candidate ) => ! listMonths.has( candidate )
+						);
+						continue;
+					}
+					currentMonthIndex = index;
+					activeDate = first || '';
+					if ( mode === 'calendar' || mode === 'restore' ) {
+						activeDate = slotValue.slice( 0, 10 );
+					}
+					break;
+				}
+				renderAvailability( mode === 'calendar' );
+				setInteractionStatus();
+				if ( mode === 'more' && activeDate ) {
+					form
+						.querySelector< HTMLElement >(
+							`section[data-date="${ activeDate }"] h3`
+						)
+						?.focus();
+				}
+				if ( mode === 'restore' ) {
+					await reopenBooking( slotValue, version );
+				}
+			} catch {
+				if ( version === navigationVersion ) {
+					requestedIndex = currentMonthIndex;
+					renderAvailability();
+					const failedMonth = months[ index ];
+					if ( failedMonth && ! schedule.has( failedMonth ) ) {
+						showMonthLink( failedMonth );
+					}
+					setInteractionStatus(
+						mode === 'restore'
+							? bookerErrorMessage()
+							: i18n.monthLoadError ||
+									'Unable to load appointments. Please try again.'
+					);
+					if ( retryButton ) {
+						retryButton.hidden = false;
+						retryButton.onclick = () =>
+							void navigate( firstIndex, mode, slotValue );
+					}
+				}
+			} finally {
+				if ( version === navigationVersion ) {
+					form.removeAttribute( 'aria-busy' );
+				}
+			}
+		}
+
+		/**
+		 * Renders the selected calendar month and neighboring navigation targets.
+		 * @param focusNavigation Announce the new month to keyboard users.
+		 */
+		function renderCalendar( focusNavigation = false ): void {
 			if ( ! calendarElement || ! daySlotsListElement ) {
 				return;
 			}
 			const daySlotsListId = daySlotsListElement.id;
 			calendarElement.innerHTML = '';
-
-			const monthDate = new Date( currentYear, currentMonth, 1 );
+			const monthDate = new Date(
+				months[ currentMonthIndex ] + '-01T00:00:00'
+			);
 			const year = monthDate.getFullYear();
 			const monthIndex = monthDate.getMonth();
 
@@ -490,59 +717,43 @@ export function initializeAppointmentForms(): void {
 
 			const titleRow = document.createElement( 'div' );
 			titleRow.className = 'rrze-appointment__calendar-title';
-			const previousMonth = new Date( currentYear, currentMonth - 1, 1 );
-			const nextMonth = new Date( currentYear, currentMonth + 1, 1 );
-			const firstAvailableMonth = new Date(
-				`${ availableDates[ 0 ] }T00:00:00`
-			);
-			const lastAvailableMonth = new Date(
-				`${ availableDates[ availableDates.length - 1 ] }T00:00:00`
-			);
-			const currentMonthNumber = currentYear * 12 + currentMonth;
-			const firstMonthNumber =
-				firstAvailableMonth.getFullYear() * 12 +
-				firstAvailableMonth.getMonth();
-			const lastMonthNumber =
-				lastAvailableMonth.getFullYear() * 12 +
-				lastAvailableMonth.getMonth();
-
-			const previousMonthButton = document.createElement( 'button' );
-			previousMonthButton.type = 'button';
-			previousMonthButton.textContent = '‹';
-			previousMonthButton.className = 'rrze-appointment__calendar-nav';
-			previousMonthButton.dataset.direction = 'previous';
-			previousMonthButton.disabled =
-				currentMonthNumber <= firstMonthNumber;
-			previousMonthButton.setAttribute(
-				'aria-label',
-				`${
-					i18n.previousMonth || 'Previous month'
-				}: ${ formatMonthTitle( previousMonth, frontendLocale ) }`
-			);
-			previousMonthButton.addEventListener( 'click', () => {
-				currentYear = previousMonth.getFullYear();
-				currentMonth = previousMonth.getMonth();
-				renderCalendar( 'previous' );
-			} );
-
-			const nextMonthButton = document.createElement( 'button' );
-			nextMonthButton.type = 'button';
-			nextMonthButton.textContent = '›';
-			nextMonthButton.className = 'rrze-appointment__calendar-nav';
-			nextMonthButton.dataset.direction = 'next';
-			nextMonthButton.disabled = currentMonthNumber >= lastMonthNumber;
-			nextMonthButton.setAttribute(
-				'aria-label',
-				`${ i18n.nextMonth || 'Next month' }: ${ formatMonthTitle(
-					nextMonth,
-					frontendLocale
-				) }`
-			);
-			nextMonthButton.addEventListener( 'click', () => {
-				currentYear = nextMonth.getFullYear();
-				currentMonth = nextMonth.getMonth();
-				renderCalendar( 'next' );
-			} );
+			/**
+			 * Creates a labeled navigation button for a neighboring scheduled month.
+			 * @param step Month index offset.
+			 * @return Navigation button, disabled at the edge of the schedule.
+			 */
+			function monthButton( step: -1 | 1 ): HTMLButtonElement {
+				const index = requestedIndex + step;
+				const target = months[ index ];
+				const button = document.createElement( 'button' );
+				button.type = 'button';
+				button.className = 'rrze-appointment__calendar-nav';
+				button.dataset.direction = step < 0 ? 'previous' : 'next';
+				button.textContent = step < 0 ? '‹' : '›';
+				button.disabled = ! target;
+				const direction =
+					step < 0
+						? i18n.previousMonth || 'Previous month'
+						: i18n.nextMonth || 'Next month';
+				button.setAttribute(
+					'aria-label',
+					target
+						? direction +
+								': ' +
+								formatMonthTitle(
+									new Date( target + '-01T00:00:00' ),
+									frontendLocale
+								)
+						: direction
+				);
+				button.addEventListener(
+					'click',
+					() => void navigate( index, 'calendar' )
+				);
+				return button;
+			}
+			const previousMonthButton = monthButton( -1 );
+			const nextMonthButton = monthButton( 1 );
 
 			const titleText = document.createElement( 'span' );
 			titleText.className = 'rrze-appointment__calendar-month-title';
@@ -576,6 +787,11 @@ export function initializeAppointmentForms(): void {
 				today.getDate()
 			);
 
+			/**
+			 * Adds one day to the visible calendar and connects it to the time selection.
+			 * @param day        Day number printed on the button.
+			 * @param dateString ISO calendar date.
+			 */
 			function appendDayButton( day: number, dateString: string ): void {
 				const dayOfWeek = new Date( year, monthIndex, day ).getDay();
 				const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
@@ -633,6 +849,11 @@ export function initializeAppointmentForms(): void {
 					if ( isSelectable ) {
 						button.setAttribute( 'aria-controls', daySlotsListId );
 						button.addEventListener( 'click', () => {
+							++navigationVersion;
+							requestedIndex = currentMonthIndex;
+							form.removeAttribute( 'aria-busy' );
+							setInteractionStatus();
+							clearMonthError();
 							activeDate = dateString;
 							renderCalendar();
 							renderDaySlots( activeDate, true );
@@ -736,46 +957,53 @@ export function initializeAppointmentForms(): void {
 			}
 		}
 
-		renderAvailability();
-
-		const storedSlotValue = sessionStorage.getItem( 'rrze_appt_slot' );
-		const storedPageUrl = sessionStorage.getItem( 'rrze_appt_page' );
-		const isStoredBookingPage =
-			! storedPageUrl ||
-			storedPageUrl === window.location.href.split( '#' )[ 0 ];
-		if (
-			storedSlotValue &&
-			isStoredBookingPage &&
-			! allowBookingsWithoutSso
-		) {
-			sessionStorage.removeItem( 'rrze_appt_slot' );
-			sessionStorage.removeItem( 'rrze_appt_page' );
-
-			const storedSlotDate = parseSlotValue( storedSlotValue ).date;
-			if ( storedSlotDate && slotsByDate.has( storedSlotDate ) ) {
-				const storedAppointmentDate = new Date(
-					`${ storedSlotDate }T00:00:00`
-				);
-				activeDate = storedSlotDate;
-				currentYear = storedAppointmentDate.getFullYear();
-				currentMonth = storedAppointmentDate.getMonth();
-				renderAvailability();
-			}
-
-			form.setAttribute( 'aria-busy', 'true' );
-			setInteractionStatus(
-				i18n.bookingDetailsLoading || 'Loading booking details…'
+		moreButton?.addEventListener( 'click', () => {
+			const next = months.findIndex(
+				( month ) => ! listMonths.has( month )
 			);
-			loadCurrentBooker()
-				.then( ( booker ) => {
-					form.removeAttribute( 'aria-busy' );
-					setInteractionStatus();
-					showBookingDialog( storedSlotValue, booker );
-				} )
-				.catch( () => {
-					form.removeAttribute( 'aria-busy' );
-					setInteractionStatus( bookerErrorMessage() );
-				} );
+			if ( next >= 0 ) {
+				void navigate( next, 'more' );
+			}
+		} );
+		renderAvailability();
+		if ( schedule.paged ) {
+			slotDataElement
+				.querySelectorAll( 'input[type="radio"]' )
+				.forEach( ( radio ) => radio.remove() );
+			form.querySelector( '.rrze-appointment__fallback-times' )?.remove();
+			clearMonthError();
+		}
+
+		const storedSlot = sessionStorage.getItem( 'rrze_appt_slot' );
+		const storedPage = sessionStorage.getItem( 'rrze_appt_page' );
+		const storedBlock = sessionStorage.getItem( 'rrze_appt_block' );
+		const storedIndex = storedSlot
+			? months.indexOf( storedSlot.slice( 0, 7 ) )
+			: -1;
+		if (
+			storedSlot &&
+			! readOnly &&
+			storedIndex >= 0 &&
+			! allowBookingsWithoutSso &&
+			( ! storedPage ||
+				storedPage === window.location.href.split( '#' )[ 0 ] ) &&
+			( ! storedBlock || storedBlock === form.dataset.blockId )
+		) {
+			for ( const key of [
+				'rrze_appt_slot',
+				'rrze_appt_page',
+				'rrze_appt_block',
+			] ) {
+				sessionStorage.removeItem( key );
+			}
+			void navigate( storedIndex, 'restore', storedSlot );
+		} else if (
+			schedule.paged &&
+			! availableDates.length &&
+			months.length > 1
+		) {
+			// A cached first month can expire before the visitor opens the page.
+			void navigate( 1, 'initial' );
 		}
 	}
 

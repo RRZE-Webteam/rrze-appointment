@@ -9,7 +9,11 @@ use RRZE\Appointment\Notification\Reminder;
 
 defined('ABSPATH') || exit;
 
-/** Dispatches older WordPress events and the encrypted jobs owned by individual V2 records. */
+/**
+ * Dispatches older WordPress events and the encrypted jobs owned by individual V2 records.
+ *
+ * @phpstan-import-type RecordJob from RecordJobs
+ */
 final class BookingScheduler
 {
     public const WAKE_HOOK = 'rrze_appointment_run_jobs';
@@ -51,10 +55,10 @@ final class BookingScheduler
      * @param string $type pending, booking or opening.
      * @param string $target Slot or action token in the source record.
      * @param array $entry Pending entry, confirmed metadata or opening subscription.
-     * @param array|null $previousJobs Completed receipts and unfinished jobs of the same lifecycle stage.
+     * @param array<string,RecordJob>|null $previousJobs Completed receipts and unfinished jobs of the same lifecycle stage.
      * @param bool $fromLegacy Whether the current record is being adopted from a legacy/V1 source.
      * @param int|null $requestedTime Explicit follow-up time when a legacy retry triggers the adoption.
-     * @return array<string,array> Jobs including previously scheduled due times.
+     * @return array<string,RecordJob> Jobs keyed by action and original due time.
      */
     public static function jobsForRecord(
         string $type, #[\SensitiveParameter] string $target, #[\SensitiveParameter] array $entry,

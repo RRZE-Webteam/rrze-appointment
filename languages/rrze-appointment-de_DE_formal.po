@@ -3271,3 +3271,19 @@ msgstr "Wählen Sie, ob Sie per E-Mail über einen früheren freien Termin infor
 #: includes/Booking/Bookings.php
 msgid "Your appointment has been cancelled, but its notification emails could not be sent completely."
 msgstr "Ihr Termin wurde storniert. Die Benachrichtigungen konnten nicht vollständig versendet werden."
+
+#: src/render.php
+msgid "More appointments"
+msgstr "Weitere Termine"
+
+#: src/render.php
+msgid "Try again"
+msgstr "Erneut versuchen"
+
+#: src/render.php
+msgid "Unable to load appointments. Please reload the page."
+msgstr "Die Termine konnten nicht geladen werden. Bitte laden Sie die Seite neu."
+
+#: includes/Presentation/AssetManager.php
+msgid "Unable to load appointments. Please try again."
+msgstr "Die Termine konnten nicht geladen werden. Bitte versuchen Sie es erneut."

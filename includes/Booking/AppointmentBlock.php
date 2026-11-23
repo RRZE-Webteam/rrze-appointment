@@ -72,6 +72,24 @@ final class AppointmentBlock
     }
 
     /**
+     * Checks WordPress frontend visibility before disclosing a saved calendar.
+     *
+     * @param \WP_Post $post Post containing the calendar.
+     * @return bool Whether the current visitor may read its appointment times.
+     */
+    public static function canViewCalendar(\WP_Post $post): bool
+    {
+        if (post_password_required($post)) {
+            return false;
+        }
+        if ($post->post_status === 'private') {
+            return is_post_type_viewable($post->post_type)
+                && is_user_logged_in() && current_user_can('read_post', $post->ID);
+        }
+        return $post->post_status === 'publish' && is_post_publicly_viewable($post);
+    }
+
+    /**
      * Resolve and validate the booking context from a published post.
      *
      * @param int    $postId       Published post containing the appointment block.
@@ -102,15 +120,7 @@ final class AppointmentBlock
             );
         }
 
-        $matches = [];
-        $visitedReusableBlocks = [];
-        self::collectMatchingBlocks(
-            parse_blocks($post->post_content),
-            $fingerprint,
-            $matches,
-            $visitedReusableBlocks
-        );
-
+        $matches = self::matchingAttributes($post, $fingerprint);
         if (empty($matches)) {
             return new \WP_Error(
                 'rrze_appointment_block_not_found',
@@ -118,9 +128,9 @@ final class AppointmentBlock
             );
         }
 
-        foreach ($matches as $rawAttributes) {
-            $attributes = self::prepareAttributes($rawAttributes);
-            if (!in_array($slot, SlotGenerator::fromAttributes($attributes), true)) {
+        $date = substr($slot, 0, 10);
+        foreach ($matches as $attributes) {
+            if (!preg_match(self::SLOT_PATTERN, $slot) || !isset(SlotGenerator::timestamps($attributes, $date, $date)[$slot])) {
                 continue;
             }
 
@@ -136,6 +146,28 @@ final class AppointmentBlock
             'rrze_appointment_invalid_slot',
             __('This appointment is not part of the published appointment block.', 'rrze-appointment')
         );
+    }
+
+    /**
+     * Finds matching saved schedules, including nested blocks, and applies registered defaults.
+     * The caller supplies a post whose visibility has already been checked.
+     *
+     * @param \WP_Post $post Containing post.
+     * @param string $fingerprint Identifier produced from the raw saved block.
+     * @return array<int, array<string, mixed>> Matching prepared attributes.
+     */
+    public static function matchingAttributes(\WP_Post $post, string $fingerprint): array
+    {
+        $matches = [];
+        $visitedReusableBlocks = [];
+        self::collectMatchingBlocks(
+            parse_blocks($post->post_content),
+            $fingerprint,
+            $matches,
+            $visitedReusableBlocks
+        );
+
+        return array_map([self::class, 'prepareAttributes'], $matches);
     }
 
     /**
@@ -257,6 +289,7 @@ final class AppointmentBlock
                         $reusableBlock instanceof \WP_Post
                         && $reusableBlock->post_type === 'wp_block'
                         && $reusableBlock->post_status === 'publish'
+                        && empty($reusableBlock->post_password)
                     ) {
                         self::collectMatchingBlocks(
                             parse_blocks($reusableBlock->post_content),

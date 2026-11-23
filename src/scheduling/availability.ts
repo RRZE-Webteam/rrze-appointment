@@ -14,6 +14,10 @@ import type {
 } from './types';
 import { getCalendarDates, normalizeDateList, parseDateString } from './dates';
 import { parseTimeToMinutes } from './time';
+import {
+	getLegacyAvailabilityWindow,
+	preserveManualSlotEnds,
+} from './schedule';
 
 interface AvailabilitySlotInterval {
 	end: number;
@@ -29,16 +33,30 @@ export function createAvailabilityId(): string {
 	) }-${ availabilityIdCounter.toString( 36 ) }`;
 }
 
-function getEffectiveOverride(
+/**
+ * Builds an editable window with the exact timing of a published legacy day.
+ *
+ * @param attributes Saved legacy block.
+ * @param date       Calendar day or series anchor.
+ * @param anchor     Supply a series' own anchor when constructing its base window.
+ * @return A single-date availability.
+ */
+function getLegacyEntry(
 	attributes: AppointmentAttributes,
-	date: string
-): DateOverride {
-	const overrides =
-		attributes.dateOverrides && typeof attributes.dateOverrides === 'object'
-			? attributes.dateOverrides
-			: {};
-
-	return overrides[ date ] || {};
+	date: string,
+	anchor?: string
+): AvailabilityEntry {
+	const { startTime, endTime, duration, breakDuration } =
+		getLegacyAvailabilityWindow( attributes, date, anchor );
+	return {
+		id: `legacy-${ date }`,
+		date,
+		startTime,
+		endTime,
+		duration,
+		breakDuration,
+		recurrence: {},
+	};
 }
 
 function normalizeRecurrence( date: string, recurrence: unknown ): Recurrence {
@@ -53,12 +71,20 @@ function normalizeRecurrence( date: string, recurrence: unknown ): Recurrence {
 	return createRecurrenceRule( date, recurrence as Recurrence ) || {};
 }
 
+/**
+ * Prepares one saved or edited window for the availability editor.
+ *
+ * @param entry      Window data.
+ * @param attributes Block defaults.
+ * @param index      Original position for a missing identifier.
+ * @return Editable window, or null for an invalid entry.
+ */
 function normalizeAvailabilityEntry(
 	entry: Partial< AvailabilityEntry >,
 	attributes: AppointmentAttributes,
 	index: number
 ): AvailabilityEntry | null {
-	if ( ! parseDateString( entry.date ) ) {
+	if ( ! parseDateString( entry?.date ) ) {
 		return null;
 	}
 
@@ -91,17 +117,40 @@ function normalizeAvailabilityEntry(
 	};
 }
 
-function sortAvailabilityEntries(
+/**
+ * Orders windows for display and for saving an edited schedule.
+ *
+ * @param entries Availability entries in their stored order.
+ * @return Entries in the editor's canonical order.
+ */
+export function sortAvailabilityEntries(
 	entries: AvailabilityEntry[]
 ): AvailabilityEntry[] {
-	return [ ...entries ].sort(
-		( a, b ) =>
-			a.date.localeCompare( b.date ) ||
-			a.startTime.localeCompare( b.startTime ) ||
-			a.id.localeCompare( b.id )
-	);
+	return [ ...entries ].sort( ( left, right ) => {
+		for ( const field of [
+			'date',
+			'startTime',
+			'id',
+			'endTime',
+		] as const ) {
+			const first =
+				typeof left[ field ] === 'string' ? left[ field ] : '';
+			const second =
+				typeof right[ field ] === 'string' ? right[ field ] : '';
+			if ( first !== second ) {
+				return first < second ? -1 : 1;
+			}
+		}
+		return Number( left.duration ?? 30 ) - Number( right.duration ?? 30 );
+	} );
 }
 
+/**
+ * Reads editor windows, detaching legacy occurrence days with their own timing.
+ *
+ * @param attributes Existing block attributes, including legacy series.
+ * @return Editable series and single-date windows in display order.
+ */
 export function getAvailabilityEntries(
 	attributes: AppointmentAttributes
 ): AvailabilityEntry[] {
@@ -125,41 +174,67 @@ export function getAvailabilityEntries(
 	}
 
 	const { manualDates, rules } = getRecurrenceEditorState( attributes );
-	const editorDates = normalizeDateList( [
-		...manualDates,
-		...Object.keys( rules ),
-	] );
-	const entryDates =
-		editorDates.length > 0 ? editorDates : getCalendarDates( attributes );
+	const publishedDates = getCalendarDates( attributes );
+	const dates = publishedDates.length
+		? publishedDates
+		: normalizeDateList( [
+				...manualDates,
+				...Object.values( rules ).flatMap(
+					( rule ) => rule.dates || []
+				),
+		  ] );
+	const singleDays = new Map(
+		dates.map( ( date ) => [ date, getLegacyEntry( attributes, date ) ] )
+	);
+	const series: AvailabilityEntry[] = [];
 
-	return entryDates.map( ( date ) => {
-		const override = getEffectiveOverride( attributes, date );
-
-		return {
-			id: `legacy-${ date }`,
-			date,
-			startTime: override.startTime || attributes.startTime,
-			endTime: override.endTime || attributes.endTime,
-			duration:
-				override.duration !== undefined
-					? Number( override.duration )
-					: Number( attributes.duration ),
-			breakDuration:
-				override.breakDuration !== undefined
-					? Number( override.breakDuration )
-					: Number( attributes.breakDuration ),
-			recurrence: rules[ date ] || {},
-		};
-	} );
+	for ( const [ anchor, rule ] of Object.entries( rules ) ) {
+		const entry = getLegacyEntry( attributes, anchor, anchor );
+		const excluded = new Set( rule.excludedDates );
+		for ( const date of rule.dates || [] ) {
+			const day = singleDays.get( date );
+			if (
+				day &&
+				! excluded.has( date ) &&
+				day.startTime === entry.startTime &&
+				day.endTime === entry.endTime &&
+				day.duration === entry.duration &&
+				day.breakDuration === entry.breakDuration
+			) {
+				singleDays.delete( date );
+			} else {
+				excluded.add( date );
+			}
+		}
+		series.push( {
+			...entry,
+			id: `legacy-series-${ anchor }`,
+			recurrence: {
+				...rule,
+				dates: rule.dates?.filter( ( date ) => ! excluded.has( date ) ),
+				...( excluded.size ? { excludedDates: [ ...excluded ] } : {} ),
+			},
+		} );
+	}
+	return sortAvailabilityEntries( [ ...series, ...singleDays.values() ] );
 }
 
+/**
+ * Returns the actual days of an availability, including any exception at the anchor.
+ *
+ * @param entry Editable availability window.
+ * @return Sorted occurrence dates retained by the published schedule.
+ */
 export function getAvailabilityDates( entry: AvailabilityEntry ): string[] {
 	if ( ! entry.recurrence.freq ) {
 		return [ entry.date ];
 	}
 
 	const rule = createRecurrenceRule( entry.date, entry.recurrence );
-	return normalizeDateList( rule?.dates );
+	const excluded = new Set( rule?.excludedDates );
+	return normalizeDateList( rule?.dates ).filter(
+		( date ) => ! excluded.has( date )
+	);
 }
 
 export function getAvailabilitySlotIntervals(
@@ -274,7 +349,7 @@ export function removeExtraSlot(
 		return (
 			parseTimeToMinutes( start ) !== slot.startMinutes ||
 			( end !== undefined &&
-				parseTimeToMinutes( end ) !== slot.endMinutes )
+				parseTimeToMinutes( end, true ) !== slot.endMinutes )
 		);
 	} );
 	if ( extraSlots.length === currentOverride.extraSlots.length ) {
@@ -301,6 +376,13 @@ export function removeExtraSlot(
 	return nextOverrides;
 }
 
+/**
+ * Builds edited schedule attributes while preserving existing manual appointment IDs.
+ *
+ * @param attributes Original saved block.
+ * @param entries    Edited or imported availability windows.
+ * @return Updated attributes and legacy schedule mirrors.
+ */
 export function buildAvailabilityAttributes(
 	attributes: AppointmentAttributes,
 	entries: AvailabilityEntry[]
@@ -335,10 +417,7 @@ export function buildAvailabilityAttributes(
 		normalizedEntries.flatMap( getAvailabilityDates )
 	);
 	const selectedDates = new Set( selectedDateList );
-	const currentOverrides =
-		attributes.dateOverrides && typeof attributes.dateOverrides === 'object'
-			? attributes.dateOverrides
-			: {};
+	const currentOverrides = preserveManualSlotEnds( attributes );
 	const dateOverrides = Object.entries(
 		currentOverrides
 	).reduce< DateOverrides >( ( nextOverrides, [ date, override ] ) => {

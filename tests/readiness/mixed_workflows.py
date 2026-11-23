@@ -123,6 +123,23 @@ def admin_preview(audit):
         return response.status == 200 and b'id="rrze-appointment-admin"' in response.read()
 
 
+def check_month_password_redirect(audit, context):
+    """Verify the native password form carries both calendars of the current page through login."""
+    post_id = int(context['post_id'])
+    prefix = f'rrze_appt_month_{post_id}_' + 'a' * 64 + '_'
+    inputs = FormInputs()
+    inputs.feed(audit.wp(['eval', f"""
+        $_GET = ['{prefix}1' => '2099-03', 'other' => 'omit', '{prefix}2' => '2099-04',
+            '{prefix}3' => '2099-13', '{prefix}4' => ['2099-05'],
+            'rrze_appt_month_0_' . str_repeat('a', 64) . '_1' => '2099-06'];
+        echo get_the_password_form({post_id});
+    """]))
+    page = urllib.parse.urlsplit(context['post_url'])
+    query = urllib.parse.parse_qsl(page.query) + [(prefix + '1', '2099-03'), (prefix + '2', '2099-04')]
+    expected = page._replace(query=urllib.parse.urlencode(query), fragment=prefix + '2')
+    audit.check('password-form-preserves-only-current-calendar-months', inputs.fields.get('redirect_to') == expected.geturl())
+
+
 def workflow_links(audit):
     """Exercise a normal package update, non-mutating previews, atomic actions and private bookings."""
     audit.restore(version='baseline', encrypted=False)
@@ -142,6 +159,7 @@ def workflow_links(audit):
         raise RuntimeError('The synthetic control cron event is missing.')
     (audit.root / 'encryption-enabled').touch()
     audit.update_plugin()
+    check_month_password_redirect(audit, context)
 
     site = audit.config['nat_url']
     confirm = site + '?rrze_appt_confirm=' + context['tokens']['confirm']

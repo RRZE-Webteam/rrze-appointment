@@ -1,4 +1,17 @@
-export function parseTimeToMinutes( time: unknown ): number | null {
+/**
+ * Parses a local clock time, optionally including midnight at the end of a day.
+ *
+ * @param time             Saved clock value.
+ * @param allowMidnightEnd Whether 24:00 is valid as an appointment end.
+ * @return Minutes since midnight or null for an invalid time.
+ */
+export function parseTimeToMinutes(
+	time: unknown,
+	allowMidnightEnd = false
+): number | null {
+	if ( allowMidnightEnd && time === '24:00' ) {
+		return 1440;
+	}
 	if ( ! time || typeof time !== 'string' ) {
 		return null;
 	}

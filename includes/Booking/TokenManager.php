@@ -60,9 +60,14 @@ final class TokenManager
     /**
      * Reserves a free slot and issues both links in one commit under the site lock.
      *
+     * The reservation is persisted before the scheduler clears old events and ensures
+     * the new expiry. A scheduler error can therefore follow a successful reservation.
+     *
+     * @param string $slot Canonical slot identifier to reserve.
      * @param array<string, mixed> $meta Pending booking metadata.
      * @param string|null $openingToken Optional opening subscription consumed in the same commit.
      * @return string Confirmation token for the new reservation.
+     * @throws AppointmentException When the slot or opening link is unavailable, or storage or scheduling fails.
      */
     public static function createPending(
         #[\SensitiveParameter] string $slot,

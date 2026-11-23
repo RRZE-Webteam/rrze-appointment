@@ -32,7 +32,9 @@ final class CancellationController
     private PublicPageRenderer $renderer;
 
     /**
-     * @param PublicPageRenderer $renderer Public appointment page renderer.
+     * Connects cancellation and waitlist preference requests to the public appointment pages.
+     *
+     * @param PublicPageRenderer $renderer Renderer for confirmation, status and error pages.
      */
     public function __construct(PublicPageRenderer $renderer)
     {

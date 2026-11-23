@@ -93,7 +93,7 @@ const runAssetManager = (
 };
 
 describe( 'asset manager', () => {
-	it( 'localizes unique booked and pending slots for the public script', () => {
+	it( 'localizes the month request configuration without site-wide reservation data', () => {
 		const result = runAssetManager( 'enqueueFrontendAssets' );
 
 		expect( result ).toMatchObject( {
@@ -101,12 +101,10 @@ describe( 'asset manager', () => {
 			objectName: 'rrze_appointment',
 			configuration: {
 				locale: 'de-DE',
-				bookedSlots: [
-					'2099-01-01 10:00-10:30',
-					'2099-01-02 11:00-11:30',
-				],
+				ajaxUrl: 'https://example.test/wp-admin/admin-ajax.php',
 			},
 		} );
+		expect( result?.configuration ).not.toHaveProperty( 'bookedSlots' );
 	} );
 
 	it( 'uses documented defaults when editor configuration fails', () => {
