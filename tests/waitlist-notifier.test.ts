@@ -59,13 +59,22 @@ const getWaitlistNotifierResult = (): WaitlistNotifierResult => {
 				}
 			}
 			class SlotGenerator {
-				public static function fromAttributes( array $attributes ): array {
+				/** Lists fixture months with actual dates. */
+				public static function months( array $attributes, string $from ): array {
+					$months = [];
+					foreach ($attributes['slots'] ?? [] as $slot) {
+						if ($slot >= $from && preg_match('/^[0-9]{4}-[0-9]{2}-/', $slot)) {
+							$months[substr($slot, 0, 7)] = true;
+						}
+					}
+					return array_keys($months);
+				}
+				/** Supplies only fixture slots inside the requested date range. */
+				public static function fromAttributes( array $attributes, string $from, string $until ): array {
 					if ( !empty( $attributes['throw'] ) ) {
 						throw new \\RuntimeException( 'invalid block' );
 					}
-					return is_array( $attributes['slots'] ?? null )
-						? $attributes['slots']
-						: [];
+					return array_filter($attributes['slots'] ?? [], static fn($slot) => substr($slot, 0, 10) >= $from && substr($slot, 0, 10) <= $until);
 				}
 			}
 		}

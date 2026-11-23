@@ -91,15 +91,32 @@ function normalizeAvailabilityEntry(
 	};
 }
 
-function sortAvailabilityEntries(
+/**
+ * Orders saved windows consistently, including the duration inherited by older manual slots.
+ *
+ * @param entries Availability entries in their stored order.
+ * @return Entries in the editor's canonical order.
+ */
+export function sortAvailabilityEntries(
 	entries: AvailabilityEntry[]
 ): AvailabilityEntry[] {
-	return [ ...entries ].sort(
-		( a, b ) =>
-			a.date.localeCompare( b.date ) ||
-			a.startTime.localeCompare( b.startTime ) ||
-			a.id.localeCompare( b.id )
-	);
+	return [ ...entries ].sort( ( left, right ) => {
+		for ( const field of [
+			'date',
+			'startTime',
+			'id',
+			'endTime',
+		] as const ) {
+			const first =
+				typeof left[ field ] === 'string' ? left[ field ] : '';
+			const second =
+				typeof right[ field ] === 'string' ? right[ field ] : '';
+			if ( first !== second ) {
+				return first < second ? -1 : 1;
+			}
+		}
+		return Number( left.duration ?? 30 ) - Number( right.duration ?? 30 );
+	} );
 }
 
 export function getAvailabilityEntries(

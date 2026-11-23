@@ -12,6 +12,7 @@ use RRZE\Appointment\Storage\BookingScheduler;
 use RRZE\Appointment\Booking\TokenManager;
 use RRZE\Appointment\Booking\GuestRequestLimiter;
 use RRZE\Appointment\Controller\AdminBookingsController;
+use RRZE\Appointment\Controller\AvailabilityController;
 use RRZE\Appointment\Controller\BookingOpeningController;
 use RRZE\Appointment\Controller\BookingRequestController;
 use RRZE\Appointment\Controller\CancellationController;
@@ -115,6 +116,7 @@ final class Main
      */
     private function registerAjaxHooks(): void
     {
+        $this->addPublicAjaxAction('rrze_appointment_get_month', [AvailabilityController::class, 'handleRequest']);
         $this->addPublicAjaxAction(
             self::BOOKING_AJAX_ACTION,
             [$this->bookingRequests, 'handleRequest']

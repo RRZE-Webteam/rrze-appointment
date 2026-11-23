@@ -54,8 +54,9 @@ RRZE Appointment lets you manage appointments and office hours directly in WordP
 ### List view
 
 In the appointment block's Inspector, open **Appointment display** and enable
-**Show available slots as a list**. The website then shows all available dates
-in chronological order, with time buttons beneath each date heading. Booked,
+**Show available slots as a list**. The website shows the first month with available appointments, with time buttons
+beneath each date heading. **More appointments** appends the next month with visible
+times in chronological order. The calendar also loads additional months on demand. Booked,
 past, and closed slots are omitted. Future slots whose booking window has not
 opened retain the **Notify me** option. The editor's planning calendar remains
 available; existing blocks use the calendar view by default.

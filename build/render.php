@@ -3,12 +3,11 @@
 namespace RRZE\Appointment;
 
 use RRZE\Appointment\Booking\AppointmentBlock;
-use RRZE\Appointment\Booking\SlotGenerator;
+use RRZE\Appointment\Booking\MonthlyAvailability;
 
 defined('ABSPATH') || exit;
 
 $attributes = is_array($attributes ?? null) ? $attributes : [];
-$slots = SlotGenerator::fromAttributes($attributes);
 
 $sourceAttributes = $attributes;
 if (
@@ -25,6 +24,15 @@ if ($postId <= 0) {
     $postId = (int) get_the_ID();
 }
 $blockFingerprint = AppointmentBlock::fingerprint($sourceAttributes);
+
+$loadError = false;
+try {
+    $preview = is_preview() && current_user_can('edit_post', $postId);
+    $calendar = (new MonthlyAvailability())->initial($attributes, $preview);
+} catch (AppointmentException $exception) {
+    $calendar = [];
+    $loadError = true;
+}
 
 $title = (string) ($attributes['title'] ?? '');
 $location = (string) ($attributes['location'] ?? '');
@@ -80,7 +88,7 @@ $locationIsUrl = preg_match('#^https?://#i', $location) === 1;
             </p>
         <?php endif; ?>
 
-        <?php if (!empty($slots)) : ?>
+        <?php if (!empty($calendar['months'])) : ?>
             <?php if (!$showSlotsAsList) : ?>
                 <ul
                     class="rrze-appointment__calendar-legend"
@@ -123,26 +131,18 @@ $locationIsUrl = preg_match('#^https?://#i', $location) === 1;
                 </div>
             <?php endif; ?>
 
-            <div class="rrze-appointment__slot-data" hidden aria-hidden="true">
-                <?php foreach ($slots as $slotValue) : ?>
-                    <?php
-                    [, $timeRange] = array_pad(explode(' ', $slotValue, 2), 2, '');
-                    if ($timeRange === '') {
-                        continue;
-                    }
-                    ?>
-                    <input
-                        type="radio"
-                        name="rrze_appointment_slot"
-                        value="<?php echo esc_attr($slotValue); ?>"
-                        data-label="<?php echo esc_attr(str_replace('-', ' - ', $timeRange)); ?>"
-                    />
-                <?php endforeach; ?>
+            <div class="rrze-appointment__slot-data" hidden>
+                <script type="application/json"><?php echo wp_json_encode($calendar, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+                <input type="hidden" name="rrze_appointment_slot" />
             </div>
+            <?php if ($showSlotsAsList) : ?>
+                <button type="button" class="rrze-appointment__more" hidden><?php esc_html_e('More appointments', 'rrze-appointment'); ?></button>
+            <?php endif; ?>
+            <button type="button" class="rrze-appointment__retry" hidden><?php esc_html_e('Try again', 'rrze-appointment'); ?></button>
 
             <p class="rrze-appointment__selected-info is-hidden" role="status" aria-live="polite"></p>
         <?php else : ?>
-            <p class="rrze-appointment__missing-slot"><?php echo esc_html__('No time slots available.', 'rrze-appointment'); ?></p>
+            <p class="rrze-appointment__missing-slot"><?php echo $loadError ? esc_html__('Unable to load appointments. Please reload the page.', 'rrze-appointment') : esc_html__('No time slots available.', 'rrze-appointment'); ?></p>
         <?php endif; ?>
     </fieldset>
 </form>

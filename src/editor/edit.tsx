@@ -4,7 +4,13 @@ import {
 	useBlockProps,
 } from '@wordpress/block-editor';
 import { ToolbarButton, ToolbarGroup } from '@wordpress/components';
-import { Fragment, useEffect, useRef, useState } from '@wordpress/element';
+import {
+	Fragment,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import type { ReactNode } from 'react';
 import { AddSlotDialog } from './availability/add-slot-dialog';
@@ -40,6 +46,14 @@ import {
 import { useFaudirImport } from './faudir/use-faudir-import';
 import { useMailTemplates } from './use-mail-templates';
 
+/**
+ * Edits the saved schedule and previews the selected day using the current draft.
+ *
+ * @param root0               Gutenberg editing properties.
+ * @param root0.attributes    Current block attributes.
+ * @param root0.setAttributes Applies an undoable attribute change.
+ * @return Appointment block editor.
+ */
 export default function AppointmentEditor( {
 	attributes,
 	setAttributes,
@@ -69,12 +83,20 @@ export default function AppointmentEditor( {
 	const mailTemplates = useMailTemplates();
 
 	const calendarDates = getCalendarDates( attributes );
-	const appointmentSlots = generateTimeSlots( attributes, {
-		includeExcluded: true,
-	} );
 	const availabilityEntries = getAvailabilityEntries( attributes );
 	const availabilityCount = availabilityEntries.length;
 	const [ activeDate, setActiveDate ] = useState( calendarDates[ 0 ] || '' );
+	const appointmentSlots = useMemo(
+		() =>
+			activeDate
+				? generateTimeSlots( attributes, {
+						from: activeDate,
+						until: activeDate,
+						includeExcluded: true,
+				  } )
+				: [],
+		[ attributes, activeDate ]
+	);
 	const faudirImport = useFaudirImport( {
 		attributes,
 		availabilityEntries,
@@ -254,11 +276,21 @@ export default function AppointmentEditor( {
 		} );
 	};
 
+	/**
+	 * Applies a visibility change to every time on the chosen day.
+	 *
+	 * @param date     ISO date selected in the manager.
+	 * @param excluded Whether to hide the available times.
+	 */
 	const handleSetDateExcluded = ( date: string, excluded: boolean ) => {
 		setAttributes( {
 			dateOverrides: setDateSlotsExcluded(
 				normalizedDateOverrides,
-				appointmentSlots,
+				generateTimeSlots( attributes, {
+					from: date,
+					until: date,
+					includeExcluded: true,
+				} ),
 				date,
 				excluded
 			),
@@ -272,6 +304,7 @@ export default function AppointmentEditor( {
 		setAddSlotError( '' );
 	};
 
+	/** Checks the chosen day for overlaps before saving a new manual time. */
 	const handleConfirmAddSlot = () => {
 		if ( ! addSlotDate || ! addSlotStartTime || ! addSlotEndTime ) {
 			return;
@@ -294,9 +327,11 @@ export default function AppointmentEditor( {
 			);
 			return;
 		}
-		const existingDateSlots = appointmentSlots.filter(
-			( existingSlot ) => existingSlot.date === addSlotDate
-		);
+		const existingDateSlots = generateTimeSlots( attributes, {
+			from: addSlotDate,
+			until: addSlotDate,
+			includeExcluded: true,
+		} );
 		const hasOverlap = existingDateSlots.some(
 			( existingSlot ) =>
 				newStartMinutes < existingSlot.endMinutes &&
@@ -494,7 +529,7 @@ export default function AppointmentEditor( {
 							{ showAvailabilityManager && (
 								<AvailabilityManagerDialog
 									entries={ availabilityEntries }
-									slots={ appointmentSlots }
+									attributes={ attributes }
 									onAdd={ () =>
 										handleAddAvailability( true )
 									}

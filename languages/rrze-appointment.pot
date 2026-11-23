@@ -2736,3 +2736,19 @@ msgstr ""
 #: includes/Booking/Bookings.php
 msgid "Your appointment has been cancelled, but its notification emails could not be sent completely."
 msgstr ""
+
+#: src/render.php
+msgid "More appointments"
+msgstr ""
+
+#: src/render.php
+msgid "Try again"
+msgstr ""
+
+#: src/render.php
+msgid "Unable to load appointments. Please reload the page."
+msgstr ""
+
+#: includes/Presentation/AssetManager.php
+msgid "Unable to load appointments. Please try again."
+msgstr ""

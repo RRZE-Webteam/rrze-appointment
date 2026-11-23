@@ -12,7 +12,7 @@ final class PrivateResponses
         'rrze_appt_opening', 'rrze_appt_opening_registered',
     ];
     private const AJAX_ACTIONS = [
-        'rrze_appointment_book', 'rrze_appointment_notify_opening', 'rrze_appointment_get_booker',
+        'rrze_appointment_book', 'rrze_appointment_notify_opening', 'rrze_appointment_get_booker', 'rrze_appointment_get_month',
     ];
 
     /** Registers early protection, including permission, validation and storage failures. */

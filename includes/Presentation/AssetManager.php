@@ -2,11 +2,8 @@
 
 namespace RRZE\Appointment\Presentation;
 
-use RRZE\Appointment\Booking\Bookings;
-use RRZE\Appointment\Booking\TokenManager;
 use RRZE\Appointment\AppointmentException;
 use RRZE\Appointment\Configuration\PluginSettings;
-use RRZE\Appointment\Storage\BookingStorage;
 
 defined('ABSPATH') || exit;
 
@@ -30,16 +27,10 @@ final class AssetManager
             return;
         }
 
-        try {
-            $configuration = $this->getFrontendConfiguration();
-        } catch (AppointmentException $exception) {
-            return;
-        }
-
         wp_localize_script(
             self::FRONTEND_SCRIPT_HANDLE,
             self::CONFIGURATION_OBJECT,
-            $configuration
+            $this->getFrontendConfiguration()
         );
     }
 
@@ -69,19 +60,14 @@ final class AssetManager
      * Builds configuration consumed by the public booking interface.
      *
      * @return array<string, mixed>
-     * @throws AppointmentException If pending-slot state cannot be loaded.
      */
     private function getFrontendConfiguration(): array
     {
-        $bookedSlots = BookingStorage::get(Bookings::SLOTS_OPTION);
-        $pendingSlots = TokenManager::getPendingSlots();
-
         return [
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'restUrl' => rest_url('rrze/v2/appointment/booker'),
             'nonce' => wp_create_nonce('rrze_appointment_book'),
             'locale' => str_replace('_', '-', determine_locale()),
-            'bookedSlots' => array_values(array_unique(array_merge($bookedSlots, $pendingSlots))),
             'i18n' => $this->getFrontendTranslations(),
         ];
     }
@@ -156,6 +142,8 @@ final class AssetManager
             'today' => __('today', 'rrze-appointment'),
             'noSlotsAvailable' => __('No time slots available.', 'rrze-appointment'),
             'bookingDetailsError' => __('Unable to load your booking details. Please reload the page and try again. If the problem persists, contact the website administrator.', 'rrze-appointment'),
+            'loadingAppointments' => __('Loading appointments…', 'rrze-appointment'),
+            'monthLoadError' => __('Unable to load appointments. Please try again.', 'rrze-appointment'),
             'bookingDetailsLoading' => __('Loading booking details…', 'rrze-appointment'),
             'required' => __('required', 'rrze-appointment'),
             'dialogTitle' => __('Request appointment', 'rrze-appointment'),

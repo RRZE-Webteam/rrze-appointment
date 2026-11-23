@@ -4,10 +4,18 @@ import {
 	normalizeDateList,
 	parseDateString,
 } from './dates';
+import { sortAvailabilityEntries } from './availability';
 import { expandRecurrence } from './recurrence';
 import { minutesToTime, parseTimeToMinutes } from './time';
 import type { AppointmentAttributes, TimeSlot } from './types';
 
+/**
+ * Finds the saved series whose timing overrides apply to a legacy date.
+ *
+ * @param attributes Saved block data.
+ * @param date       ISO date of the occurrence.
+ * @return Matching series anchor.
+ */
 function getRecurrenceAnchor(
 	attributes: AppointmentAttributes,
 	date: string
@@ -45,19 +53,28 @@ interface AvailabilityWindow {
 	startTime: string;
 }
 
+/**
+ * Selects occurrence windows intersecting the requested inclusive ISO dates.
+ *
+ * @param attributes Saved block data.
+ * @param options    Inclusive date bounds.
+ * @return Occurrence windows for all applicable series.
+ */
 function getAvailabilityWindows(
-	attributes: AppointmentAttributes
+	attributes: AppointmentAttributes,
+	options: GenerateTimeSlotsOptions
 ): AvailabilityWindow[] {
+	const { from = '', until = '9999-12-31' } = options;
 	const overrides =
 		attributes.dateOverrides && typeof attributes.dateOverrides === 'object'
 			? attributes.dateOverrides
 			: {};
 
 	if ( Array.isArray( attributes.availabilities ) ) {
-		return attributes.availabilities.flatMap( ( entry ) => {
-			if ( ! parseDateString( entry.date ) ) {
-				return [];
-			}
+		const entries = attributes.availabilities.filter( ( entry ) =>
+			parseDateString( entry?.date )
+		);
+		return sortAvailabilityEntries( entries ).flatMap( ( entry ) => {
 			const recurrenceDates = entry.recurrence?.freq
 				? normalizeDateList(
 						Array.isArray( entry.recurrence.dates )
@@ -70,7 +87,12 @@ function getAvailabilityWindows(
 			);
 
 			return recurrenceDates
-				.filter( ( date ) => ! excludedDates.has( date ) )
+				.filter(
+					( date ) =>
+						date >= from &&
+						date <= until &&
+						! excludedDates.has( date )
+				)
 				.map( ( date ) => {
 					const override = overrides[ date ] || {};
 					return {
@@ -93,63 +115,69 @@ function getAvailabilityWindows(
 	const globalDuration = Number( attributes.duration );
 	const globalBreakDuration = Number( attributes.breakDuration );
 
-	return getCalendarDates( attributes ).map( ( date ) => {
-		const recurrenceAnchor = getRecurrenceAnchor( attributes, date );
-		const seriesOverride = recurrenceAnchor
-			? overrides[ recurrenceAnchor ] || {}
-			: {};
-		const override = {
-			...seriesOverride,
-			...( overrides[ date ] || {} ),
-		};
+	return getCalendarDates( attributes )
+		.filter( ( date ) => date >= from && date <= until )
+		.map( ( date ) => {
+			const recurrenceAnchor = getRecurrenceAnchor( attributes, date );
+			const seriesOverride = recurrenceAnchor
+				? overrides[ recurrenceAnchor ] || {}
+				: {};
+			const override = {
+				...seriesOverride,
+				...( overrides[ date ] || {} ),
+			};
 
-		return {
-			date,
-			startTime: override.startTime || attributes.startTime,
-			endTime: override.endTime || attributes.endTime,
-			duration:
-				override.duration !== undefined
-					? Number( override.duration )
-					: globalDuration,
-			breakDuration:
-				override.breakDuration !== undefined
-					? Number( override.breakDuration )
-					: globalBreakDuration,
-			removedSlots: Array.isArray( override.removedSlots )
-				? override.removedSlots
-				: [],
-			extraSlots: Array.isArray( override.extraSlots )
-				? override.extraSlots
-				: [],
-		};
-	} );
+			return {
+				date,
+				startTime: override.startTime || attributes.startTime,
+				endTime: override.endTime || attributes.endTime,
+				duration:
+					override.duration !== undefined
+						? Number( override.duration )
+						: globalDuration,
+				breakDuration:
+					override.breakDuration !== undefined
+						? Number( override.breakDuration )
+						: globalBreakDuration,
+				removedSlots: Array.isArray( override.removedSlots )
+					? override.removedSlots
+					: [],
+				extraSlots: Array.isArray( override.extraSlots )
+					? override.extraSlots
+					: [],
+			};
+		} );
 }
 
 interface GenerateTimeSlotsOptions {
+	/** Inclusive ISO dates, omitted for the full schedule. */
+	from?: string;
+	until?: string;
 	/** Include slots hidden by a date override and mark them as excluded. */
 	includeExcluded?: boolean;
 }
 
-const MAX_GENERATED_SLOTS = 1000;
-
 /**
  * Builds unique future appointment slots from the persisted scheduling data.
- * Past slots are omitted, and generation is capped to protect the editor from
- * unexpectedly large recurrence configurations.
+ * Only the requested dates are expanded into individual appointments.
  * @param attributes Persisted block scheduling data.
- * @param options    Controls whether hidden slots are included.
+ * @param options    Date range and whether to include hidden slots.
  */
 export function generateTimeSlots(
 	attributes: AppointmentAttributes,
 	options: GenerateTimeSlotsOptions = {}
 ): TimeSlot[] {
-	const availabilityWindows = getAvailabilityWindows( attributes );
+	const availabilityWindows = getAvailabilityWindows( attributes, options );
 	const now = new Date();
-	const generatedSlots: TimeSlot[] = [];
 	const slotMap = new Map< string, TimeSlot >();
 	const processedExtraDates = new Set< string >();
 	const includeExcluded = !! options.includeExcluded;
 
+	/**
+	 * Registers one future time, honoring the editor's exception visibility setting.
+	 * @param slot         Candidate from a series or a manual appointment.
+	 * @param removedSlots Exceptions for its calendar day.
+	 */
 	const addUniqueFutureSlot = (
 		slot: TimeSlot,
 		removedSlots: Set< string >
@@ -165,9 +193,7 @@ export function generateTimeSlots(
 		) {
 			return;
 		}
-		const nextSlot = { ...slot, isExcluded };
-		slotMap.set( slot.value, nextSlot );
-		generatedSlots.push( nextSlot );
+		slotMap.set( slot.value, { ...slot, isExcluded } );
 	};
 
 	for ( const availabilityWindow of availabilityWindows ) {
@@ -262,13 +288,9 @@ export function generateTimeSlots(
 				removedSlots
 			);
 		} );
-
-		if ( generatedSlots.length >= MAX_GENERATED_SLOTS ) {
-			break;
-		}
 	}
 
-	return generatedSlots.sort(
+	return Array.from( slotMap.values() ).sort(
 		( a, b ) =>
 			a.date.localeCompare( b.date ) ||
 			a.startMinutes - b.startMinutes ||
