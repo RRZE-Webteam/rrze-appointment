@@ -27,20 +27,25 @@ final class MonthlyAvailability
      *
      * @param array<string, mixed> $attributes Prepared block schedule.
      * @param bool $preview Embed later months when previewing unsaved post content.
-     * @return array{months: string[], slots: array<string, int>, previewMonths: array} Calendar bootstrap data.
+     * @param string $requestedMonth Month selected by a page link for this block instance.
+     * @return array{months: string[], slots: array<string, int>, previewMonths: array, links: array} Calendar data and page navigation.
      */
-    public function initial(array $attributes, bool $preview = false): array
+    public function initial(array $attributes, bool $preview = false, string $requestedMonth = ''): array
     {
         $months = SlotGenerator::months($attributes, $this->now->format('Y-m-d'));
-        $initial = ['months' => [], 'slots' => [], 'previewMonths' => []];
-        foreach ($months as $index => $month) {
+        $selected = array_search($requestedMonth, $months, true);
+        $candidates = $selected === false ? $months : [$selected => $requestedMonth];
+        $initial = ['months' => [], 'slots' => [], 'previewMonths' => [], 'links' => []];
+        foreach ($candidates as $index => $month) {
             $slots = $this->forMonth($attributes, $month);
             if ($initial['months'] === []) {
-                if ($slots === []) {
+                // An explicitly selected month keeps its links even after the last time is booked.
+                if ($slots === [] && $selected === false) {
                     continue;
                 }
-                $initial['months'] = array_slice($months, $index);
+                $initial['months'] = $selected === false ? array_slice($months, $index) : [$month];
                 $initial['slots'] = $slots;
+                $initial['links'] = ['previous' => $months[$index - 1] ?? '', 'next' => $months[$index + 1] ?? ''];
                 if (!$preview) {
                     break;
                 }

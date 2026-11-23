@@ -14,6 +14,7 @@ import type {
 } from './types';
 import { getCalendarDates, normalizeDateList, parseDateString } from './dates';
 import { parseTimeToMinutes } from './time';
+import { preserveManualSlotEnds } from './schedule';
 
 interface AvailabilitySlotInterval {
 	end: number;
@@ -53,12 +54,20 @@ function normalizeRecurrence( date: string, recurrence: unknown ): Recurrence {
 	return createRecurrenceRule( date, recurrence as Recurrence ) || {};
 }
 
+/**
+ * Prepares one saved or edited window for the availability editor.
+ *
+ * @param entry      Window data.
+ * @param attributes Block defaults.
+ * @param index      Original position for a missing identifier.
+ * @return Editable window, or null for an invalid entry.
+ */
 function normalizeAvailabilityEntry(
 	entry: Partial< AvailabilityEntry >,
 	attributes: AppointmentAttributes,
 	index: number
 ): AvailabilityEntry | null {
-	if ( ! parseDateString( entry.date ) ) {
+	if ( ! parseDateString( entry?.date ) ) {
 		return null;
 	}
 
@@ -92,7 +101,7 @@ function normalizeAvailabilityEntry(
 }
 
 /**
- * Orders saved windows consistently, including the duration inherited by older manual slots.
+ * Orders windows for display and for saving an edited schedule.
  *
  * @param entries Availability entries in their stored order.
  * @return Entries in the editor's canonical order.
@@ -291,7 +300,7 @@ export function removeExtraSlot(
 		return (
 			parseTimeToMinutes( start ) !== slot.startMinutes ||
 			( end !== undefined &&
-				parseTimeToMinutes( end ) !== slot.endMinutes )
+				parseTimeToMinutes( end, true ) !== slot.endMinutes )
 		);
 	} );
 	if ( extraSlots.length === currentOverride.extraSlots.length ) {
@@ -318,6 +327,13 @@ export function removeExtraSlot(
 	return nextOverrides;
 }
 
+/**
+ * Builds edited schedule attributes while preserving existing manual appointment IDs.
+ *
+ * @param attributes Original saved block.
+ * @param entries    Edited or imported availability windows.
+ * @return Updated attributes and legacy schedule mirrors.
+ */
 export function buildAvailabilityAttributes(
 	attributes: AppointmentAttributes,
 	entries: AvailabilityEntry[]
@@ -352,10 +368,7 @@ export function buildAvailabilityAttributes(
 		normalizedEntries.flatMap( getAvailabilityDates )
 	);
 	const selectedDates = new Set( selectedDateList );
-	const currentOverrides =
-		attributes.dateOverrides && typeof attributes.dateOverrides === 'object'
-			? attributes.dateOverrides
-			: {};
+	const currentOverrides = preserveManualSlotEnds( attributes );
 	const dateOverrides = Object.entries(
 		currentOverrides
 	).reduce< DateOverrides >( ( nextOverrides, [ date, override ] ) => {

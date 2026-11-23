@@ -18,12 +18,16 @@ const defaultAvailabilities = [
 
 /**
  * Exercise the actual PHP template and slot generator, without a database.
- * @param overrides Block attributes to override for this scenario.
- * @param directory Source or built template directory.
+ * @param overrides           Block attributes to override for this scenario.
+ * @param directory           Source or built template directory.
+ * @param context             Page status and query parameters for navigation.
+ * @param context.privatePage Whether the viewer is reading a private page.
+ * @param context.query       Query parameters on the containing page.
  */
 function renderMarkup(
 	overrides: Record< string, unknown > = {},
-	directory = 'src'
+	directory = 'src',
+	context: { privatePage?: boolean; query?: Record< string, string > } = {}
 ): string {
 	const attributes = Buffer.from(
 		JSON.stringify( {
@@ -41,10 +45,41 @@ function renderMarkup(
 			'-r',
 			`
 			define('ABSPATH', __DIR__);
+			$_GET = json_decode(base64_decode('${ Buffer.from(
+				JSON.stringify( context.query || {} )
+			).toString( 'base64' ) }'), true);
+			/** Minimal post for the renderer's visitor visibility check. */
+			class WP_Post { public $ID = 7; public $post_type = 'page'; public $post_status = '${
+				context.privatePage ? 'private' : 'publish'
+			}'; }
+			/** Supplies the post owning the rendered block. */
+			function get_post($id) { return new WP_Post(); }
+			/** Models the published page or authorized private reader. */
+			function is_post_publicly_viewable($post) { return $post->post_status === 'publish'; }
+			/** The test visitor has passed the page password prompt. */
+			function post_password_required($post) { return false; }
+			/** Allows frontend rendering for pages. */
+			function is_post_type_viewable($type) { return $type === 'page'; }
+			/** Models an authenticated reader. */
+			function is_user_logged_in() { return true; }
+			/** Grants read access to this specific private page. */
+			function current_user_can($cap, $id) { return $cap === 'read_post' && $id === 7; }
+			/** Each fixture process renders one occurrence of the block. */
+			function wp_unique_prefixed_id($prefix) { return $prefix . '1'; }
+			/** Updates only the selected block's month. */
+			function add_query_arg($key, $value) { return '?' . http_build_query(array_merge($_GET, [$key => $value])); }
+			/** Formats the date returned by the fixed-clock fixture. */
+			function mysql2date($format, $date) { return (new DateTimeImmutable($date))->format($format); }
+			/** Escapes a page navigation URL. */
+			function esc_url($url) { return esc_attr($url); }
+			/** Prints an escaped navigation label. */
+			function esc_attr_e($text, $domain) { echo esc_attr($text); }
 			function current_time($type) { return ${ Math.floor( Date.now() / 1000 ) }; }
 			function current_datetime() { return (new DateTimeImmutable('@' . current_time('timestamp')))->setTimezone(wp_timezone()); }
 			function is_preview() { return false; }
+			/** Supplies the date format and booked times used by this fixture. */
 			function get_option($key, $default = []) {
+				if ($key === 'date_format') { return 'Y-m-d'; }
 				return $key === 'rrze_appointment_booked_slots' ? json_decode(base64_decode('${ Buffer.from(
 					JSON.stringify( window.rrze_appointment?.bookedSlots || [] )
 				).toString( 'base64' ) }'), true) : $default;
@@ -232,6 +267,97 @@ describe( 'frontend list view', () => {
 			).not.toBeNull();
 		}
 	);
+
+	it( 'renders 2.4.0 radio values and page links through an empty month', () => {
+		const attrs = {
+			availabilities: [
+				...defaultAvailabilities,
+				{ ...defaultAvailabilities[ 0 ], date: '2099-03-02' },
+			],
+			dateOverrides: { '2099-02-02': { removedSlots: [ laterSlot ] } },
+		};
+		document.body.innerHTML = renderMarkup( attrs );
+		const id = document.querySelector( 'form' )!.id;
+		/** Reads the canonical input values understood by the 2.4.0 frontend. */
+		const radios = () =>
+			Array.from(
+				document.querySelectorAll< HTMLInputElement >(
+					'input[type="radio"]'
+				),
+				( input ) => input.value
+			);
+		expect( radios() ).toEqual( [ firstSlot, secondSlot ] );
+		const link = document.querySelector< HTMLAnchorElement >( 'nav a' )!;
+		expect( new URL( link.href ).searchParams.get( id ) ).toBe( '2099-02' );
+		expect( link.hash ).toBe( '#' + id );
+		initializeAppointmentForms();
+		expect( radios() ).toEqual( [] );
+		expect( link.parentElement!.hidden ).toBe( true );
+
+		document.body.innerHTML = renderMarkup( attrs, 'src', {
+			query: { [ id ]: '2099-02' },
+		} );
+		expect( radios() ).toEqual( [] );
+		expect(
+			document.querySelector( '.rrze-appointment__fallback-times' )
+				?.textContent
+		).toContain( 'No time slots available' );
+		initializeAppointmentForms();
+		expect( document.querySelector< HTMLElement >( 'nav' )!.hidden ).toBe(
+			false
+		);
+		expect(
+			Array.from(
+				document.querySelectorAll< HTMLAnchorElement >( 'nav a' ),
+				( a ) => new URL( a.href ).searchParams.get( id )
+			)
+		).toEqual( [ '2099-01', '2099-03' ] );
+		document.body.innerHTML = renderMarkup( attrs, 'src', {
+			query: { [ id ]: '2099-03' },
+		} );
+		expect( radios() ).toEqual( [ '2099-03-02 14:00-14:30' ] );
+		document.body.innerHTML = renderMarkup( attrs, 'src', {
+			query: { [ id ]: '2099-04' },
+		} );
+		expect( radios() ).toEqual( [ firstSlot, secondSlot ] );
+	} );
+
+	it( 'offers a page link back to a fully booked month before the first available month', () => {
+		window.rrze_appointment!.bookedSlots = [ firstSlot, secondSlot ];
+		document.body.innerHTML = renderMarkup();
+		const form = document.querySelector( 'form' )!;
+		const previous = form.querySelector< HTMLAnchorElement >( 'nav a' )!;
+		expect( new URL( previous.href ).searchParams.get( form.id ) ).toBe(
+			'2099-01'
+		);
+		expect(
+			form.querySelector< HTMLInputElement >( 'input[type="radio"]' )!
+				.value
+		).toBe( laterSlot );
+	} );
+
+	it( 'presents private times as text before enhancement and after loading another month', async () => {
+		document.body.innerHTML = renderMarkup( {}, 'src', {
+			privatePage: true,
+		} );
+		expect(
+			document.querySelector( '.rrze-appointment__fallback-times' )
+				?.textContent
+		).toContain( '10:00 – 10:30' );
+		expect(
+			document.querySelector( 'input[name="rrze_appointment_slot"]' )
+		).toBeNull();
+		initializeAppointmentForms();
+		const form = document.querySelector( 'form' )!;
+		expect(
+			form.querySelector( '.rrze-appointment__fallback-times' )
+		).toBeNull();
+		await loadMore( form );
+		expect( dateGroups( form )[ 1 ].textContent ).toContain(
+			'14:00 - 14:30'
+		);
+		expect( form.querySelector( 'button[data-slot-value]' ) ).toBeNull();
+	} );
 
 	it( 'appends a requested month under localized, chronological headings', async () => {
 		window.rrze_appointment = {

@@ -1,5 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
+import {
+	buildAvailabilityAttributes,
+	getAvailabilityEntries,
+} from '../src/scheduling/availability';
 import { generateTimeSlots } from '../src/scheduling/schedule';
 import type { AppointmentAttributes } from '../src/scheduling/types';
 
@@ -192,6 +196,7 @@ function series(
 		breakDuration: 15,
 		recurrence: {
 			freq: 'weekly',
+			until,
 			dates: weekdays( date, until, days ),
 		},
 	};
@@ -275,28 +280,143 @@ describe( 'range generation in PHP and the editor', () => {
 		}
 	} );
 
-	it( 'uses a consistent duration for legacy manual times when series are reordered', () => {
+	it( 'preserves the 2.4.0 manual appointment IDs even after the editor sorts the series', () => {
 		const day = '2027-01-11';
 		const morning = series( day, day, [ 1 ], '09:00', '09:15' );
 		const afternoon = {
 			...series( day, day, [ 1 ], '13:00', '13:30' ),
 			duration: 30,
 		};
-		for ( const availabilities of [
-			[ morning, afternoon ],
-			[ afternoon, morning ],
-		] ) {
+		for ( const [ availabilities, end, lateEnd ] of [
+			[ [ morning, afternoon ], '16:15', '23:45' ],
+			[ [ afternoon, morning ], '16:30', '24:00' ],
+		] as const ) {
 			const attrs = {
-				availabilities,
-				dateOverrides: { [ day ]: { extraSlots: [ '16:00' ] } },
-			};
-			const slots = generateSlotsWithPhp( attrs, day, day );
-			expect( slots ).toContain( '2027-01-11 16:00-16:15' );
+				availabilities: [
+					{ ...morning, duration: 0 },
+					...availabilities,
+				],
+				dateOverrides: {
+					[ day ]: { extraSlots: [ '16:00', '23:30' ] },
+				},
+			} as unknown as AppointmentAttributes;
+			const saved = buildAvailabilityAttributes(
+				attrs,
+				getAvailabilityEntries( attrs )
+			);
+			expect( saved.dateOverrides![ day ].extraSlots ).toEqual( [
+				'16:00|' + end,
+				'23:30|' + lateEnd,
+			] );
+			for ( const schedule of [ attrs, { ...attrs, ...saved } ] ) {
+				const slots = generateSlotsWithPhp( schedule, day, day );
+				expect( slots ).toEqual( [
+					day + ' 09:00-09:15',
+					day + ' 13:00-13:30',
+					day + ' 16:00-' + end,
+					day + ' 23:30-' + lateEnd,
+				] );
+				expect(
+					generateTimeSlots( schedule ).map( ( s ) => s.value )
+				).toEqual( slots );
+			}
+		}
+	} );
+
+	it( 'takes the duration from a published occurrence even if the editor projects another series onto that day', () => {
+		const day = '2027-01-11';
+		const original = {
+			availabilities: [
+				{
+					date: '2027-01-04',
+					startTime: '09:00',
+					endTime: '09:15',
+					duration: 15,
+					breakDuration: 0,
+					recurrence: { freq: 'weekly', until: day },
+				},
+				{
+					date: day,
+					startTime: '13:00',
+					endTime: '13:30',
+					duration: 30,
+					breakDuration: 0,
+				},
+			],
+			dateOverrides: { [ day ]: { extraSlots: [ '16:00' ] } },
+		} as unknown as AppointmentAttributes;
+		const edited = {
+			...original,
+			...buildAvailabilityAttributes(
+				original,
+				getAvailabilityEntries( original )
+			),
+		};
+		for ( const attrs of [ original, edited ] ) {
+			const expected = [ day + ' 16:00-16:30' ];
 			expect(
-				generateTimeSlots(
-					attrs as unknown as AppointmentAttributes
-				).map( ( s ) => s.value )
-			).toEqual( slots );
+				generateSlotsWithPhp( attrs ).filter( ( slot ) =>
+					slot.includes( ' 16:00-' )
+				)
+			).toEqual( expected );
+			expect(
+				generateTimeSlots( attrs )
+					.filter( ( slot ) => slot.isExtra )
+					.map( ( slot ) => slot.value )
+			).toEqual( expected );
+		}
+	} );
+
+	it( 'keeps inherited legacy extras and exclusions when importing another window', () => {
+		const first = '2027-01-11';
+		const second = '2027-01-18';
+		const hidden = second + ' 16:00-16:20';
+		const attrs = {
+			selectedDates: [ first, second ],
+			startTime: '09:00',
+			endTime: '10:00',
+			duration: 30,
+			breakDuration: 0,
+			recurrence: {
+				freq: 'weekly',
+				anchor: first,
+				until: second,
+				dates: [ first, second ],
+			},
+			dateOverrides: {
+				[ first ]: {
+					extraSlots: [ '16:00' ],
+					removedSlots: [ hidden ],
+				},
+				[ second ]: { duration: 20 },
+			},
+		} as unknown as AppointmentAttributes;
+		const entries = getAvailabilityEntries( attrs );
+		const imported = {
+			...entries[ 0 ],
+			id: 'imported',
+			startTime: '08:00',
+			endTime: '08:15',
+			duration: 15,
+		};
+		const saved = {
+			...attrs,
+			...buildAvailabilityAttributes( attrs, [ imported, ...entries ] ),
+		};
+		expect( saved.dateOverrides[ second ].extraSlots ).toEqual( [
+			'16:00|16:20',
+		] );
+		for ( const schedule of [ attrs, saved ] ) {
+			expect(
+				generateSlotsWithPhp( schedule ).filter( ( slot ) =>
+					slot.includes( ' 16:00-' )
+				)
+			).toEqual( [ first + ' 16:00-16:30' ] );
+			expect(
+				generateTimeSlots( schedule, { includeExcluded: true } ).find(
+					( slot ) => slot.value === hidden
+				)?.isExcluded
+			).toBe( true );
 		}
 	} );
 

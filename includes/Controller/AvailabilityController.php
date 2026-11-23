@@ -8,10 +8,10 @@ use RRZE\Appointment\Booking\MonthlyAvailability;
 
 defined('ABSPATH') || exit;
 
-/** Serves one calendar month from a viewer-accessible published appointment block. */
+/** Serves one calendar month from a block the current visitor may read. */
 final class AvailabilityController
 {
-    /** Resolves the current saved schedule and returns only public times for the requested month. */
+    /** Resolves the saved schedule and returns visible times for the requested month. */
     public static function handleRequest(): void
     {
         check_ajax_referer('rrze_appointment_book', 'nonce');
@@ -27,10 +27,7 @@ final class AvailabilityController
         }
 
         $post = get_post((int) $postId);
-        if (
-            !$post instanceof \WP_Post || $post->post_status !== 'publish'
-            || !is_post_publicly_viewable($post) || post_password_required($post)
-        ) {
+        if (!$post instanceof \WP_Post || !AppointmentBlock::canViewCalendar($post)) {
             wp_send_json_error(null, 403);
         }
         $matches = AppointmentBlock::matchingAttributes($post, $blockId);

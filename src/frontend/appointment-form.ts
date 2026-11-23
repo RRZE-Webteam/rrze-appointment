@@ -36,6 +36,7 @@ export function initializeAppointmentForms(): void {
 		instanceId: string
 	): void {
 		const showSlotsAsList = form.dataset.showSlotsAsList === '1';
+		const readOnly = form.dataset.readOnly === '1';
 		const dateList = form.querySelector< HTMLElement >(
 			'.rrze-appointment__date-list'
 		);
@@ -179,9 +180,14 @@ export function initializeAppointmentForms(): void {
 			);
 		}
 
+		/**
+		 * Checks the opening window for interactive booking controls.
+		 * @param slotValue Canonical appointment identifier.
+		 * @return Whether the visitor must wait before booking.
+		 */
 		function isSlotTooFarInAdvance( slotValue: string ): boolean {
 			const slotStart = parseSlotStart( slotValue );
-			if ( ! slotStart ) {
+			if ( readOnly || ! slotStart ) {
 				return false;
 			}
 			return isBookingNotOpen(
@@ -382,6 +388,13 @@ export function initializeAppointmentForms(): void {
 			return button;
 		}
 
+		/**
+		 * Displays a day's appointments as booking controls or read-only times.
+		 * @param date       Selected ISO date.
+		 * @param container  The group containing its heading and times.
+		 * @param list       Element that receives the times.
+		 * @param focusTitle Whether to focus the heading after selecting a day.
+		 */
 		function renderDateSlots(
 			date: string,
 			container: HTMLElement,
@@ -432,7 +445,13 @@ export function initializeAppointmentForms(): void {
 			}
 
 			slots.forEach( ( slot ) => {
-				list.appendChild( createSlotButton( slot ) );
+				if ( readOnly ) {
+					const time = document.createElement( 'span' );
+					time.textContent = slot.label;
+					list.appendChild( time );
+				} else {
+					list.appendChild( createSlotButton( slot ) );
+				}
 			} );
 
 			if ( focusTitle && slotsTitleElement instanceof HTMLElement ) {
@@ -910,6 +929,18 @@ export function initializeAppointmentForms(): void {
 			}
 		} );
 		renderAvailability();
+		if ( schedule.paged ) {
+			slotDataElement
+				.querySelectorAll( 'input[type="radio"]' )
+				.forEach( ( radio ) => radio.remove() );
+			form.querySelector( '.rrze-appointment__fallback-times' )?.remove();
+			const links = form.querySelector< HTMLElement >(
+				'.rrze-appointment__month-links'
+			);
+			if ( links && ! links.hasAttribute( 'data-linked-page' ) ) {
+				links.hidden = true;
+			}
+		}
 
 		const storedSlot = sessionStorage.getItem( 'rrze_appt_slot' );
 		const storedPage = sessionStorage.getItem( 'rrze_appt_page' );
@@ -919,6 +950,7 @@ export function initializeAppointmentForms(): void {
 			: -1;
 		if (
 			storedSlot &&
+			! readOnly &&
 			storedIndex >= 0 &&
 			! allowBookingsWithoutSso &&
 			( ! storedPage ||

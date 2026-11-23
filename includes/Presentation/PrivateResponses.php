@@ -36,10 +36,12 @@ final class PrivateResponses
         ];
     }
 
-    /** Marks token pages and personal AJAX requests before any booking access or output. */
+    /** Marks token, linked calendar and personal AJAX responses before accessing booking data. */
     public static function protectRequest(): void
     {
-        $private = count(array_intersect(self::TOKEN_PARAMETERS, array_keys($_GET))) > 0;
+        $parameters = array_keys($_GET);
+        $private = array_intersect(self::TOKEN_PARAMETERS, $parameters)
+            || preg_grep('/^rrze_appt_month_[0-9]+_[a-f0-9]{64}_[0-9]+$/D', $parameters);
         $page = $_GET['page'] ?? '';
         $private = $private || (is_string($page) && in_array($page, [
             'rrze-appointment-bookings', 'rrze-appointment-settings',

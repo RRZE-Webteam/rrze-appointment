@@ -72,6 +72,24 @@ final class AppointmentBlock
     }
 
     /**
+     * Checks WordPress frontend visibility before disclosing a saved calendar.
+     *
+     * @param \WP_Post $post Post containing the calendar.
+     * @return bool Whether the current visitor may read its appointment times.
+     */
+    public static function canViewCalendar(\WP_Post $post): bool
+    {
+        if (post_password_required($post)) {
+            return false;
+        }
+        if ($post->post_status === 'private') {
+            return is_post_type_viewable($post->post_type)
+                && is_user_logged_in() && current_user_can('read_post', $post->ID);
+        }
+        return $post->post_status === 'publish' && is_post_publicly_viewable($post);
+    }
+
+    /**
      * Resolve and validate the booking context from a published post.
      *
      * @param int    $postId       Published post containing the appointment block.

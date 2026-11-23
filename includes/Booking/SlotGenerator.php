@@ -111,7 +111,7 @@ class SlotGenerator
                     continue;
                 }
                 $extraEndMinutes = is_string($extraEnd)
-                    ? self::timeToMinutes($extraEnd)
+                    ? self::timeToMinutes($extraEnd, true)
                     : $extraStartMinutes + $duration;
                 if ($extraEndMinutes === null || $extraEndMinutes > 1440) {
                     continue;
@@ -159,23 +159,9 @@ class SlotGenerator
      */
     private static function getWindowsFromEntries(array $entries, array $dateOverrides, string $from, string $until): iterable
     {
-        // Legacy manual times without an end inherit the first valid window's duration.
-        // Use the editor's canonical entry order even for unsorted saved attributes.
-        $entries = array_filter($entries, 'is_array');
-        usort($entries, static function (array $left, array $right): int {
-            foreach (['date', 'startTime', 'id', 'endTime'] as $field) {
-                $comparison = strcmp(
-                    is_string($left[$field] ?? null) ? $left[$field] : '',
-                    is_string($right[$field] ?? null) ? $right[$field] : ''
-                );
-                if ($comparison !== 0) {
-                    return $comparison;
-                }
-            }
-            return (int) ($left['duration'] ?? 30) <=> (int) ($right['duration'] ?? 30);
-        });
+        // A start-only manual slot inherits the first valid window in saved order.
         foreach ($entries as $entry) {
-            if (!self::isDate($entry['date'] ?? null)) {
+            if (!is_array($entry) || !self::isDate($entry['date'] ?? null)) {
                 continue;
             }
 
@@ -383,10 +369,14 @@ class SlotGenerator
      * Converts the hour and minute components of a saved time to minutes since midnight.
      *
      * @param string $time Saved time with hour and minute separated by a colon.
+     * @param bool $allowMidnightEnd Accept 24:00 as the end of a manual appointment.
      * @return int|null Null when the separator is missing or a component's integer value is outside the clock range.
      */
-    private static function timeToMinutes(string $time): ?int
+    private static function timeToMinutes(string $time, bool $allowMidnightEnd = false): ?int
     {
+        if ($allowMidnightEnd && $time === '24:00') {
+            return 1440;
+        }
         $parts = explode(':', $time);
         if (count($parts) < 2) {
             return null;

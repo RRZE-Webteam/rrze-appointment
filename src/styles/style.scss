@@ -59,7 +59,7 @@ $cal-today-outline: #fddf35;
 		line-height: 1.35;
 		padding-left: 0 !important;
 
-		li:before {
+		li::before {
 			display: none;
 			content: none;
 		}
@@ -306,6 +306,13 @@ $cal-today-outline: #fddf35;
 		grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 		gap: 0.4rem;
 		margin-top: 0.5rem;
+	}
+
+	&__month-links:not([hidden]) {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem;
+		margin-block: 1rem;
 	}
 
 	&__day-slots-title {

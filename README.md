@@ -61,6 +61,11 @@ past, and closed slots are omitted. Future slots whose booking window has not
 opened retain the **Notify me** option. The editor's planning calendar remains
 available; existing blocks use the calendar view by default.
 
+Readers with access to a private WordPress post or page can browse its appointments.
+Booking and opening notifications are available on published pages, including after
+the visitor enters a required page password. When an older cached script displays
+the form, the month links open the selected month on the same page.
+
 ### Encrypted booking storage
 
 With a valid `RRZE_APPOINTMENT_ENCRYPTION_KEY` in `wp-config.php`, each new

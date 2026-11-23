@@ -17,6 +17,8 @@ foreach (['Booking/Bookings', 'Booking/TokenManager', 'Booking/BookingWindow', '
 
 /** Minimal published post for the WordPress block lookup. */
 class WP_Post {
+    public int $ID = 7;
+    public string $post_type = 'page';
     public string $post_status = 'publish';
     public string $post_content;
 }
@@ -31,9 +33,17 @@ class WP_Block_Type_Registry {
 /** Returns the requested fixture post. */
 function get_post($id) { return $id === 7 ? $GLOBALS['post'] : null; }
 /** Models public visibility independently of the post-password check. */
-function is_post_publicly_viewable($post) { return true; }
+function is_post_publicly_viewable($post) { return $post->post_status === 'publish'; }
+/** Only ordinary pages in the fixture have a frontend. */
+function is_post_type_viewable($type) { return $type === 'page'; }
+/** Models a logged-in user independently of their rights on the target page. */
+function is_user_logged_in() { return $GLOBALS['mode'] !== 'private-guest'; }
+/** Grants only object-specific read access, including a case with a pending password prompt. */
+function current_user_can($cap, $id) {
+    return $cap === 'read_post' && $id === 7 && in_array($GLOBALS['mode'], ['private-reader', 'private-password'], true);
+}
 /** Models the visitor's accepted or outstanding WordPress password prompt. */
-function post_password_required($post) { return $GLOBALS['mode'] === 'need-password'; }
+function post_password_required($post) { return in_array($GLOBALS['mode'], ['need-password', 'private-password'], true); }
 /** Checks the controller's use of the public booking nonce. */
 function check_ajax_referer($action, $field) {
     if ($action !== 'rrze_appointment_book' || $field !== 'nonce') {
@@ -55,10 +65,14 @@ function current_time($format, $gmt = false) { return current_datetime()->getTim
 /** Supplies one booked time and one unexpired pending reservation. */
 function get_option($name, $default) {
     if ($name === Bookings::SLOTS_OPTION) {
+        if ($GLOBALS['mode'] === 'legacy-booked') {
+            return ['2027-01-11 16:00-16:30'];
+        }
         return ['2027-01-11 09:30-10:00'];
     }
     if ($name === TokenManager::PENDING_OPTION) {
-        return [['slot' => '2027-01-11 10:00-10:30', 'meta' => [], 'expires' => time() + 1800]];
+        $slot = $GLOBALS['mode'] === 'legacy-pending' ? '2027-01-11 16:00-16:30' : '2027-01-11 10:00-10:30';
+        return [['slot' => $slot, 'meta' => [], 'expires' => time() + 1800]];
     }
     return $default;
 }
@@ -74,13 +88,17 @@ function wp_send_json_success($data) {
 }
 
 $mode = $argv[1];
-$attributes = ['selectedDates' => ['2027-01-11', '2027-01-16', '2027-02-02'], 'startTime' => '09:00', 'endTime' => '11:00',
+$attributes = isset($argv[2]) ? json_decode($argv[2], true, 512, JSON_THROW_ON_ERROR)
+    : ['selectedDates' => ['2027-01-11', '2027-01-16', '2027-02-02'], 'startTime' => '09:00', 'endTime' => '11:00',
     'duration' => 30, 'bookingCutoff' => 60, 'hideWeekends' => true, 'showSlotsAsList' => $mode === 'list'];
 $post = new WP_Post();
 $post->post_content = json_encode([['blockName' => 'core/group', 'innerBlocks' => [
     ['blockName' => 'rrze/appointment', 'attrs' => $attributes],
 ]]]);
 $post->post_status = $mode === 'unpublished' ? 'draft' : 'publish';
+if (str_starts_with($mode, 'private-')) {
+    $post->post_status = 'private';
+}
 $_POST = [
     'post_id' => '7',
     'block_id' => $mode === 'stale-block' ? str_repeat('a', 64) : AppointmentBlock::fingerprint($attributes),

@@ -4,10 +4,9 @@ import {
 	normalizeDateList,
 	parseDateString,
 } from './dates';
-import { sortAvailabilityEntries } from './availability';
 import { expandRecurrence } from './recurrence';
 import { minutesToTime, parseTimeToMinutes } from './time';
-import type { AppointmentAttributes, TimeSlot } from './types';
+import type { AppointmentAttributes, DateOverrides, TimeSlot } from './types';
 
 /**
  * Finds the saved series whose timing overrides apply to a legacy date.
@@ -56,13 +55,15 @@ interface AvailabilityWindow {
 /**
  * Selects occurrence windows intersecting the requested inclusive ISO dates.
  *
- * @param attributes Saved block data.
- * @param options    Inclusive date bounds.
+ * @param attributes     Saved block data.
+ * @param options        Inclusive date bounds.
+ * @param savedDatesOnly Use the occurrences recognized by the published PHP schedule.
  * @return Occurrence windows for all applicable series.
  */
 function getAvailabilityWindows(
 	attributes: AppointmentAttributes,
-	options: GenerateTimeSlotsOptions
+	options: GenerateTimeSlotsOptions,
+	savedDatesOnly: boolean
 ): AvailabilityWindow[] {
 	const { from = '', until = '9999-12-31' } = options;
 	const overrides =
@@ -74,14 +75,19 @@ function getAvailabilityWindows(
 		const entries = attributes.availabilities.filter( ( entry ) =>
 			parseDateString( entry?.date )
 		);
-		return sortAvailabilityEntries( entries ).flatMap( ( entry ) => {
-			const recurrenceDates = entry.recurrence?.freq
-				? normalizeDateList(
-						Array.isArray( entry.recurrence.dates )
-							? entry.recurrence.dates
-							: expandRecurrence( entry.recurrence, entry.date )
-				  )
-				: [ entry.date ];
+		return entries.flatMap( ( entry ) => {
+			let recurrenceDates = [ entry.date ];
+			if ( entry.recurrence?.freq ) {
+				if ( Array.isArray( entry.recurrence.dates ) ) {
+					recurrenceDates = normalizeDateList(
+						entry.recurrence.dates
+					);
+				} else if ( ! savedDatesOnly ) {
+					recurrenceDates = normalizeDateList(
+						expandRecurrence( entry.recurrence, entry.date )
+					);
+				}
+			}
 			const excludedDates = new Set(
 				normalizeDateList( entry.recurrence?.excludedDates )
 			);
@@ -97,10 +103,10 @@ function getAvailabilityWindows(
 					const override = overrides[ date ] || {};
 					return {
 						date,
-						startTime: entry.startTime,
-						endTime: entry.endTime,
-						duration: Number( entry.duration ),
-						breakDuration: Number( entry.breakDuration ),
+						startTime: entry.startTime ?? '09:00',
+						endTime: entry.endTime ?? '17:00',
+						duration: Number( entry.duration ?? 30 ),
+						breakDuration: Number( entry.breakDuration ?? 0 ),
 						removedSlots: Array.isArray( override.removedSlots )
 							? override.removedSlots
 							: [],
@@ -112,8 +118,8 @@ function getAvailabilityWindows(
 		} );
 	}
 
-	const globalDuration = Number( attributes.duration );
-	const globalBreakDuration = Number( attributes.breakDuration );
+	const globalDuration = Number( attributes.duration ?? 30 );
+	const globalBreakDuration = Number( attributes.breakDuration ?? 0 );
 
 	return getCalendarDates( attributes )
 		.filter( ( date ) => date >= from && date <= until )
@@ -129,8 +135,9 @@ function getAvailabilityWindows(
 
 			return {
 				date,
-				startTime: override.startTime || attributes.startTime,
-				endTime: override.endTime || attributes.endTime,
+				startTime:
+					override.startTime ?? attributes.startTime ?? '09:00',
+				endTime: override.endTime ?? attributes.endTime ?? '17:00',
 				duration:
 					override.duration !== undefined
 						? Number( override.duration )
@@ -158,6 +165,97 @@ interface GenerateTimeSlotsOptions {
 }
 
 /**
+ * Yields valid windows in the order used by published 2.4.0 schedules.
+ *
+ * @param attributes     Saved scheduling data.
+ * @param options        Inclusive occurrence dates.
+ * @param savedDatesOnly Ignore editor-only recurrence projections when restoring an old ID.
+ * @return Windows with validated clock boundaries.
+ */
+function* validWindows(
+	attributes: AppointmentAttributes,
+	options: GenerateTimeSlotsOptions,
+	savedDatesOnly = false
+) {
+	for ( const window of getAvailabilityWindows(
+		attributes,
+		options,
+		savedDatesOnly
+	) ) {
+		const { duration, breakDuration } = window;
+		const startMinutes = parseTimeToMinutes( window.startTime );
+		const endMinutes = parseTimeToMinutes( window.endTime );
+		if (
+			Number.isInteger( duration ) &&
+			duration > 0 &&
+			Number.isInteger( breakDuration ) &&
+			breakDuration >= 0 &&
+			breakDuration <= 55 &&
+			breakDuration % 5 === 0 &&
+			startMinutes !== null &&
+			endMinutes !== null &&
+			endMinutes > startMinutes
+		) {
+			yield { ...window, startMinutes, endMinutes };
+		}
+	}
+}
+
+/**
+ * Freezes inherited manual ends before editing or importing reorders the saved windows.
+ * Legacy series can also pass their manual times and exclusions to individual occurrences.
+ *
+ * @param attributes Original block data, before the schedule edit.
+ * @param options    Optional date bounds when rendering one part of a schedule.
+ * @return Per-date overrides with the original manual appointment identifiers.
+ */
+export function preserveManualSlotEnds(
+	attributes: AppointmentAttributes,
+	options: GenerateTimeSlotsOptions = {}
+): DateOverrides {
+	const overrides = attributes.dateOverrides || {};
+	const legacy = ! Array.isArray( attributes.availabilities );
+	const needsResolution = Object.values( overrides ).some(
+		( override ) =>
+			Array.isArray( override?.extraSlots ) &&
+			override.extraSlots.some(
+				( value ) =>
+					typeof value === 'string' &&
+					( legacy || ! value.includes( '|' ) )
+			)
+	);
+	if ( ! needsResolution ) {
+		return overrides;
+	}
+	const result = { ...overrides };
+	const processed = new Set< string >();
+	for ( const { date, extraSlots, removedSlots, duration } of validWindows(
+		attributes,
+		options,
+		true
+	) ) {
+		if ( ! extraSlots.length || processed.has( date ) ) {
+			continue;
+		}
+		processed.add( date );
+		result[ date ] = {
+			...result[ date ],
+			...( legacy && removedSlots.length ? { removedSlots } : {} ),
+			extraSlots: extraSlots.map( ( value ) => {
+				if ( typeof value !== 'string' || value.includes( '|' ) ) {
+					return value;
+				}
+				const start = parseTimeToMinutes( value );
+				return start !== null && start + duration <= 1440
+					? value + '|' + minutesToTime( start + duration )
+					: value;
+			} ),
+		};
+	}
+	return result;
+}
+
+/**
  * Builds unique future appointment slots from the persisted scheduling data.
  * Only the requested dates are expanded into individual appointments.
  * @param attributes Persisted block scheduling data.
@@ -167,7 +265,11 @@ export function generateTimeSlots(
 	attributes: AppointmentAttributes,
 	options: GenerateTimeSlotsOptions = {}
 ): TimeSlot[] {
-	const availabilityWindows = getAvailabilityWindows( attributes, options );
+	const dateOverrides = preserveManualSlotEnds( attributes, options );
+	const availabilityWindows = validWindows(
+		{ ...attributes, dateOverrides },
+		options
+	);
 	const now = new Date();
 	const slotMap = new Map< string, TimeSlot >();
 	const processedExtraDates = new Set< string >();
@@ -201,31 +303,10 @@ export function generateTimeSlots(
 			date,
 			duration,
 			breakDuration,
-			startTime,
-			endTime,
+			startMinutes,
+			endMinutes,
 			extraSlots,
 		} = availabilityWindow;
-		if (
-			! Number.isFinite( duration ) ||
-			! Number.isInteger( duration ) ||
-			duration <= 0 ||
-			! Number.isFinite( breakDuration ) ||
-			breakDuration < 0 ||
-			breakDuration > 55 ||
-			breakDuration % 5 !== 0
-		) {
-			continue;
-		}
-		const startMinutes = parseTimeToMinutes( startTime );
-		const endMinutes = parseTimeToMinutes( endTime );
-		if (
-			startMinutes === null ||
-			endMinutes === null ||
-			endMinutes <= startMinutes
-		) {
-			continue;
-		}
-
 		const removedSlots = new Set( availabilityWindow.removedSlots );
 
 		let slotStart = startMinutes;
@@ -265,9 +346,10 @@ export function generateTimeSlots(
 			if ( extraStartMinutes === null ) {
 				return;
 			}
-			const extraEndMinutes = extraEnd
-				? parseTimeToMinutes( extraEnd )
-				: extraStartMinutes + duration;
+			const extraEndMinutes =
+				extraEnd !== null
+					? parseTimeToMinutes( extraEnd, true )
+					: extraStartMinutes + duration;
 			if ( extraEndMinutes === null || extraEndMinutes > 24 * 60 ) {
 				return;
 			}
