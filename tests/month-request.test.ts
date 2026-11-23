@@ -115,4 +115,54 @@ describe( 'monthly availability endpoint', () => {
 			}
 		}
 	);
+
+	it( 'keeps booked and pending times unavailable on a legacy exception day after an unrelated edit', () => {
+		const dates = [ '2027-01-04', '2027-01-11', '2027-01-18' ];
+		const day = dates[ 1 ];
+		const original = {
+			selectedDates: dates,
+			startTime: '08:00',
+			endTime: '12:00',
+			duration: 20,
+			breakDuration: 5,
+			recurrence: {
+				anchor: dates[ 0 ],
+				freq: 'weekly',
+				until: dates[ 2 ],
+				dates,
+			},
+			dateOverrides: {
+				[ dates[ 0 ] ]: { startTime: '09:00' },
+				[ day ]: { endTime: '11:00', duration: 30, breakDuration: 0 },
+			},
+		} as unknown as AppointmentAttributes;
+		const february = {
+			id: 'february',
+			date: '2027-02-03',
+			startTime: '13:00',
+			endTime: '14:00',
+			duration: 30,
+			breakDuration: 0,
+			recurrence: {},
+		};
+		const saved = {
+			...original,
+			...buildAvailabilityAttributes( original, [
+				...getAvailabilityEntries( original ),
+				february,
+			] ),
+		};
+		const before = requestMonth( 'visible', original ).data.slots;
+		expect(
+			Object.keys( before ).filter( ( slot ) => slot.startsWith( day ) )
+		).toEqual( [ day + ' 09:00-09:30', day + ' 10:30-11:00' ] );
+		expect( requestMonth( 'visible', saved ).data.slots ).toEqual( before );
+		const resaved = buildAvailabilityAttributes(
+			saved,
+			getAvailabilityEntries( saved )
+		);
+		expect(
+			requestMonth( 'visible', { ...saved, ...resaved } ).data.slots
+		).toEqual( before );
+	} );
 } );

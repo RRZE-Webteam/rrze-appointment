@@ -420,6 +420,61 @@ describe( 'range generation in PHP and the editor', () => {
 		}
 	} );
 
+	it( 'preserves overlapping legacy series, omitted days and inherited removals without manual slots', () => {
+		const dates = [
+			'2027-01-04',
+			'2027-01-11',
+			'2027-01-18',
+			'2027-02-01',
+		];
+		const hidden = dates[ 2 ] + ' 09:00-09:20';
+		const original = {
+			selectedDates: dates,
+			startTime: '08:00',
+			endTime: '10:00',
+			duration: 30,
+			breakDuration: 0,
+			recurrences: {
+				[ dates[ 0 ] ]: {
+					freq: 'weekly',
+					until: dates[ 2 ],
+					dates: dates.slice( 0, 3 ),
+				},
+				[ dates[ 1 ] ]: {
+					freq: 'weekly',
+					until: dates[ 3 ],
+					dates: dates.slice( 1 ),
+				},
+			},
+			dateOverrides: {
+				[ dates[ 0 ] ]: {
+					startTime: '09:00',
+					removedSlots: [ hidden ],
+				},
+				[ dates[ 1 ] ]: { endTime: '11:00' },
+				[ dates[ 2 ] ]: { duration: 20 },
+			},
+		} as unknown as AppointmentAttributes;
+		const before = generateSlotsWithPhp( original );
+		expect( before ).not.toContain( hidden );
+		expect( before ).toContain( dates[ 2 ] + ' 09:20-09:40' );
+		expect( before ).toContain( dates[ 3 ] + ' 08:00-08:30' );
+		expect(
+			before.some( ( slot ) => slot.startsWith( '2027-01-25' ) )
+		).toBe( false );
+		const saved = {
+			...original,
+			...buildAvailabilityAttributes(
+				original,
+				getAvailabilityEntries( original )
+			),
+		};
+		expect( generateSlotsWithPhp( saved ) ).toEqual( before );
+		expect(
+			generateTimeSlots( saved ).map( ( slot ) => slot.value )
+		).toEqual( before );
+	} );
+
 	it( 'returns over 1,000 unique slots even within a single month', () => {
 		const entry = {
 			...series( '2027-01-04', '2027-01-05', [ 1, 2 ], '08:00', '18:00' ),

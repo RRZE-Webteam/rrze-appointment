@@ -168,10 +168,13 @@ $locationIsUrl = preg_match('#^https?://#i', $location) === 1;
                     <?php endforeach; ?>
                 </dl>
             <?php endif; ?>
-            <?php if ($links) : ?>
+            <?php if ($links) :
+                // Append the active block last so the password form can restore its fragment.
+                $monthPageUrl = remove_query_arg($instanceId);
+                ?>
                 <nav class="rrze-appointment__month-links" <?php if ($linked) : ?>data-linked-page<?php endif; ?> aria-label="<?php esc_attr_e('Choose an appointment date', 'rrze-appointment'); ?>">
                     <?php foreach ($links as $direction => $month) : ?>
-                        <a href="<?php echo esc_url(add_query_arg($instanceId, $month) . '#' . $instanceId); ?>"><?php
+                        <a href="<?php echo esc_url(add_query_arg($instanceId, $month, $monthPageUrl) . '#' . $instanceId); ?>"><?php
                             echo esc_html($direction === 'previous' ? __('Previous month', 'rrze-appointment') : __('Next month', 'rrze-appointment'));
                             echo ' ' . esc_html(mysql2date('F Y', $month . '-01'));
                         ?></a>

@@ -7,6 +7,7 @@ defined('ABSPATH') || exit;
 /** Prevents personal responses and action-link URLs from becoming shared cache entries. */
 final class PrivateResponses
 {
+    private const MONTH_PARAMETER = '/^rrze_appt_month_([0-9]+)_[a-f0-9]{64}_[0-9]+$/D';
     private const TOKEN_PARAMETERS = [
         'rrze_appt_confirm', 'rrze_appt_cancel', 'rrze_appt_waitlist_optout',
         'rrze_appt_opening', 'rrze_appt_opening_registered',
@@ -15,11 +16,12 @@ final class PrivateResponses
         'rrze_appointment_book', 'rrze_appointment_notify_opening', 'rrze_appointment_get_booker', 'rrze_appointment_get_month',
     ];
 
-    /** Registers early protection, including permission, validation and storage failures. */
+    /** Registers cache protection and preserves calendar navigation through the page password form. */
     public static function register(): void
     {
         add_action('init', [self::class, 'protectRequest'], 0);
         add_filter('rest_post_dispatch', [self::class, 'protectRestResponse'], 10, 3);
+        add_filter('the_password_form', [self::class, 'preserveCalendarMonths'], 10, 2);
     }
 
     /**
@@ -41,7 +43,7 @@ final class PrivateResponses
     {
         $parameters = array_keys($_GET);
         $private = array_intersect(self::TOKEN_PARAMETERS, $parameters)
-            || preg_grep('/^rrze_appt_month_[0-9]+_[a-f0-9]{64}_[0-9]+$/D', $parameters);
+            || preg_grep(self::MONTH_PARAMETER, $parameters);
         $page = $_GET['page'] ?? '';
         $private = $private || (is_string($page) && in_array($page, [
             'rrze-appointment-bookings', 'rrze-appointment-settings',
@@ -61,6 +63,42 @@ final class PrivateResponses
                 header($name . ': ' . $value);
             }
         }
+    }
+
+    /**
+     * Returns the visitor to the chosen calendar month after entering the page password.
+     *
+     * @param string $form WordPress password form HTML.
+     * @param \WP_Post|null $post Post whose content the password protects.
+     * @return string Form with this post's month selections on the default redirect.
+     */
+    public static function preserveCalendarMonths(string $form, ?\WP_Post $post = null): string
+    {
+        if (!$post || !$_GET) {
+            return $form;
+        }
+        $months = [];
+        foreach ($_GET as $key => $value) {
+            if (is_string($key) && preg_match(self::MONTH_PARAMETER, $key, $matches)
+                && (int) $matches[1] === (int) $post->ID
+                && is_string($value) && preg_match('/^[0-9]{4}-(?:0[1-9]|1[0-2])$/D', $value)) {
+                $months[$key] = $value;
+            }
+        }
+        if (!$months) {
+            return $form;
+        }
+        $permalink = get_permalink($post);
+        $html = new \WP_HTML_Tag_Processor($form);
+        while ($html->next_tag('INPUT')) {
+            if ($html->get_attribute('name') === 'redirect_to' && $html->get_attribute('type') === 'hidden'
+                && $html->get_attribute('value') === $permalink) {
+                // Calendar links put the active block last so its fragment can be restored after the POST.
+                $html->set_attribute('value', add_query_arg($months, $permalink) . '#' . array_key_last($months));
+                break;
+            }
+        }
+        return $html->get_updated_html();
     }
 
     /**

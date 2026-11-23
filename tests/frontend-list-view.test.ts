@@ -66,8 +66,15 @@ function renderMarkup(
 			function current_user_can($cap, $id) { return $cap === 'read_post' && $id === 7; }
 			/** Each fixture process renders one occurrence of the block. */
 			function wp_unique_prefixed_id($prefix) { return $prefix . '1'; }
-			/** Updates only the selected block's month. */
-			function add_query_arg($key, $value) { return '?' . http_build_query(array_merge($_GET, [$key => $value])); }
+			/** Keeps the other query parameters on the page before choosing this block's month. */
+			function remove_query_arg($key) {
+				return '?' . http_build_query(array_diff_key($_GET, [$key => true]));
+			}
+			/** Appends this block's requested month to the given page URL. */
+			function add_query_arg($key, $value, $url) {
+				parse_str(substr($url, 1), $query);
+				return '?' . http_build_query(array_merge($query, [$key => $value]));
+			}
 			/** Formats the date returned by the fixed-clock fixture. */
 			function mysql2date($format, $date) { return (new DateTimeImmutable($date))->format($format); }
 			/** Escapes a page navigation URL. */
@@ -294,8 +301,9 @@ describe( 'frontend list view', () => {
 		expect( radios() ).toEqual( [] );
 		expect( link.parentElement!.hidden ).toBe( true );
 
+		const other = 'rrze_appt_month_7_' + 'a'.repeat( 64 ) + '_1';
 		document.body.innerHTML = renderMarkup( attrs, 'src', {
-			query: { [ id ]: '2099-02' },
+			query: { [ id ]: '2099-02', [ other ]: '2099-04' },
 		} );
 		expect( radios() ).toEqual( [] );
 		expect(
@@ -312,6 +320,15 @@ describe( 'frontend list view', () => {
 				( a ) => new URL( a.href ).searchParams.get( id )
 			)
 		).toEqual( [ '2099-01', '2099-03' ] );
+		const nextUrl = new URL(
+			document.querySelector< HTMLAnchorElement >(
+				'nav a:last-child'
+			)!.href
+		);
+		expect( [ ...nextUrl.searchParams ] ).toEqual( [
+			[ other, '2099-04' ],
+			[ id, '2099-03' ],
+		] );
 		document.body.innerHTML = renderMarkup( attrs, 'src', {
 			query: { [ id ]: '2099-03' },
 		} );
@@ -455,6 +472,81 @@ describe( 'frontend list view', () => {
 		).toBe( true );
 		expect( retry.hidden ).toBe( true );
 	} );
+
+	it.each( [ true, false ] )(
+		'offers a page link to the failed month when the nonce expires (list mode %s)',
+		async ( showSlotsAsList ) => {
+			const otherBlock = 'rrze_appt_month_7_' + 'b'.repeat( 64 ) + '_1';
+			try {
+				const attrs = {
+					showSlotsAsList,
+					availabilities: [
+						...defaultAvailabilities,
+						{ ...defaultAvailabilities[ 0 ], date: '2099-03-02' },
+					],
+				};
+				const form = renderAppointment( attrs );
+				window.history.replaceState(
+					{},
+					'',
+					'?' + form.id + '=2099-01&' + otherBlock + '=2099-04'
+				);
+				const nav = form.querySelector< HTMLElement >(
+					'.rrze-appointment__month-links'
+				)!;
+				const next = showSlotsAsList
+					? '.rrze-appointment__more'
+					: '[data-direction="next"]';
+				expect( nav.hidden ).toBe( true );
+				form.querySelector< HTMLButtonElement >( next )!.click();
+				await flushRequests();
+				( global.fetch as jest.Mock ).mockResolvedValueOnce( {
+					ok: false,
+					status: 403,
+				} );
+				form.querySelector< HTMLButtonElement >( next )!.click();
+				await flushRequests();
+
+				expect( nav.hidden ).toBe( false );
+				const link = nav.querySelector< HTMLAnchorElement >( 'a' )!;
+				const url = new URL( link.href );
+				expect( link.textContent ).toContain( 'March' );
+				expect( [ ...url.searchParams ] ).toEqual( [
+					[ otherBlock, '2099-04' ],
+					[ form.id, '2099-03' ],
+				] );
+				expect( url.hash ).toBe( '#' + form.id );
+				const reloaded = new DOMParser().parseFromString(
+					renderMarkup( attrs, 'src', {
+						query: Object.fromEntries( url.searchParams ),
+					} ),
+					'text/html'
+				);
+				expect(
+					reloaded
+						.querySelector(
+							'.rrze-appointment__slot-data input[type="radio"]'
+						)
+						?.getAttribute( 'value' )
+				).toBe( '2099-03-02 14:00-14:30' );
+
+				( global.fetch as jest.Mock ).mockResolvedValueOnce( {
+					ok: true,
+					json: async () => ( {
+						success: true,
+						data: { month: '2099-03', slots: {} },
+					} ),
+				} );
+				form.querySelector< HTMLButtonElement >(
+					'.rrze-appointment__retry'
+				)!.click();
+				await flushRequests();
+				expect( nav.hidden ).toBe( true );
+			} finally {
+				window.history.replaceState( {}, '', window.location.pathname );
+			}
+		}
+	);
 
 	it( 'opens the next visible month when a cached first month has expired', async () => {
 		document.body.innerHTML = renderMarkup();

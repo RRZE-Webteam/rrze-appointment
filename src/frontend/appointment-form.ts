@@ -117,6 +117,9 @@ export function initializeAppointmentForms(): void {
 		const retryButton = form.querySelector< HTMLButtonElement >(
 			'.rrze-appointment__retry'
 		);
+		const monthLinks = form.querySelector< HTMLElement >(
+			'.rrze-appointment__month-links:not([data-linked-page])'
+		);
 		const listMonths = new Set( schedule.paged ? [ months[ 0 ] ] : months );
 		let availableDates: string[] = [];
 		let availableDateSet = new Set< string >();
@@ -563,6 +566,40 @@ export function initializeAppointmentForms(): void {
 			}
 		}
 
+		/** Clears the recovery controls when the visitor navigates again. */
+		function clearMonthError(): void {
+			if ( retryButton ) {
+				retryButton.hidden = true;
+			}
+			if ( monthLinks ) {
+				monthLinks.hidden = true;
+			}
+		}
+
+		/**
+		 * Offers a normal WordPress page request for the exact month that failed to load.
+		 *
+		 * @param month Requested YYYY-MM from this block's month index.
+		 */
+		function showMonthLink( month: string ): void {
+			if ( ! monthLinks ) {
+				return;
+			}
+			const url = new URL( window.location.href );
+			// The password form restores the fragment from the last calendar parameter.
+			url.searchParams.delete( form.id );
+			url.searchParams.set( form.id, month );
+			url.hash = form.id;
+			const link = document.createElement( 'a' );
+			link.href = url.href;
+			link.textContent = formatMonthTitle(
+				new Date( month + '-01T00:00:00' ),
+				frontendLocale
+			);
+			monthLinks.replaceChildren( link );
+			monthLinks.hidden = false;
+		}
+
 		/**
 		 * Loads months until the requested navigation can be displayed.
 		 * Older responses may populate the cache but cannot change the selected view.
@@ -577,9 +614,7 @@ export function initializeAppointmentForms(): void {
 			slotValue = ''
 		): Promise< void > {
 			const version = ++navigationVersion;
-			if ( retryButton ) {
-				retryButton.hidden = true;
-			}
+			clearMonthError();
 			const firstIndex = index;
 			try {
 				while ( index >= 0 && index < months.length ) {
@@ -638,6 +673,10 @@ export function initializeAppointmentForms(): void {
 				if ( version === navigationVersion ) {
 					requestedIndex = currentMonthIndex;
 					renderAvailability();
+					const failedMonth = months[ index ];
+					if ( failedMonth && ! schedule.has( failedMonth ) ) {
+						showMonthLink( failedMonth );
+					}
 					setInteractionStatus(
 						mode === 'restore'
 							? bookerErrorMessage()
@@ -814,9 +853,7 @@ export function initializeAppointmentForms(): void {
 							requestedIndex = currentMonthIndex;
 							form.removeAttribute( 'aria-busy' );
 							setInteractionStatus();
-							if ( retryButton ) {
-								retryButton.hidden = true;
-							}
+							clearMonthError();
 							activeDate = dateString;
 							renderCalendar();
 							renderDaySlots( activeDate, true );
@@ -934,12 +971,7 @@ export function initializeAppointmentForms(): void {
 				.querySelectorAll( 'input[type="radio"]' )
 				.forEach( ( radio ) => radio.remove() );
 			form.querySelector( '.rrze-appointment__fallback-times' )?.remove();
-			const links = form.querySelector< HTMLElement >(
-				'.rrze-appointment__month-links'
-			);
-			if ( links && ! links.hasAttribute( 'data-linked-page' ) ) {
-				links.hidden = true;
-			}
+			clearMonthError();
 		}
 
 		const storedSlot = sessionStorage.getItem( 'rrze_appt_slot' );

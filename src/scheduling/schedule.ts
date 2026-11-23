@@ -53,6 +53,42 @@ interface AvailabilityWindow {
 }
 
 /**
+ * Resolves the single time window published for a legacy calendar day.
+ * Per-day settings take precedence over the series and block defaults.
+ *
+ * @param attributes Saved legacy block.
+ * @param date       Occurrence date in YYYY-MM-DD format.
+ * @param anchor     Series supplying defaults, normally the first saved match.
+ * @return Effective timing and slot exceptions for that day.
+ */
+export function getLegacyAvailabilityWindow(
+	attributes: AppointmentAttributes,
+	date: string,
+	anchor = getRecurrenceAnchor( attributes, date )
+): AvailabilityWindow {
+	const overrides = attributes.dateOverrides || {};
+	const override = {
+		...( anchor ? overrides[ anchor ] : {} ),
+		...overrides[ date ],
+	};
+	return {
+		date,
+		startTime: override.startTime ?? attributes.startTime ?? '09:00',
+		endTime: override.endTime ?? attributes.endTime ?? '17:00',
+		duration: Number( override.duration ?? attributes.duration ?? 30 ),
+		breakDuration: Number(
+			override.breakDuration ?? attributes.breakDuration ?? 0
+		),
+		removedSlots: Array.isArray( override.removedSlots )
+			? override.removedSlots
+			: [],
+		extraSlots: Array.isArray( override.extraSlots )
+			? override.extraSlots
+			: [],
+	};
+}
+
+/**
  * Selects occurrence windows intersecting the requested inclusive ISO dates.
  *
  * @param attributes     Saved block data.
@@ -118,42 +154,9 @@ function getAvailabilityWindows(
 		} );
 	}
 
-	const globalDuration = Number( attributes.duration ?? 30 );
-	const globalBreakDuration = Number( attributes.breakDuration ?? 0 );
-
 	return getCalendarDates( attributes )
 		.filter( ( date ) => date >= from && date <= until )
-		.map( ( date ) => {
-			const recurrenceAnchor = getRecurrenceAnchor( attributes, date );
-			const seriesOverride = recurrenceAnchor
-				? overrides[ recurrenceAnchor ] || {}
-				: {};
-			const override = {
-				...seriesOverride,
-				...( overrides[ date ] || {} ),
-			};
-
-			return {
-				date,
-				startTime:
-					override.startTime ?? attributes.startTime ?? '09:00',
-				endTime: override.endTime ?? attributes.endTime ?? '17:00',
-				duration:
-					override.duration !== undefined
-						? Number( override.duration )
-						: globalDuration,
-				breakDuration:
-					override.breakDuration !== undefined
-						? Number( override.breakDuration )
-						: globalBreakDuration,
-				removedSlots: Array.isArray( override.removedSlots )
-					? override.removedSlots
-					: [],
-				extraSlots: Array.isArray( override.extraSlots )
-					? override.extraSlots
-					: [],
-			};
-		} );
+		.map( ( date ) => getLegacyAvailabilityWindow( attributes, date ) );
 }
 
 interface GenerateTimeSlotsOptions {
@@ -217,12 +220,15 @@ export function preserveManualSlotEnds(
 	const legacy = ! Array.isArray( attributes.availabilities );
 	const needsResolution = Object.values( overrides ).some(
 		( override ) =>
-			Array.isArray( override?.extraSlots ) &&
-			override.extraSlots.some(
-				( value ) =>
-					typeof value === 'string' &&
-					( legacy || ! value.includes( '|' ) )
-			)
+			( legacy &&
+				Array.isArray( override?.removedSlots ) &&
+				override.removedSlots.length > 0 ) ||
+			( Array.isArray( override?.extraSlots ) &&
+				override.extraSlots.some(
+					( value ) =>
+						typeof value === 'string' &&
+						( legacy || ! value.includes( '|' ) )
+				) )
 	);
 	if ( ! needsResolution ) {
 		return overrides;
@@ -234,13 +240,24 @@ export function preserveManualSlotEnds(
 		options,
 		true
 	) ) {
-		if ( ! extraSlots.length || processed.has( date ) ) {
+		if ( processed.has( date ) ) {
 			continue;
 		}
 		processed.add( date );
+		if ( legacy && ! Array.isArray( overrides[ date ]?.removedSlots ) ) {
+			const inherited = removedSlots.filter(
+				( slot ) =>
+					typeof slot === 'string' && slot.startsWith( date + ' ' )
+			);
+			if ( inherited.length ) {
+				result[ date ] = { ...result[ date ], removedSlots: inherited };
+			}
+		}
+		if ( ! extraSlots.length ) {
+			continue;
+		}
 		result[ date ] = {
 			...result[ date ],
-			...( legacy && removedSlots.length ? { removedSlots } : {} ),
 			extraSlots: extraSlots.map( ( value ) => {
 				if ( typeof value !== 'string' || value.includes( '|' ) ) {
 					return value;

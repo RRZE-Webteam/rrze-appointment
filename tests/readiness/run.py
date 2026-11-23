@@ -262,6 +262,7 @@ class Audit:
     def build(self):
         """Build frozen DEV sources without invoking the package's version-bump script."""
         candidate = self.root / 'candidate'
+        source_version = json.loads((candidate / 'package.json').read_text())['version']
         dependencies = candidate / 'node_modules'
         if not dependencies.exists():
             dependencies.symlink_to(self.repo / 'node_modules', target_is_directory=True)
@@ -288,7 +289,7 @@ class Audit:
                 entry.compress_type = zipfile.ZIP_DEFLATED
                 entry.external_attr = 0o644 << 16
                 archive.writestr(entry, path.read_bytes())
-        self.check('candidate-build-without-version-bump', version == '2.3.3', version=version,
+        self.check('candidate-build-without-version-bump', version == source_version, version=version,
                    sha256=hashlib.sha256((self.root / 'candidate.zip').read_bytes()).hexdigest())
 
     def background_fixture(self, mode, skip=False, *arguments):
