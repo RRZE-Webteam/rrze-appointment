@@ -415,23 +415,39 @@ final class SettingsPage
         <?php
     }
 
-    /** Shows the site's saved access policy above the reminder and booking settings. */
-    private function renderTabGeneral(): void
+    /**
+     * Describes who can currently open bookings, taking changes in site membership and roles into account.
+     *
+     * @return string Translated audience for the access summary.
+     */
+    private static function bookingAudience(): string
     {
         $policy = AccessPolicy::read();
-        $audience = match (true) {
-            is_wp_error($policy) => __('Access settings unavailable', 'rrze-appointment'),
-            is_array($policy) => __('Only selected people', 'rrze-appointment'),
-            empty(PluginSettings::get('appointment_manager_user_ids')) => __('Administrators', 'rrze-appointment'),
-            default => __('Administrators and additional people', 'rrze-appointment'),
-        };
+        if (is_wp_error($policy)) {
+            return __('Access settings unavailable', 'rrze-appointment');
+        }
+        if ($policy === null) {
+            return empty(PluginSettings::get('appointment_manager_user_ids'))
+                ? __('Administrators', 'rrze-appointment') : __('Administrators and additional people', 'rrze-appointment');
+        }
+        foreach (array_merge($policy['owners'], $policy['managers']) as $id) {
+            if (AccessPolicy::hasBookingGrant($policy, $id)) {
+                return __('Only selected people', 'rrze-appointment');
+            }
+        }
+        return __('No one', 'rrze-appointment');
+    }
+
+    /** Shows the site's access summary above the reminder and booking settings. */
+    private function renderTabGeneral(): void
+    {
         ?>
         <section class="rrze-appt-settings__summary" aria-labelledby="rrze-appt-summary-title">
             <h2 id="rrze-appt-summary-title"><?php esc_html_e('Access to appointment management', 'rrze-appointment'); ?></h2>
             <dl>
                 <div>
                     <dt><?php esc_html_e('Who can view and cancel appointments?', 'rrze-appointment'); ?></dt>
-                    <dd><?php echo esc_html($audience); ?></dd>
+                    <dd><?php echo esc_html(self::bookingAudience()); ?></dd>
                 </div>
                 <div>
                     <dt><?php esc_html_e('SSO sign-in', 'rrze-appointment'); ?></dt>
@@ -461,14 +477,14 @@ final class SettingsPage
         <?php
     }
 
-    /** Groups access grants, SSO and network recovery under separate, site-local actions. */
+    /** Displays the site's role editor, SSO settings and available recovery actions. */
     private function renderTabAccess(): void
     {
         AccessSettings::renderSettings([$this, 'renderAppointmentManagersField']);
         BackendSsoSettings::render();
-        if (BackendSsoAccess::canReset() && (AccessPolicy::restricted() || BackendSsoAccess::required())) {
+        if (AccessPolicy::canRecover() || (BackendSsoAccess::canReset() && BackendSsoAccess::required())) {
             ?>
-            <details class="rrze-appt-settings__recovery">
+            <details id="rrze-appt-settings-recovery" class="rrze-appt-settings__recovery"<?php echo AccessSettings::recoveryOpen() ? ' open' : ''; ?>>
                 <summary><?php esc_html_e('Recovery', 'rrze-appointment'); ?></summary>
                 <?php AccessSettings::renderRecovery(); ?>
                 <?php BackendSsoSettings::renderRecovery(); ?>
@@ -518,7 +534,7 @@ final class SettingsPage
         }
 
         $tab = Request::queryText('tab', true) ?: 'general';
-        if ($tab !== 'access' && !($hook === self::screenHook() && $tab === 'illustrations')) {
+        if ($hook !== self::screenHook() || !in_array($tab, ['access', 'illustrations'], true)) {
             return;
         }
 

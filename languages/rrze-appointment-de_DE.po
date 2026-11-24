@@ -2986,10 +2986,6 @@ msgid "Please sign in with SSO"
 msgstr "Bitte mit SSO anmelden"
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "You have permission to manage appointments. Sign in with the SSO account belonging to your WordPress account to continue."
-msgstr "Sie sind für die Terminverwaltung freigeschaltet. Melden Sie sich mit dem SSO-Konto an, das zu Ihrem WordPress-Konto gehört, um fortzufahren."
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
 msgid "The signed-in accounts do not match"
 msgstr "Die angemeldeten Konten passen nicht zusammen"
 
@@ -3032,10 +3028,6 @@ msgstr "Zurück zum Dashboard"
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
 msgid "Reload page"
 msgstr "Seite neu laden"
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Keep at least one eligible responsible person. Add a successor before removing yourself."
-msgstr "Mindestens eine berechtigte verantwortliche Person muss erhalten bleiben. Benennen Sie eine Nachfolge, bevor Sie sich selbst entfernen."
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
 msgid "Select current members of this website with at least editor permissions."
@@ -3158,20 +3150,12 @@ msgid "Responsibility reassigned."
 msgstr "Verantwortliche neu zugewiesen."
 
 #: includes/Admin/AccessSettings.php
-msgid "Who can manage appointments?"
-msgstr "Wer darf Termine verwalten?"
-
-#: includes/Admin/AccessSettings.php
 msgid "All administrators and any additional people listed here can view and cancel appointments."
 msgstr "Alle Administratoren und die hier zusätzlich freigegebenen Personen dürfen Termine einsehen und stornieren."
 
 #: includes/Admin/AccessSettings.php
 msgid "Additional people with access"
 msgstr "Zusätzlich freigegebene Personen"
-
-#: includes/Admin/AccessSettings.php
-msgid "Only the people assigned a role can open appointment management on this website."
-msgstr "Auf dieser Website können nur Personen mit einer hier zugewiesenen Rolle die Terminverwaltung öffnen."
 
 #: includes/Admin/AccessSettings.php
 msgid "Go to SSO settings"
@@ -3198,10 +3182,6 @@ msgid "This selection could not be reviewed. Check the current permissions and t
 msgstr "Die Vorschau konnte nicht erstellt werden. Prüfe die aktuellen Freigaben und versuche es erneut."
 
 #: includes/Admin/AccessSettings.php
-msgid "Select at least one responsible person to continue."
-msgstr "Wähle mindestens eine verantwortliche Person aus, um fortzufahren."
-
-#: includes/Admin/AccessSettings.php
 msgid "Choose who will keep access. You can review the list before applying this restriction."
 msgstr "Wähle aus, wer Zugriff behalten soll. Im nächsten Schritt kannst du deine Auswahl prüfen."
 
@@ -3210,20 +3190,12 @@ msgid "You will be a responsible person for this website."
 msgstr "Du übernimmst die Verantwortung für die Freigaben auf dieser Website."
 
 #: includes/Admin/AccessSettings.php
-msgid "Responsible people can view and cancel appointments and manage permissions. People with “View and cancel” can work with bookings. Keep at least one responsible person."
-msgstr "Beide Rollen dürfen Termine einsehen und stornieren. Verantwortliche verwalten zusätzlich die Freigaben. Mindestens eine Person muss verantwortlich sein."
-
-#: includes/Admin/AccessSettings.php
 msgid "New responsible people"
 msgstr "Neue Verantwortliche"
 
 #: includes/Admin/AccessSettings.php
 msgid "Roles on this website"
 msgstr "Rollen auf dieser Website"
-
-#: includes/Admin/AccessSettings.php
-msgid "You can choose site members with editor or administrator permissions."
-msgstr "Zur Auswahl stehen Mitglieder dieser Website mit Redaktions- oder Administrationsrechten."
 
 #: includes/Admin/AccessSettings.php includes/Admin/SettingsPage.php
 msgid "Find a person"
@@ -3241,10 +3213,6 @@ msgstr "Einsehen und stornieren"
 msgid "Responsible"
 msgstr "Verantwortlich"
 
-#: includes/Admin/AccessSettings.php
-msgid "This website has no eligible members."
-msgstr "Auf dieser Website gibt es keine Mitglieder mit den erforderlichen Rechten."
-
 #: includes/Admin/AccessSettings.php includes/Admin/SettingsPage.php
 msgid "No matching people."
 msgstr "Keine passenden Personen gefunden."
@@ -3254,16 +3222,8 @@ msgid "Review access"
 msgstr "Auswahl prüfen"
 
 #: includes/Admin/AccessSettings.php
-msgid "People who will lose access"
-msgstr "Personen, die ihren Zugriff verlieren"
-
-#: includes/Admin/AccessSettings.php
 msgid "Review access before applying"
 msgstr "Freigaben vor dem Übernehmen prüfen"
-
-#: includes/Admin/AccessSettings.php
-msgid "Only the people assigned a role below will have access, including administrators. These restrictions also apply when SSO is off."
-msgstr "Nur Personen mit einer hier zugewiesenen Rolle behalten Zugriff. Auch Administratoren benötigen eine Rolle. Die Freigaben gelten unabhängig davon, ob der SSO-Schutz aktiv ist."
 
 #: includes/Admin/AccessSettings.php
 msgid "No one"
@@ -3482,3 +3442,63 @@ msgstr "Erforderlich"
 msgctxt "SSO sign-in status"
 msgid "Not required"
 msgstr "Nicht erforderlich"
+
+#: includes/Admin/AccessNotice.php
+msgid "Sign in with the SSO account linked to your current WordPress account to continue."
+msgstr "Melde dich mit dem SSO-Konto an, das mit deinem aktuellen WordPress-Konto verknüpft ist."
+
+#: includes/Admin/AccessPolicy.php includes/Admin/AccessSettings.php
+msgid "Select at least one responsible person."
+msgstr "Wähle mindestens eine verantwortliche Person aus."
+
+#: includes/Admin/AccessPolicy.php includes/Admin/AccessSettings.php
+msgid "Ask another responsible administrator to grant you access to bookings."
+msgstr "Für deinen eigenen Buchungszugriff brauchst du die Freigabe einer anderen verantwortlichen Person."
+
+#: includes/Admin/AccessPolicy.php
+msgid "Only administrators of this website can be responsible for access."
+msgstr "Nur Administratoren dieser Website können die Verantwortung für Freigaben übernehmen."
+
+#: includes/Admin/AccessSettings.php
+msgid "Roles for bookings and permissions"
+msgstr "Rollen für Buchungen und Freigaben"
+
+#: includes/Admin/AccessSettings.php
+msgid "Booking access and responsibility for permissions are assigned separately on this website."
+msgstr "Die Rolle einer Person bestimmt, ob sie Freigaben verwalten oder Buchungen einsehen und stornieren darf."
+
+#: includes/Admin/AccessSettings.php
+msgid "No website administrator is currently responsible."
+msgstr "Derzeit ist kein Administrator dieser Website für die Freigaben verantwortlich."
+
+#: includes/Admin/AccessSettings.php
+msgid "Ask your network administrator to reassign responsibility."
+msgstr "Bitte die Netzwerkverwaltung, die Verantwortung neu zu vergeben."
+
+#: includes/Admin/AccessSettings.php
+msgid "Responsible with booking access"
+msgstr "Verantwortlich mit Dateneinsicht"
+
+#: includes/Admin/AccessSettings.php
+msgid "Responsible without booking access"
+msgstr "Verantwortlich ohne Dateneinsicht"
+
+#: includes/Admin/AccessSettings.php
+msgid "Do not assign responsibility"
+msgstr "Keine Verantwortung zuweisen"
+
+#: includes/Admin/AccessSettings.php
+msgid "Only website administrators can manage access. Booking access lets a person view and cancel appointments."
+msgstr "Nur Administratoren dieser Website können die Verantwortung übernehmen. Wer Dateneinsicht hat, darf Termine einsehen und stornieren."
+
+#: includes/Admin/AccessSettings.php
+msgid "Add an administrator to this website before assigning responsibility."
+msgstr "Füge dieser Website zuerst einen Administrator hinzu, der die Verantwortung übernehmen kann."
+
+#: includes/Admin/AccessSettings.php
+msgid "People who will lose booking access"
+msgstr "Diese Personen verlieren den Zugriff auf Buchungen"
+
+#: includes/Admin/AccessSettings.php
+msgid "These roles apply to everyone on this website, including administrators, even when SSO is off."
+msgstr "Die ausgewählten Rollen gelten für alle Personen auf dieser Website, auch für Administratoren und bei ausgeschaltetem SSO."

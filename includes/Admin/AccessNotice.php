@@ -21,7 +21,7 @@ final class AccessNotice
             ],
             'rrze_appointment_sso_required' => [
                 'title' => __('Please sign in with SSO', 'rrze-appointment'),
-                'description' => __('You have permission to manage appointments. Sign in with the SSO account belonging to your WordPress account to continue.', 'rrze-appointment'), 'action' => 'login',
+                'description' => __('Sign in with the SSO account linked to your current WordPress account to continue.', 'rrze-appointment'), 'action' => 'login',
             ],
             'rrze_appointment_sso_identity_mismatch' => [
                 'title' => __('The signed-in accounts do not match', 'rrze-appointment'),

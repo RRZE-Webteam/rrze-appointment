@@ -8,7 +8,7 @@ use function RRZE\Appointment\plugin;
 defined('ABSPATH') || exit;
 
 /**
- * Registers the Appointments admin screen and renders the bookings application or access management forms.
+ * Registers the Appointments menu and renders the authorized booking list.
  */
 final class BookingsPage
 {
@@ -109,45 +109,45 @@ final class BookingsPage
         );
     }
 
-    /** Identifies the independent permissions tab without coercing malformed request values. */
+    /** Recognizes bookmarks for the former appointment permissions tab. */
     private static function accessTab(): bool
     {
         return ($_GET['tab'] ?? '') === 'access';
     }
 
-    /** Sets the denial status before WordPress emits the admin header. */
+    /** Sends administrators with an old permissions link to the settings tab, or sets the denial status. */
     public function prepareResponse(): void
     {
+        if (self::accessTab() && current_user_can('manage_options')) {
+            wp_safe_redirect(BackendSsoSettings::destination('settings'));
+            exit;
+        }
         $access = self::accessTab() ? AppointmentPermissions::grantsAccess() : AppointmentPermissions::dataAccess();
         if (is_wp_error($access)) {
             status_header($access->get_error_data()['status'] ?? 403);
         }
     }
 
-    /** Renders a useful denial, the owner-only forms, or the authorized booking application. */
+    /** Renders a data-free denial or the booking list with a settings link for responsible administrators. */
     public function render(): void
     {
-        $access = self::accessTab() ? AppointmentPermissions::grantsAccess() : AppointmentPermissions::dataAccess();
-        if (is_wp_error($access)) {
-            echo '<div class="wrap"><h1>' . esc_html__('Appointments', 'rrze-appointment') . '</h1>';
-            AccessNotice::render($access, self::accessTab() ? 'access' : 'bookings');
-            echo '</div>';
+        if (self::accessTab()) {
+            AccessSettings::renderManagement();
             return;
         }
-        if (AccessPolicy::owner()) {
-            echo '<nav class="nav-tab-wrapper" aria-label="' . esc_attr__('Appointment management', 'rrze-appointment') . '">';
-            echo '<a class="nav-tab' . (!self::accessTab() ? ' nav-tab-active' : '') . '" href="' . esc_url(BackendSsoSettings::destination('bookings')) . '">' . esc_html__('Appointments', 'rrze-appointment') . '</a>';
-            echo '<a class="nav-tab' . (self::accessTab() ? ' nav-tab-active' : '') . '" href="' . esc_url(AccessSettings::url()) . '">' . esc_html__('Manage access', 'rrze-appointment') . '</a></nav>';
-        }
-        if (self::accessTab()) {
-            echo '<div class="wrap"><h1>' . esc_html__('Manage access', 'rrze-appointment') . '</h1>';
-            AccessSettings::renderManagement();
+        $access = AppointmentPermissions::dataAccess();
+        if (is_wp_error($access)) {
+            echo '<div class="wrap"><h1>' . esc_html__('Appointments', 'rrze-appointment') . '</h1>';
+            AccessNotice::render($access);
             echo '</div>';
             return;
         }
         ?>
         <div class="wrap rrze-appointment-settings-wrap">
             <h1 class="wp-heading-inline"><?php esc_html_e('Appointments', 'rrze-appointment'); ?></h1>
+            <?php if (AccessPolicy::owner()) : ?>
+                <a class="page-title-action" href="<?php echo esc_url(BackendSsoSettings::destination('settings')); ?>"><?php esc_html_e('Manage access', 'rrze-appointment'); ?></a>
+            <?php endif; ?>
             <hr class="wp-header-end">
             <?php AccessSettings::renderConfirmation(); ?>
             <div id="rrze-appointment-admin" class="rrze-appointment-admin">

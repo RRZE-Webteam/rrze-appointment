@@ -1,25 +1,29 @@
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
-/** Renders the standard access form using a site directory with three distinct accounts. */
-function renderAdditionalPeople(): HTMLFormElement {
+/**
+ * Renders the access screen for an isolated site with sample members and roles.
+ *
+ * @param scenario Access fixture scenario.
+ */
+function renderAccessScreen( scenario: string ): void {
 	const result = JSON.parse(
 		execFileSync(
 			'php',
 			[
 				resolve( 'tests/fixtures/backend-sso.php' ),
-				'screen-additional',
+				'screen-' + scenario,
 			],
 			{ encoding: 'utf8' }
 		)
 	);
 	document.body.innerHTML = result.html;
-	return document.querySelector( 'form' )!;
 }
 
 describe( 'standard access grants', () => {
 	it( 'submits the on-screen selection without JavaScript and keeps administrators out of the list', () => {
-		const form = renderAdditionalPeople();
+		renderAccessScreen( 'additional' );
+		const form = document.querySelector( 'form' )!;
 		const users = form.querySelectorAll< HTMLInputElement >(
 			'input[type="checkbox"]'
 		);
@@ -45,9 +49,14 @@ describe( 'standard access grants', () => {
 	} );
 
 	it( 'keeps checked people selected while the name filter hides their rows', () => {
-		const form = renderAdditionalPeople();
+		renderAccessScreen( 'additional' );
+		const form = document.querySelector( 'form' )!;
 		require( '../assets/js/rrze-appointment-admin' );
 		document.dispatchEvent( new Event( 'DOMContentLoaded' ) );
+		expect(
+			form.querySelector( '[data-access-owner-feedback]' )
+		).toBeNull();
+		expect( form.querySelector( '[aria-disabled="true"]' ) ).toBeNull();
 		const search = form.querySelector< HTMLInputElement >(
 			'input[type="search"]'
 		)!;
@@ -66,5 +75,58 @@ describe( 'standard access grants', () => {
 		expect(
 			form.querySelector< HTMLElement >( '[data-access-empty]' )!.hidden
 		).toBe( false );
+	} );
+} );
+
+describe( 'responsibility feedback', () => {
+	it( 'counts both responsibility roles across filtered rows and focuses the instruction on an invalid submission', () => {
+		renderAccessScreen( 'network-configured' );
+		const form = document.querySelector< HTMLFormElement >(
+			'form:has([name="role_form"])'
+		)!;
+		form.closest( 'details' )?.setAttribute( 'open', '' );
+		require( '../assets/js/rrze-appointment-admin' );
+		document.dispatchEvent( new Event( 'DOMContentLoaded' ) );
+		const feedback = form.querySelector< HTMLElement >(
+			'[data-access-owner-feedback]'
+		)!;
+		const submit =
+			form.querySelector< HTMLButtonElement >( '[type="submit"]' )!;
+		const owner = Array.from( form.querySelectorAll( 'select' ) ).find(
+			( field ) => field.value === 'owners'
+		)!;
+		expect( feedback.getAttribute( 'aria-live' ) ).toBe( 'polite' );
+		expect( feedback.textContent ).toBe( '' );
+
+		owner.value = 'managers';
+		owner.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+		expect( feedback.textContent ).toBe(
+			'Select at least one responsible person.'
+		);
+		expect( submit.getAttribute( 'aria-disabled' ) ).toBe( 'true' );
+		expect( submit.disabled ).toBe( false );
+		const submission = new Event( 'submit', {
+			bubbles: true,
+			cancelable: true,
+		} );
+		expect( form.dispatchEvent( submission ) ).toBe( false );
+		expect( feedback.ownerDocument.activeElement ).toBe( feedback );
+
+		for ( const role of [ 'access_owners', 'owners' ] ) {
+			owner.value = role;
+			owner.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+			expect( feedback.textContent ).toBe( '' );
+			expect( submit.getAttribute( 'aria-disabled' ) ).toBe( 'false' );
+		}
+		const search =
+			form.querySelector< HTMLInputElement >( '[type="search"]' )!;
+		search.value = 'no matching account';
+		search.dispatchEvent( new Event( 'input' ) );
+		expect(
+			owner.closest< HTMLElement >( '[data-access-person]' )!.hidden
+		).toBe( true );
+		expect(
+			form.dispatchEvent( new Event( 'submit', { cancelable: true } ) )
+		).toBe( true );
 	} );
 } );

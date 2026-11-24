@@ -111,7 +111,7 @@ describe( 'backend SSO authorization', () => {
 			scenario( 'managers-valid' ).result.appointment_manager_user_ids
 		).toEqual( [ 9 ] );
 	} );
-	it.each( [ 'enable', 'disable' ] )(
+	it.each( [ 'enable', 'disable', 'access-owner' ] )(
 		'allows network administrators to %s SSO for a site without booking access',
 		( operation ) => {
 			const result = scenario( 'network-sso-' + operation );
@@ -121,7 +121,7 @@ describe( 'backend SSO authorization', () => {
 				[
 					1,
 					'rrze_appointment_backend_sso_required',
-					operation === 'enable' ? '1' : '0',
+					operation === 'disable' ? '0' : '1',
 					false,
 				],
 			] );
@@ -171,9 +171,9 @@ describe( 'backend SSO authorization', () => {
 		expect( activation.redirect ).toBe( accessTab + '&sso_updated=enable' );
 		expect( activation.writes ).toHaveLength( 1 );
 	} );
-	it( 'returns a responsible editor to the access form after SSO login', () => {
+	it( 'returns a responsible administrator using a previous login link to the settings tab', () => {
 		const accessTab =
-			'https://site1.test/wp-admin/admin.php?page=rrze-appointment-bookings&tab=access';
+			'https://site1.test/wp-admin/options-general.php?page=rrze-appointment-settings&tab=access';
 		const result = scenario( 'http-login-access' );
 		expect( result.authCalls[ 0 ].ReturnTo ).toBe( accessTab );
 		expect( result.redirect ).toBe( accessTab );

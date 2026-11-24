@@ -24,7 +24,6 @@ final class BackendSsoSettings
     {
         return match ($destination) {
             'bookings' => admin_url('admin.php?page=' . BookingsPage::PAGE_SLUG),
-            'access' => admin_url('admin.php?page=' . BookingsPage::PAGE_SLUG . '&tab=access'),
             default => admin_url('options-general.php?page=' . SettingsPage::PAGE_SLUG . '&tab=access'),
         };
     }
@@ -150,10 +149,8 @@ final class BackendSsoSettings
         if (is_wp_error($policy)) {
             return $policy;
         }
-        foreach ($policy['owners'] ?? [] as $owner) {
-            if (AccessPolicy::eligible($owner)) {
-                return true;
-            }
+        if (is_array($policy) && AccessPolicy::hasEligibleOwner($policy)) {
+            return true;
         }
         return new \WP_Error('rrze_appointment_setup_required',
             __('Assign at least one responsible person and save access before enabling SSO.', 'rrze-appointment'), ['status' => 400]);

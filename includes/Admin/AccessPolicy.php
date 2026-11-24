@@ -16,8 +16,8 @@ final class AccessPolicy
      * Reads the site's grants and their revision for use in access checks.
      *
      * @return array{
-     *     version: 1, restricted: true, revision: positive-int,
-     *     owners: non-empty-array<array-key, positive-int>, managers: array<array-key, positive-int>
+     *     version: 1|2, restricted: true, revision: positive-int,
+     *     owners: int[], managers: int[], access_owners: int[]
      * }|\WP_Error|null Valid grants, null for an unconfigured site, or a WP_Error for unreadable or malformed grants.
      */
     public static function read(): array|\WP_Error|null
@@ -31,20 +31,43 @@ final class AccessPolicy
         return $value === $missing ? null : self::validate($value);
     }
 
-    /** Validates persisted structure without silently repairing or broadening grants. */
+    /**
+     * Validates the stored format and presents 2.5.0 editor owners as booking managers.
+     *
+     * @param mixed $value Raw site option. Version 1 could name editors as responsible people.
+     * @return array|\WP_Error Effective role groups, or an error for unsupported or malformed data.
+     */
     private static function validate(mixed $value): array|\WP_Error
     {
-        if (!is_array($value) || ($value['version'] ?? null) !== 1
+        if (!is_array($value) || !in_array($value['version'] ?? null, [1, 2], true)
             || ($value['restricted'] ?? null) !== true
             || !is_int($value['revision'] ?? null) || $value['revision'] < 1
-            || !is_array($value['owners'] ?? null) || !$value['owners']
+            || !is_array($value['owners'] ?? null)
             || !is_array($value['managers'] ?? null)) {
             return self::unavailable();
         }
-        foreach (array_merge($value['owners'], $value['managers']) as $id) {
+        $legacy = $value['version'] === 1;
+        $accessOwners = $legacy ? [] : ($value['access_owners'] ?? null);
+        if (!is_array($accessOwners) || (!$value['owners'] && !$accessOwners)) {
+            return self::unavailable();
+        }
+        $ids = array_merge($value['owners'], $value['managers'], $accessOwners);
+        foreach ($ids as $id) {
             if (!is_int($id) || $id < 1) {
                 return self::unavailable();
             }
+        }
+        if (!$legacy && count(array_unique($ids)) !== count($ids)) {
+            return self::unavailable();
+        }
+        $value['access_owners'] = $accessOwners;
+        if ($legacy) {
+            $oldOwners = $value['owners'];
+            $value['owners'] = array_values(array_filter($oldOwners, [self::class, 'eligibleOwner']));
+            $value['managers'] = array_values(array_unique(array_diff(
+                array_merge($value['managers'], $oldOwners),
+                $value['owners']
+            )));
         }
         return $value;
     }
@@ -64,12 +87,62 @@ final class AccessPolicy
             && (user_can($user, 'edit_others_posts') || user_can($user, 'manage_options'));
     }
 
-    /** Checks ownership independently of SSO so a responsible user can reach login. */
+    /**
+     * Checks the administrative capability of the actual site membership, independently of network privileges.
+     *
+     * @param int $id WordPress user ID to consider for a responsible role.
+     */
+    public static function eligibleOwner(int $id): bool
+    {
+        $user = $id > 0 ? get_userdata($id) : false;
+        return $user && is_user_member_of_blog($id, get_current_blog_id()) && !empty($user->allcaps['manage_options'])
+            && user_can($user, 'read') && user_can($user, 'manage_options');
+    }
+
+    /**
+     * Checks whether a policy still has a responsible administrator with either data-access choice.
+     *
+     * @param array $policy Valid policy from read().
+     */
+    public static function hasEligibleOwner(array $policy): bool
+    {
+        foreach (array_merge($policy['owners'], $policy['access_owners']) as $id) {
+            if (self::eligibleOwner($id)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Checks booking rights in a configured policy before the separate SSO check.
+     *
+     * @param array $policy Valid policy from read().
+     * @param int $id Site member requesting access.
+     */
+    public static function hasBookingGrant(array $policy, int $id): bool
+    {
+        return (in_array($id, $policy['owners'], true) && self::eligibleOwner($id))
+            || (in_array($id, $policy['managers'], true) && self::eligible($id));
+    }
+
+    /** Returns whether the acting account may reassign responsibility on an already restricted site. */
+    public static function canRecover(): bool
+    {
+        $policy = self::read();
+        if (is_multisite()) {
+            return $policy !== null && BackendSsoAccess::canManageNetworkAccess();
+        }
+        return is_array($policy) && self::eligibleOwner(get_current_user_id()) && !self::hasEligibleOwner($policy);
+    }
+
+    /** Checks both kinds of responsibility independently of SSO so an administrator can reach login. */
     public static function owner(): bool
     {
         $policy = self::read();
-        return is_array($policy) && self::eligible(get_current_user_id())
-            && in_array(get_current_user_id(), $policy['owners'], true);
+        $id = get_current_user_id();
+        return is_array($policy) && self::eligibleOwner($id)
+            && (in_array($id, $policy['owners'], true) || in_array($id, $policy['access_owners'], true));
     }
 
     /** Binds a form to the current policy, SSO state and any legacy grants included in first-time setup. */
@@ -110,38 +183,59 @@ final class AccessPolicy
      * Applies an explicitly confirmed setup, owner update or network recovery.
      *
      * @param string $operation setup, save, network_setup, network_save or recover.
-     * @param array $owners Submitted responsible user IDs.
+     * @param array $owners Submitted responsible administrators with booking access.
      * @param array $managers Submitted ordinary manager IDs.
      * @param string $token Observed policy token, bound into the form nonce.
+     * @param array|null $accessOwners Submitted responsible administrators without booking access.
+     *                                Null denotes a 2.5.0 submission which cannot describe the new role.
      * @return true|\WP_Error True when the site-local grants were saved.
      */
-    public static function change(string $operation, array $owners, array $managers, string $token): true|\WP_Error
+    public static function change(string $operation, array $owners, array $managers, string $token, ?array $accessOwners = null): true|\WP_Error
     {
-        return self::locked(static function (OptionDatabase $database) use ($operation, $owners, $managers, $token) {
+        return self::locked(static function (OptionDatabase $database) use ($operation, $owners, $managers, $token, $accessOwners) {
             $policy = self::read();
             $access = self::authorizeChange($operation, $policy);
             if (is_wp_error($access)) {
                 return $access;
             }
-            if (!hash_equals(self::token(), $token)) {
+            $legacyForm = $accessOwners === null;
+            if (!hash_equals(self::token(), $token) || ($legacyForm && is_array($policy) && $policy['version'] === 2)) {
                 return self::conflict();
             }
-            $owners = self::submittedIds($owners);
-            $managers = $operation === 'recover' && is_array($policy)
-                ? $policy['managers'] : self::submittedIds($managers);
-            if (is_wp_error($owners) || is_wp_error($managers)) {
-                return self::invalidUsers();
+            $owners = self::submittedIds($owners, true);
+            $accessOwners = self::submittedIds($accessOwners ?? [], true);
+            if (is_wp_error($owners) || is_wp_error($accessOwners) || array_intersect($owners, $accessOwners)) {
+                return self::invalidOwners();
             }
-            if ($operation === 'setup') {
-                $owners[] = get_current_user_id();
+            if ($operation === 'recover') {
+                $managers = is_array($policy) ? $policy['managers'] : [];
+            } else {
+                $managers = self::submittedIds($managers);
+            }
+            if (is_wp_error($managers)) {
+                return $managers;
+            }
+            $actor = get_current_user_id();
+            if ($operation === 'setup' && $legacyForm) {
+                $owners[] = $actor;
                 $owners = array_values(array_unique($owners));
             }
-            if (!$owners) {
+            if ((!$owners && !$accessOwners)
+                || ($operation === 'setup' && !in_array($actor, $owners, true) && !in_array($actor, $accessOwners, true))) {
                 return new \WP_Error('rrze_appointment_owner_required',
-                    __('Keep at least one eligible responsible person. Add a successor before removing yourself.', 'rrze-appointment'), ['status' => 400]);
+                    __('Select at least one responsible person.', 'rrze-appointment'), ['status' => 400]);
             }
-            $next = ['version' => 1, 'restricted' => true, 'revision' => is_array($policy) ? $policy['revision'] + 1 : 1,
-                'owners' => $owners, 'managers' => $operation === 'recover' ? $managers : array_values(array_diff($managers, $owners))];
+            $managers = array_values(array_diff($managers, $owners, $accessOwners));
+            if ($policy !== null && (in_array($actor, $owners, true) || in_array($actor, $managers, true))
+                && !(is_array($policy) && self::hasBookingGrant($policy, $actor))) {
+                return new \WP_Error('rrze_appointment_self_grant_forbidden',
+                    __('Ask another responsible administrator to grant you access to bookings.', 'rrze-appointment'), ['status' => 403]);
+            }
+            $next = ['version' => $legacyForm ? 1 : 2, 'restricted' => true, 'revision' => is_array($policy) ? $policy['revision'] + 1 : 1,
+                'owners' => $owners, 'managers' => $managers];
+            if (!$legacyForm) {
+                $next['access_owners'] = $accessOwners;
+            }
             $previous = $database->read(self::OPTION_NAME);
             return $database->replace(self::OPTION_NAME, $previous, serialize($next)) ? true : self::conflict();
         });
@@ -159,8 +253,8 @@ final class AccessPolicy
         $permitted = match ($operation) {
             'network_setup' => BackendSsoAccess::canManageNetworkAccess() && $policy === null,
             'network_save' => BackendSsoAccess::canManageNetworkAccess() && is_array($policy),
-            'recover' => BackendSsoAccess::canManageNetworkAccess() && $policy !== null,
-            'setup' => $policy === null && current_user_can('manage_options') && self::eligible(get_current_user_id()),
+            'recover' => self::canRecover(),
+            'setup' => $policy === null && self::eligibleOwner(get_current_user_id()),
             'save' => self::owner(),
             default => false,
         };
@@ -168,20 +262,26 @@ final class AccessPolicy
             return AppointmentPermissions::forbidden();
         }
         return match ($operation) {
-            'recover' => true,
+            'recover' => is_multisite() ? true : BackendSsoAccess::check(),
             'network_setup', 'network_save' => BackendSsoAccess::verifyIdentity(),
             default => BackendSsoAccess::check(),
         };
     }
 
-    /** Rejects malformed or ineligible submitted IDs rather than silently dropping grants. */
-    private static function submittedIds(array $values): array|\WP_Error
+    /**
+     * Validates IDs against the site capabilities required by their proposed role.
+     *
+     * @param array $values Submitted numeric IDs.
+     * @param bool $responsible Whether the target users must be site administrators.
+     * @return int[]|\WP_Error Sorted and deduplicated IDs, or a role-specific validation error.
+     */
+    private static function submittedIds(array $values, bool $responsible = false): array|\WP_Error
     {
         $ids = [];
         foreach ($values as $value) {
             if ((!is_int($value) && !is_string($value)) || !preg_match('/^[1-9][0-9]*$/D', (string) $value)
-                || !self::eligible((int) $value)) {
-                return self::invalidUsers();
+                || !($responsible ? self::eligibleOwner((int) $value) : self::eligible((int) $value))) {
+                return $responsible ? self::invalidOwners() : self::invalidUsers();
             }
             $ids[] = (int) $value;
         }
@@ -195,6 +295,13 @@ final class AccessPolicy
     {
         return new \WP_Error('rrze_appointment_invalid_users',
             __('Select current members of this website with at least editor permissions.', 'rrze-appointment'), ['status' => 400]);
+    }
+
+    /** Explains the site administrator requirement for both types of responsibility. */
+    private static function invalidOwners(): \WP_Error
+    {
+        return new \WP_Error('rrze_appointment_invalid_owners',
+            __('Only administrators of this website can be responsible for access.', 'rrze-appointment'), ['status' => 400]);
     }
 
     /** Reports a stale form without overwriting another responsible person's changes. */

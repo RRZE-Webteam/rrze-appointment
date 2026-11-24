@@ -31,12 +31,15 @@ function checked($condition): void { if ($condition) { echo ' checked'; } }
 function settings_fields($group): void {}
 /** Returns a deterministic, action-bound nonce for preview and submit requests. */
 function wp_create_nonce($action): string { return $action; }
+/** Builds a local, action-bound SSO link for the recovery login prompt. */
+function wp_nonce_url($url, $action): string { return add_query_arg('_wpnonce', wp_create_nonce($action), $url); }
 /** Prints the single action of a normal role update or a recovery. */
 function submit_button($label): void { echo '<button type="submit">' . esc_html($label) . '</button>'; }
 
-$options[1][BackendSsoAccess::OPTION_NAME] = '0';
+$options[1][BackendSsoAccess::OPTION_NAME] = str_contains($scenario, 'protected') ? '1' : '0';
 $options[1]['rrze_appointment_settings']['appointment_manager_user_ids'] = [8, 10];
 $demoted = [10];
+$editors = [8];
 if (str_contains($scenario, 'large')) {
     $fixtureUserIds = range(7, 1018);
 }
@@ -50,23 +53,39 @@ $authenticated = !str_contains($scenario, 'expired');
 if (str_contains($scenario, 'configured')) {
     $options[1][AccessPolicy::OPTION_NAME] = ['restricted' => true, 'version' => 1, 'revision' => 1, 'owners' => [9], 'managers' => [8]];
 }
-parse_str(stream_get_contents(STDIN), $_POST);
-$_SERVER['REQUEST_METHOD'] = $_POST ? 'POST' : 'GET';
-if (str_contains($scenario, 'submit')) {
-    try {
-        (new AccessSettings())->handle();
-    } catch (TestStopped $error) {
-        echo json_encode(['status' => $error->getCode(), 'writes' => $writes]);
-    }
-} else {
-    ob_start();
-    require_once $root . '/includes/Admin/MailTemplatesPage.php';
-    $page = new SettingsPage(new MailTemplatesPage());
-    if (str_contains($scenario, 'no-callback')) {
-        AccessSettings::renderSettings();
-    } else {
-        AccessSettings::renderSettings([$page, 'renderAppointmentManagersField']);
-    }
-    $html = ob_get_clean();
-    echo json_encode(['html' => $html, 'writes' => $writes, 'reads' => $bookingReads]);
+if (str_contains($scenario, 'access-only')) {
+    $options[1][AccessPolicy::OPTION_NAME] = ['restricted' => true, 'version' => 2, 'revision' => 1,
+        'owners' => [], 'access_owners' => [7], 'managers' => [8]];
 }
+if (str_contains($scenario, 'orphan')) {
+    $options[1][AccessPolicy::OPTION_NAME] = ['restricted' => true, 'version' => 1, 'revision' => 1,
+        'owners' => [8], 'managers' => [9]];
+}
+$multisite = !str_contains($scenario, 'single');
+parse_str(stream_get_contents(STDIN), $_POST);
+$_GET['tab'] = 'access';
+$_SERVER['REQUEST_METHOD'] = $_POST ? 'POST' : 'GET';
+$screen = new AccessSettings();
+try {
+    if (str_contains($scenario, 'submit')) {
+        $screen->handle();
+        exit;
+    }
+    $screen->handleSettingsPost();
+} catch (TestStopped $error) {
+    echo json_encode(['status' => $error->getCode(), 'writes' => $writes]);
+    exit;
+}
+
+ob_start();
+require_once $root . '/includes/Admin/MailTemplatesPage.php';
+$page = new SettingsPage(new MailTemplatesPage());
+if (str_contains($scenario, 'recovery')) {
+    AccessSettings::renderRecovery();
+} elseif (str_contains($scenario, 'no-callback')) {
+    AccessSettings::renderSettings();
+} else {
+    AccessSettings::renderSettings([$page, 'renderAppointmentManagersField']);
+}
+$html = ob_get_clean();
+echo json_encode(['html' => $html, 'writes' => $writes, 'reads' => $bookingReads, 'recoveryOpen' => AccessSettings::recoveryOpen()]);

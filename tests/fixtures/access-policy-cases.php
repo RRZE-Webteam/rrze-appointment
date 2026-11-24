@@ -8,7 +8,7 @@ $key = AccessPolicy::OPTION_NAME;
 $options[1][$key] = ['version' => 1, 'restricted' => true, 'revision' => 1, 'owners' => [7], 'managers' => [8]];
 $token = AccessPolicy::token();
 $extra = [];
-if (in_array($scenario, ['policy-owner', 'policy-manager', 'policy-off-manager'], true)) {
+if (in_array($scenario, ['policy-owner', 'policy-manager', 'policy-off-manager', 'policy-editor-owner'], true)) {
     $fakeBookings = [['slot' => 'slot', 'date' => '2099-01-01', 'time' => '10:00-10:30', 'title' => 'Test appointment',
         'person_name' => 'Host', 'booker_name' => 'Test Patient', 'booker_email' => 'patient@example.test', 'admin_anonymized' => false]];
     $requestParams = ['slot' => 'slot'];
@@ -29,7 +29,92 @@ switch ($scenario) {
     case 'policy-off-manager': $options[1][BackendSsoAccess::OPTION_NAME] = '0'; $user = 8; break;
     case 'policy-editor-owner': $caps['manage_options'] = false; break;
 }
-if (str_starts_with($scenario, 'policy-http-')) {
+if (str_starts_with($scenario, 'policy-split-')) {
+    $options[1][$key] = ['version' => 2, 'restricted' => true, 'revision' => 2, 'owners' => [],
+        'access_owners' => [7], 'managers' => [8]];
+    $name = substr($scenario, strlen('policy-split-'));
+    $token = AccessPolicy::token();
+    switch ($name) {
+        case 'off':
+        case 'sso':
+        case 'expired':
+            $options[1][BackendSsoAccess::OPTION_NAME] = $name === 'off' ? '0' : '1';
+            $authenticated = $name !== 'expired';
+            $result = $controller->getBookings(new WP_REST_Request());
+            $cancel = $controller->cancelBooking(new WP_REST_Request());
+            $extra = ['base' => AppointmentPermissions::currentUserCanManage(), 'grants' => AppointmentPermissions::grantsAccess()];
+            break;
+        case 'demoted':
+            $editors = [7];
+            $result = AppointmentPermissions::dataAccess();
+            $extra['grants'] = AppointmentPermissions::grantsAccess();
+            break;
+        case 'delegate':
+            $result = AccessPolicy::change('save', [9], [8], $token, [7]);
+            break;
+        case 'self-owner':
+        case 'self-manager':
+        case 'self-network':
+        case 'self-recover':
+            $super = true;
+            $operation = match ($name) { 'self-network' => 'network_save', 'self-recover' => 'recover', default => 'save' };
+            $owners = $name === 'self-manager' ? [9] : [7];
+            $managers = $name === 'self-manager' ? [7] : [];
+            $result = AccessPolicy::change($operation, $owners, $managers, $token, []);
+            break;
+        case 'after-removal':
+            $super = true;
+            $extra['first'] = AccessPolicy::change('save', [9], [8], $token, []);
+            $result = AccessPolicy::change('network_save', [9], [7, 8], AccessPolicy::token(), []);
+            break;
+        case 'legacy-form':
+            $result = AccessPolicy::change('save', [9], [8], $token);
+            break;
+        case 'bad-overlap':
+            $options[1][$key]['managers'][] = 7;
+            $result = AppointmentPermissions::dataAccess();
+            break;
+        case 'invalid-owner':
+        case 'invalid-access-owner':
+            $editors = [9];
+            $owners = $name === 'invalid-owner' ? [9] : [];
+            $accessOwners = $name === 'invalid-access-owner' ? [7, 9] : [7];
+            $result = AccessPolicy::change('save', $owners, [8], $token, $accessOwners);
+            break;
+        case 'network-member-editor':
+            $super = true;
+            $editors = [7];
+            $result = AccessPolicy::change('network_save', [9], [8], $token, [7]);
+            break;
+        case 'setup':
+            unset($options[1][$key]);
+            $result = AccessPolicy::change('setup', [], [8], AccessPolicy::token(), [7]);
+            $extra['booking'] = AppointmentPermissions::currentUserCanManage();
+            break;
+        case 'new-format-demotion':
+            $options[1][$key] = ['version' => 1, 'restricted' => true, 'revision' => 1, 'owners' => [7], 'managers' => [8]];
+            $result = AccessPolicy::change('save', [7, 9], [8], AccessPolicy::token(), []);
+            $editors = [7];
+            $extra['booking'] = AppointmentPermissions::currentUserCanManage();
+            $extra['owner'] = AccessPolicy::owner();
+            break;
+        case 'recover-orphan':
+        case 'recover-network-only':
+        case 'recover-self':
+        case 'recover-active':
+        case 'recover-expired':
+            $multisite = $name === 'recover-network-only';
+            $options[1][$key] = ['version' => 1, 'revision' => 1, 'restricted' => true, 'owners' => [9], 'managers' => [8]];
+            $editors = $name === 'recover-active' ? [] : [9];
+            $authenticated = $name !== 'recover-expired';
+            $extra['before'] = AccessPolicy::read();
+            $extra['canRecover'] = AccessPolicy::canRecover();
+            $result = AccessPolicy::change('recover', $name === 'recover-self' ? [7] : [], [], AccessPolicy::token(),
+                $name === 'recover-self' ? [] : [7]);
+            break;
+        default: throw new RuntimeException('Unknown separated responsibility scenario.');
+    }
+} elseif (str_starts_with($scenario, 'policy-http-')) {
     $_SERVER['REQUEST_METHOD'] = 'POST';
     $_POST = ['operation' => 'save', 'policy_token' => $token, 'owners' => [7, 9], 'managers' => [8],
         '_wpnonce' => \RRZE\Appointment\Admin\AccessSettings::nonceAction('save', $token)];
@@ -42,7 +127,6 @@ if (str_starts_with($scenario, 'policy-http-')) {
         case 'policy-http-admin': $user = 10; break;
         case 'policy-http-transfer':
         case 'policy-http-transfer-manager':
-            $caps['manage_options'] = false;
             $_POST['owners'] = [9];
             $_POST['managers'] = $scenario === 'policy-http-transfer-manager' ? [7] : [];
             break;
@@ -98,6 +182,9 @@ if (str_starts_with($scenario, 'policy-http-')) {
         case 'policy-editor-owner':
             $result = AccessPolicy::change('save', [7, 9], [8], $token);
             $extra['sso'] = $settings->perform('disable');
+            $extra['list'] = $controller->getBookings(new WP_REST_Request());
+            $extra['cancel'] = $controller->cancelBooking(new WP_REST_Request());
+            $extra['policy'] = AccessPolicy::read();
             break;
         case 'policy-manager-save':
         case 'policy-admin-save':

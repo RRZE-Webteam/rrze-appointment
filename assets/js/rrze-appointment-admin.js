@@ -5,11 +5,54 @@ document.addEventListener( 'DOMContentLoaded', () => {
 	document
 		.querySelectorAll( '[data-access-directory]' )
 		.forEach( initializePersonFilter );
+	document
+		.querySelectorAll( '[data-access-owner-feedback]' )
+		.forEach( initializeOwnerFeedback );
 
 	if ( window.wp?.media ) {
 		initializeIllustrationFields();
 	}
 } );
+
+/**
+ * Requires one responsible administrator across all rows in this role form.
+ *
+ * @param {HTMLElement} feedback Focusable live region with the localized instruction.
+ */
+function initializeOwnerFeedback( feedback ) {
+	const form = feedback.closest( 'form' );
+	const roles = Array.from(
+		form.querySelectorAll( '[data-access-person] select' )
+	);
+	const submit = form.querySelector( '[type="submit"]' );
+
+	/**
+	 * Updates the instruction and keeps the submit button reachable by keyboard.
+	 *
+	 * @return {boolean} Whether the selection includes a responsible person.
+	 */
+	function updateFeedback() {
+		const valid = roles.some(
+			( role ) =>
+				role.value === 'owners' || role.value === 'access_owners'
+		);
+		const message = valid ? '' : feedback.dataset.message;
+		if ( feedback.textContent !== message ) {
+			feedback.textContent = message;
+		}
+		submit?.setAttribute( 'aria-disabled', String( ! valid ) );
+		return valid;
+	}
+
+	form.addEventListener( 'change', updateFeedback );
+	form.addEventListener( 'submit', ( event ) => {
+		if ( ! updateFeedback() ) {
+			event.preventDefault();
+			feedback.focus();
+		}
+	} );
+	updateFeedback();
+}
 
 /**
  * Filters visible site members by their display name or login. Hidden rows keep their selected roles.

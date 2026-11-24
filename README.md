@@ -93,7 +93,7 @@ read-only verification, scheduling and restore requirements.
 
 The **General** tab shows who can manage appointments and whether SSO is required.
 Open **Access & SSO** on the relevant site's RRZE Appointment settings page to change either setting.
-Access roles determine who can view or cancel bookings. Switching on SSO adds an identity check
+Access roles determine who can work with bookings and who can assign roles. Switching on SSO adds an identity check
 for everyone on that site's appointment management screen. Each site's SSO setting starts off.
 
 To enable protection, choose the responsible people and everyone who can view and cancel bookings.
@@ -143,29 +143,35 @@ permissions until someone explicitly saves this setup.
 
 | Appointment role | View and cancel bookings | Assign appointment roles |
 | --- | --- | --- |
-| Responsible person | Yes | Yes |
+| Responsible with booking access | Yes | Yes |
+| Responsible without booking access | No | Yes |
 | View and cancel | Yes | No |
 | No access | No | No |
 
-People selected for either role must belong to the current site and have `read` plus
-`edit_others_posts` or `manage_options`. At least one eligible responsible person must remain.
-Responsible people, including editors, can manage roles under **Appointments → Manage access**.
-A multisite super administrator with a matching SSO identity can assign both roles on behalf of
-the site and select another person as responsible. The acting super administrator can remain
-outside the access list.
+Both responsible roles require administrator permissions on the current site. At least one
+eligible responsible administrator must remain. Other site members with editor permissions
+can receive the **View and cancel** role. Manage roles under **Settings → RRZE Appointment →
+Access & SSO**. A responsible administrator without booking access can assign roles to other
+people. Another authorized account must grant that administrator access to bookings.
+A multisite super administrator with matching SSO can assign roles on behalf of a site.
 
 Membership, capabilities and, when required, the matching SSO session are checked on each request.
 Removing or demoting someone takes effect immediately. Explicit restrictions also apply when SSO
-is off. A damaged or empty policy blocks booking access. If the responsible people are unavailable,
+is off. A damaged policy blocks booking access. If the responsible people are unavailable,
 a multisite super administrator can use the recovery controls without their own SSO session.
+On a single-site installation, a site administrator can reassign responsibility when a readable
+policy has no eligible responsible administrator. The site's SSO requirement applies to that action.
 **Reassign responsibility** preserves ordinary grants and the SSO setting. If the policy is damaged,
 the selected responsible people form a new policy. The separate **SSO emergency reset** turns SSO
 off for this site and keeps its access list. Recovery gives the acting administrator no automatic
 access to bookings. Changes require an authenticated POST with a WordPress nonce bound to the
 site, action and observed revision.
 
-The non-autoloaded, per-site option `rrze_appointment_access_policy` stores a version, the restricted
-state, owners, managers and a revision. It is separate from ordinary settings and booking encryption.
+The site option `rrze_appointment_access_policy` keeps the grants and their revision. In a
+2.5.0 access list, existing responsible administrators retain booking access. Existing responsible
+editors retain permission to view and cancel bookings. Saving the new role form writes format 2,
+which records responsible administrators without booking access separately. When an installation
+returns to the previous 2.5.0 code, that code denies booking access on sites with a format 2 list.
 The old `appointment_manager_user_ids` field is ignored and preserved after setup. Security writes
 share a bounded database advisory lock, refresh option caches, reject stale forms (409), and preserve
 the previous policy on failure. Policy writes use compare-and-swap; failures deny access (503).
@@ -178,7 +184,7 @@ Responsible names are shown only to authenticated site members, never in denied 
 The open application clears its list and cancellation dialog on access failures and rejects late responses.
 The existing REST list/cancellation URLs and their SSO status codes remain unchanged.
 
-Validation covers setup/legacy compatibility, ordinary and responsible editors, excluded admins,
+Validation covers setup/legacy compatibility, responsible administrators with and without booking access, excluded admins,
 SSO failures, nonce manipulation, last-owner protection, stale forms, role/member loss, network recovery,
 site isolation, and late frontend responses. Public booking, mail, cron and encrypted migration retain
 independent authorization paths. Build without a version bump using

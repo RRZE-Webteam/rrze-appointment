@@ -113,10 +113,21 @@ namespace {
         if (!in_array($id, $GLOBALS['fixtureUserIds'], true) || in_array($id, $GLOBALS['deleted'] ?? [], true)) {
             return false;
         }
-        return (object) ['ID' => $id, 'display_name' => 'User ' . $id, 'user_login' => 'user' . $id];
+        $admin = !in_array($id, $GLOBALS['editors'] ?? [], true)
+            && !in_array($id, $GLOBALS['demoted'] ?? [], true)
+            && ($id !== get_current_user_id() || current_user_can('manage_options'));
+        return (object) ['ID' => $id, 'display_name' => 'User ' . $id, 'user_login' => 'user' . $id,
+            'allcaps' => ['manage_options' => $admin]];
     }
     /** Models capability changes independently from grants. */
-    function user_can($user, $cap): bool { return !in_array($user->ID, $GLOBALS['demoted'] ?? [], true) && ($user->ID !== get_current_user_id() || $cap === 'read' || $cap === 'edit_others_posts' || current_user_can($cap)); }
+    function user_can($user, $cap): bool
+    {
+        if ($cap === 'manage_options') {
+            return $user->allcaps['manage_options'] || ($GLOBALS['super'] && $user->ID === get_current_user_id());
+        }
+        return !in_array($user->ID, $GLOBALS['demoted'] ?? [], true)
+            && ($user->ID !== get_current_user_id() || $cap === 'read' || $cap === 'edit_others_posts' || current_user_can($cap));
+    }
     /** Synthetic options have no cache, but production code must still evict it. */
     function wp_cache_delete(...$args): bool { return true; }
     /** Converts manager IDs in the production permission class. */
@@ -151,7 +162,7 @@ namespace {
         return null;
     }
     /** Models a multisite deployment. */
-    function is_multisite(): bool { return true; }
+    function is_multisite(): bool { return $GLOBALS['multisite'] ?? true; }
     /** Models network-admin status independently of site capabilities. */
     function is_super_admin(): bool { return $GLOBALS['super']; }
     /** Checks the nonce and binds form nonces to the simulated site. */
@@ -278,6 +289,11 @@ namespace {
             case 'network-sso-stale': $options[1][$policyName]['revision']++; break;
             case 'network-sso-corrupt': $options[1][$policyName] = 'damaged'; break;
             case 'network-sso-no-owner': $demoted = [7]; break;
+            case 'network-sso-access-owner':
+                $options[1][$policyName]['version'] = 2;
+                $options[1][$policyName]['owners'] = [];
+                $options[1][$policyName]['access_owners'] = [7];
+                break;
         }
         if ($scenario !== 'network-sso-stale') {
             $token = \RRZE\Appointment\Admin\AccessPolicy::token();
@@ -318,7 +334,6 @@ namespace {
                     'http-login' => 'bookings', 'http-login-settings' => 'settings', default => 'access',
                 };
                 if ($destination === 'access') {
-                    $caps['manage_options'] = false;
                     $owner = $scenario === 'http-login-access' ? 7 : 9;
                     $options[1][\RRZE\Appointment\Admin\AccessPolicy::OPTION_NAME] = [
                         'version' => 1, 'restricted' => true, 'revision' => 1, 'owners' => [$owner], 'managers' => [8],
