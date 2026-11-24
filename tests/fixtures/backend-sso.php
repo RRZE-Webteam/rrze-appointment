@@ -108,9 +108,35 @@ namespace {
     /** Models site membership for delegated managers. */
     function is_user_member_of_blog($id, ...$args): bool { return !in_array($id, $GLOBALS['nonMembers'] ?? [], true); }
     /** Supplies eligible synthetic accounts, with explicit deletion and role-loss controls. */
-    function get_userdata($id): mixed { return in_array($id, [7, 8, 9, 10], true) && !in_array($id, $GLOBALS['deleted'] ?? [], true) ? (object) ['ID' => $id, 'display_name' => 'User ' . $id, 'user_login' => 'user' . $id] : false; }
-    /** Models capability changes independently from grants. */
-    function user_can($user, $cap): bool { return !in_array($user->ID, $GLOBALS['demoted'] ?? [], true) && ($user->ID !== get_current_user_id() || $cap === 'read' || $cap === 'edit_others_posts' || current_user_can($cap)); }
+    function get_userdata($id): mixed
+    {
+        if (!in_array($id, $GLOBALS['fixtureUserIds'], true) || in_array($id, $GLOBALS['deleted'] ?? [], true)) {
+            return false;
+        }
+        $admin = !in_array($id, $GLOBALS['editors'] ?? [], true)
+            && !in_array($id, $GLOBALS['demoted'] ?? [], true)
+            && ($id !== get_current_user_id() || current_user_can('manage_options'));
+        return (object) ['ID' => $id, 'display_name' => 'User ' . $id, 'user_login' => 'user' . $id,
+            'allcaps' => ['manage_options' => $admin]];
+    }
+    /**
+     * Applies site capability overrides and network privileges to the requested account.
+     *
+     * @param object $user Fixture account with its stored site capabilities.
+     * @param string $cap Requested WordPress capability.
+     * @return bool Effective capability for this request.
+     */
+    function user_can($user, $cap): bool
+    {
+        if ($cap === 'manage_options') {
+            if (is_multisite() && is_super_admin($user->ID)) {
+                return true;
+            }
+            return $GLOBALS['effectiveManageOptions'][$user->ID] ?? $user->allcaps['manage_options'];
+        }
+        return !in_array($user->ID, $GLOBALS['demoted'] ?? [], true)
+            && ($user->ID !== get_current_user_id() || $cap === 'read' || $cap === 'edit_others_posts' || current_user_can($cap));
+    }
     /** Synthetic options have no cache, but production code must still evict it. */
     function wp_cache_delete(...$args): bool { return true; }
     /** Converts manager IDs in the production permission class. */
@@ -145,9 +171,19 @@ namespace {
         return null;
     }
     /** Models a multisite deployment. */
-    function is_multisite(): bool { return true; }
-    /** Models network-admin status independently of site capabilities. */
-    function is_super_admin(): bool { return $GLOBALS['super']; }
+    function is_multisite(): bool { return $GLOBALS['multisite'] ?? true; }
+    /**
+     * Resolves network privileges for the specified account or the acting user.
+     *
+     * @param int|false $id Account to check, defaulting to the acting user.
+     * @return bool Whether that account is configured as a super administrator.
+     */
+    function is_super_admin(int|false $id = false): bool
+    {
+        $id = $id === false ? get_current_user_id() : $id;
+        return ($GLOBALS['super'] && $id === get_current_user_id())
+            || in_array($id, $GLOBALS['otherSuperAdmins'] ?? [], true);
+    }
     /** Checks the nonce and binds form nonces to the simulated site. */
     function wp_verify_nonce($nonce, $action): bool { return $GLOBALS['nonce'] && ($action === 'wp_rest' || $nonce === $action); }
     /** Preserves fixture request input. */
@@ -179,6 +215,7 @@ namespace {
     function wp_safe_redirect($url): void { echo json_encode(['redirect' => $url, 'authCalls' => $GLOBALS['authCalls'], 'writes' => $GLOBALS['writes']]); }
 
     $scenario = $argv[1] ?? 'allowed';
+    $fixtureUserIds = [7, 8, 9, 10];
     $site = 1;
     $user = 7;
     $authenticated = true;
@@ -232,7 +269,10 @@ namespace {
         case 'multisite': $site = 2; break;
         case 'super-expired': $super = true; $authenticated = false; break;
     }
-    if (str_starts_with($scenario, 'policy-')) {
+    if (str_starts_with($scenario, 'screen-')) {
+        require __DIR__ . '/access-screen.php';
+        exit;
+    } elseif (str_starts_with($scenario, 'policy-')) {
         require __DIR__ . '/access-policy-cases.php';
     } elseif (str_starts_with($scenario, 'activate-')) {
         $active[1] = ['rrze-sso/rrze-sso.php'];
@@ -252,6 +292,33 @@ namespace {
     } elseif (str_starts_with($scenario, 'managers-')) {
         $result = $settings->protectManagers($scenario === 'managers-malformed' ? 'bad' : ['appointment_manager_user_ids' => [9], 'retention_days' => 45],
             ['appointment_manager_user_ids' => [7], 'retention_days' => 30]);
+    } elseif (str_starts_with($scenario, 'network-sso-')) {
+        $super = $scenario !== 'network-sso-site-admin';
+        $user = 9;
+        $nonMembers = [9];
+        $authenticated = $scenario !== 'network-sso-expired';
+        $attributes = ['uid' => [$scenario === 'network-sso-mismatch' ? 'alice' : 'bob']];
+        $policyName = \RRZE\Appointment\Admin\AccessPolicy::OPTION_NAME;
+        $options[1][$policyName] = ['version' => 1, 'restricted' => true, 'revision' => 1, 'owners' => [7], 'managers' => [8]];
+        $operation = $scenario === 'network-sso-disable' ? 'disable' : 'enable';
+        $options[1][$access::OPTION_NAME] = $operation === 'enable' ? '0' : '1';
+        $token = \RRZE\Appointment\Admin\AccessPolicy::token();
+        switch ($scenario) {
+            case 'network-sso-unconfigured': unset($options[1][$policyName]); break;
+            case 'network-sso-stale': $options[1][$policyName]['revision']++; break;
+            case 'network-sso-corrupt': $options[1][$policyName] = 'damaged'; break;
+            case 'network-sso-no-owner': $demoted = [7]; break;
+            case 'network-sso-access-owner':
+                $options[1][$policyName]['version'] = 2;
+                $options[1][$policyName]['owners'] = [];
+                $options[1][$policyName]['access_owners'] = [7];
+                break;
+        }
+        if ($scenario !== 'network-sso-stale') {
+            $token = \RRZE\Appointment\Admin\AccessPolicy::token();
+        }
+        $result = $settings->perform($operation, $token);
+        $extra['access'] = \RRZE\Appointment\Admin\AppointmentPermissions::dataAccess();
     } elseif (str_starts_with($scenario, 'reset-') || str_starts_with($scenario, 'disable-') || $scenario === 'enable') {
         $super = $scenario === 'reset-network';
         if ($scenario === 'enable') { $options[1][$access::OPTION_NAME] = '0'; $options[1]['rrze_appointment_access_policy'] = ['version' => 1, 'restricted' => true, 'revision' => 1, 'owners' => [7], 'managers' => []]; }
@@ -267,9 +334,31 @@ namespace {
             case 'http-return': $_POST['destination'] = 'https://attacker.test'; break;
             case 'http-forbidden': $caps['manage_options'] = false; break;
             case 'http-get': $_SERVER['REQUEST_METHOD'] = 'GET'; $_GET = $_POST; break;
+            case 'http-network-enable':
+                $super = true;
+                $user = 9;
+                $nonMembers = [9];
+                $attributes = ['uid' => ['bob']];
+                $options[1][$access::OPTION_NAME] = '0';
+                $options[1][\RRZE\Appointment\Admin\AccessPolicy::OPTION_NAME] = ['version' => 1, 'restricted' => true, 'revision' => 1, 'owners' => [7], 'managers' => []];
+                $_POST['policy_token'] = \RRZE\Appointment\Admin\AccessPolicy::token();
+                $_POST['_wpnonce'] = \RRZE\Appointment\Admin\BackendSsoSettings::nonceAction('enable', 'settings', $_POST['policy_token']);
+                break;
             case 'http-login':
+            case 'http-login-settings':
+            case 'http-login-access':
+            case 'http-login-access-denied':
                 $_SERVER['REQUEST_METHOD'] = 'GET';
-                $_GET = ['operation' => 'login', 'destination' => 'bookings', '_wpnonce' => \RRZE\Appointment\Admin\BackendSsoSettings::nonceAction('login', 'bookings')];
+                $destination = match ($scenario) {
+                    'http-login' => 'bookings', 'http-login-settings' => 'settings', default => 'access',
+                };
+                if ($destination === 'access') {
+                    $owner = $scenario === 'http-login-access' ? 7 : 9;
+                    $options[1][\RRZE\Appointment\Admin\AccessPolicy::OPTION_NAME] = [
+                        'version' => 1, 'restricted' => true, 'revision' => 1, 'owners' => [$owner], 'managers' => [8],
+                    ];
+                }
+                $_GET = ['operation' => 'login', 'destination' => $destination, '_wpnonce' => \RRZE\Appointment\Admin\BackendSsoSettings::nonceAction('login', $destination)];
                 break;
         }
         try { $settings->handle(); } catch (TestStopped $exception) { $result = new WP_Error('stopped', $exception->getMessage(), ['status' => $exception->getCode()]); }

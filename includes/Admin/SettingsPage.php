@@ -14,7 +14,10 @@ final class SettingsPage
 {
     public const PAGE_SLUG = 'rrze-appointment-settings';
     private const SETTINGS_GROUP = 'rrze_appointment_settings_group';
-    private const GENERAL_SECTION = 'rrze_appointment_general';
+    private const GENERAL_FORM_GROUP = 'rrze_appointment_settings_general_v2';
+    private const PEOPLE_FORM_GROUP = 'rrze_appointment_settings_people_v2';
+    private const REMINDERS_SECTION = 'rrze_appointment_reminders';
+    private const BOOKINGS_SECTION = 'rrze_appointment_booking_data';
     private const ILLUSTRATIONS_SECTION = 'rrze_appointment_illustrations';
     private const ILLUSTRATIONS_PAGE = self::PAGE_SLUG . '-illustrations';
     private const ADMIN_CSS_PATH = 'assets/css/rrze-appointment-admin.css';
@@ -30,6 +33,10 @@ final class SettingsPage
     {
         add_action('admin_menu', [$this, 'addMenuPage']);
         add_action('admin_init', [$this, 'registerSettings']);
+        add_filter('allowed_options', [$this, 'allowFormOptions'], PHP_INT_MAX);
+        add_filter('option_page_capability_' . self::GENERAL_FORM_GROUP, [$this, 'formCapability']);
+        add_filter('option_page_capability_' . self::PEOPLE_FORM_GROUP, [$this, 'formCapability']);
+        add_action('check_admin_referer', [$this, 'rejectOutdatedSettingsForm'], 10, 2);
         add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets']);
         $this->mailTemplates->register();
     }
@@ -52,6 +59,77 @@ final class SettingsPage
         return 'settings_page_' . self::PAGE_SLUG;
     }
 
+    /**
+     * Exposes the split forms only on versions that understand their partial option payloads.
+     *
+     * @param array<string, string[]> $allowed WordPress options permitted for each settings group.
+     * @return array<string, string[]> Groups with the same registered options and limits as their forms.
+     */
+    public function allowFormOptions(array $allowed): array
+    {
+        if (!isset($allowed[self::SETTINGS_GROUP])) {
+            return $allowed;
+        }
+
+        $registered = $allowed[self::SETTINGS_GROUP];
+        $people = array_values(array_intersect($registered, [PluginSettings::OPTION_NAME]));
+        $allowed[self::GENERAL_FORM_GROUP] = $registered;
+        $allowed[self::PEOPLE_FORM_GROUP] = $people;
+
+        if (($_REQUEST['option_page'] ?? '') === self::SETTINGS_GROUP
+            && ($_POST[PluginSettings::OPTION_NAME]['_settings_scope'] ?? '') === 'additional_people') {
+            // An already-open people form also owns only the plugin option.
+            $allowed[self::SETTINGS_GROUP] = $people;
+        }
+        return $allowed;
+    }
+
+    /**
+     * Keeps the site's existing Settings API capability filter effective for both split forms.
+     *
+     * @param string $capability Capability required by WordPress for this submission.
+     * @return string Capability required by the original settings group.
+     */
+    public function formCapability(string $capability): string
+    {
+        return apply_filters('option_page_capability_' . self::SETTINGS_GROUP, $capability);
+    }
+
+    /**
+     * Stops older settings forms before options.php writes fields that have moved to another tab.
+     *
+     * @param int|string $action WordPress nonce action.
+     * @param int|false $result Nonce age (1 or 2) on success, false on failure.
+     */
+    public function rejectOutdatedSettingsForm(int|string $action, int|false $result): void
+    {
+        global $pagenow;
+        if (!$result || $pagenow !== 'options.php') {
+            return;
+        }
+
+        $allowedScopes = match ($action) {
+            self::GENERAL_FORM_GROUP . '-options' => [PluginSettings::GENERAL_SCOPE],
+            self::PEOPLE_FORM_GROUP . '-options' => ['additional_people'],
+            self::SETTINGS_GROUP . '-options' => [PluginSettings::GENERAL_SCOPE, 'illustrations', 'additional_people'],
+            default => null,
+        };
+        $scope = $_POST[PluginSettings::OPTION_NAME]['_settings_scope'] ?? '';
+        if ($allowedScopes === null || in_array($scope, $allowedScopes, true)) {
+            return;
+        }
+
+        wp_die(
+            esc_html__('These settings have been updated. Reload the page and make your change again.', 'rrze-appointment'),
+            '',
+            [
+                'response' => 409,
+                'link_url' => add_query_arg('page', self::PAGE_SLUG, admin_url('options-general.php')),
+                'link_text' => esc_html__('Reload page', 'rrze-appointment'),
+            ]
+        );
+    }
+
     /** Registers the shared site option and the fields shown on the general and illustrations tabs. */
     public function registerSettings(): void
     {
@@ -63,21 +141,28 @@ final class SettingsPage
                 'default' => PluginSettings::defaults(),
             ]
         );
-        add_settings_section(self::GENERAL_SECTION, '', '__return_false', self::PAGE_SLUG);
+        $card = [
+            'before_section' => '<section class="rrze-appt-settings__card">',
+            'after_section' => '</section>',
+        ];
+        add_settings_section(self::REMINDERS_SECTION, __('Reminders', 'rrze-appointment'), null, self::PAGE_SLUG, $card);
+        add_settings_section(self::BOOKINGS_SECTION, __('Booking data & cancellations', 'rrze-appointment'), null, self::PAGE_SLUG, $card);
+        // Extensions can still attach general settings fields to the original section.
+        add_settings_section('rrze_appointment_general', '', null, self::PAGE_SLUG);
         add_settings_field(
             'reminder_booker_days',
-            __('Reminder email to booking person', 'rrze-appointment'),
+            __('Email to the person booking', 'rrze-appointment'),
             [$this, 'renderReminderDaysField'],
             self::PAGE_SLUG,
-            self::GENERAL_SECTION,
+            self::REMINDERS_SECTION,
             ['label_for' => 'reminder_booker_days']
         );
         add_settings_field(
             'reminder_host_days',
-            __('Reminder email to the appointment email address', 'rrze-appointment'),
+            __('Email to the appointment contact', 'rrze-appointment'),
             [$this, 'renderReminderDaysField'],
             self::PAGE_SLUG,
-            self::GENERAL_SECTION,
+            self::REMINDERS_SECTION,
             ['label_for' => 'reminder_host_days']
         );
         add_settings_field(
@@ -85,41 +170,28 @@ final class SettingsPage
             __('Booking data retention', 'rrze-appointment'),
             [$this, 'renderRetentionDaysField'],
             self::PAGE_SLUG,
-            self::GENERAL_SECTION
+            self::BOOKINGS_SECTION,
+            ['label_for' => 'retention_days']
         );
         add_settings_field(
             'cancellation_reason_enabled',
             __('Cancellation reason', 'rrze-appointment'),
             [$this, 'renderCancellationReasonField'],
             self::PAGE_SLUG,
-            self::GENERAL_SECTION
+            self::BOOKINGS_SECTION
         );
         add_settings_field(
             'sensitive_mode_enabled',
             __('Sensitive appointment mode', 'rrze-appointment'),
             [$this, 'renderSensitiveModeField'],
             self::PAGE_SLUG,
-            self::GENERAL_SECTION
-        );
-        add_settings_field(
-            'appointment_manager_user_ids',
-            __('Lock Appointment Management View to these users', 'rrze-appointment'),
-            [$this, 'renderAppointmentManagersField'],
-            self::PAGE_SLUG,
-            self::GENERAL_SECTION
+            self::BOOKINGS_SECTION
         );
         add_settings_section(
             self::ILLUSTRATIONS_SECTION,
-            '',
-            '__return_false',
-            self::ILLUSTRATIONS_PAGE
-        );
-        add_settings_field(
-            'illustrations',
             __('Illustrations', 'rrze-appointment'),
             [$this, 'renderIllustrationsField'],
-            self::ILLUSTRATIONS_PAGE,
-            self::ILLUSTRATIONS_SECTION
+            self::ILLUSTRATIONS_PAGE
         );
     }
 
@@ -132,9 +204,10 @@ final class SettingsPage
     {
         $key = $args['label_for'];
         $value = (int) PluginSettings::get($key);
-        $options = [0 => __('Disabled', 'rrze-appointment')];
+        $options = [0 => __('No reminder', 'rrze-appointment')];
         for ($i = 1; $i <= PluginSettings::MAX_REMINDER_DAYS; $i++) {
-            $options[$i] = $i;
+            /* translators: %d is the number of days before an appointment. */
+            $options[$i] = sprintf(_n('%d day before', '%d days before', $i, 'rrze-appointment'), $i);
         }
         printf(
             '<select id="%s" name="%s[%s]">',
@@ -145,7 +218,7 @@ final class SettingsPage
         foreach ($options as $val => $label) {
             printf('<option value="%d"%s>%s</option>', $val, selected($value, $val, false), esc_html($label));
         }
-        echo '</select> ' . esc_html__('days before the appointment.', 'rrze-appointment');
+        echo '</select>';
     }
 
     /**
@@ -155,12 +228,14 @@ final class SettingsPage
     {
         $value = (int) PluginSettings::get('retention_days');
         printf(
-            '<input type="number" name="%s[retention_days]" value="%d" min="0" max="%d" step="1" class="small-text"> %s',
+            '<input type="number" id="retention_days" name="%s[retention_days]" value="%d" min="0" max="%d" step="1" class="small-text" aria-describedby="rrze-appt-retention-help"> %s',
             esc_attr(PluginSettings::OPTION_NAME),
             $value,
             PluginSettings::MAX_RETENTION_DAYS,
-            esc_html__('Completed bookings are permanently deleted this many days after the appointment ends (default: 30).', 'rrze-appointment')
+            esc_html__('days', 'rrze-appointment')
         );
+        echo '<p class="description" id="rrze-appt-retention-help">'
+            . esc_html__('How long to keep bookings after the appointment ends. After this period the plugin permanently deletes them.', 'rrze-appointment') . '</p>';
     }
 
     /**
@@ -174,13 +249,14 @@ final class SettingsPage
             <input
                 type="checkbox"
                 name="<?php echo esc_attr(PluginSettings::OPTION_NAME); ?>[cancellation_reason_enabled]"
+                aria-describedby="rrze-appt-cancellation-help"
                 value="1"
                 <?php checked($enabled); ?>
             >
-            <?php esc_html_e('Allow a cancellation reason to be entered.', 'rrze-appointment'); ?>
+            <?php esc_html_e('Allow an optional reason for cancelling.', 'rrze-appointment'); ?>
         </label>
-        <p class="description">
-            <?php esc_html_e('Applies to cancellations from email links and the appointment dashboard. Disable this option if the field is being abused.', 'rrze-appointment'); ?>
+        <p class="description" id="rrze-appt-cancellation-help">
+            <?php esc_html_e('Applies to cancellations from an email link or from appointment management.', 'rrze-appointment'); ?>
         </p>
         <?php
     }
@@ -196,113 +272,67 @@ final class SettingsPage
             <input
                 type="checkbox"
                 name="<?php echo esc_attr(PluginSettings::OPTION_NAME); ?>[sensitive_mode_enabled]"
+                aria-describedby="rrze-appt-sensitive-help"
                 value="1"
                 <?php checked($enabled); ?>
             >
-            <?php esc_html_e('Hide appointment details in the administration area.', 'rrze-appointment'); ?>
+            <?php esc_html_e('Show only the date, time and title in appointment management.', 'rrze-appointment'); ?>
         </label>
-        <p class="description">
-            <?php esc_html_e('While enabled, the appointment overview only shows dates, times and titles. Appointments confirmed in this mode remain anonymized in the administration area after it is disabled. Existing appointments become visible again. Email delivery and content are unaffected.', 'rrze-appointment'); ?>
+        <p class="description" id="rrze-appt-sensitive-help">
+            <?php esc_html_e('Bookings confirmed while this setting is on stay anonymized in the overview permanently. Details of earlier bookings reappear when you turn it off. Emails use the usual booking details.', 'rrze-appointment'); ?>
         </p>
         <?php
     }
 
-    /**
-     * Renders the delegated appointment-management permission list.
-     */
+    /** Renders the independent form for additional grants on a site using standard access. */
     public function renderAppointmentManagersField(): void
     {
         if (AccessPolicy::restricted()) {
-            echo '<p>' . esc_html__('Permissions are managed separately by the responsible people under Appointments → Manage access.', 'rrze-appointment') . '</p>';
             return;
         }
         if (is_wp_error(BackendSsoAccess::check())) {
-            echo '<p>' . esc_html__('Sign in with the matching SSO account to change appointment managers.', 'rrze-appointment') . '</p>';
+            echo '<p><a href="#rrze-appointment-sso-heading">'
+                . esc_html__('Confirm your SSO account to edit this list.', 'rrze-appointment') . '</a></p>';
             return;
         }
-        $storedUserIds = PluginSettings::get('appointment_manager_user_ids');
-        $storedUserIds = is_array($storedUserIds)
-            ? array_values(array_unique(array_map('absint', $storedUserIds)))
-            : [];
-        $users = get_users([
-            'blog_id' => get_current_blog_id(),
-            'orderby' => 'display_name',
-            'order' => 'ASC',
-        ]);
-        $eligibleUsers = [];
-        foreach ($users as $user) {
-            if (!$user instanceof \WP_User || user_can($user, 'manage_options')) {
-                continue;
-            }
-            $eligibleUsers[(int) $user->ID] = $user;
+        $stored = array_map('absint', (array) PluginSettings::get('appointment_manager_user_ids'));
+        $users = get_users(['blog_id' => get_current_blog_id(), 'orderby' => 'display_name', 'order' => 'ASC']);
+        $additional = array_filter($users, static fn($user): bool => !user_can($user, 'manage_options'));
+        if (!$additional) {
+            echo '<p>' . esc_html__('This website has no additional users to select.', 'rrze-appointment') . '</p>';
+            return;
         }
-        $storedUserIds = array_values(array_filter(
-            $storedUserIds,
-            static fn(int $userId): bool => isset($eligibleUsers[$userId])
-        ));
-        $inputName = PluginSettings::OPTION_NAME . '[appointment_manager_user_ids][]';
+        $option = PluginSettings::OPTION_NAME;
         ?>
-        <div
-            class="rrze-appt-permissions"
-            data-appointment-permissions
-            data-input-name="<?php echo esc_attr($inputName); ?>"
-            data-remove-label="<?php esc_attr_e('Remove', 'rrze-appointment'); ?>"
-        >
-            <p class="description">
-                <?php esc_html_e('Selected users can open the Appointments page and cancel appointments. Administrators always have access and do not need to be added.', 'rrze-appointment'); ?>
-            </p>
-            <div class="rrze-appt-permissions__picker">
-                <label class="screen-reader-text" for="rrze-appt-permission-user">
-                    <?php esc_html_e('Select user', 'rrze-appointment'); ?>
-                </label>
-                <select id="rrze-appt-permission-user" data-permission-user-select>
-                    <option value=""><?php esc_html_e('Select user', 'rrze-appointment'); ?></option>
-                    <?php foreach ($eligibleUsers as $userId => $user) :
-                        $label = sprintf(
-                            '%s (%s, %s)',
-                            $user->display_name,
-                            $user->user_login,
-                            $user->user_email
-                        );
-                        ?>
-                        <option
-                            value="<?php echo esc_attr($userId); ?>"
-                            <?php disabled(in_array($userId, $storedUserIds, true)); ?>
-                        ><?php echo esc_html($label); ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <button type="button" class="button" data-permission-add disabled>
-                    <?php esc_html_e('Add user to permission list', 'rrze-appointment'); ?>
-                </button>
-            </div>
-            <ul class="rrze-appt-permissions__list" data-permission-list>
-                <?php foreach ($storedUserIds as $userId) :
-                    $user = $eligibleUsers[$userId];
-                    $label = sprintf(
-                        '%s (%s, %s)',
-                        $user->display_name,
-                        $user->user_login,
-                        $user->user_email
-                    );
-                    ?>
-                    <li data-permission-user data-user-id="<?php echo esc_attr($userId); ?>">
-                        <span><?php echo esc_html($label); ?></span>
-                        <input type="hidden" name="<?php echo esc_attr($inputName); ?>" value="<?php echo esc_attr($userId); ?>">
-                        <button type="button" class="button-link-delete" data-permission-remove>
-                            <?php esc_html_e('Remove', 'rrze-appointment'); ?>
-                        </button>
-                    </li>
+        <form method="post" action="<?php echo esc_url(admin_url('options.php')); ?>" class="rrze-appointment-access-form">
+            <?php settings_fields(self::PEOPLE_FORM_GROUP); ?>
+            <input type="hidden" name="<?php echo esc_attr($option); ?>[_settings_scope]" value="additional_people">
+            <fieldset data-access-directory>
+                <legend><?php esc_html_e('Who else may view and cancel appointments?', 'rrze-appointment'); ?></legend>
+                <div hidden data-access-filter class="rrze-appt-settings__filter">
+                    <label><?php esc_html_e('Find a person', 'rrze-appointment'); ?> <input type="search"></label>
+                </div>
+                <div class="rrze-appt-settings__roles">
+                <?php foreach ($additional as $user) : ?>
+                    <div data-access-person class="rrze-appt-settings__role">
+                        <label>
+                            <input type="checkbox" name="<?php echo esc_attr($option); ?>[appointment_manager_user_ids][]"
+                                value="<?php echo esc_attr((string) $user->ID); ?>" <?php checked(in_array((int) $user->ID, $stored, true)); ?>>
+                            <?php echo esc_html(AccessSettings::personLabel($user)); ?>
+                        </label>
+                    </div>
                 <?php endforeach; ?>
-                <li data-permission-empty <?php echo $storedUserIds !== [] ? 'hidden' : ''; ?>>
-                    <?php esc_html_e('No additional users have access.', 'rrze-appointment'); ?>
-                </li>
-            </ul>
-        </div>
+                </div>
+                <p data-access-empty hidden role="status"><?php esc_html_e('No matching people.', 'rrze-appointment'); ?></p>
+            </fieldset>
+            <input type="hidden" name="<?php echo esc_attr($option); ?>[_access_list_complete]" value="1">
+            <?php submit_button(__('Save additional people', 'rrze-appointment'), 'secondary', 'save-additional-people'); ?>
+        </form>
         <?php
     }
 
     /**
-     * Renders media-library selectors for public-page illustrations.
+     * Renders the illustration cards directly in their settings section so the grid uses the form width.
      */
     public function renderIllustrationsField(): void
     {
@@ -396,6 +426,7 @@ final class SettingsPage
         $tab = Request::queryText('tab', true) ?: 'general';
         $tabs = [
             'general' => __('General', 'rrze-appointment'),
+            'access' => __('Access & SSO', 'rrze-appointment'),
             'illustrations' => __('Illustrations', 'rrze-appointment'),
             'templates' => __('Mail Templates', 'rrze-appointment'),
         ];
@@ -403,22 +434,25 @@ final class SettingsPage
             $tab = 'general';
         }
         ?>
-        <div class="wrap rrze-appointment-settings-wrap">
+        <div class="wrap rrze-appointment-settings-wrap rrze-appt-settings">
             <h1 class="wp-heading-inline"><?php echo esc_html(get_admin_page_title()); ?></h1>
             <hr class="wp-header-end">
 
-            <nav class="nav-tab-wrapper">
+            <nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e('Appointment settings', 'rrze-appointment'); ?>">
                 <?php foreach ($tabs as $key => $label) :
                     $url    = add_query_arg(['page' => self::PAGE_SLUG, 'tab' => $key], admin_url('options-general.php'));
                     $active = $tab === $key ? ' nav-tab-active' : '';
                     ?>
-                    <a href="<?php echo esc_url($url); ?>" class="nav-tab<?php echo $active; ?>"><?php echo esc_html($label); ?></a>
+                    <a href="<?php echo esc_url($url); ?>" class="nav-tab<?php echo $active; ?>"
+                        <?php echo $key === $tab ? 'aria-current="page"' : ''; ?>><?php echo esc_html($label); ?></a>
                 <?php endforeach; ?>
             </nav>
 
-            <div class="tab-content" style="margin-top:1.5rem;">
+            <div class="rrze-appt-settings__content<?php echo $tab === 'access' ? ' rrze-appt-settings__content--access' : ''; ?>">
                 <?php if ($tab === 'general') : ?>
                     <?php $this->renderTabGeneral(); ?>
+                <?php elseif ($tab === 'access') : ?>
+                    <?php $this->renderTabAccess(); ?>
                 <?php elseif ($tab === 'illustrations') : ?>
                     <?php $this->renderTabIllustrations(); ?>
                 <?php elseif ($tab === 'templates') : ?>
@@ -429,27 +463,82 @@ final class SettingsPage
         <?php
     }
 
-    /** Renders ordinary settings and independent SSO setup actions. */
+    /**
+     * Describes who can currently open bookings, taking changes in site membership and roles into account.
+     *
+     * @return string Translated audience for the access summary.
+     */
+    private static function bookingAudience(): string
+    {
+        $policy = AccessPolicy::read();
+        if (is_wp_error($policy)) {
+            return __('Access settings unavailable', 'rrze-appointment');
+        }
+        if ($policy === null) {
+            return empty(PluginSettings::get('appointment_manager_user_ids'))
+                ? __('Administrators', 'rrze-appointment') : __('Administrators and additional people', 'rrze-appointment');
+        }
+        foreach (array_merge($policy['owners'], $policy['managers']) as $id) {
+            if (AccessPolicy::hasBookingGrant($policy, $id)) {
+                return __('Only selected people', 'rrze-appointment');
+            }
+        }
+        return __('No one', 'rrze-appointment');
+    }
+
+    /** Shows the site's access summary above the reminder and booking settings. */
     private function renderTabGeneral(): void
     {
         ?>
+        <section class="rrze-appt-settings__summary" aria-labelledby="rrze-appt-summary-title">
+            <h2 id="rrze-appt-summary-title"><?php esc_html_e('Access to appointment management', 'rrze-appointment'); ?></h2>
+            <dl>
+                <div>
+                    <dt><?php esc_html_e('Who can view and cancel appointments?', 'rrze-appointment'); ?></dt>
+                    <dd><?php echo esc_html(self::bookingAudience()); ?></dd>
+                </div>
+                <div>
+                    <dt><?php esc_html_e('SSO sign-in', 'rrze-appointment'); ?></dt>
+                    <dd><?php echo esc_html(BackendSsoAccess::required()
+                        ? _x('Required', 'SSO sign-in status', 'rrze-appointment')
+                        : _x('Not required', 'SSO sign-in status', 'rrze-appointment')); ?></dd>
+                </div>
+            </dl>
+            <a class="button" href="<?php echo esc_url(BackendSsoSettings::destination('settings')); ?>">
+                <?php esc_html_e('Manage access & SSO', 'rrze-appointment'); ?>
+            </a>
+        </section>
         <form method="post" action="options.php">
             <?php
-            settings_fields(self::SETTINGS_GROUP);
+            settings_fields(self::GENERAL_FORM_GROUP);
             ?>
             <input
                 type="hidden"
                 name="<?php echo esc_attr(PluginSettings::OPTION_NAME); ?>[_settings_scope]"
-                value="general"
+                value="<?php echo esc_attr(PluginSettings::GENERAL_SCOPE); ?>"
             >
             <?php
             do_settings_sections(self::PAGE_SLUG);
-            submit_button();
+            submit_button(__('Save general settings', 'rrze-appointment'));
             ?>
         </form>
         <?php
-        AccessSettings::renderSettings();
+    }
+
+    /** Displays the site's role editor, SSO settings and available recovery actions. */
+    private function renderTabAccess(): void
+    {
+        AccessSettings::renderSettings([$this, 'renderAppointmentManagersField']);
         BackendSsoSettings::render();
+        if (AccessPolicy::canRecover() || (BackendSsoAccess::canReset() && BackendSsoAccess::required())) {
+            ?>
+            <details id="rrze-appt-settings-recovery" class="rrze-appt-settings__recovery"<?php echo AccessSettings::recoveryOpen() ? ' open' : ''; ?>>
+                <summary><?php esc_html_e('Recovery', 'rrze-appointment'); ?></summary>
+                <?php AccessSettings::renderRecovery(); ?>
+                <?php BackendSsoSettings::renderRecovery(); ?>
+            </details>
+            <?php
+        }
     }
 
     /** Renders the illustrations form with the scope used to preserve the general settings. */
@@ -492,12 +581,8 @@ final class SettingsPage
             );
         }
 
-        if ($hook !== self::screenHook()) {
-            return;
-        }
-
         $tab = Request::queryText('tab', true) ?: 'general';
-        if (!in_array($tab, ['general', 'illustrations'], true)) {
+        if ($hook !== self::screenHook() || !in_array($tab, ['access', 'illustrations'], true)) {
             return;
         }
 

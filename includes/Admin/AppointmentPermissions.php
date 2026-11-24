@@ -16,10 +16,18 @@ final class AppointmentPermissions
      */
     public static function currentUserCanManage(): bool
     {
-        $policy = AccessPolicy::read();
+        return self::hasBaseGrant(AccessPolicy::read());
+    }
+
+    /**
+     * Checks the configured role or, on an unrestricted site, its original booking permissions.
+     *
+     * @param array|\WP_Error|null $policy Policy already read for this decision.
+     */
+    private static function hasBaseGrant(array|\WP_Error|null $policy): bool
+    {
         if ($policy !== null) {
-            return is_array($policy) && AccessPolicy::eligible(get_current_user_id())
-                && in_array(get_current_user_id(), array_merge($policy['owners'], $policy['managers']), true);
+            return is_array($policy) && AccessPolicy::hasBookingGrant($policy, get_current_user_id());
         }
         if (current_user_can('manage_options')) {
             return true;
@@ -48,10 +56,10 @@ final class AppointmentPermissions
         if (is_wp_error($policy)) {
             return $policy;
         }
-        return self::currentUserCanManage() ? BackendSsoAccess::check() : self::forbidden();
+        return self::hasBaseGrant($policy) ? BackendSsoAccess::check() : self::forbidden();
     }
 
-    /** Authorizes delegation without requiring general WordPress settings access. */
+    /** Authorizes either kind of responsible administrator to open the protected role editor. */
     public static function grantsAccess(): true|\WP_Error
     {
         return AccessPolicy::owner() ? BackendSsoAccess::check() : new \WP_Error('rrze_appointment_grants_forbidden',

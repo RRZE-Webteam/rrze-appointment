@@ -10,6 +10,7 @@ defined('ABSPATH') || exit;
 final class PluginSettings
 {
     public const OPTION_NAME = 'rrze_appointment_settings';
+    public const GENERAL_SCOPE = 'general_settings';
     public const MAX_REMINDER_DAYS = 7;
     public const MAX_RETENTION_DAYS = 3650;
     public const ILLUSTRATION_DEFAULTS = [
@@ -80,8 +81,8 @@ final class PluginSettings
     /**
      * Builds the complete site option from a settings form submission.
      *
-     * When one tab is submitted, values for the other tab are read from storage
-     * before validation. Unscoped submissions take both groups from the input.
+     * Each form owns its fields. Direct callers can still use the original full-option format
+     * or the former general scope that included additional appointment managers.
      * The recurrence limit always comes from the stored option or its default.
      *
      * @param array<string, mixed> $input Submitted settings, optionally scoped by _settings_scope.
@@ -104,26 +105,33 @@ final class PluginSettings
         $scope = is_string($input['_settings_scope'] ?? null)
             ? $input['_settings_scope']
             : '';
+        $preserveGeneral = in_array($scope, ['illustrations', 'additional_people'], true);
+        $preserveManagers = in_array($scope, ['illustrations', self::GENERAL_SCOPE], true);
+        if ($scope === 'additional_people' && ($input['_access_list_complete'] ?? null) !== '1') {
+            $preserveManagers = true;
+            add_settings_error(self::OPTION_NAME, 'rrze_appointment_incomplete_access_list',
+                __('The list was incomplete. Your saved access permissions have been kept.', 'rrze-appointment'));
+        }
 
-        $reminderBookerDays = $scope === 'illustrations'
+        $reminderBookerDays = $preserveGeneral
             ? self::get('reminder_booker_days')
             : ($input['reminder_booker_days'] ?? $input['reminder_days'] ?? 0);
-        $reminderHostDays = $scope === 'illustrations'
+        $reminderHostDays = $preserveGeneral
             ? self::get('reminder_host_days')
             : ($input['reminder_host_days'] ?? $input['reminder_days'] ?? 0);
-        $retentionDays = $scope === 'illustrations'
+        $retentionDays = $preserveGeneral
             ? self::get('retention_days')
             : ($input['retention_days'] ?? 30);
-        $cancellationReasonEnabled = $scope === 'illustrations'
+        $cancellationReasonEnabled = $preserveGeneral
             ? self::get('cancellation_reason_enabled')
             : !empty($input['cancellation_reason_enabled']);
-        $sensitiveModeEnabled = $scope === 'illustrations'
+        $sensitiveModeEnabled = $preserveGeneral
             ? self::get('sensitive_mode_enabled')
             : !empty($input['sensitive_mode_enabled']);
-        $appointmentManagerUserIds = $scope === 'illustrations'
-            ? self::get('appointment_manager_user_ids')
-            : ($input['appointment_manager_user_ids'] ?? []);
-        $illustrations = $scope === 'general'
+        $appointmentManagerUserIds = $preserveManagers
+            ? (array) self::get('appointment_manager_user_ids')
+            : self::sanitizeAppointmentManagerUserIds($input['appointment_manager_user_ids'] ?? []);
+        $illustrations = in_array($scope, [self::GENERAL_SCOPE, 'general', 'additional_people'], true)
             ? self::get('illustrations')
             : ($input['illustrations'] ?? []);
 
@@ -143,9 +151,7 @@ final class PluginSettings
             ),
             'cancellation_reason_enabled' => (bool) $cancellationReasonEnabled,
             'sensitive_mode_enabled' => (bool) $sensitiveModeEnabled,
-            'appointment_manager_user_ids' => self::sanitizeAppointmentManagerUserIds(
-                $appointmentManagerUserIds
-            ),
+            'appointment_manager_user_ids' => $appointmentManagerUserIds,
             'illustrations' => self::sanitizeIllustrations($illustrations),
         ];
     }

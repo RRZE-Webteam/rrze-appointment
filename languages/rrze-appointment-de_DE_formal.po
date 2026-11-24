@@ -767,14 +767,6 @@ msgstr "Link zum Beitrag oder zur Seite"
 msgid "Appointments"
 msgstr "Termine"
 
-#: includes/Admin/SettingsPage.php:64
-msgid "Reminder email to booking person"
-msgstr "Erinnerungsmail an die buchende Person"
-
-#: includes/Admin/SettingsPage.php:73
-msgid "Reminder email to the appointment email address"
-msgstr "Erinnerungsmail an die E-Mail-Adresse der Sprechstunde"
-
 #: includes/Admin/SettingsPage.php
 #: includes/Settings.php:146
 msgid "Booking data retention"
@@ -792,20 +784,6 @@ msgstr "Videoanruf"
 #: includes/Settings.php:307
 msgid "Disabled"
 msgstr "Deaktiviert"
-
-#: includes/Admin/SettingsPage.php
-#: includes/Settings.php:315
-msgid "days before the appointment."
-msgstr "Tage vor dem Termin versenden."
-
-#: includes/Admin/SettingsPage.php
-#: includes/Settings.php:325
-msgid ""
-"Completed bookings are permanently deleted this many days after the "
-"appointment ends (default: 30)."
-msgstr ""
-"Abgeschlossene Buchungen werden so viele Tage nach Ende des Termins "
-"dauerhaft gelöscht (Standard: 30)."
 
 #: includes/Admin/SettingsPage.php
 #: includes/Settings.php:336
@@ -2281,45 +2259,13 @@ msgstr "Die verantwortliche Person ist verhindert."
 msgid "Cancellation reason"
 msgstr "Stornierungsgrund"
 
-#: includes/Admin/SettingsPage.php:129
-msgid "Allow a cancellation reason to be entered."
-msgstr "Eingabe eines Stornierungsgrunds erlauben."
-
-#: includes/Admin/SettingsPage.php:132
-msgid "Applies to cancellations from email links and the appointment dashboard. Disable this option if the field is being abused."
-msgstr "Gilt für Stornierungen über E-Mail-Links und die Terminübersicht. Deaktivieren Sie diese Option, wenn das Feld missbraucht wird."
-
-#: includes/Admin/SettingsPage.php:85
-msgid "Lock Appointment Management View to these users"
-msgstr "Zugriff auf die Terminverwaltung auf diese Benutzer beschränken"
-
-#: includes/Admin/SettingsPage.php:222
-msgid "Selected users can open the Appointments page and cancel appointments. Administrators always have access and do not need to be added."
-msgstr "Ausgewählte Benutzer können die Seite „Termine“ öffnen und Termine stornieren. Administratoren haben immer Zugriff und müssen nicht hinzugefügt werden."
-
-#: includes/Admin/SettingsPage.php:226 includes/Admin/SettingsPage.php:229
-msgid "Select user"
-msgstr "Benutzer auswählen"
-
-#: includes/Admin/SettingsPage.php:245
-msgid "Add user to permission list"
-msgstr "Benutzer zur Berechtigungsliste hinzufügen"
-
 #: includes/Admin/SettingsPage.php:219 includes/Admin/SettingsPage.php:262
 msgid "Remove"
 msgstr "Entfernen"
 
-#: includes/Admin/SettingsPage.php:267
-msgid "No additional users have access."
-msgstr "Keine weiteren Benutzer haben Zugriff."
-
 #: includes/Admin/SettingsPage.php:85
 msgid "Sensitive appointment mode"
 msgstr "Modus für sensible Sprechstunden"
-
-#: includes/Admin/SettingsPage.php:173
-msgid "Hide appointment details in the administration area."
-msgstr "Termindetails im Verwaltungsbereich ausblenden."
 
 #: includes/Admin/SettingsPage.php:176
 msgid "While enabled, the appointment overview only shows dates and times. Appointments confirmed in this mode remain anonymized in the administration area after it is disabled. Existing appointments become visible again. Email delivery and content are unaffected."
@@ -2879,10 +2825,6 @@ msgstr "Buchung beibehalten"
 msgid "Enable JavaScript to manage appointments."
 msgstr "Aktivieren Sie JavaScript, um Termine zu verwalten."
 
-#: includes/Admin/SettingsPage.php
-msgid "While enabled, the appointment overview only shows dates, times and titles. Appointments confirmed in this mode remain anonymized in the administration area after it is disabled. Existing appointments become visible again. Email delivery and content are unaffected."
-msgstr "Solange der Modus aktiv ist, zeigt die Terminübersicht nur Datum, Uhrzeit und Titel an. In diesem Modus bestätigte Termine bleiben auch nach dem Deaktivieren im Verwaltungsbereich anonymisiert. Bereits vorhandene Termine werden wieder sichtbar. Versand und Inhalt der E-Mails bleiben unverändert."
-
 #: includes/Controller/AdminBookingsController.php
 msgid "You do not have permission to manage appointments."
 msgstr "Sie haben keine Berechtigung, Termine zu verwalten."
@@ -3017,22 +2959,6 @@ msgid "SSO protection for appointment management"
 msgstr "SSO-Schutz der Terminverwaltung"
 
 #: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
-msgid "SSO protection is enabled. Appointment access requires the matching SSO account."
-msgstr "Der SSO-Schutz ist aktiviert. Für den Zugriff auf Termine ist das passende SSO-Konto erforderlich."
-
-#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
-msgid "SSO protection is disabled. Existing WordPress permissions apply."
-msgstr "Der SSO-Schutz ist deaktiviert. Es gelten die bestehenden WordPress-Berechtigungen."
-
-#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
-msgid "Public bookings remain available without SSO. Setup activates an available RRZE-AC plugin on this website, then verifies your SSO account."
-msgstr "Öffentliche Buchungen bleiben ohne SSO möglich. Die Einrichtung aktiviert ein verfügbares RRZE-AC auf diesem Webauftritt und prüft anschließend Ihr SSO-Konto."
-
-#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
-msgid "Set up SSO protection / activate RRZE-AC"
-msgstr "SSO-Schutz einrichten / RRZE-AC aktivieren"
-
-#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
 msgid "Sign in with SSO"
 msgstr "Mit SSO anmelden"
 
@@ -3048,14 +2974,6 @@ msgstr "SSO-Schutz aktivieren"
 msgid "Emergency reset removes the additional SSO requirement on this website. Existing WordPress permissions still apply."
 msgstr "Das Zurücksetzen entfernt die zusätzliche SSO-Pflicht auf diesem Webauftritt. Die bestehenden WordPress-Berechtigungen gelten weiterhin."
 
-#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
-msgid "Reset SSO protection as network administrator"
-msgstr "SSO-Schutz als Netzwerkadministrator zurücksetzen"
-
-#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
-msgid "Sign in with the matching SSO account to change appointment managers."
-msgstr "Melden Sie sich mit dem passenden SSO-Konto an, um die Terminverwalter zu ändern."
-
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
 msgid "No access to appointment management"
 msgstr "Kein Zugriff auf die Terminverwaltung"
@@ -3067,10 +2985,6 @@ msgstr "Ihr Benutzerkonto ist für diese Terminverwaltung nicht freigeschaltet. 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
 msgid "Please sign in with SSO"
 msgstr "Bitte mit SSO anmelden"
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "You have permission to manage appointments. Sign in with the SSO account belonging to your WordPress account to continue."
-msgstr "Sie sind für die Terminverwaltung freigeschaltet. Melden Sie sich mit dem SSO-Konto an, das zu Ihrem WordPress-Konto gehört, um fortzufahren."
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
 msgid "The signed-in accounts do not match"
@@ -3117,10 +3031,6 @@ msgid "Reload page"
 msgstr "Seite neu laden"
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Keep at least one eligible responsible person. Add a successor before removing yourself."
-msgstr "Mindestens eine berechtigte verantwortliche Person muss erhalten bleiben. Benennen Sie eine Nachfolge, bevor Sie sich selbst entfernen."
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
 msgid "Select current members of this website with at least editor permissions."
 msgstr "Wählen Sie Mitglieder dieses Webauftritts mit mindestens Redakteur-Berechtigungen aus."
 
@@ -3133,64 +3043,16 @@ msgid "This access change is not permitted. Reload the page and try again."
 msgstr "Diese Änderung der Zugriffsrechte ist nicht zulässig. Laden Sie die Seite erneut und versuchen Sie es noch einmal."
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Responsible for access management:"
-msgstr "Verantwortlich für die Zugriffsverwaltung:"
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "No eligible responsible person is available."
-msgstr "Es ist keine berechtigte verantwortliche Person verfügbar."
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "These people manage appointment permissions. If no responsible person is available, contact support to reassign responsibility."
-msgstr "Diese Personen verwalten die Freigaben für die Terminverwaltung. Ist keine verantwortliche Person mehr erreichbar, wenden Sie sich an den Support, um die Verantwortlichkeit neu zuweisen zu lassen."
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
 msgid "Access to appointment management"
 msgstr "Zugriff auf die Terminverwaltung"
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Access is restricted to explicitly authorized users. Other administrators do not have automatic access, even when SSO is disabled."
-msgstr "Der Zugriff ist auf ausdrücklich freigeschaltete Benutzer beschränkt. Andere Administratoren haben keinen automatischen Zugriff, auch wenn SSO ausgeschaltet ist."
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
 msgid "Manage access"
 msgstr "Zugriff verwalten"
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Reassign responsible people as network administrator"
-msgstr "Verantwortliche als Netzwerk-Administrator neu zuweisen"
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Explicitly select the new responsible people. This replaces responsibility but preserves ordinary permissions and the SSO requirement."
-msgstr "Wählen Sie die neuen Verantwortlichen ausdrücklich aus. Die bisherige Verantwortlichkeit wird ersetzt. Normale Freigaben und die SSO-Pflicht bleiben erhalten."
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "User restrictions have not been set up. All administrators and previously selected users still have access."
-msgstr "Die Benutzerbeschränkung ist noch nicht eingerichtet. Alle Administratoren und bisher ausgewählten Benutzer haben weiterhin Zugriff."
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Set up user restrictions"
-msgstr "Benutzerbeschränkung einrichten"
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Review the future permissions before saving. You become responsible. Other administrators lose automatic access and must be selected explicitly. Restrictions remain in place when SSO is disabled."
-msgstr "Prüfen Sie vor dem Speichern die künftigen Freigaben. Sie werden verantwortlich. Andere Administratoren verlieren ihren automatischen Zugriff und müssen ausdrücklich ausgewählt werden. Die Beschränkung bleibt auch bei ausgeschaltetem SSO bestehen."
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Authorized users can view and cancel appointments. Responsible people can also grant access and appoint other responsible people."
-msgstr "Freigeschaltete Benutzer können Termine einsehen und stornieren. Verantwortliche können zusätzlich Freigaben erteilen und weitere Verantwortliche benennen."
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
 msgid "Responsible people"
 msgstr "Verantwortliche"
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Users allowed to view and cancel appointments"
-msgstr "Benutzer mit Berechtigung zum Einsehen und Stornieren"
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Responsible people automatically have access and do not need a second selection. At least one eligible responsible person must remain."
-msgstr "Verantwortliche haben automatisch Zugriff und müssen nicht zusätzlich ausgewählt werden. Mindestens eine berechtigte verantwortliche Person muss erhalten bleiben."
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
 msgid "Reassign responsibility"
@@ -3201,24 +3063,8 @@ msgid "Save permissions"
 msgstr "Freigaben speichern"
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Some previous selections are no longer eligible and have no access. Saving removes these obsolete selections."
-msgstr "Einige bisher ausgewählte Benutzer erfüllen die Voraussetzungen nicht mehr und haben keinen Zugriff. Beim Speichern werden diese veralteten Freigaben entfernt."
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Set up user restrictions and confirm the responsible people before enabling SSO protection."
-msgstr "Richten Sie die Benutzerbeschränkung ein und bestätigen Sie die Verantwortlichen, bevor Sie den SSO-Schutz aktivieren."
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Only responsible administrators can change SSO protection."
-msgstr "Nur verantwortliche Administratoren können den SSO-Schutz ändern."
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Emergency reset removes only the SSO requirement on this website. User restrictions and responsible people remain unchanged."
-msgstr "Die Notfallrücksetzung entfernt ausschließlich die SSO-Pflicht auf diesem Webauftritt. Benutzerbeschränkung und Verantwortliche bleiben unverändert."
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Permissions are managed separately by the responsible people under Appointments → Manage access."
-msgstr "Die Freigaben werden separat durch die Verantwortlichen unter Appointments → Zugriff verwalten verwaltet."
+msgid "Some previous role assignments no longer grant access. Saving a change to the assigned roles removes these entries."
+msgstr "Einige frühere Rollenzuweisungen gewähren keinen Zugriff mehr. Beim Speichern einer geänderten Rollenverteilung entfernt das Plugin diese Einträge."
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
 msgid "Appointment management"
@@ -3287,3 +3133,373 @@ msgstr "Die Termine konnten nicht geladen werden. Bitte laden Sie die Seite neu.
 #: includes/Presentation/AssetManager.php
 msgid "Unable to load appointments. Please try again."
 msgstr "Die Termine konnten nicht geladen werden. Bitte versuchen Sie es erneut."
+
+#: includes/Admin/AccessSettings.php
+msgid "Contact support to appoint a new responsible person."
+msgstr "Wenden Sie sich an den Support, um eine neue verantwortliche Person zu benennen."
+
+#: includes/Admin/AccessSettings.php
+msgid "Access is now restricted to the selected people."
+msgstr "Ab jetzt haben nur die ausgewählten Personen Zugriff."
+
+#: includes/Admin/AccessSettings.php
+msgid "Access permissions saved."
+msgstr "Freigaben gespeichert."
+
+#: includes/Admin/AccessSettings.php
+msgid "Responsibility reassigned."
+msgstr "Verantwortliche neu zugewiesen."
+
+#: includes/Admin/AccessSettings.php
+msgid "All administrators and any additional people listed here can view and cancel appointments."
+msgstr "Alle Administratoren und die hier zusätzlich freigegebenen Personen dürfen Termine einsehen und stornieren."
+
+#: includes/Admin/AccessSettings.php
+msgid "Additional people with access"
+msgstr "Zusätzlich freigegebene Personen"
+
+#: includes/Admin/AccessSettings.php
+msgid "Go to SSO settings"
+msgstr "Zu den SSO-Einstellungen"
+
+#: includes/Admin/AccessSettings.php
+msgid "Restrict access to selected people"
+msgstr "Zugriff auf ausgewählte Personen beschränken"
+
+#: includes/Admin/AccessSettings.php
+msgid "Reassign responsible people"
+msgstr "Neue Verantwortliche benennen"
+
+#: includes/Admin/AccessSettings.php
+msgid "The access list cannot be read. Select new responsible people to rebuild it. Other people will need new grants."
+msgstr "Die Zugriffsliste kann nicht gelesen werden. Wählen Sie neue Verantwortliche, um die Liste wiederherzustellen. Alle weiteren Personen brauchen eine neue Freigabe."
+
+#: includes/Admin/AccessSettings.php
+msgid "Use this if the responsible people are unavailable. Select their successors. Other grants and the SSO requirement are kept."
+msgstr "Wenn die bisherigen Verantwortlichen nicht erreichbar sind, wählen Sie hier ihre Nachfolge. Alle weiteren Freigaben und die SSO-Einstellung bleiben erhalten."
+
+#: includes/Admin/AccessSettings.php
+msgid "This selection could not be reviewed. Check the current permissions and try again."
+msgstr "Die Vorschau konnte nicht erstellt werden. Prüfen Sie die aktuellen Freigaben und versuchen Sie es erneut."
+
+#: includes/Admin/AccessSettings.php
+msgid "Choose who will keep access. You can review the list before applying this restriction."
+msgstr "Wählen Sie aus, wer Zugriff behalten soll. Im nächsten Schritt können Sie Ihre Auswahl prüfen."
+
+#: includes/Admin/AccessSettings.php
+msgid "You will be a responsible person for this website."
+msgstr "Sie übernehmen die Verantwortung für die Freigaben auf dieser Website."
+
+#: includes/Admin/AccessSettings.php
+msgid "New responsible people"
+msgstr "Neue Verantwortliche"
+
+#: includes/Admin/AccessSettings.php
+msgid "Roles on this website"
+msgstr "Rollen auf dieser Website"
+
+#: includes/Admin/AccessSettings.php includes/Admin/SettingsPage.php
+msgid "Find a person"
+msgstr "Person suchen"
+
+#: includes/Admin/AccessSettings.php
+msgid "No access"
+msgstr "Kein Zugriff"
+
+#: includes/Admin/AccessSettings.php
+msgid "View and cancel"
+msgstr "Einsehen und stornieren"
+
+#: includes/Admin/AccessSettings.php
+msgid "Responsible"
+msgstr "Verantwortlich"
+
+#: includes/Admin/AccessSettings.php includes/Admin/SettingsPage.php
+msgid "No matching people."
+msgstr "Keine passenden Personen gefunden."
+
+#: includes/Admin/AccessSettings.php
+msgid "Review access"
+msgstr "Auswahl prüfen"
+
+#: includes/Admin/AccessSettings.php
+msgid "Review access before applying"
+msgstr "Freigaben vor dem Übernehmen prüfen"
+
+#: includes/Admin/AccessSettings.php
+msgid "No one"
+msgstr "Niemand"
+
+#: includes/Admin/AccessSettings.php
+msgid "Apply access restrictions"
+msgstr "Zugriff jetzt beschränken"
+
+#: includes/Admin/AccessSettings.php
+msgid "Change selection"
+msgstr "Auswahl ändern"
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Assign at least one responsible person and save access before enabling SSO."
+msgstr "Benennen Sie mindestens eine verantwortliche Person und speichern Sie die Freigaben. Danach können Sie den SSO-Schutz aktivieren."
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "RRZE Access Control is active on this website."
+msgstr "RRZE Access Control ist auf dieser Website aktiv."
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "SSO protection enabled."
+msgstr "SSO-Schutz aktiviert."
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "SSO protection disabled."
+msgstr "SSO-Schutz deaktiviert."
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "SSO is on"
+msgstr "SSO-Schutz ist aktiv"
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "SSO is off"
+msgstr "SSO-Schutz ist ausgeschaltet"
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "With single sign-on (SSO), everyone with access to appointment management must also sign in with the SSO account linked to their WordPress account. This setting applies to all authorized people on this website."
+msgstr "Bei aktiviertem Single Sign-on (SSO) müssen sich alle Personen mit Zugriff auf die Terminverwaltung zusätzlich mit ihrem SSO-Konto anmelden. Das SSO-Konto muss zum jeweiligen WordPress-Konto gehören. Die Einstellung gilt für diese Website."
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "The booking form has its own sign-in setting in the appointment block."
+msgstr "Die Anmeldung für das öffentliche Buchungsformular wird separat im Terminblock eingestellt."
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "A responsible administrator or a network administrator can change this setting."
+msgstr "Diese Einstellung können verantwortliche Administratoren und die Netzwerkadministration ändern."
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Check that RRZE SSO is installed and activate it for this website in the Plugins menu."
+msgstr "Prüfen Sie im Menü „Plugins“, ob RRZE SSO installiert ist, und aktivieren Sie es für diese Website."
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Ask your network administrator to activate RRZE SSO for this website."
+msgstr "Bitten Sie die Netzwerkadministration, RRZE SSO für diese Website zu aktivieren."
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Activate RRZE Access Control on this website to connect appointment management to SSO."
+msgstr "Aktivieren Sie RRZE Access Control auf dieser Website, um die SSO-Anmeldung mit der Terminverwaltung zu verbinden."
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Activate RRZE Access Control"
+msgstr "RRZE Access Control aktivieren"
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Check that RRZE Access Control is installed and can be activated for this website."
+msgstr "Prüfen Sie, ob RRZE Access Control installiert ist und für diese Website aktiviert werden kann."
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Ask your network administrator to activate RRZE Access Control for this website."
+msgstr "Bitten Sie die Netzwerkadministration, RRZE Access Control für diese Website zu aktivieren."
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Sign in with your own SSO account to configure access for this website."
+msgstr "Melden Sie sich mit Ihrem eigenen SSO-Konto an, um den Zugriff für diese Website einzurichten."
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Go to access permissions"
+msgstr "Zu den Freigaben"
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Reset SSO protection"
+msgstr "SSO-Schutz zurücksetzen"
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "If SSO sign-in is unavailable, turn off the additional sign-in requirement here. Everyone keeps their assigned appointment permissions."
+msgstr "Wenn die SSO-Anmeldung ausfällt, können Sie die zusätzliche Anmeldepflicht hier aufheben. Alle Personen behalten ihre Freigaben für die Terminverwaltung."
+
+#: includes/Admin/SettingsPage.php
+msgid "Reminders"
+msgstr "Erinnerungen"
+
+#: includes/Admin/SettingsPage.php
+msgid "Booking data & cancellations"
+msgstr "Buchungsdaten und Stornierungen"
+
+#: includes/Admin/SettingsPage.php
+msgid "Email to the person booking"
+msgstr "E-Mail an die buchende Person"
+
+#: includes/Admin/SettingsPage.php
+msgid "Email to the appointment contact"
+msgstr "E-Mail an die Ansprechperson für den Termin"
+
+#: includes/Admin/SettingsPage.php
+msgid "No reminder"
+msgstr "Keine Erinnerung"
+
+#. translators: %d is the number of days before an appointment.
+#: includes/Admin/SettingsPage.php
+#, php-format
+msgid "%d day before"
+msgid_plural "%d days before"
+msgstr[0] "%d Tag vorher"
+msgstr[1] "%d Tage vorher"
+
+#: includes/Admin/SettingsPage.php
+msgid "days"
+msgstr "Tage"
+
+#: includes/Admin/SettingsPage.php
+msgid "How long to keep bookings after the appointment ends. After this period the plugin permanently deletes them."
+msgstr "So lange bleiben Buchungen nach dem Terminende gespeichert. Nach Ablauf der Frist löscht das Plugin sie endgültig."
+
+#: includes/Admin/SettingsPage.php
+msgid "Allow an optional reason for cancelling."
+msgstr "Bei der Stornierung die Angabe eines Grundes ermöglichen."
+
+#: includes/Admin/SettingsPage.php
+msgid "Applies to cancellations from an email link or from appointment management."
+msgstr "Gilt für Stornierungen über einen E-Mail-Link und in der Terminverwaltung."
+
+#: includes/Admin/SettingsPage.php
+msgid "Show only the date, time and title in appointment management."
+msgstr "In der Terminverwaltung nur Datum, Uhrzeit und Titel anzeigen."
+
+#: includes/Admin/SettingsPage.php
+msgid "Bookings confirmed while this setting is on stay anonymized in the overview permanently. Details of earlier bookings reappear when you turn it off. Emails use the usual booking details."
+msgstr "Buchungen, die in diesem Modus bestätigt werden, bleiben in der Übersicht dauerhaft anonymisiert. Nach dem Ausschalten sind die Details früherer Buchungen wieder sichtbar. E-Mails enthalten die üblichen Buchungsdaten."
+
+#: includes/Admin/SettingsPage.php
+msgid "Confirm your SSO account to edit this list."
+msgstr "Mit dem eigenen SSO-Konto anmelden, um die Liste zu bearbeiten."
+
+#: includes/Admin/SettingsPage.php
+msgid "This website has no additional users to select."
+msgstr "Auf dieser Website stehen keine weiteren Personen zur Auswahl."
+
+#: includes/Admin/SettingsPage.php
+msgid "Who else may view and cancel appointments?"
+msgstr "Wer darf außerdem Termine einsehen und stornieren?"
+
+#: includes/Admin/SettingsPage.php
+msgid "Save additional people"
+msgstr "Zusätzliche Freigaben speichern"
+
+#: includes/Admin/SettingsPage.php
+msgid "Access & SSO"
+msgstr "Zugriff & SSO"
+
+#: includes/Admin/SettingsPage.php
+msgid "Appointment settings"
+msgstr "Termineinstellungen"
+
+#: includes/Admin/SettingsPage.php
+msgid "Access settings unavailable"
+msgstr "Zugriffseinstellungen nicht verfügbar"
+
+#: includes/Admin/SettingsPage.php
+msgid "Only selected people"
+msgstr "Nur ausgewählte Personen"
+
+#: includes/Admin/SettingsPage.php
+msgid "Administrators"
+msgstr "Administratoren"
+
+#: includes/Admin/SettingsPage.php
+msgid "Administrators and additional people"
+msgstr "Administratoren und zusätzlich freigegebene Personen"
+
+#: includes/Admin/SettingsPage.php
+msgid "Who can view and cancel appointments?"
+msgstr "Wer darf Termine einsehen und stornieren?"
+
+#: includes/Admin/SettingsPage.php
+msgid "SSO sign-in"
+msgstr "SSO-Anmeldung"
+
+#: includes/Admin/SettingsPage.php
+msgid "Manage access & SSO"
+msgstr "Zugriff und SSO verwalten"
+
+#: includes/Admin/SettingsPage.php
+msgid "Save general settings"
+msgstr "Allgemeine Einstellungen speichern"
+
+#: includes/Admin/SettingsPage.php
+msgid "Recovery"
+msgstr "Zugriff im Notfall wiederherstellen"
+
+#: includes/Configuration/PluginSettings.php
+msgid "The list was incomplete. Your saved access permissions have been kept."
+msgstr "Die Liste war unvollständig. Die bisherigen Freigaben gelten weiterhin."
+
+#: includes/Admin/SettingsPage.php
+msgid "These settings have been updated. Reload the page and make your change again."
+msgstr "Die Einstellungen wurden aktualisiert. Bitte laden Sie die Seite neu und wiederholen Sie Ihre Änderung."
+
+#: includes/Admin/SettingsPage.php
+msgctxt "SSO sign-in status"
+msgid "Required"
+msgstr "Erforderlich"
+
+#: includes/Admin/SettingsPage.php
+msgctxt "SSO sign-in status"
+msgid "Not required"
+msgstr "Nicht erforderlich"
+
+#: includes/Admin/AccessNotice.php
+msgid "Sign in with the SSO account linked to your current WordPress account to continue."
+msgstr "Melden Sie sich mit dem SSO-Konto an, das mit Ihrem aktuellen WordPress-Konto verknüpft ist."
+
+#: includes/Admin/AccessPolicy.php includes/Admin/AccessSettings.php
+msgid "Select at least one responsible person."
+msgstr "Wählen Sie mindestens eine verantwortliche Person aus."
+
+#: includes/Admin/AccessPolicy.php includes/Admin/AccessSettings.php
+msgid "Ask another responsible administrator to grant you access to bookings."
+msgstr "Für Ihren eigenen Buchungszugriff benötigen Sie die Freigabe einer anderen verantwortlichen Person."
+
+#: includes/Admin/AccessPolicy.php
+msgid "Only administrators of this website can be responsible for access."
+msgstr "Nur Administratoren dieser Website können die Verantwortung für Freigaben übernehmen."
+
+#: includes/Admin/AccessSettings.php
+msgid "Roles for bookings and permissions"
+msgstr "Rollen für Buchungen und Freigaben"
+
+#: includes/Admin/AccessSettings.php
+msgid "Booking access and responsibility for permissions are assigned separately on this website."
+msgstr "Die Rolle einer Person bestimmt, ob sie Freigaben verwalten oder Buchungen einsehen und stornieren darf."
+
+#: includes/Admin/AccessSettings.php
+msgid "No website administrator is currently responsible."
+msgstr "Derzeit ist kein Administrator dieser Website für die Freigaben verantwortlich."
+
+#: includes/Admin/AccessSettings.php
+msgid "Ask your network administrator to reassign responsibility."
+msgstr "Bitten Sie die Netzwerkverwaltung, die Verantwortung neu zu vergeben."
+
+#: includes/Admin/AccessSettings.php
+msgid "Responsible with booking access"
+msgstr "Verantwortlich mit Dateneinsicht"
+
+#: includes/Admin/AccessSettings.php
+msgid "Responsible without booking access"
+msgstr "Verantwortlich ohne Dateneinsicht"
+
+#: includes/Admin/AccessSettings.php
+msgid "Do not assign responsibility"
+msgstr "Keine Verantwortung zuweisen"
+
+#: includes/Admin/AccessSettings.php
+msgid "Only website administrators can manage access. Booking access lets a person view and cancel appointments."
+msgstr "Nur Administratoren dieser Website können die Verantwortung übernehmen. Wer Dateneinsicht hat, darf Termine einsehen und stornieren."
+
+#: includes/Admin/AccessSettings.php
+msgid "Add an administrator to this website before assigning responsibility."
+msgstr "Fügen Sie dieser Website zuerst einen Administrator hinzu, der die Verantwortung übernehmen kann."
+
+#: includes/Admin/AccessSettings.php
+msgid "People who will lose booking access"
+msgstr "Diese Personen verlieren den Zugriff auf Buchungen"
+
+#: includes/Admin/AccessSettings.php
+msgid "These roles apply to everyone on this website, including administrators, even when SSO is off."
+msgstr "Die ausgewählten Rollen gelten für alle Personen auf dieser Website, auch für Administratoren und bei ausgeschaltetem SSO."

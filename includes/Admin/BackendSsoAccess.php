@@ -113,6 +113,12 @@ final class BackendSsoAccess
             __('SSO protection is unavailable. Contact your network administrator.', 'rrze-appointment'), ['status' => 503]);
     }
 
+    /** Checks whether the account may configure access on behalf of this website. */
+    public static function canManageNetworkAccess(): bool
+    {
+        return self::canReset() && current_user_can('manage_options');
+    }
+
     /** Restricts emergency policy resets to network administrators; it does not grant data access. */
     public static function canReset(): bool
     {
