@@ -2,6 +2,7 @@
 
 namespace RRZE\Appointment\Admin;
 
+use RRZE\Appointment\Configuration\PluginSettings;
 use RRZE\Appointment\Storage\OptionDatabase;
 
 defined('ABSPATH') || exit;
@@ -71,10 +72,15 @@ final class AccessPolicy
             && in_array(get_current_user_id(), $policy['owners'], true);
     }
 
-    /** Produces an opaque revision token even for a damaged policy that support must repair. */
+    /** Binds a form to the current policy, SSO state and any legacy grants included in first-time setup. */
     public static function token(): string
     {
-        return hash('sha256', serialize([get_option(self::OPTION_NAME, null), BackendSsoAccess::required()]));
+        $policy = get_option(self::OPTION_NAME, null);
+        $state = [$policy, BackendSsoAccess::required()];
+        if ($policy === null) {
+            $state[] = PluginSettings::get('appointment_manager_user_ids');
+        }
+        return hash('sha256', serialize($state));
     }
 
     /**
@@ -89,7 +95,7 @@ final class AccessPolicy
         $database = null;
         try {
             $database = new OptionDatabase($wpdb, $wpdb->options);
-            foreach ([self::OPTION_NAME, BackendSsoAccess::OPTION_NAME, 'alloptions', 'notoptions'] as $key) {
+            foreach ([self::OPTION_NAME, BackendSsoAccess::OPTION_NAME, PluginSettings::OPTION_NAME, 'alloptions', 'notoptions'] as $key) {
                 wp_cache_delete($key, 'options');
             }
             return $operation($database);
@@ -103,31 +109,19 @@ final class AccessPolicy
     /**
      * Applies an explicitly confirmed setup, owner update or network recovery.
      *
-     * @param string $operation setup, save or recover.
+     * @param string $operation setup, save, network_setup, network_save or recover.
      * @param array $owners Submitted responsible user IDs.
      * @param array $managers Submitted ordinary manager IDs.
      * @param string $token Observed policy token, bound into the form nonce.
+     * @return true|\WP_Error True when the site-local grants were saved.
      */
     public static function change(string $operation, array $owners, array $managers, string $token): true|\WP_Error
     {
         return self::locked(static function (OptionDatabase $database) use ($operation, $owners, $managers, $token) {
             $policy = self::read();
-            if ($operation === 'recover') {
-                if (!BackendSsoAccess::canReset() || !current_user_can('manage_options') || $policy === null) {
-                    return AppointmentPermissions::forbidden();
-                }
-            } elseif ($operation === 'setup') {
-                if (!current_user_can('manage_options') || !self::eligible(get_current_user_id()) || $policy !== null) {
-                    return AppointmentPermissions::forbidden();
-                }
-            } elseif ($operation !== 'save' || !self::owner()) {
-                return AppointmentPermissions::forbidden();
-            }
-            if ($operation !== 'recover') {
-                $access = BackendSsoAccess::check();
-                if (is_wp_error($access)) {
-                    return $access;
-                }
+            $access = self::authorizeChange($operation, $policy);
+            if (is_wp_error($access)) {
+                return $access;
             }
             if (!hash_equals(self::token(), $token)) {
                 return self::conflict();
@@ -151,6 +145,33 @@ final class AccessPolicy
             $previous = $database->read(self::OPTION_NAME);
             return $database->replace(self::OPTION_NAME, $previous, serialize($next)) ? true : self::conflict();
         });
+    }
+
+    /**
+     * Authorizes a grant change while holding the site's options lock.
+     *
+     * @param string $operation Requested operation from the nonce-protected form.
+     * @param array|\WP_Error|null $policy Current explicit grants, read error, or null before setup.
+     * @return true|\WP_Error Whether the current account may perform this operation.
+     */
+    private static function authorizeChange(string $operation, array|\WP_Error|null $policy): true|\WP_Error
+    {
+        $permitted = match ($operation) {
+            'network_setup' => BackendSsoAccess::canManageNetworkAccess() && $policy === null,
+            'network_save' => BackendSsoAccess::canManageNetworkAccess() && is_array($policy),
+            'recover' => BackendSsoAccess::canManageNetworkAccess() && $policy !== null,
+            'setup' => $policy === null && current_user_can('manage_options') && self::eligible(get_current_user_id()),
+            'save' => self::owner(),
+            default => false,
+        };
+        if (!$permitted) {
+            return AppointmentPermissions::forbidden();
+        }
+        return match ($operation) {
+            'recover' => true,
+            'network_setup', 'network_save' => BackendSsoAccess::verifyIdentity(),
+            default => BackendSsoAccess::check(),
+        };
     }
 
     /** Rejects malformed or ineligible submitted IDs rather than silently dropping grants. */

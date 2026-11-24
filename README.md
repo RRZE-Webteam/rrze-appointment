@@ -91,10 +91,16 @@ read-only verification, scheduling and restore requirements.
 
 ### Optional SSO protection for appointment management
 
-The general settings contain an independent **SSO protection for appointment management** section.
-It is disabled by default, separately for every site. Setup can activate an installed and permitted
-RRZE-AC plugin on the current site, then requires a fresh request and a matching SSO login before
-protection can be enabled. Public bookings, emails, cron and encrypted-storage migration remain independent.
+The **General** tab shows who can manage appointments and whether SSO is required.
+Open **Access & SSO** on the relevant site's RRZE Appointment settings page to change either setting.
+Access roles determine who can view or cancel bookings. Switching on SSO adds an identity check
+for everyone on that site's appointment management screen. Each site's SSO setting starts off.
+
+To enable protection, choose the responsible people and everyone who can view and cancel bookings.
+Save these permissions, make sure the SSO integration is ready, and sign in with the SSO identity
+that matches your own WordPress account. Then enable SSO for the site. Setup can activate an installed
+and permitted RRZE-AC plugin on this site. Public bookings, emails, cron and encrypted-storage
+migration keep their own access rules.
 
 The management page and its REST list/cancellation routes require both the existing WordPress
 permission and an active SSO session mapped to the same WordPress account. RRZE-AC and RRZE-SSO
@@ -103,10 +109,14 @@ initialized identity providers. Setup never changes that configuration or existi
 An unrecognized IdP, missing mapping or dependency failure denies access. Local accounts without
 a matching SSO identity cannot access protected appointment data, including network administrators.
 
-Before explicit user restrictions are configured, site administrators need matching SSO to disable protection or change legacy appointment managers. After setup, only responsible administrators may change SSO protection; responsible editors may manage grants.
-Network administrators have a separate, nonce-protected emergency reset in the same settings section.
-It explicitly removes the additional requirement on that site; it is not a data-access bypass.
-Deactivating AC later leaves protection enabled and denies management access until repaired or reset.
+Responsible site administrators can change SSO protection with their matching SSO identity.
+A multisite super administrator can also use their own matching SSO account to turn protection
+on or off on behalf of a site, including one they do not belong to. Enabling protection requires
+at least one currently eligible responsible person.
+The super administrator receives booking access only when explicitly selected and eligible.
+For a site that already required SSO before configuring explicit permissions, a site administrator
+needs matching SSO to disable protection or change the legacy manager list. Deactivating AC later leaves
+protection enabled and blocks management access until the integration is repaired or SSO is reset.
 
 The non-autoloaded site option is `rrze_appointment_backend_sso_required`. Ordinary settings saves
 do not modify it. Activation honors WordPress capabilities, plugin visibility (`all_plugins`),
@@ -125,32 +135,34 @@ and non-cacheable. Server configuration and other plugins remain trusted adminis
 
 ### Explicit appointment permissions and responsible people
 
-Each site can deliberately set up **user restrictions** in the general settings. Existing installations
-retain their administrator access and legacy manager list until this confirmation; no site is converted
-by an update or a network scan. The preview makes the acting administrator responsible and offers
-eligible previous managers for confirmation. Other administrators must be explicitly selected.
-A new SSO activation requires this setup first; an already enabled SSO requirement remains unchanged.
+On a site using its original permissions, administrators and previously selected users can manage
+appointments. In **Access & SSO**, select the people who should keep access, review the proposed
+roles, and confirm the change. Eligible previous managers are offered for confirmation. After saving,
+the list controls access for everyone, including administrators. Existing sites keep their current
+permissions until someone explicitly saves this setup.
 
-After setup, only listed responsible people and ordinary authorized users may view and cancel
-appointments. Administrators and network administrators have no implicit data access. Eligible users
-must currently belong to the site and have `read` plus `edit_others_posts` or `manage_options`.
-Roles, membership and the matching SSO session (when required) are rechecked on every request.
-Deleting or demoting users removes their effective access immediately. Local accounts without a
-matching SSO identity cannot use an SSO-protected management screen even when listed.
+| Appointment role | View and cancel bookings | Assign appointment roles |
+| --- | --- | --- |
+| Responsible person | Yes | Yes |
+| View and cancel | Yes | No |
+| No access | No | No |
 
-Responsible people use **Appointments → Manage access**, including editors without `manage_options`,
-to grant view/cancellation access or appoint other responsible people. At least one eligible owner
-must remain after each change. Restrictions persist independently of SSO and never revert to
-administrator access because a list becomes empty or invalid. There is no regular "allow all admins"
-action after setup. Other administrators see read-only responsibility information in settings.
+People selected for either role must belong to the current site and have `read` plus
+`edit_others_posts` or `manage_options`. At least one eligible responsible person must remain.
+Responsible people, including editors, can manage roles under **Appointments → Manage access**.
+A multisite super administrator with a matching SSO identity can assign both roles on behalf of
+the site and select another person as responsible. The acting super administrator can remain
+outside the access list.
 
-Only a responsible administrator with matching SSO may normally enable/disable SSO. A network
-administrator can explicitly **reassign responsibility** without SSO if owners are unavailable; this
-preserves ordinary grants and the SSO requirement. If a damaged policy cannot be decoded, recovery
-creates a valid policy from the explicitly selected owners without trusting damaged grants.
-The separate **SSO emergency reset** removes only SSO, leaving explicit user restrictions intact.
-Neither recovery action automatically adds its actor to the list. All writes require authenticated
-POSTs and site/action/revision-bound WordPress nonces.
+Membership, capabilities and, when required, the matching SSO session are checked on each request.
+Removing or demoting someone takes effect immediately. Explicit restrictions also apply when SSO
+is off. A damaged or empty policy blocks booking access. If the responsible people are unavailable,
+a multisite super administrator can use the recovery controls without their own SSO session.
+**Reassign responsibility** preserves ordinary grants and the SSO setting. If the policy is damaged,
+the selected responsible people form a new policy. The separate **SSO emergency reset** turns SSO
+off for this site and keeps its access list. Recovery gives the acting administrator no automatic
+access to bookings. Changes require an authenticated POST with a WordPress nonce bound to the
+site, action and observed revision.
 
 The non-autoloaded, per-site option `rrze_appointment_access_policy` stores a version, the restricted
 state, owners, managers and a revision. It is separate from ordinary settings and booking encryption.
@@ -239,8 +251,9 @@ date and host filters, column selection, and pagination. Current bookings can
 be cancelled from a confirmation dialog, with an optional reason when enabled
 in the settings.
 
-Only administrators and users explicitly authorized in the plugin settings
-can access the overview. The administration REST endpoints enforce the same
+Before a site configures user restrictions, administrators and its legacy appointment managers
+can access the overview. Once restrictions are in place, only the people assigned an appointment
+role can open it, with matching SSO when enabled. The administration REST endpoints enforce the same
 site-specific permissions and require a valid REST nonce. They do not need
 to be enabled as public endpoints.
 

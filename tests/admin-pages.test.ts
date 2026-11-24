@@ -119,7 +119,7 @@ describe( 'focused administration pages', () => {
 
 		expect( settings ).toContain( "'appointment_manager_user_ids'" );
 		expect( settings ).toContain( 'renderAppointmentManagersField' );
-		expect( settings ).toContain( 'data-appointment-permissions' );
+		expect( settings ).toContain( 'value="additional_people"' );
 		expect( bookings ).toContain(
 			'AppointmentPermissions::currentUserCanManage()'
 		);

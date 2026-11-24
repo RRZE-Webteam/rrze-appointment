@@ -8,7 +8,12 @@ jest.mock( '@wordpress/i18n', () => ( { __: ( value: string ) => value } ), {
 	virtual: true,
 } );
 
-/** Runs real access controllers and the installed RRZE-SSO helper with synthetic dependencies. */
+/**
+ * Runs real access controllers and the installed RRZE-SSO helper with synthetic dependencies.
+ *
+ * @param name Name of the PHP fixture scenario.
+ * @return Recorded permissions, writes and response for this scenario.
+ */
 function scenario( name: string ) {
 	return JSON.parse(
 		execFileSync(
@@ -79,7 +84,9 @@ describe( 'backend SSO authorization', () => {
 			name === 'failed' ? 503 : 403
 		);
 		expect( result.writes ).toEqual( [] );
-		if ( name !== 'failed' ) expect( result.activations ).toEqual( [] );
+		if ( name !== 'failed' ) {
+			expect( result.activations ).toEqual( [] );
+		}
 	} );
 	it( 'requires matching SSO to enable and disables autoload', () => {
 		expect( scenario( 'enable' ).writes ).toEqual( [
@@ -104,6 +111,35 @@ describe( 'backend SSO authorization', () => {
 			scenario( 'managers-valid' ).result.appointment_manager_user_ids
 		).toEqual( [ 9 ] );
 	} );
+	it.each( [ 'enable', 'disable' ] )(
+		'allows network administrators to %s SSO for a site without booking access',
+		( operation ) => {
+			const result = scenario( 'network-sso-' + operation );
+			expect( result.result ).toBe( true );
+			expect( result.extra.access.data.status ).toBe( 403 );
+			expect( result.writes ).toEqual( [
+				[
+					1,
+					'rrze_appointment_backend_sso_required',
+					operation === 'enable' ? '1' : '0',
+					false,
+				],
+			] );
+		}
+	);
+	it.each( [
+		[ 'expired', 401 ],
+		[ 'mismatch', 403 ],
+		[ 'site-admin', 403 ],
+		[ 'unconfigured', 400 ],
+		[ 'no-owner', 400 ],
+		[ 'corrupt', 503 ],
+		[ 'stale', 409 ],
+	] )( 'rejects a network SSO change for %s', ( name, status ) => {
+		const result = scenario( 'network-sso-' + name );
+		expect( result.result.data.status ).toBe( status );
+		expect( result.writes ).toEqual( [] );
+	} );
 	it.each( [ 'nonce', 'cross-site', 'array', 'return', 'forbidden', 'get' ] )(
 		'rejects manipulated HTTP %s',
 		( name ) => {
@@ -124,6 +160,26 @@ describe( 'backend SSO authorization', () => {
 		] );
 		expect( result.redirect ).toBe( result.authCalls[ 0 ].ReturnTo );
 		expect( result.writes ).toEqual( [] );
+	} );
+	it( 'returns administrators to the access tab after SSO login and activation', () => {
+		const accessTab =
+			'https://site1.test/wp-admin/options-general.php?page=rrze-appointment-settings&tab=access';
+		const login = scenario( 'http-login-settings' );
+		expect( login.authCalls[ 0 ].ReturnTo ).toBe( accessTab );
+		expect( login.redirect ).toBe( accessTab );
+		const activation = scenario( 'http-network-enable' );
+		expect( activation.redirect ).toBe( accessTab + '&sso_updated=enable' );
+		expect( activation.writes ).toHaveLength( 1 );
+	} );
+	it( 'returns a responsible editor to the access form after SSO login', () => {
+		const accessTab =
+			'https://site1.test/wp-admin/admin.php?page=rrze-appointment-bookings&tab=access';
+		const result = scenario( 'http-login-access' );
+		expect( result.authCalls[ 0 ].ReturnTo ).toBe( accessTab );
+		expect( result.redirect ).toBe( accessTab );
+		const denied = scenario( 'http-login-access-denied' );
+		expect( denied.result.data.status ).toBe( 403 );
+		expect( denied.authCalls ).toEqual( [] );
 	} );
 } );
 

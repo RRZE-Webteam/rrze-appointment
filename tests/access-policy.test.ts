@@ -1,7 +1,12 @@
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
-/** Exercises production authorization, persistence, SSO and REST code with isolated users and SQL. */
+/**
+ * Exercises production authorization, persistence, SSO and REST code with isolated users and SQL.
+ *
+ * @param name Name of the PHP fixture scenario.
+ * @return Recorded permissions, writes and response for this scenario.
+ */
 function scenario( name: string ) {
 	return JSON.parse(
 		execFileSync(
@@ -20,7 +25,9 @@ describe( 'explicit appointment access policy', () => {
 			const result = scenario( name );
 			expect( result.result.status ).toBe( 200 );
 			expect( result.cancel.status ).toBe( 200 );
-			expect( result.cancel.data.message ).toContain( 'Booking cancelled' );
+			expect( result.cancel.data.message ).toContain(
+				'Booking cancelled'
+			);
 			expect( result.reads ).toBeGreaterThan( 0 );
 		}
 	);
@@ -77,12 +84,59 @@ describe( 'explicit appointment access policy', () => {
 			'rrze_appointment_setup_required'
 		);
 	} );
+	it.each( [
+		[ 'http-transfer', 'index.php?rrze_appointment_access_saved=save' ],
+		[
+			'http-transfer-manager',
+			'admin.php?page=rrze-appointment-bookings&rrze_appointment_access_saved=save',
+		],
+	] )(
+		'returns the former owner to an accessible screen after %s',
+		( name, destination ) => {
+			const result = scenario( name );
+			expect( result.redirect ).toBe(
+				'https://site1.test/wp-admin/' + destination
+			);
+			expect( result.writes[ 0 ][ 2 ].owners ).toEqual( [ 9 ] );
+		}
+	);
 	it( 'allows responsible editors to delegate but not to disable SSO', () => {
 		const result = scenario( 'editor-owner' );
 		expect( result.result ).toBe( true );
 		expect( result.options[ 1 ][ key ].owners ).toEqual( [ 7, 9 ] );
 		expect( result.extra.sso.data.status ).toBe( 403 );
 	} );
+	it.each( [ 'setup', 'save' ] )(
+		'allows a verified network administrator outside the site to %s on behalf of named members',
+		( operation ) => {
+			const result = scenario( 'network-' + operation );
+			expect( result.result ).toBe( true );
+			expect( result.options[ 1 ][ key ] ).toMatchObject( {
+				owners: [ 8 ],
+				managers: [ 7 ],
+				revision: operation === 'setup' ? 1 : 2,
+			} );
+			expect( result.options[ 2 ] ).toEqual( [] );
+			expect( result.extra.access.data.status ).toBe( 403 );
+			expect( result.extra.grants.data.status ).toBe( 403 );
+		}
+	);
+	it.each( [
+		[ 'site-admin', 403 ],
+		[ 'no-capability', 403 ],
+		[ 'expired', 401 ],
+		[ 'mismatch', 403 ],
+		[ 'ineligible', 400 ],
+		[ 'no-owner', 400 ],
+		[ 'stale-legacy', 409 ],
+	] )(
+		'rejects a network change for %s before saving grants',
+		( name, status ) => {
+			const result = scenario( 'network-' + name );
+			expect( result.result.data.status ).toBe( status );
+			expect( result.writes ).toEqual( [] );
+		}
+	);
 	it.each( [
 		'manager-save',
 		'admin-save',

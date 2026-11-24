@@ -698,14 +698,6 @@ msgstr ""
 msgid "Appointments"
 msgstr ""
 
-#: includes/Admin/SettingsPage.php:64
-msgid "Reminder email to booking person"
-msgstr ""
-
-#: includes/Admin/SettingsPage.php:73
-msgid "Reminder email to the appointment email address"
-msgstr ""
-
 #: includes/Admin/SettingsPage.php
 #: includes/Settings.php:146
 msgid "Booking data retention"
@@ -722,18 +714,6 @@ msgstr ""
 #: includes/Admin/SettingsPage.php
 #: includes/Settings.php:307
 msgid "Disabled"
-msgstr ""
-
-#: includes/Admin/SettingsPage.php
-#: includes/Settings.php:315
-msgid "days before the appointment."
-msgstr ""
-
-#: includes/Admin/SettingsPage.php
-#: includes/Settings.php:325
-msgid ""
-"Completed bookings are permanently deleted this many days after the "
-"appointment ends (default: 30)."
 msgstr ""
 
 #: includes/Admin/SettingsPage.php
@@ -2129,44 +2109,12 @@ msgstr ""
 msgid "Cancellation reason"
 msgstr ""
 
-#: includes/Admin/SettingsPage.php:129
-msgid "Allow a cancellation reason to be entered."
-msgstr ""
-
-#: includes/Admin/SettingsPage.php:132
-msgid "Applies to cancellations from email links and the appointment dashboard. Disable this option if the field is being abused."
-msgstr ""
-
-#: includes/Admin/SettingsPage.php:85
-msgid "Lock Appointment Management View to these users"
-msgstr ""
-
-#: includes/Admin/SettingsPage.php:222
-msgid "Selected users can open the Appointments page and cancel appointments. Administrators always have access and do not need to be added."
-msgstr ""
-
-#: includes/Admin/SettingsPage.php:226 includes/Admin/SettingsPage.php:229
-msgid "Select user"
-msgstr ""
-
-#: includes/Admin/SettingsPage.php:245
-msgid "Add user to permission list"
-msgstr ""
-
 #: includes/Admin/SettingsPage.php:219 includes/Admin/SettingsPage.php:262
 msgid "Remove"
 msgstr ""
 
-#: includes/Admin/SettingsPage.php:267
-msgid "No additional users have access."
-msgstr ""
-
 #: includes/Admin/SettingsPage.php:85
 msgid "Sensitive appointment mode"
-msgstr ""
-
-#: includes/Admin/SettingsPage.php:173
-msgid "Hide appointment details in the administration area."
 msgstr ""
 
 #: includes/Admin/SettingsPage.php:176
@@ -2344,10 +2292,6 @@ msgstr ""
 msgid "Enable JavaScript to manage appointments."
 msgstr ""
 
-#: includes/Admin/SettingsPage.php
-msgid "While enabled, the appointment overview only shows dates, times and titles. Appointments confirmed in this mode remain anonymized in the administration area after it is disabled. Existing appointments become visible again. Email delivery and content are unaffected."
-msgstr ""
-
 #: includes/Controller/AdminBookingsController.php
 msgid "You do not have permission to manage appointments."
 msgstr ""
@@ -2482,22 +2426,6 @@ msgid "SSO protection for appointment management"
 msgstr ""
 
 #: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
-msgid "SSO protection is enabled. Appointment access requires the matching SSO account."
-msgstr ""
-
-#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
-msgid "SSO protection is disabled. Existing WordPress permissions apply."
-msgstr ""
-
-#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
-msgid "Public bookings remain available without SSO. Setup activates an available RRZE-AC plugin on this website, then verifies your SSO account."
-msgstr ""
-
-#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
-msgid "Set up SSO protection / activate RRZE-AC"
-msgstr ""
-
-#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
 msgid "Sign in with SSO"
 msgstr ""
 
@@ -2511,14 +2439,6 @@ msgstr ""
 
 #: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
 msgid "Emergency reset removes the additional SSO requirement on this website. Existing WordPress permissions still apply."
-msgstr ""
-
-#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
-msgid "Reset SSO protection as network administrator"
-msgstr ""
-
-#: includes/Admin/BackendSsoAccess.php includes/Admin/BackendSsoSettings.php includes/Admin/SettingsPage.php
-msgid "Sign in with the matching SSO account to change appointment managers."
 msgstr ""
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
@@ -2598,23 +2518,7 @@ msgid "This access change is not permitted. Reload the page and try again."
 msgstr ""
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Responsible for access management:"
-msgstr ""
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "No eligible responsible person is available."
-msgstr ""
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "These people manage appointment permissions. If no responsible person is available, contact support to reassign responsibility."
-msgstr ""
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
 msgid "Access to appointment management"
-msgstr ""
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Access is restricted to explicitly authorized users. Other administrators do not have automatic access, even when SSO is disabled."
 msgstr ""
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
@@ -2622,39 +2526,7 @@ msgid "Manage access"
 msgstr ""
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Reassign responsible people as network administrator"
-msgstr ""
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Explicitly select the new responsible people. This replaces responsibility but preserves ordinary permissions and the SSO requirement."
-msgstr ""
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "User restrictions have not been set up. All administrators and previously selected users still have access."
-msgstr ""
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Set up user restrictions"
-msgstr ""
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Review the future permissions before saving. You become responsible. Other administrators lose automatic access and must be selected explicitly. Restrictions remain in place when SSO is disabled."
-msgstr ""
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Authorized users can view and cancel appointments. Responsible people can also grant access and appoint other responsible people."
-msgstr ""
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
 msgid "Responsible people"
-msgstr ""
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Users allowed to view and cancel appointments"
-msgstr ""
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Responsible people automatically have access and do not need a second selection. At least one eligible responsible person must remain."
 msgstr ""
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
@@ -2667,22 +2539,6 @@ msgstr ""
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
 msgid "Some previous selections are no longer eligible and have no access. Saving removes these obsolete selections."
-msgstr ""
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Set up user restrictions and confirm the responsible people before enabling SSO protection."
-msgstr ""
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Only responsible administrators can change SSO protection."
-msgstr ""
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Emergency reset removes only the SSO requirement on this website. User restrictions and responsible people remain unchanged."
-msgstr ""
-
-#: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Permissions are managed separately by the responsible people under Appointments → Manage access."
 msgstr ""
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
@@ -2751,4 +2607,342 @@ msgstr ""
 
 #: includes/Presentation/AssetManager.php
 msgid "Unable to load appointments. Please try again."
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Contact support to appoint a new responsible person."
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Access is now restricted to the selected people."
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Access permissions saved."
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Responsibility reassigned."
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Who can manage appointments?"
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "All administrators and any additional people listed here can view and cancel appointments."
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Additional people with access"
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Only the people assigned a role can open appointment management on this website."
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Go to SSO settings"
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Restrict access to selected people"
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Reassign responsible people"
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "The access list cannot be read. Select new responsible people to rebuild it. Other people will need new grants."
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Use this if the responsible people are unavailable. Select their successors. Other grants and the SSO requirement are kept."
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "This selection could not be reviewed. Check the current permissions and try again."
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Select at least one responsible person to continue."
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Choose who will keep access. You can review the list before applying this restriction."
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "You will be a responsible person for this website."
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Responsible people can view and cancel appointments and manage permissions. People with “View and cancel” can work with bookings. Keep at least one responsible person."
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "New responsible people"
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Roles on this website"
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "You can choose site members with editor or administrator permissions."
+msgstr ""
+
+#: includes/Admin/AccessSettings.php includes/Admin/SettingsPage.php
+msgid "Find a person"
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "No access"
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "View and cancel"
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Responsible"
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "This website has no eligible members."
+msgstr ""
+
+#: includes/Admin/AccessSettings.php includes/Admin/SettingsPage.php
+msgid "No matching people."
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Review access"
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "People who will lose access"
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Review access before applying"
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Only the people assigned a role below will have access, including administrators. These restrictions also apply when SSO is off."
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "No one"
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Apply access restrictions"
+msgstr ""
+
+#: includes/Admin/AccessSettings.php
+msgid "Change selection"
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Assign at least one responsible person and save access before enabling SSO."
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "RRZE Access Control is active on this website."
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "SSO protection enabled."
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "SSO protection disabled."
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "SSO is on"
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "SSO is off"
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "With single sign-on (SSO), everyone with access to appointment management must also sign in with the SSO account linked to their WordPress account. This setting applies to all authorized people on this website."
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "The booking form has its own sign-in setting in the appointment block."
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "A responsible administrator or a network administrator can change this setting."
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Check that RRZE SSO is installed and activate it for this website in the Plugins menu."
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Ask your network administrator to activate RRZE SSO for this website."
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Activate RRZE Access Control on this website to connect appointment management to SSO."
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Activate RRZE Access Control"
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Check that RRZE Access Control is installed and can be activated for this website."
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Ask your network administrator to activate RRZE Access Control for this website."
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Sign in with your own SSO account to configure access for this website."
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Go to access permissions"
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "Reset SSO protection"
+msgstr ""
+
+#: includes/Admin/BackendSsoSettings.php
+msgid "If SSO sign-in is unavailable, turn off the additional sign-in requirement here. Everyone keeps their assigned appointment permissions."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Reminders"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Booking data & cancellations"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Email to the person booking"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Email to the appointment contact"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "No reminder"
+msgstr ""
+
+#. translators: %d is the number of days before an appointment.
+#: includes/Admin/SettingsPage.php
+#, php-format
+msgid "%d day before"
+msgid_plural "%d days before"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/Admin/SettingsPage.php
+msgid "days"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "How long to keep bookings after the appointment ends. After this period the plugin permanently deletes them."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Allow an optional reason for cancelling."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Applies to cancellations from an email link or from appointment management."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Show only the date, time and title in appointment management."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Bookings confirmed while this setting is on stay anonymized in the overview permanently. Details of earlier bookings reappear when you turn it off. Emails use the usual booking details."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Confirm your SSO account to edit this list."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "This website has no additional users to select."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Who else may view and cancel appointments?"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Save additional people"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Access & SSO"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Appointment settings"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Access settings unavailable"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Only selected people"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Administrators"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Administrators and additional people"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Who can view and cancel appointments?"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "SSO sign-in"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Manage access & SSO"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Save general settings"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "Recovery"
+msgstr ""
+
+#: includes/Configuration/PluginSettings.php
+msgid "The list was incomplete. Your saved access permissions have been kept."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgctxt "SSO sign-in status"
+msgid "Required"
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgctxt "SSO sign-in status"
+msgid "Not required"
 msgstr ""

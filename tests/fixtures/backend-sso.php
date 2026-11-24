@@ -232,7 +232,10 @@ namespace {
         case 'multisite': $site = 2; break;
         case 'super-expired': $super = true; $authenticated = false; break;
     }
-    if (str_starts_with($scenario, 'policy-')) {
+    if (str_starts_with($scenario, 'screen-')) {
+        require __DIR__ . '/access-screen.php';
+        exit;
+    } elseif (str_starts_with($scenario, 'policy-')) {
         require __DIR__ . '/access-policy-cases.php';
     } elseif (str_starts_with($scenario, 'activate-')) {
         $active[1] = ['rrze-sso/rrze-sso.php'];
@@ -252,6 +255,28 @@ namespace {
     } elseif (str_starts_with($scenario, 'managers-')) {
         $result = $settings->protectManagers($scenario === 'managers-malformed' ? 'bad' : ['appointment_manager_user_ids' => [9], 'retention_days' => 45],
             ['appointment_manager_user_ids' => [7], 'retention_days' => 30]);
+    } elseif (str_starts_with($scenario, 'network-sso-')) {
+        $super = $scenario !== 'network-sso-site-admin';
+        $user = 9;
+        $nonMembers = [9];
+        $authenticated = $scenario !== 'network-sso-expired';
+        $attributes = ['uid' => [$scenario === 'network-sso-mismatch' ? 'alice' : 'bob']];
+        $policyName = \RRZE\Appointment\Admin\AccessPolicy::OPTION_NAME;
+        $options[1][$policyName] = ['version' => 1, 'restricted' => true, 'revision' => 1, 'owners' => [7], 'managers' => [8]];
+        $operation = $scenario === 'network-sso-disable' ? 'disable' : 'enable';
+        $options[1][$access::OPTION_NAME] = $operation === 'enable' ? '0' : '1';
+        $token = \RRZE\Appointment\Admin\AccessPolicy::token();
+        switch ($scenario) {
+            case 'network-sso-unconfigured': unset($options[1][$policyName]); break;
+            case 'network-sso-stale': $options[1][$policyName]['revision']++; break;
+            case 'network-sso-corrupt': $options[1][$policyName] = 'damaged'; break;
+            case 'network-sso-no-owner': $demoted = [7]; break;
+        }
+        if ($scenario !== 'network-sso-stale') {
+            $token = \RRZE\Appointment\Admin\AccessPolicy::token();
+        }
+        $result = $settings->perform($operation, $token);
+        $extra['access'] = \RRZE\Appointment\Admin\AppointmentPermissions::dataAccess();
     } elseif (str_starts_with($scenario, 'reset-') || str_starts_with($scenario, 'disable-') || $scenario === 'enable') {
         $super = $scenario === 'reset-network';
         if ($scenario === 'enable') { $options[1][$access::OPTION_NAME] = '0'; $options[1]['rrze_appointment_access_policy'] = ['version' => 1, 'restricted' => true, 'revision' => 1, 'owners' => [7], 'managers' => []]; }
@@ -267,9 +292,32 @@ namespace {
             case 'http-return': $_POST['destination'] = 'https://attacker.test'; break;
             case 'http-forbidden': $caps['manage_options'] = false; break;
             case 'http-get': $_SERVER['REQUEST_METHOD'] = 'GET'; $_GET = $_POST; break;
+            case 'http-network-enable':
+                $super = true;
+                $user = 9;
+                $nonMembers = [9];
+                $attributes = ['uid' => ['bob']];
+                $options[1][$access::OPTION_NAME] = '0';
+                $options[1][\RRZE\Appointment\Admin\AccessPolicy::OPTION_NAME] = ['version' => 1, 'restricted' => true, 'revision' => 1, 'owners' => [7], 'managers' => []];
+                $_POST['policy_token'] = \RRZE\Appointment\Admin\AccessPolicy::token();
+                $_POST['_wpnonce'] = \RRZE\Appointment\Admin\BackendSsoSettings::nonceAction('enable', 'settings', $_POST['policy_token']);
+                break;
             case 'http-login':
+            case 'http-login-settings':
+            case 'http-login-access':
+            case 'http-login-access-denied':
                 $_SERVER['REQUEST_METHOD'] = 'GET';
-                $_GET = ['operation' => 'login', 'destination' => 'bookings', '_wpnonce' => \RRZE\Appointment\Admin\BackendSsoSettings::nonceAction('login', 'bookings')];
+                $destination = match ($scenario) {
+                    'http-login' => 'bookings', 'http-login-settings' => 'settings', default => 'access',
+                };
+                if ($destination === 'access') {
+                    $caps['manage_options'] = false;
+                    $owner = $scenario === 'http-login-access' ? 7 : 9;
+                    $options[1][\RRZE\Appointment\Admin\AccessPolicy::OPTION_NAME] = [
+                        'version' => 1, 'restricted' => true, 'revision' => 1, 'owners' => [$owner], 'managers' => [8],
+                    ];
+                }
+                $_GET = ['operation' => 'login', 'destination' => $destination, '_wpnonce' => \RRZE\Appointment\Admin\BackendSsoSettings::nonceAction('login', $destination)];
                 break;
         }
         try { $settings->handle(); } catch (TestStopped $exception) { $result = new WP_Error('stopped', $exception->getMessage(), ['status' => $exception->getCode()]); }

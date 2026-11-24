@@ -1,80 +1,70 @@
-describe( 'appointment permission-list controls', () => {
-	afterEach( () => {
-		document.body.innerHTML = '';
-		jest.resetModules();
+import { execFileSync } from 'node:child_process';
+import { resolve } from 'node:path';
+
+/** Renders the standard access form using a site directory with three distinct accounts. */
+function renderAdditionalPeople(): HTMLFormElement {
+	const result = JSON.parse(
+		execFileSync(
+			'php',
+			[
+				resolve( 'tests/fixtures/backend-sso.php' ),
+				'screen-additional',
+			],
+			{ encoding: 'utf8' }
+		)
+	);
+	document.body.innerHTML = result.html;
+	return document.querySelector( 'form' )!;
+}
+
+describe( 'standard access grants', () => {
+	it( 'submits the on-screen selection without JavaScript and keeps administrators out of the list', () => {
+		const form = renderAdditionalPeople();
+		const users = form.querySelectorAll< HTMLInputElement >(
+			'input[type="checkbox"]'
+		);
+		expect( Array.from( users, ( user ) => user.value ) ).toEqual( [
+			'8',
+			'10',
+		] );
+		const field =
+			'rrze_appointment_settings[appointment_manager_user_ids][]';
+		expect( new FormData( form ).getAll( field ) ).toEqual( [ '10' ] );
+		users[ 0 ].click();
+		users[ 1 ].click();
+		expect( new FormData( form ).getAll( field ) ).toEqual( [ '8' ] );
+		users[ 0 ].click();
+		const empty = new FormData( form );
+		expect( empty.getAll( field ) ).toEqual( [] );
+		expect(
+			empty.get( 'rrze_appointment_settings[_settings_scope]' )
+		).toBe( 'additional_people' );
+		expect(
+			empty.get( 'rrze_appointment_settings[_access_list_complete]' )
+		).toBe( '1' );
 	} );
 
-	it( 'adds and removes users before the settings form is saved', () => {
-		document.body.innerHTML = `
-			<div
-				data-appointment-permissions
-				data-input-name="rrze_appointment_settings[appointment_manager_user_ids][]"
-				data-remove-label="Remove"
-			>
-				<select data-permission-user-select>
-					<option value="">Select user</option>
-					<option value="1">Ada (ada, ada@example.test)</option>
-					<option value="2" disabled>Grace (grace, grace@example.test)</option>
-				</select>
-				<button type="button" data-permission-add disabled>Add</button>
-				<ul data-permission-list>
-					<li data-permission-user data-user-id="2">
-						<span>Grace (grace, grace@example.test)</span>
-						<input
-							type="hidden"
-							name="rrze_appointment_settings[appointment_manager_user_ids][]"
-							value="2"
-						>
-						<button type="button" data-permission-remove>Remove</button>
-					</li>
-					<li data-permission-empty hidden>No users</li>
-				</ul>
-			</div>`;
-
+	it( 'keeps checked people selected while the name filter hides their rows', () => {
+		const form = renderAdditionalPeople();
 		require( '../assets/js/rrze-appointment-admin' );
 		document.dispatchEvent( new Event( 'DOMContentLoaded' ) );
-
-		const select = document.querySelector< HTMLSelectElement >(
-			'[data-permission-user-select]'
-		) as HTMLSelectElement;
-		const add = document.querySelector< HTMLButtonElement >(
-			'[data-permission-add]'
-		) as HTMLButtonElement;
-		const empty = document.querySelector< HTMLElement >(
-			'[data-permission-empty]'
-		) as HTMLElement;
-
-		select.value = '1';
-		select.dispatchEvent( new Event( 'change' ) );
-		expect( add.disabled ).toBe( false );
-		add.click();
-
+		const search = form.querySelector< HTMLInputElement >(
+			'input[type="search"]'
+		)!;
+		search.value = 'USER8';
+		search.dispatchEvent( new Event( 'input' ) );
 		expect(
-			document.querySelectorAll( '[data-permission-user]' )
-		).toHaveLength( 2 );
+			form.querySelectorAll( '[data-access-person]:not([hidden])' )
+		).toHaveLength( 1 );
 		expect(
-			document.querySelectorAll(
-				'input[name="rrze_appointment_settings[appointment_manager_user_ids][]"]'
+			new FormData( form ).getAll(
+				'rrze_appointment_settings[appointment_manager_user_ids][]'
 			)
-		).toHaveLength( 2 );
-		expect( select.options[ 1 ].disabled ).toBe( true );
-		expect( empty.hidden ).toBe( true );
-
-		document
-			.querySelector< HTMLButtonElement >(
-				'[data-user-id="2"] [data-permission-remove]'
-			)
-			?.click();
-		expect( select.options[ 2 ].disabled ).toBe( false );
-
-		document
-			.querySelector< HTMLButtonElement >(
-				'[data-user-id="1"] [data-permission-remove]'
-			)
-			?.click();
+		).toEqual( [ '10' ] );
+		search.value = 'unlisted';
+		search.dispatchEvent( new Event( 'input' ) );
 		expect(
-			document.querySelectorAll( '[data-permission-user]' )
-		).toHaveLength( 0 );
-		expect( empty.hidden ).toBe( false );
+			form.querySelector< HTMLElement >( '[data-access-empty]' )!.hidden
+		).toBe( false );
 	} );
 } );

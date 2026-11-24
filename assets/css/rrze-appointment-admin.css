@@ -1,3 +1,183 @@
+/* Settings navigation, status and forms */
+.rrze-appt-settings {
+	container-type: inline-size;
+	max-width: 70rem;
+}
+
+.rrze-appt-settings > h1 {
+	margin-block: 12px 8px;
+	font-size: 26px;
+	line-height: 1.25;
+}
+
+.rrze-appt-settings .nav-tab-wrapper {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 8px;
+	margin-block: 12px 24px;
+	padding: 0;
+	border-bottom: 1px solid #c3c4c7;
+}
+
+.rrze-appt-settings .nav-tab {
+	float: none;
+	margin: 0;
+	padding: 10px 12px;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	background: transparent;
+	color: #50575e;
+	font-size: 14px;
+	line-height: 1.4;
+	white-space: normal;
+}
+
+.rrze-appt-settings .nav-tab:hover,
+.rrze-appt-settings .nav-tab:focus-visible {
+	background: #fff;
+	color: #1d2327;
+}
+
+.rrze-appt-settings .nav-tab-active {
+	border-bottom-color: var(--wp-admin-theme-color, #2271b1);
+	color: #1d2327;
+	font-weight: 600;
+}
+
+.rrze-appt-settings__summary,
+.rrze-appt-settings__card {
+	box-sizing: border-box;
+	min-width: 0;
+	margin-block: 0 20px;
+	padding: clamp(16px, 2.4vw, 28px);
+	border: 1px solid #c3c4c7;
+	border-radius: 8px;
+	background: #fff;
+	overflow-wrap: anywhere;
+}
+
+.rrze-appt-settings__summary {
+	border-inline-start: 4px solid var(--wp-admin-theme-color, #2271b1);
+	background: #f6f9fc;
+}
+
+.rrze-appt-settings__summary dl {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+	gap: 14px 24px;
+	margin-block: 14px;
+}
+
+.rrze-appt-settings__summary dt {
+	color: #50575e;
+}
+
+.rrze-appt-settings__summary dd {
+	margin: 4px 0 0;
+	color: #1d2327;
+	font-weight: 600;
+}
+
+.rrze-appt-settings__card > h2,
+.rrze-appt-settings__summary > h2 {
+	margin: 0 0 8px;
+	color: #1d2327;
+	font-size: 18px;
+	line-height: 1.4;
+}
+
+.rrze-appt-settings__card > :last-child,
+.rrze-appt-settings__summary > :last-child {
+	margin-bottom: 0;
+}
+
+.rrze-appt-settings__card > details {
+	margin-block: 14px;
+}
+
+.rrze-appt-settings__card > :where(details) > summary {
+	width: fit-content;
+	color: #135e96;
+	cursor: pointer;
+}
+
+.rrze-appt-settings__card > :where(details) > summary:where(:focus-visible) {
+	outline: 2px solid var(--wp-admin-theme-color, #2271b1);
+	outline-offset: 2px;
+}
+
+.rrze-appt-settings__card .form-table {
+	margin-top: 12px;
+}
+
+.rrze-appt-settings__card .form-table tr + tr {
+	border-top: 1px solid #dcdcde;
+}
+
+.rrze-appt-settings__card :where(.form-table) th {
+	width: clamp(12rem, 23vw, 18rem);
+}
+
+.rrze-appt-settings__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 12px;
+	margin-block-start: 16px;
+}
+
+.rrze-appt-settings__actions .submit {
+	margin: 0;
+	padding: 0;
+}
+
+/* Let long, translated button labels wrap in narrow cards. */
+:is(.rrze-appt-settings__card, .rrze-appt-settings__summary) :is(.button, .button-primary) {
+	box-sizing: border-box;
+	max-width: 100%;
+	white-space: normal;
+}
+
+@container (min-width: 56rem) {
+
+	.rrze-appt-settings__content--access {
+		display: grid;
+		grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+		align-items: start;
+		gap: 20px;
+	}
+
+	.rrze-appt-settings__content--access > .rrze-appt-settings__card {
+		margin: 0;
+	}
+
+	.rrze-appt-settings__content--access > .rrze-appt-settings__recovery {
+		grid-column: 1 / -1;
+		margin: 0;
+	}
+}
+
+@media screen and (max-width: 782px) {
+
+	.rrze-appt-settings .nav-tab-wrapper {
+		gap: 0;
+		margin-bottom: 16px;
+	}
+
+	.rrze-appt-settings .nav-tab {
+		padding-inline: 10px;
+	}
+
+	.rrze-appt-settings__card :where(.form-table) th {
+		width: auto;
+		padding-top: 12px;
+	}
+
+	.rrze-appt-settings__card .form-table td {
+		padding-bottom: 12px;
+	}
+}
+
 /* Appointment cancellation */
 .rrze-appt-cancellation {
 	position: relative;
@@ -51,17 +231,20 @@
 	display: grid;
 	max-width: 960px;
 	gap: 16px;
-	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
 }
 
 .rrze-appt-illustration {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	align-content: start;
+	min-width: 0;
 	padding: 16px;
 	border: 1px solid #c3c4c7;
 	border-radius: 4px;
 	background: #fff;
 	gap: 10px;
+	overflow-wrap: anywhere;
 }
 
 .rrze-appt-illustration h3,
@@ -71,6 +254,7 @@
 
 .rrze-appt-illustration__preview {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	place-items: center;
 	min-height: 160px;
 	padding: 12px;
@@ -80,7 +264,9 @@
 
 .rrze-appt-illustration__preview img {
 	display: block;
+	min-width: 0;
 	max-width: 100%;
+	height: auto;
 	max-height: 180px;
 	object-fit: contain;
 }
@@ -97,43 +283,11 @@
 	gap: 8px 12px;
 }
 
-.rrze-appt-permissions {
-	max-width: 760px;
-}
-
-.rrze-appt-permissions__picker {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	margin-top: 12px;
-	gap: 8px;
-}
-
-.rrze-appt-permissions__picker select {
-	min-width: min(100%, 360px);
-}
-
-.rrze-appt-permissions__list {
-	display: grid;
-	max-width: 620px;
-	margin: 16px 0 0;
-	gap: 8px;
-}
-
-.rrze-appt-permissions__list li {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	box-sizing: border-box;
-	margin: 0;
-	padding: 10px 12px;
-	border: 1px solid #dcdcde;
-	background: #fff;
-	gap: 16px;
-}
-
-.rrze-appt-permissions__list li[hidden] {
-	display: none;
+.rrze-appt-illustration__actions :is(.button, .button-link-delete) {
+	min-width: 0;
+	max-width: 100%;
+	white-space: normal;
+	overflow-wrap: anywhere;
 }
 
 /* Mail template editor */

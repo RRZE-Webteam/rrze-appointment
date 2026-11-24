@@ -127,10 +127,10 @@ final class BookingsPage
     /** Renders a useful denial, the owner-only forms, or the authorized booking application. */
     public function render(): void
     {
-        $access = AppointmentPermissions::dataAccess();
+        $access = self::accessTab() ? AppointmentPermissions::grantsAccess() : AppointmentPermissions::dataAccess();
         if (is_wp_error($access)) {
             echo '<div class="wrap"><h1>' . esc_html__('Appointments', 'rrze-appointment') . '</h1>';
-            AccessNotice::render($access);
+            AccessNotice::render($access, self::accessTab() ? 'access' : 'bookings');
             echo '</div>';
             return;
         }
@@ -149,6 +149,7 @@ final class BookingsPage
         <div class="wrap rrze-appointment-settings-wrap">
             <h1 class="wp-heading-inline"><?php esc_html_e('Appointments', 'rrze-appointment'); ?></h1>
             <hr class="wp-header-end">
+            <?php AccessSettings::renderConfirmation(); ?>
             <div id="rrze-appointment-admin" class="rrze-appointment-admin">
                 <p role="status"><?php esc_html_e('Loading appointments…', 'rrze-appointment'); ?></p>
             </div>

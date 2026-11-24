@@ -13,6 +13,9 @@ type SettingsResult = {
 	sanitizedEnabled: Record< string, unknown >;
 	sanitizedIllustrationsTab: Record< string, unknown >;
 	sanitizedGeneralTab: Record< string, unknown >;
+	clearedPeople: Record< string, unknown >;
+	incompletePeople: Record< string, unknown >;
+	settingsErrors: string[];
 	renderedTemplate: string;
 	successfulMail: Record< string, unknown >;
 	failedMail: Record< string, unknown >;
@@ -80,6 +83,8 @@ const getSettingsResult = (): SettingsResult => {
 				return preg_replace( '/[^a-z0-9_\\-]/', '', strtolower( $value ) );
 			}
 			function absint( $value ) { return abs( (int) $value ); }
+			/** Records notices raised while validating independent forms. */
+			function add_settings_error( $setting, $code, $message ) { $GLOBALS['settingsErrors'][] = $code; }
 			function wp_attachment_is_image( $id ) { return $id === 42; }
 			function get_current_blog_id() { return 1; }
 			function get_userdata( $id ) {
@@ -138,6 +143,12 @@ const getSettingsResult = (): SettingsResult => {
 				'reminder_host_days' => 0,
 				'retention_days' => 10,
 			] );
+			$clearedPeople = $settings::sanitize( [
+				'_settings_scope' => 'additional_people',
+				'_access_list_complete' => '1',
+			] );
+			$incompletePeople = $settings::sanitize( [ '_settings_scope' => 'additional_people' ] );
+			$settingsErrors = $GLOBALS['settingsErrors'];
 			$independentReminders = $settings::sanitize( [
 				'reminder_booker_days' => -2,
 				'reminder_host_days' => 99,
@@ -201,6 +212,9 @@ const getSettingsResult = (): SettingsResult => {
 				'sanitizedEnabled',
 				'sanitizedIllustrationsTab',
 				'sanitizedGeneralTab',
+				'clearedPeople',
+				'incompletePeople',
+				'settingsErrors',
 				'renderedTemplate',
 				'successfulMail',
 				'failedMail',
@@ -268,9 +282,25 @@ describe( 'plugin configuration and mail delivery', () => {
 			retention_days: 10,
 			cancellation_reason_enabled: false,
 			sensitive_mode_enabled: false,
+			appointment_manager_user_ids: [ 1 ],
+			illustrations: { confirmation_success: 42 },
+		} );
+	} );
+
+	it( 'only clears additional grants when their complete form is saved', () => {
+		const result = getSettingsResult();
+		expect( result.clearedPeople ).toEqual( {
+			...result.sanitizedIllustrationsTab,
 			appointment_manager_user_ids: [],
 			illustrations: { confirmation_success: 42 },
 		} );
+		expect( result.incompletePeople ).toEqual( {
+			...result.clearedPeople,
+			appointment_manager_user_ids: [ 1 ],
+		} );
+		expect( result.settingsErrors ).toEqual( [
+			'rrze_appointment_incomplete_access_list',
+		] );
 	} );
 
 	it( 'validates independent reminder days and preserves them on the illustrations tab', () => {

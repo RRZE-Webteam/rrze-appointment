@@ -3,100 +3,53 @@
  */
 document.addEventListener( 'DOMContentLoaded', () => {
 	document
-		.querySelectorAll( '[data-appointment-permissions]' )
-		.forEach( ( permissions ) => {
-			const select = permissions.querySelector(
-				'[data-permission-user-select]'
-			);
-			const addButton = permissions.querySelector(
-				'[data-permission-add]'
-			);
-			const list = permissions.querySelector( '[data-permission-list]' );
-			const empty = permissions.querySelector(
-				'[data-permission-empty]'
-			);
-
-			if (
-				! select ||
-				! addButton ||
-				! list ||
-				! empty ||
-				! permissions.dataset.inputName
-			) {
-				return;
-			}
-
-			const findOption = ( userId ) =>
-				Array.from( select.options ).find(
-					( option ) => option.value === userId
-				);
-			const updateState = () => {
-				const option = select.selectedOptions[ 0 ];
-				addButton.disabled =
-					! option || option.value === '' || option.disabled;
-				empty.hidden = Boolean(
-					list.querySelector( '[data-permission-user]' )
-				);
-			};
-			const removeUser = ( item ) => {
-				const option = findOption( item.dataset.userId );
-				if ( option ) {
-					option.disabled = false;
-				}
-				item.remove();
-				updateState();
-			};
-			const bindRemoveButton = ( item ) => {
-				item.querySelector(
-					'[data-permission-remove]'
-				)?.addEventListener( 'click', () => removeUser( item ) );
-			};
-
-			list.querySelectorAll( '[data-permission-user]' ).forEach(
-				bindRemoveButton
-			);
-			select.addEventListener( 'change', updateState );
-			addButton.addEventListener( 'click', () => {
-				const option = select.selectedOptions[ 0 ];
-				if ( ! option || option.value === '' || option.disabled ) {
-					return;
-				}
-
-				const item = document.createElement( 'li' );
-				item.dataset.permissionUser = '';
-				item.dataset.userId = option.value;
-
-				const label = document.createElement( 'span' );
-				label.textContent = option.textContent.trim();
-				item.append( label );
-
-				const input = document.createElement( 'input' );
-				input.type = 'hidden';
-				input.name = permissions.dataset.inputName;
-				input.value = option.value;
-				item.append( input );
-
-				const removeButton = document.createElement( 'button' );
-				removeButton.type = 'button';
-				removeButton.className = 'button-link-delete';
-				removeButton.dataset.permissionRemove = '';
-				removeButton.textContent = permissions.dataset.removeLabel;
-				item.append( removeButton );
-
-				bindRemoveButton( item );
-				list.append( item );
-				option.disabled = true;
-				select.value = '';
-				updateState();
-			} );
-			updateState();
-		} );
+		.querySelectorAll( '[data-access-directory]' )
+		.forEach( initializePersonFilter );
 
 	if ( window.wp?.media ) {
 		initializeIllustrationFields();
 	}
 } );
 
+/**
+ * Filters visible site members by their display name or login. Hidden rows keep their selected roles.
+ *
+ * @param {HTMLElement} directory Container with labeled person rows and an optional search field.
+ */
+function initializePersonFilter( directory ) {
+	const filter = directory.querySelector( '[data-access-filter]' );
+	const input = filter?.querySelector( 'input[type="search"]' );
+	const rows = Array.from(
+		directory.querySelectorAll( '[data-access-person]' )
+	);
+	const empty = directory.querySelector( '[data-access-empty]' );
+	if ( ! input || ! empty || ! rows.length ) {
+		return;
+	}
+	// Grant lists replace the full previous selection. Send only assigned roles on large sites.
+	directory.closest( 'form' )?.addEventListener( 'formdata', ( event ) => {
+		for ( const select of directory.querySelectorAll( 'select[name]' ) ) {
+			if ( select.value === 'none' ) {
+				event.formData.delete( select.name );
+			}
+		}
+	} );
+	filter.hidden = false;
+	input.addEventListener( 'input', () => {
+		const query = input.value.trim().toLocaleLowerCase();
+		let matches = 0;
+		for ( const row of rows ) {
+			const name = row.querySelector( 'label' )?.textContent || '';
+			row.hidden = ! name.toLocaleLowerCase().includes( query );
+			if ( ! row.hidden ) {
+				matches++;
+			}
+		}
+		empty.hidden = matches !== 0;
+	} );
+}
+
+/** Connects public-page illustration controls to the WordPress media library. */
 const initializeIllustrationFields = () => {
 	document
 		.querySelectorAll( '[data-illustration-field]' )

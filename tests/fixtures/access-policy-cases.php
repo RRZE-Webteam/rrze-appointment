@@ -40,9 +40,43 @@ if (str_starts_with($scenario, 'policy-http-')) {
         case 'policy-http-array': $_POST['owners'] = '7'; break;
         case 'policy-http-operation': $_POST['operation'] = ['save']; break;
         case 'policy-http-admin': $user = 10; break;
+        case 'policy-http-transfer':
+        case 'policy-http-transfer-manager':
+            $caps['manage_options'] = false;
+            $_POST['owners'] = [9];
+            $_POST['managers'] = $scenario === 'policy-http-transfer-manager' ? [7] : [];
+            break;
     }
     try { (new \RRZE\Appointment\Admin\AccessSettings())->handle(); }
     catch (TestStopped $exception) { $result = new WP_Error('stopped', $exception->getMessage(), ['status' => $exception->getCode()]); }
+} elseif (str_starts_with($scenario, 'policy-network-')) {
+    $user = 9;
+    $nonMembers = [9];
+    $super = $scenario !== 'policy-network-site-admin';
+    $caps['manage_network_options'] = $scenario !== 'policy-network-no-capability';
+    $attributes = ['uid' => [$scenario === 'policy-network-mismatch' ? 'alice' : 'bob']];
+    $authenticated = $scenario !== 'policy-network-expired';
+    $options[1][BackendSsoAccess::OPTION_NAME] = '0';
+    $operation = 'network_save';
+    $owners = [8];
+    $managers = [7];
+    if (in_array($scenario, ['policy-network-setup', 'policy-network-stale-legacy', 'policy-network-expired'], true)) {
+        unset($options[1][$key]);
+        $operation = 'network_setup';
+    }
+    $token = AccessPolicy::token();
+    if ($scenario === 'policy-network-stale-legacy') {
+        $options[1]['rrze_appointment_settings'] = ['appointment_manager_user_ids' => [10]];
+    }
+    if ($scenario === 'policy-network-no-owner') {
+        $owners = [];
+    }
+    if ($scenario === 'policy-network-ineligible') {
+        $owners = [9];
+    }
+    $result = AccessPolicy::change($operation, $owners, $managers, $token);
+    $extra['access'] = AppointmentPermissions::dataAccess();
+    $extra['grants'] = AppointmentPermissions::grantsAccess();
 } elseif (in_array($scenario, ['policy-owner', 'policy-manager', 'policy-admin', 'policy-super', 'policy-expired',
     'policy-mismatch', 'policy-outage', 'policy-demoted', 'policy-deleted', 'policy-removed', 'policy-corrupt',
     'policy-empty', 'policy-off-admin', 'policy-off-manager'], true)) {
