@@ -13,6 +13,7 @@ type SettingsResult = {
 	sanitizedEnabled: Record< string, unknown >;
 	sanitizedIllustrationsTab: Record< string, unknown >;
 	sanitizedGeneralTab: Record< string, unknown >;
+	legacyGeneralUpdate: Record< string, unknown >;
 	clearedPeople: Record< string, unknown >;
 	incompletePeople: Record< string, unknown >;
 	settingsErrors: string[];
@@ -138,10 +139,14 @@ const getSettingsResult = (): SettingsResult => {
 				'illustrations' => [ 'error' => 42 ],
 			] );
 			$sanitizedGeneralTab = $settings::sanitize( [
-				'_settings_scope' => 'general',
+				'_settings_scope' => $settings::GENERAL_SCOPE,
 				'reminder_booker_days' => 2,
 				'reminder_host_days' => 0,
 				'retention_days' => 10,
+			] );
+			$legacyGeneralUpdate = $settings::sanitize( [
+				'_settings_scope' => 'general',
+				'appointment_manager_user_ids' => [],
 			] );
 			$clearedPeople = $settings::sanitize( [
 				'_settings_scope' => 'additional_people',
@@ -212,6 +217,7 @@ const getSettingsResult = (): SettingsResult => {
 				'sanitizedEnabled',
 				'sanitizedIllustrationsTab',
 				'sanitizedGeneralTab',
+				'legacyGeneralUpdate',
 				'clearedPeople',
 				'incompletePeople',
 				'settingsErrors',
@@ -301,6 +307,13 @@ describe( 'plugin configuration and mail delivery', () => {
 		expect( result.settingsErrors ).toEqual( [
 			'rrze_appointment_incomplete_access_list',
 		] );
+	} );
+
+	it( 'retains the 2.4.1 general scope for direct option updates', () => {
+		expect( getSettingsResult().legacyGeneralUpdate ).toMatchObject( {
+			appointment_manager_user_ids: [],
+			illustrations: { confirmation_success: 42 },
+		} );
 	} );
 
 	it( 'validates independent reminder days and preserves them on the illustrations tab', () => {

@@ -159,9 +159,9 @@ final class AccessSettings
     /**
      * Renders the access card and the permitted setup or editing action on this website.
      *
-     * @param callable $renderAdditionalPeople Renders the separate legacy grants form in standard mode.
+     * @param callable|null $renderAdditionalPeople Optional renderer for the additional people form in standard mode.
      */
-    public static function renderSettings(callable $renderAdditionalPeople): void
+    public static function renderSettings(?callable $renderAdditionalPeople = null): void
     {
         $policy = AccessPolicy::read();
         $network = BackendSsoAccess::canManageNetworkAccess();
@@ -173,10 +173,14 @@ final class AccessSettings
             return;
         }
         if ($policy === null) {
-            echo '<p>' . esc_html__('All administrators and any additional people listed here can view and cancel appointments.', 'rrze-appointment') . '</p>';
-            echo '<details><summary>' . esc_html__('Additional people with access', 'rrze-appointment') . '</summary>';
-            $renderAdditionalPeople();
-            echo '</details>';
+            if ($renderAdditionalPeople === null) {
+                echo '<p>' . esc_html__('Administrators and additional people', 'rrze-appointment') . '</p>';
+            } else {
+                echo '<p>' . esc_html__('All administrators and any additional people listed here can view and cancel appointments.', 'rrze-appointment') . '</p>';
+                echo '<details><summary>' . esc_html__('Additional people with access', 'rrze-appointment') . '</summary>';
+                $renderAdditionalPeople();
+                echo '</details>';
+            }
         } else {
             echo '<p>' . esc_html__('Only the people assigned a role can open appointment management on this website.', 'rrze-appointment') . '</p>';
         }
@@ -318,7 +322,11 @@ final class AccessSettings
                         <?php else : ?>
                             <label for="<?php echo esc_attr($field); ?>"><?php echo esc_html(self::personLabel($user)); ?></label>
                             <select id="<?php echo esc_attr($field); ?>" name="roles[<?php echo esc_attr((string) $id); ?>]" <?php disabled($fixed); ?>>
-                                <option value="none" <?php selected($role, 'none'); ?>><?php esc_html_e('No access', 'rrze-appointment'); ?></option>
+                                <?php if ($role === 'none') : ?>
+                                    <?php // A selected disabled option omits untouched accounts from native form submissions. ?>
+                                    <option value="" selected disabled hidden><?php esc_html_e('No access', 'rrze-appointment'); ?></option>
+                                <?php endif; ?>
+                                <option value="none"><?php esc_html_e('No access', 'rrze-appointment'); ?></option>
                                 <option value="managers" <?php selected($role, 'managers'); ?>><?php esc_html_e('View and cancel', 'rrze-appointment'); ?></option>
                                 <option value="owners" <?php selected($role, 'owners'); ?>><?php esc_html_e('Responsible', 'rrze-appointment'); ?></option>
                             </select>

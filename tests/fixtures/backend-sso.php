@@ -108,7 +108,13 @@ namespace {
     /** Models site membership for delegated managers. */
     function is_user_member_of_blog($id, ...$args): bool { return !in_array($id, $GLOBALS['nonMembers'] ?? [], true); }
     /** Supplies eligible synthetic accounts, with explicit deletion and role-loss controls. */
-    function get_userdata($id): mixed { return in_array($id, [7, 8, 9, 10], true) && !in_array($id, $GLOBALS['deleted'] ?? [], true) ? (object) ['ID' => $id, 'display_name' => 'User ' . $id, 'user_login' => 'user' . $id] : false; }
+    function get_userdata($id): mixed
+    {
+        if (!in_array($id, $GLOBALS['fixtureUserIds'], true) || in_array($id, $GLOBALS['deleted'] ?? [], true)) {
+            return false;
+        }
+        return (object) ['ID' => $id, 'display_name' => 'User ' . $id, 'user_login' => 'user' . $id];
+    }
     /** Models capability changes independently from grants. */
     function user_can($user, $cap): bool { return !in_array($user->ID, $GLOBALS['demoted'] ?? [], true) && ($user->ID !== get_current_user_id() || $cap === 'read' || $cap === 'edit_others_posts' || current_user_can($cap)); }
     /** Synthetic options have no cache, but production code must still evict it. */
@@ -179,6 +185,7 @@ namespace {
     function wp_safe_redirect($url): void { echo json_encode(['redirect' => $url, 'authCalls' => $GLOBALS['authCalls'], 'writes' => $GLOBALS['writes']]); }
 
     $scenario = $argv[1] ?? 'allowed';
+    $fixtureUserIds = [7, 8, 9, 10];
     $site = 1;
     $user = 7;
     $authenticated = true;

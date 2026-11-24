@@ -10,6 +10,7 @@ defined('ABSPATH') || exit;
 final class PluginSettings
 {
     public const OPTION_NAME = 'rrze_appointment_settings';
+    public const GENERAL_SCOPE = 'general_settings';
     public const MAX_REMINDER_DAYS = 7;
     public const MAX_RETENTION_DAYS = 3650;
     public const ILLUSTRATION_DEFAULTS = [
@@ -80,7 +81,8 @@ final class PluginSettings
     /**
      * Builds the complete site option from a settings form submission.
      *
-     * Each form owns its fields. Unscoped submissions retain the original full-option format.
+     * Each form owns its fields. Direct callers can still use the original full-option format
+     * or the former general scope that included additional appointment managers.
      * The recurrence limit always comes from the stored option or its default.
      *
      * @param array<string, mixed> $input Submitted settings, optionally scoped by _settings_scope.
@@ -104,7 +106,7 @@ final class PluginSettings
             ? $input['_settings_scope']
             : '';
         $preserveGeneral = in_array($scope, ['illustrations', 'additional_people'], true);
-        $preserveManagers = in_array($scope, ['illustrations', 'general'], true);
+        $preserveManagers = in_array($scope, ['illustrations', self::GENERAL_SCOPE], true);
         if ($scope === 'additional_people' && ($input['_access_list_complete'] ?? null) !== '1') {
             $preserveManagers = true;
             add_settings_error(self::OPTION_NAME, 'rrze_appointment_incomplete_access_list',
@@ -129,7 +131,7 @@ final class PluginSettings
         $appointmentManagerUserIds = $preserveManagers
             ? (array) self::get('appointment_manager_user_ids')
             : self::sanitizeAppointmentManagerUserIds($input['appointment_manager_user_ids'] ?? []);
-        $illustrations = in_array($scope, ['general', 'additional_people'], true)
+        $illustrations = in_array($scope, [self::GENERAL_SCOPE, 'general', 'additional_people'], true)
             ? self::get('illustrations')
             : ($input['illustrations'] ?? []);
 

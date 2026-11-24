@@ -2,7 +2,7 @@
 # This file is distributed under the GNU General Public License Version 3.
 msgid ""
 msgstr ""
-"Project-Id-Version: RRZE Appointment 2.4.1\n"
+"Project-Id-Version: RRZE Appointment 2.5.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/rrze-appointment\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2935,6 +2935,10 @@ msgstr ""
 
 #: includes/Configuration/PluginSettings.php
 msgid "The list was incomplete. Your saved access permissions have been kept."
+msgstr ""
+
+#: includes/Admin/SettingsPage.php
+msgid "These settings have been updated. Reload the page and make your change again."
 msgstr ""
 
 #: includes/Admin/SettingsPage.php

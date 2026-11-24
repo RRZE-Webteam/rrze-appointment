@@ -49,6 +49,7 @@ describe( 'focused administration pages', () => {
 		expect( result.hooks ).toEqual( [
 			'admin_menu',
 			'admin_init',
+			'check_admin_referer',
 			'admin_enqueue_scripts',
 			'admin_init',
 			'admin_init',
@@ -64,6 +65,75 @@ describe( 'focused administration pages', () => {
 		expect( result.bookingsScreen ).toBe(
 			'toplevel_page_rrze-appointment-bookings'
 		);
+	} );
+
+	it( 'stops outdated general forms after WordPress validates the settings nonce', () => {
+		const php = `
+			use RRZE\\Appointment\\Admin\\MailTemplatesPage;
+			use RRZE\\Appointment\\Admin\\SettingsPage;
+			use RRZE\\Appointment\\Configuration\\PluginSettings;
+			define('ABSPATH', __DIR__);
+			require 'includes/Configuration/PluginSettings.php';
+			require 'includes/Admin/MailTemplatesPage.php';
+			require 'includes/Admin/SettingsPage.php';
+
+			/** Passes through translated fixture strings. */
+			function esc_html__($text, $domain) { return $text; }
+			/** Returns an admin-relative URL for the reload link. */
+			function admin_url($path) { return '/wp-admin/' . $path; }
+			/** Appends the plugin page to its settings URL. */
+			function add_query_arg($key, $value, $url) { return $url . '?' . $key . '=' . $value; }
+			/** Captures a WordPress error response before the option can be saved. */
+			function wp_die($message, $title, $args) {
+				throw new RuntimeException(json_encode([$message, $args['link_url']]), $args['response']);
+			}
+
+			$page = new SettingsPage(new MailTemplatesPage());
+			$action = 'rrze_appointment_settings_group-options';
+			foreach ([
+				'oldWithPeople' => ['general', true],
+				'oldWithoutPeople' => ['general', false],
+				'noScope' => [null, false],
+				'currentGeneral' => [PluginSettings::GENERAL_SCOPE, false],
+				'illustrations' => ['illustrations', false],
+				'additionalPeople' => ['additional_people', false],
+				'otherGroup' => ['general', false],
+				'otherScreen' => ['general', false],
+				'invalidNonce' => ['general', false],
+			] as $scenario => [$scope, $hasPeople]) {
+				$pagenow = $scenario === 'otherScreen' ? 'admin.php' : 'options.php';
+				$_POST = ['action' => 'update', PluginSettings::OPTION_NAME => ['retention_days' => '90']];
+				if ($scope !== null) { $_POST[PluginSettings::OPTION_NAME]['_settings_scope'] = $scope; }
+				if ($hasPeople) { $_POST[PluginSettings::OPTION_NAME]['appointment_manager_user_ids'] = [7]; }
+				try {
+					$page->rejectOutdatedSettingsForm($scenario === 'otherGroup' ? 'other-options' : $action, $scenario === 'invalidNonce' ? false : 1);
+					$results[$scenario] = null;
+				} catch (RuntimeException $error) {
+					$results[$scenario] = [$error->getCode(), ...json_decode($error->getMessage(), true)];
+				}
+			}
+			echo json_encode($results);
+		`;
+		const blocked = [
+			409,
+			'These settings have been updated. Reload the page and make your change again.',
+			'/wp-admin/options-general.php?page=rrze-appointment-settings',
+		];
+		expect(
+			JSON.parse(
+				execFileSync( 'php', [ '-r', php ], { encoding: 'utf8' } )
+			)
+		).toEqual( {
+			oldWithPeople: blocked,
+			oldWithoutPeople: blocked,
+			noScope: blocked,
+			currentGeneral: null,
+			illustrations: null,
+			additionalPeople: null,
+			otherGroup: null,
+			otherScreen: null,
+			invalidNonce: null,
+		} );
 	} );
 
 	it( 'mounts the React administration screen and loads its own bundle', () => {

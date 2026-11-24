@@ -3470,6 +3470,10 @@ msgid "The list was incomplete. Your saved access permissions have been kept."
 msgstr "Die Liste war unvollständig. Die bisherigen Freigaben gelten weiterhin."
 
 #: includes/Admin/SettingsPage.php
+msgid "These settings have been updated. Reload the page and make your change again."
+msgstr "Die Einstellungen wurden aktualisiert. Bitte lade die Seite neu und wiederhole deine Änderung."
+
+#: includes/Admin/SettingsPage.php
 msgctxt "SSO sign-in status"
 msgid "Required"
 msgstr "Erforderlich"

@@ -31,6 +31,7 @@ final class SettingsPage
     {
         add_action('admin_menu', [$this, 'addMenuPage']);
         add_action('admin_init', [$this, 'registerSettings']);
+        add_action('check_admin_referer', [$this, 'rejectOutdatedSettingsForm'], 10, 2);
         add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets']);
         $this->mailTemplates->register();
     }
@@ -51,6 +52,36 @@ final class SettingsPage
     public static function screenHook(): string
     {
         return 'settings_page_' . self::PAGE_SLUG;
+    }
+
+    /**
+     * Stops older settings forms before options.php writes fields that have moved to another tab.
+     *
+     * @param int|string $action WordPress nonce action.
+     * @param int|false $result Nonce age (1 or 2) on success, false on failure.
+     */
+    public function rejectOutdatedSettingsForm(int|string $action, int|false $result): void
+    {
+        global $pagenow;
+        if ($action !== self::SETTINGS_GROUP . '-options' || !$result || $pagenow !== 'options.php'
+            || ($_POST['action'] ?? '') !== 'update') {
+            return;
+        }
+
+        $scope = $_POST[PluginSettings::OPTION_NAME]['_settings_scope'] ?? '';
+        if (in_array($scope, [PluginSettings::GENERAL_SCOPE, 'illustrations', 'additional_people'], true)) {
+            return;
+        }
+
+        wp_die(
+            esc_html__('These settings have been updated. Reload the page and make your change again.', 'rrze-appointment'),
+            '',
+            [
+                'response' => 409,
+                'link_url' => add_query_arg('page', self::PAGE_SLUG, admin_url('options-general.php')),
+                'link_text' => esc_html__('Reload page', 'rrze-appointment'),
+            ]
+        );
     }
 
     /** Registers the shared site option and the fields shown on the general and illustrations tabs. */
@@ -420,7 +451,7 @@ final class SettingsPage
             <input
                 type="hidden"
                 name="<?php echo esc_attr(PluginSettings::OPTION_NAME); ?>[_settings_scope]"
-                value="general"
+                value="<?php echo esc_attr(PluginSettings::GENERAL_SCOPE); ?>"
             >
             <?php
             do_settings_sections(self::PAGE_SLUG);

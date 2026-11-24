@@ -12,7 +12,7 @@ function get_users(array $query): array
     if ($query['blog_id'] !== get_current_blog_id()) {
         return [];
     }
-    return array_map('get_userdata', array_values(array_diff([7, 8, 9, 10], $GLOBALS['nonMembers'] ?? [])));
+    return array_map('get_userdata', array_values(array_diff($GLOBALS['fixtureUserIds'], $GLOBALS['nonMembers'] ?? [])));
 }
 
 /** Escapes names, nonce fields and role values for HTML attributes. */
@@ -37,6 +37,9 @@ function submit_button($label): void { echo '<button type="submit">' . esc_html(
 $options[1][BackendSsoAccess::OPTION_NAME] = '0';
 $options[1]['rrze_appointment_settings']['appointment_manager_user_ids'] = [8, 10];
 $demoted = [10];
+if (str_contains($scenario, 'large')) {
+    $fixtureUserIds = range(7, 1018);
+}
 if ($scenario === 'screen-additional') {
     $demoted = [8, 10];
     $options[1]['rrze_appointment_settings']['appointment_manager_user_ids'] = [10];
@@ -59,7 +62,11 @@ if (str_contains($scenario, 'submit')) {
     ob_start();
     require_once $root . '/includes/Admin/MailTemplatesPage.php';
     $page = new SettingsPage(new MailTemplatesPage());
-    AccessSettings::renderSettings([$page, 'renderAppointmentManagersField']);
+    if (str_contains($scenario, 'no-callback')) {
+        AccessSettings::renderSettings();
+    } else {
+        AccessSettings::renderSettings([$page, 'renderAppointmentManagersField']);
+    }
     $html = ob_get_clean();
     echo json_encode(['html' => $html, 'writes' => $writes, 'reads' => $bookingReads]);
 }

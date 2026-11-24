@@ -47,9 +47,14 @@ function render( name: string, data?: URLSearchParams ): HTMLFormElement {
  */
 function payload( form: HTMLFormElement, stage?: string ) {
 	const values = new URLSearchParams();
-	new FormData( form ).forEach( ( value, key ) =>
-		values.append( key, String( value ) )
-	);
+	const fields = new FormData( form );
+	// jsdom includes disabled options that browsers omit from a native POST.
+	for ( const field of form.querySelectorAll( 'select' ) ) {
+		if ( field.selectedOptions[ 0 ]?.disabled ) {
+			fields.delete( field.name );
+		}
+	}
+	fields.forEach( ( value, key ) => values.append( key, String( value ) ) );
 	if ( stage ) {
 		values.set( 'access_stage', stage );
 	}
@@ -57,6 +62,38 @@ function payload( form: HTMLFormElement, stage?: string ) {
 }
 
 describe( 'access settings workflow', () => {
+	it( 'supports the existing zero-argument settings renderer', () => {
+		expect( render( 'network-no-callback' ) ).toBeTruthy();
+		expect( document.body.textContent ).not.toContain(
+			'Additional people with access'
+		);
+	} );
+
+	it( 'renders unassigned accounts as unsuccessful controls on a large site and allows revoking a grant', () => {
+		const editor = render( 'large-network-configured' );
+		const selectors =
+			editor.querySelectorAll< HTMLSelectElement >( 'select' );
+		expect( selectors.length ).toBeGreaterThan( 1000 );
+		const assigned = Array.from( selectors ).filter(
+			( field ) => ! field.selectedOptions[ 0 ].disabled
+		);
+		const roles = assigned.map( ( field ) => [ field.name, field.value ] );
+		expect( roles ).toEqual( [
+			[ 'roles[8]', 'managers' ],
+			[ 'roles[9]', 'owners' ],
+		] );
+		assigned[ 0 ].value = 'none';
+		selectors[ selectors.length - 1 ].value = 'managers';
+		const data = payload( editor );
+		expect( data.get( 'roles[8]' ) ).toBe( 'none' );
+		expect( data.get( 'roles_complete' ) ).toBe( '1' );
+		const result = request( 'large-network-configured-submit', data );
+		expect( result.writes[ 0 ][ 2 ] ).toMatchObject( {
+			owners: [ 9 ],
+			managers: [ 1018 ],
+		} );
+	} );
+
 	it( 'reviews site-local gains and losses before a network admin applies the restriction without JavaScript', () => {
 		const directory = render( 'network' );
 		const step = directory.closest( 'details' )!;
