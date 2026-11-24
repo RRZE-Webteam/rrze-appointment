@@ -20,6 +20,32 @@ function renderAccessScreen( scenario: string ): void {
 	document.body.innerHTML = result.html;
 }
 
+describe( 'settings form compatibility', () => {
+	it.each( [
+		[
+			'general-form',
+			'rrze_appointment_settings_general_v2',
+			'general_settings',
+		],
+		[
+			'illustrations-form',
+			'rrze_appointment_settings_group',
+			'illustrations',
+		],
+	] )(
+		'binds the rendered %s to its options group',
+		( scenario, group, scope ) => {
+			renderAccessScreen( scenario );
+			const data = new FormData( document.querySelector( 'form' )! );
+			expect( data.get( 'option_page' ) ).toBe( group );
+			expect( data.get( '_wpnonce' ) ).toBe( group + '-options' );
+			expect(
+				data.get( 'rrze_appointment_settings[_settings_scope]' )
+			).toBe( scope );
+		}
+	);
+} );
+
 describe( 'standard access grants', () => {
 	it( 'submits the on-screen selection without JavaScript and keeps administrators out of the list', () => {
 		renderAccessScreen( 'additional' );
@@ -40,6 +66,12 @@ describe( 'standard access grants', () => {
 		users[ 0 ].click();
 		const empty = new FormData( form );
 		expect( empty.getAll( field ) ).toEqual( [] );
+		expect( empty.get( 'option_page' ) ).toBe(
+			'rrze_appointment_settings_people_v2'
+		);
+		expect( empty.get( '_wpnonce' ) ).toBe(
+			'rrze_appointment_settings_people_v2-options'
+		);
 		expect(
 			empty.get( 'rrze_appointment_settings[_settings_scope]' )
 		).toBe( 'additional_people' );

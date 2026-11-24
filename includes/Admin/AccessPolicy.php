@@ -32,7 +32,7 @@ final class AccessPolicy
     }
 
     /**
-     * Validates the stored format and presents 2.5.0 editor owners as booking managers.
+     * Validates the stored format and preserves independent booking grants from version 1.
      *
      * @param mixed $value Raw site option. Version 1 could name editors as responsible people.
      * @return array|\WP_Error Effective role groups, or an error for unsupported or malformed data.
@@ -64,10 +64,8 @@ final class AccessPolicy
         if ($legacy) {
             $oldOwners = $value['owners'];
             $value['owners'] = array_values(array_filter($oldOwners, [self::class, 'eligibleOwner']));
-            $value['managers'] = array_values(array_unique(array_diff(
-                array_merge($value['managers'], $oldOwners),
-                $value['owners']
-            )));
+            $bookingOnly = array_filter(array_diff($oldOwners, $value['owners']), [self::class, 'eligible']);
+            $value['managers'] = array_values(array_unique(array_merge($value['managers'], $bookingOnly)));
         }
         return $value;
     }
@@ -88,15 +86,20 @@ final class AccessPolicy
     }
 
     /**
-     * Checks the administrative capability of the actual site membership, independently of network privileges.
+     * Checks the member's effective administrator capabilities on the current site.
      *
      * @param int $id WordPress user ID to consider for a responsible role.
+     * @return bool Whether the member has site administrator access independently of network privileges.
      */
     public static function eligibleOwner(int $id): bool
     {
         $user = $id > 0 ? get_userdata($id) : false;
-        return $user && is_user_member_of_blog($id, get_current_blog_id()) && !empty($user->allcaps['manage_options'])
-            && user_can($user, 'read') && user_can($user, 'manage_options');
+        if (!$user || !is_user_member_of_blog($id, get_current_blog_id())
+            || !user_can($user, 'read') || !user_can($user, 'manage_options')) {
+            return false;
+        }
+        // WordPress automatically grants both capabilities to multisite super administrators.
+        return !is_multisite() || !is_super_admin($id) || !empty($user->allcaps['manage_options']);
     }
 
     /**
@@ -180,7 +183,7 @@ final class AccessPolicy
     }
 
     /**
-     * Applies an explicitly confirmed setup, owner update or network recovery.
+     * Applies a confirmed setup, role change or recovery, preserving the stored format for unchanged roles.
      *
      * @param string $operation setup, save, network_setup, network_save or recover.
      * @param array $owners Submitted responsible administrators with booking access.
@@ -188,7 +191,7 @@ final class AccessPolicy
      * @param string $token Observed policy token, bound into the form nonce.
      * @param array|null $accessOwners Submitted responsible administrators without booking access.
      *                                Null denotes a 2.5.0 submission which cannot describe the new role.
-     * @return true|\WP_Error True when the site-local grants were saved.
+     * @return true|\WP_Error True when the requested site-local grants are in effect.
      */
     public static function change(string $operation, array $owners, array $managers, string $token, ?array $accessOwners = null): true|\WP_Error
     {
@@ -236,9 +239,32 @@ final class AccessPolicy
             if (!$legacyForm) {
                 $next['access_owners'] = $accessOwners;
             }
+            if (is_array($policy)) {
+                if ($policy['version'] === 1 && $operation !== 'recover') {
+                    // The role form omits former members and ineligible managers. Their absence alone is not an edit.
+                    $policy['managers'] = array_filter($policy['managers'], [self::class, 'eligible']);
+                }
+                if (self::rolesByUser($policy) == self::rolesByUser($next)) {
+                    $database->assertOwnership();
+                    return true;
+                }
+            }
             $previous = $database->read(self::OPTION_NAME);
             return $database->replace(self::OPTION_NAME, $previous, serialize($next)) ? true : self::conflict();
         });
+    }
+
+    /**
+     * Maps grants to the role displayed for each user. A version 1 owner with a manager grant has one owner row.
+     *
+     * @param array{owners: int[], managers: int[], access_owners?: int[]} $policy Current or proposed grants.
+     * @return array<int, string> Form role keyed by user ID.
+     */
+    public static function rolesByUser(array $policy): array
+    {
+        return array_fill_keys($policy['owners'], 'owners')
+            + array_fill_keys($policy['access_owners'] ?? [], 'access_owners')
+            + array_fill_keys($policy['managers'], 'managers');
     }
 
     /**

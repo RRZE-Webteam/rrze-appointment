@@ -14,6 +14,8 @@ final class SettingsPage
 {
     public const PAGE_SLUG = 'rrze-appointment-settings';
     private const SETTINGS_GROUP = 'rrze_appointment_settings_group';
+    private const GENERAL_FORM_GROUP = 'rrze_appointment_settings_general_v2';
+    private const PEOPLE_FORM_GROUP = 'rrze_appointment_settings_people_v2';
     private const REMINDERS_SECTION = 'rrze_appointment_reminders';
     private const BOOKINGS_SECTION = 'rrze_appointment_booking_data';
     private const ILLUSTRATIONS_SECTION = 'rrze_appointment_illustrations';
@@ -31,6 +33,9 @@ final class SettingsPage
     {
         add_action('admin_menu', [$this, 'addMenuPage']);
         add_action('admin_init', [$this, 'registerSettings']);
+        add_filter('allowed_options', [$this, 'allowFormOptions'], PHP_INT_MAX);
+        add_filter('option_page_capability_' . self::GENERAL_FORM_GROUP, [$this, 'formCapability']);
+        add_filter('option_page_capability_' . self::PEOPLE_FORM_GROUP, [$this, 'formCapability']);
         add_action('check_admin_referer', [$this, 'rejectOutdatedSettingsForm'], 10, 2);
         add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets']);
         $this->mailTemplates->register();
@@ -55,6 +60,42 @@ final class SettingsPage
     }
 
     /**
+     * Exposes the split forms only on versions that understand their partial option payloads.
+     *
+     * @param array<string, string[]> $allowed WordPress options permitted for each settings group.
+     * @return array<string, string[]> Groups with the same registered options and limits as their forms.
+     */
+    public function allowFormOptions(array $allowed): array
+    {
+        if (!isset($allowed[self::SETTINGS_GROUP])) {
+            return $allowed;
+        }
+
+        $registered = $allowed[self::SETTINGS_GROUP];
+        $people = array_values(array_intersect($registered, [PluginSettings::OPTION_NAME]));
+        $allowed[self::GENERAL_FORM_GROUP] = $registered;
+        $allowed[self::PEOPLE_FORM_GROUP] = $people;
+
+        if (($_REQUEST['option_page'] ?? '') === self::SETTINGS_GROUP
+            && ($_POST[PluginSettings::OPTION_NAME]['_settings_scope'] ?? '') === 'additional_people') {
+            // An already-open people form also owns only the plugin option.
+            $allowed[self::SETTINGS_GROUP] = $people;
+        }
+        return $allowed;
+    }
+
+    /**
+     * Keeps the site's existing Settings API capability filter effective for both split forms.
+     *
+     * @param string $capability Capability required by WordPress for this submission.
+     * @return string Capability required by the original settings group.
+     */
+    public function formCapability(string $capability): string
+    {
+        return apply_filters('option_page_capability_' . self::SETTINGS_GROUP, $capability);
+    }
+
+    /**
      * Stops older settings forms before options.php writes fields that have moved to another tab.
      *
      * @param int|string $action WordPress nonce action.
@@ -63,13 +104,18 @@ final class SettingsPage
     public function rejectOutdatedSettingsForm(int|string $action, int|false $result): void
     {
         global $pagenow;
-        if ($action !== self::SETTINGS_GROUP . '-options' || !$result || $pagenow !== 'options.php'
-            || ($_POST['action'] ?? '') !== 'update') {
+        if (!$result || $pagenow !== 'options.php') {
             return;
         }
 
+        $allowedScopes = match ($action) {
+            self::GENERAL_FORM_GROUP . '-options' => [PluginSettings::GENERAL_SCOPE],
+            self::PEOPLE_FORM_GROUP . '-options' => ['additional_people'],
+            self::SETTINGS_GROUP . '-options' => [PluginSettings::GENERAL_SCOPE, 'illustrations', 'additional_people'],
+            default => null,
+        };
         $scope = $_POST[PluginSettings::OPTION_NAME]['_settings_scope'] ?? '';
-        if (in_array($scope, [PluginSettings::GENERAL_SCOPE, 'illustrations', 'additional_people'], true)) {
+        if ($allowedScopes === null || in_array($scope, $allowedScopes, true)) {
             return;
         }
 
@@ -101,6 +147,8 @@ final class SettingsPage
         ];
         add_settings_section(self::REMINDERS_SECTION, __('Reminders', 'rrze-appointment'), null, self::PAGE_SLUG, $card);
         add_settings_section(self::BOOKINGS_SECTION, __('Booking data & cancellations', 'rrze-appointment'), null, self::PAGE_SLUG, $card);
+        // Extensions can still attach general settings fields to the original section.
+        add_settings_section('rrze_appointment_general', '', null, self::PAGE_SLUG);
         add_settings_field(
             'reminder_booker_days',
             __('Email to the person booking', 'rrze-appointment'),
@@ -257,7 +305,7 @@ final class SettingsPage
         $option = PluginSettings::OPTION_NAME;
         ?>
         <form method="post" action="<?php echo esc_url(admin_url('options.php')); ?>" class="rrze-appointment-access-form">
-            <?php settings_fields(self::SETTINGS_GROUP); ?>
+            <?php settings_fields(self::PEOPLE_FORM_GROUP); ?>
             <input type="hidden" name="<?php echo esc_attr($option); ?>[_settings_scope]" value="additional_people">
             <fieldset data-access-directory>
                 <legend><?php esc_html_e('Who else may view and cancel appointments?', 'rrze-appointment'); ?></legend>
@@ -462,7 +510,7 @@ final class SettingsPage
         </section>
         <form method="post" action="options.php">
             <?php
-            settings_fields(self::SETTINGS_GROUP);
+            settings_fields(self::GENERAL_FORM_GROUP);
             ?>
             <input
                 type="hidden"

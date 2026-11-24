@@ -3063,8 +3063,8 @@ msgid "Save permissions"
 msgstr "Freigaben speichern"
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Some previous selections are no longer eligible and have no access. Saving removes these obsolete selections."
-msgstr "Einige bisher ausgewählte Benutzer erfüllen die Voraussetzungen nicht mehr und haben keinen Zugriff. Beim Speichern werden diese veralteten Freigaben entfernt."
+msgid "Some previous role assignments no longer grant access. Saving a change to the assigned roles removes these entries."
+msgstr "Einige frühere Rollenzuweisungen gewähren keinen Zugriff mehr. Beim Speichern einer geänderten Rollenverteilung entfernt das Plugin diese Einträge."
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
 msgid "Appointment management"

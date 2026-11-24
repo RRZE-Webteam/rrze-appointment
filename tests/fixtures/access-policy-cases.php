@@ -114,6 +114,81 @@ if (str_starts_with($scenario, 'policy-split-')) {
             break;
         default: throw new RuntimeException('Unknown separated responsibility scenario.');
     }
+} elseif (str_starts_with($scenario, 'policy-capability-')) {
+    [, , $siteType, $version] = explode('-', $scenario);
+    $multisite = $siteType === 'multi';
+    $editors = [7];
+    $effectiveManageOptions = [7 => true];
+    $options[1][BackendSsoAccess::OPTION_NAME] = '0';
+    if ($version === 'v2') {
+        $options[1][$key]['version'] = 2;
+        $options[1][$key]['access_owners'] = [];
+    }
+    $extra['storedAdmin'] = get_userdata(7)->allcaps['manage_options'];
+    $extra['before'] = ['owner' => AccessPolicy::owner(), 'booking' => AppointmentPermissions::currentUserCanManage()];
+    $result = AccessPolicy::change('save', [7], [8], AccessPolicy::token(), []);
+    $effectiveManageOptions[7] = false;
+    $extra['after'] = ['owner' => AccessPolicy::owner(), 'booking' => AppointmentPermissions::currentUserCanManage()];
+    $editors = [];
+    $extra['deniedStoredAdmin'] = get_userdata(7)->allcaps['manage_options'];
+    $extra['deniedOwner'] = AccessPolicy::owner();
+} elseif (str_starts_with($scenario, 'policy-target-super-')) {
+    // An ordinary site administrator selects a different account that holds network privileges.
+    $otherSuperAdmins = [9];
+    $editors = $scenario === 'policy-target-super-editor' ? [9] : [];
+    $extra['effectiveAdmin'] = user_can(get_userdata(9), 'manage_options');
+    $result = AccessPolicy::change('save', [7, 9], [8], $token, []);
+} elseif (str_starts_with($scenario, 'policy-handover-')) {
+    $user = 10;
+    $super = true;
+    $options[1][BackendSsoAccess::OPTION_NAME] = '0';
+    if (str_ends_with($scenario, '-double')) {
+        $options[1][$key]['managers'][] = 7;
+    }
+    $demoted = str_contains($scenario, '-ineligible-') ? [7] : [];
+    $result = AccessPolicy::change('recover', [9], [], AccessPolicy::token(), []);
+    $user = 7;
+    $super = false;
+    // Reinstating a member's site role exposes any independent booking grant kept at handover.
+    $demoted = [];
+    $extra = ['owner' => AccessPolicy::owner(), 'booking' => AppointmentPermissions::currentUserCanManage()];
+} elseif (str_starts_with($scenario, 'policy-unchanged-')) {
+    $operation = substr($scenario, strlen('policy-unchanged-'));
+    $editors = [8];
+    $options[1][$key] = ['version' => 1, 'restricted' => true, 'revision' => 14,
+        'owners' => [10, 8, 7], 'managers' => [7, 9]];
+    $owners = [7, 10];
+    $managers = [8, 9];
+    $accessOwners = [];
+    $token = AccessPolicy::token();
+    switch ($operation) {
+        case 'network_save':
+            $user = 9;
+            $attributes = ['uid' => ['bob']];
+            $super = true;
+            break;
+        case 'recover':
+            $super = true;
+            break;
+        case 'stale':
+            $options[1][$key]['revision']++;
+            break;
+        case 'overlap':
+            $accessOwners = [7];
+            break;
+        case 'unauthorized':
+            $user = 9;
+            break;
+        case 'expired':
+            $authenticated = false;
+            break;
+    }
+    if (!in_array($operation, ['network_save', 'recover'], true)) {
+        $operation = 'save';
+    }
+    $extra['rawBefore'] = serialize($options[1][$key]);
+    $result = AccessPolicy::change($operation, $owners, $managers, $token, $accessOwners);
+    $extra['rawAfter'] = serialize($options[1][$key]);
 } elseif (str_starts_with($scenario, 'policy-http-')) {
     $_SERVER['REQUEST_METHOD'] = 'POST';
     $_POST = ['operation' => 'save', 'policy_token' => $token, 'owners' => [7, 9], 'managers' => [8],
@@ -202,6 +277,15 @@ if (str_starts_with($scenario, 'policy-split-')) {
         case 'policy-stale':
             $extra['first'] = AccessPolicy::change('save', [7, 9], [8], $token);
             $result = AccessPolicy::change('save', [7], [], $token);
+            break;
+        case 'policy-deleted-manager-on-save':
+            $options[1][$key]['managers'][] = 10;
+            $deleted = [10];
+            $extra['rawBefore'] = serialize($options[1][$key]);
+            $extra['first'] = AccessPolicy::change('save', [7], [8], AccessPolicy::token(), []);
+            $extra['rawAfterFirst'] = serialize($options[1][$key]);
+            $extra['writesAfterFirst'] = count($writes);
+            $result = AccessPolicy::change('save', [7, 9], [8], AccessPolicy::token(), []);
             break;
         case 'policy-self-remove':
             $result = AccessPolicy::change('save', [9], [8], $token);

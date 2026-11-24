@@ -108,6 +108,85 @@ describe( 'explicit appointment access policy', () => {
 		expect( result.extra.sso.data.status ).toBe( 403 );
 		expect( result.writes ).toEqual( [] );
 	} );
+	it.each( [
+		[ 'single-v1', true ],
+		[ 'multi-v1', true ],
+		[ 'single-v2', false ],
+		[ 'multi-v2', false ],
+	] )(
+		'uses effective administrator capabilities and rechecks their removal for %s',
+		( configuration, bookingAfterRemoval ) => {
+			const result = scenario( 'capability-' + configuration );
+			expect( result.extra.storedAdmin ).toBe( false );
+			expect( result.extra.before ).toEqual( {
+				owner: true,
+				booking: true,
+			} );
+			expect( result.result ).toBe( true );
+			expect( result.extra.after ).toEqual( {
+				owner: false,
+				booking: bookingAfterRemoval,
+			} );
+			expect( result.extra.deniedStoredAdmin ).toBe( true );
+			expect( result.extra.deniedOwner ).toBe( false );
+			expect( result.writes ).toEqual( [] );
+		}
+	);
+	it( 'checks the selected super administrator’s own site capabilities', () => {
+		const editor = scenario( 'target-super-editor' );
+		expect( editor.extra.effectiveAdmin ).toBe( true );
+		expect( editor.result.code ).toBe( 'rrze_appointment_invalid_owners' );
+		expect( editor.writes ).toEqual( [] );
+
+		const administrator = scenario( 'target-super-admin' );
+		expect( administrator.result ).toBe( true );
+		expect( administrator.options[ 1 ][ key ].owners ).toEqual( [ 7, 9 ] );
+	} );
+	it.each( [ 'save', 'network_save', 'recover' ] )(
+		'preserves the original format 1 option on an unchanged %s',
+		( operation ) => {
+			const result = scenario( 'unchanged-' + operation );
+			expect( result.result ).toBe( true );
+			expect( result.writes ).toEqual( [] );
+			expect( result.extra.rawAfter ).toBe( result.extra.rawBefore );
+			expect( result.options[ 1 ][ key ] ).toMatchObject( {
+				version: 1,
+				revision: 14,
+				owners: [ 10, 8, 7 ],
+				managers: [ 7, 9 ],
+			} );
+		}
+	);
+	it( 'removes a deleted format 1 manager only when a visible role actually changes', () => {
+		const result = scenario( 'deleted-manager-on-save' );
+		expect( result.extra.first ).toBe( true );
+		expect( result.extra.rawAfterFirst ).toBe( result.extra.rawBefore );
+		expect( result.extra.writesAfterFirst ).toBe( 0 );
+		expect( result.result ).toBe( true );
+		expect( result.writes ).toHaveLength( 1 );
+		expect( result.options[ 1 ][ key ] ).toEqual( {
+			version: 2,
+			restricted: true,
+			revision: 2,
+			owners: [ 7, 9 ],
+			managers: [ 8 ],
+			access_owners: [],
+		} );
+	} );
+	it.each( [
+		[ 'stale', 409 ],
+		[ 'overlap', 400 ],
+		[ 'unauthorized', 403 ],
+		[ 'expired', 401 ],
+	] )(
+		'checks %s even when the roles would be unchanged',
+		( name, status ) => {
+			const result = scenario( 'unchanged-' + name );
+			expect( result.result.data.status ).toBe( status );
+			expect( result.writes ).toEqual( [] );
+			expect( result.extra.rawAfter ).toBe( result.extra.rawBefore );
+		}
+	);
 	it.each( [ 'off', 'sso', 'expired' ] )(
 		'isolates an access-only administrator from both booking routes with SSO %s',
 		( state ) => {
@@ -178,10 +257,16 @@ describe( 'explicit appointment access policy', () => {
 		expect( result.result.data.status ).toBe( 403 );
 		expect( result.extra.grants.data.status ).toBe( 403 );
 	} );
-	it( 'records all newly reviewed roles in version 2 and ends a demoted administrator’s assigned responsibility', () => {
+	it( 'writes a real role change once in version 2 and revokes access when the owner is demoted', () => {
 		const result = scenario( 'split-new-format-demotion' );
 		expect( result.result ).toBe( true );
-		expect( result.options[ 1 ][ key ].version ).toBe( 2 );
+		expect( result.writes ).toHaveLength( 1 );
+		expect( result.options[ 1 ][ key ] ).toMatchObject( {
+			version: 2,
+			revision: 2,
+			owners: [ 7, 9 ],
+			managers: [ 8 ],
+		} );
 		expect( result.extra ).toEqual( { booking: false, owner: false } );
 	} );
 	it( 'permits an orphaned single site to name a responsible administrator and keeps legacy editor booking rights', () => {
@@ -267,6 +352,32 @@ describe( 'explicit appointment access policy', () => {
 		expect( result.result ).toBe( true );
 		expect( result.extra.access.data.status ).toBe( 403 );
 	} );
+	it.each( [
+		[ 'double', true ],
+		[ 'owner-only', false ],
+		[ 'ineligible-double', true ],
+		[ 'ineligible-owner-only', false ],
+	] )(
+		'preserves only independent booking grants on a format 1 handover (%s)',
+		( previousGrant, keepsBookings ) => {
+			const result = scenario( 'handover-' + previousGrant );
+			expect( result.result ).toBe( true );
+			expect( result.extra ).toEqual( {
+				owner: false,
+				booking: keepsBookings,
+			} );
+			const policy = result.options[ 1 ][ key ];
+			expect( policy ).toMatchObject( {
+				version: 2,
+				revision: 2,
+				owners: [ 9 ],
+			} );
+			expect( [ ...policy.managers ].sort() ).toEqual(
+				keepsBookings ? [ 7, 8 ] : [ 8 ]
+			);
+			expect( result.writes ).toHaveLength( 1 );
+		}
+	);
 	it( 'recovers responsibility without changing SSO, ordinary grants or support access', () => {
 		const result = scenario( 'recover' );
 		expect( result.result ).toBe( true );

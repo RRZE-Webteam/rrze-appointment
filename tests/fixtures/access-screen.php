@@ -21,20 +21,33 @@ function esc_attr($text): string { return htmlspecialchars((string) $text, ENT_Q
 function esc_url($url): string { return esc_attr($url); }
 /** Displays translated, escaped interface text. */
 function esc_html_e($text, $domain): void { echo esc_html__($text, $domain); }
+/** Returns the untranslated label for a contextual string in the access summary. */
+function _x(string $text, string $context, string $domain): string { return $text; }
 /** Prints WordPress's selected attribute on the current role. */
 function selected($current, $value): void { if ($current === $value) { echo ' selected'; } }
 /** Prints WordPress's disabled attribute for the pinned setup owner. */
 function disabled($condition): void { if ($condition) { echo ' disabled'; } }
 /** Prints a standard access checkbox's saved selection. */
 function checked($condition): void { if ($condition) { echo ' checked'; } }
-/** Omits WordPress's unrelated settings group fields from the isolated access form. */
-function settings_fields($group): void {}
+/**
+ * Prints the WordPress settings fields used by options.php to verify the form.
+ *
+ * @param string $group Settings group that supplies the nonce action.
+ */
+function settings_fields(string $group): void
+{
+    echo '<input type="hidden" name="option_page" value="' . esc_attr($group) . '">';
+    echo '<input type="hidden" name="action" value="update">';
+    echo '<input type="hidden" name="_wpnonce" value="' . esc_attr(wp_create_nonce($group . '-options')) . '">';
+}
 /** Returns a deterministic, action-bound nonce for preview and submit requests. */
 function wp_create_nonce($action): string { return $action; }
 /** Builds a local, action-bound SSO link for the recovery login prompt. */
 function wp_nonce_url($url, $action): string { return add_query_arg('_wpnonce', wp_create_nonce($action), $url); }
-/** Prints the single action of a normal role update or a recovery. */
-function submit_button($label): void { echo '<button type="submit">' . esc_html($label) . '</button>'; }
+/** Leaves the field contents to their own tests when rendering the settings form envelope. */
+function do_settings_sections(string $page): void {}
+/** Prints the submit button of the settings or role form with its WordPress default label. */
+function submit_button($label = 'Save Changes'): void { echo '<button type="submit">' . esc_html($label) . '</button>'; }
 
 $options[1][BackendSsoAccess::OPTION_NAME] = str_contains($scenario, 'protected') ? '1' : '0';
 $options[1]['rrze_appointment_settings']['appointment_manager_user_ids'] = [8, 10];
@@ -80,7 +93,10 @@ try {
 ob_start();
 require_once $root . '/includes/Admin/MailTemplatesPage.php';
 $page = new SettingsPage(new MailTemplatesPage());
-if (str_contains($scenario, 'recovery')) {
+if ($scenario === 'screen-general-form' || $scenario === 'screen-illustrations-form') {
+    $method = $scenario === 'screen-general-form' ? 'renderTabGeneral' : 'renderTabIllustrations';
+    (new ReflectionMethod($page, $method))->invoke($page);
+} elseif (str_contains($scenario, 'recovery')) {
     AccessSettings::renderRecovery();
 } elseif (str_contains($scenario, 'no-callback')) {
     AccessSettings::renderSettings();

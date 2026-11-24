@@ -368,12 +368,7 @@ final class AccessSettings
         $canSelectOwnData = $setup || (is_array($policy) && AccessPolicy::hasBookingGrant($policy, $actor));
         $roles = self::roleLabels();
         $noRole = $recover ? __('Do not assign responsibility', 'rrze-appointment') : __('No access', 'rrze-appointment');
-        $byPerson = [];
-        foreach (['managers', 'access_owners', 'owners'] as $role) {
-            foreach ($grants[$role] as $id) {
-                $byPerson[$id] = $role;
-            }
-        }
+        $byPerson = AccessPolicy::rolesByUser($grants);
         $obsolete = array_diff(array_merge($grants['owners'], $grants['access_owners']), $adminIds)
             || array_diff($grants['managers'], $eligibleIds);
         if ($setup) {
@@ -428,7 +423,7 @@ final class AccessSettings
                 </div>
                 <p data-access-owner-feedback data-message="<?php echo esc_attr($ownerMessage); ?>" role="status" aria-live="polite" aria-atomic="true" tabindex="-1"><?php echo $hasOwner ? '' : esc_html($ownerMessage); ?></p>
                 <?php if (!$recover && $policy !== null && $obsolete) : ?>
-                    <p class="description"><?php esc_html_e('Some previous selections are no longer eligible and have no access. Saving removes these obsolete selections.', 'rrze-appointment'); ?></p>
+                    <p class="description"><?php esc_html_e('Some previous role assignments no longer grant access. Saving a change to the assigned roles removes these entries.', 'rrze-appointment'); ?></p>
                 <?php endif; ?>
                 <?php if (!$adminIds) : ?><p><?php esc_html_e('Add an administrator to this website before assigning responsibility.', 'rrze-appointment'); ?></p><?php endif; ?>
                 <p data-access-empty role="status" hidden><?php esc_html_e('No matching people.', 'rrze-appointment'); ?></p>

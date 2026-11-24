@@ -2530,7 +2530,7 @@ msgid "Save permissions"
 msgstr ""
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php
-msgid "Some previous selections are no longer eligible and have no access. Saving removes these obsolete selections."
+msgid "Some previous role assignments no longer grant access. Saving a change to the assigned roles removes these entries."
 msgstr ""
 
 #: includes/Admin/AccessSettings.php includes/Admin/AccessNotice.php includes/Admin/AccessPolicy.php

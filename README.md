@@ -148,9 +148,12 @@ permissions until someone explicitly saves this setup.
 | View and cancel | Yes | No |
 | No access | No | No |
 
-Both responsible roles require administrator permissions on the current site. At least one
-eligible responsible administrator must remain. Other site members with editor permissions
-can receive the **View and cancel** role. Manage roles under **Settings → RRZE Appointment →
+Both responsible roles require site membership and the effective WordPress capabilities
+`read` and `manage_options`, including capabilities granted by WordPress filters. A multisite
+super administrator also needs `manage_options` from a role or individual grant on that site
+to be assigned responsibility. At least one eligible responsible administrator must remain.
+Other site members with editor permissions can receive the **View and cancel** role.
+Manage roles under **Settings → RRZE Appointment →
 Access & SSO**. A responsible administrator without booking access can assign roles to other
 people. Another authorized account must grant that administrator access to bookings.
 A multisite super administrator with matching SSO can assign roles on behalf of a site.
@@ -167,11 +170,19 @@ off for this site and keeps its access list. Recovery gives the acting administr
 access to bookings. Changes require an authenticated POST with a WordPress nonce bound to the
 site, action and observed revision.
 
-The site option `rrze_appointment_access_policy` keeps the grants and their revision. In a
-2.5.0 access list, existing responsible administrators retain booking access. Existing responsible
-editors retain permission to view and cancel bookings. Saving the new role form writes format 2,
-which records responsible administrators without booking access separately. When an installation
-returns to the previous 2.5.0 code, that code denies booking access on sites with a format 2 list.
+The site option `rrze_appointment_access_policy` keeps each site's grants and revision.
+Upgrading to 2.5.0 preserves existing format 1 lists. Responsible administrators keep their
+roles, and editors previously listed as responsible can still view and cancel bookings.
+Reassigning responsibility preserves any booking permission that was granted separately.
+Saving the same roles again keeps the original list and revision, even when an account in
+the old list has since left the site and no longer appears on the form.
+
+Initial setup or a change to the assigned roles in the 2.5.0 form writes format 2 on that site.
+After a rollback to 2.4.1, sites with format 1 lists use the previous role rules. Sites with
+format 2 lists return HTTP 503 for booking management until compatible plugin code is restored.
+Reload any open settings forms after switching versions. WordPress rejects a 2.5.0 General
+or Additional people form submitted to 2.4.1 before it writes any settings.
+
 The old `appointment_manager_user_ids` field is ignored and preserved after setup. Security writes
 share a bounded database advisory lock, refresh option caches, reject stale forms (409), and preserve
 the previous policy on failure. Policy writes use compare-and-swap; failures deny access (503).

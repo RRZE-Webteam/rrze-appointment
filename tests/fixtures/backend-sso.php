@@ -119,11 +119,20 @@ namespace {
         return (object) ['ID' => $id, 'display_name' => 'User ' . $id, 'user_login' => 'user' . $id,
             'allcaps' => ['manage_options' => $admin]];
     }
-    /** Models capability changes independently from grants. */
+    /**
+     * Applies site capability overrides and network privileges to the requested account.
+     *
+     * @param object $user Fixture account with its stored site capabilities.
+     * @param string $cap Requested WordPress capability.
+     * @return bool Effective capability for this request.
+     */
     function user_can($user, $cap): bool
     {
         if ($cap === 'manage_options') {
-            return $user->allcaps['manage_options'] || ($GLOBALS['super'] && $user->ID === get_current_user_id());
+            if (is_multisite() && is_super_admin($user->ID)) {
+                return true;
+            }
+            return $GLOBALS['effectiveManageOptions'][$user->ID] ?? $user->allcaps['manage_options'];
         }
         return !in_array($user->ID, $GLOBALS['demoted'] ?? [], true)
             && ($user->ID !== get_current_user_id() || $cap === 'read' || $cap === 'edit_others_posts' || current_user_can($cap));
@@ -163,8 +172,18 @@ namespace {
     }
     /** Models a multisite deployment. */
     function is_multisite(): bool { return $GLOBALS['multisite'] ?? true; }
-    /** Models network-admin status independently of site capabilities. */
-    function is_super_admin(): bool { return $GLOBALS['super']; }
+    /**
+     * Resolves network privileges for the specified account or the acting user.
+     *
+     * @param int|false $id Account to check, defaulting to the acting user.
+     * @return bool Whether that account is configured as a super administrator.
+     */
+    function is_super_admin(int|false $id = false): bool
+    {
+        $id = $id === false ? get_current_user_id() : $id;
+        return ($GLOBALS['super'] && $id === get_current_user_id())
+            || in_array($id, $GLOBALS['otherSuperAdmins'] ?? [], true);
+    }
     /** Checks the nonce and binds form nonces to the simulated site. */
     function wp_verify_nonce($nonce, $action): bool { return $GLOBALS['nonce'] && ($action === 'wp_rest' || $nonce === $action); }
     /** Preserves fixture request input. */
