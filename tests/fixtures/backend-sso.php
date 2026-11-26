@@ -241,7 +241,7 @@ namespace {
     $root = dirname(__DIR__, 2);
     $helper = dirname($root) . '/rrze-sso/includes/Helper.php';
     require is_file($helper) ? $helper : __DIR__ . '/backend-sso-helper.php';
-    foreach (['AppointmentException', 'Storage/OptionDatabase', 'Admin/AccessPolicy', 'Admin/AccessSettings', 'Admin/AccessNotice', 'Configuration/PluginSettings', 'Admin/AppointmentPermissions', 'Admin/BackendSsoAccess', 'Admin/BackendSsoSettings',
+    foreach (['AppointmentException', 'Storage/PrimaryConnection', 'Storage/OptionDatabase', 'Admin/AccessPolicy', 'Admin/AccessSettings', 'Admin/AccessNotice', 'Configuration/PluginSettings', 'Admin/AppointmentPermissions', 'Admin/BackendSsoAccess', 'Admin/BackendSsoSettings',
         'Admin/BookingsPage', 'Admin/SettingsPage', 'Controller/AdminBookingsController'] as $class) {
         require $root . '/includes/' . $class . '.php';
     }

@@ -29,19 +29,17 @@ final class StorageMaintenance
         }
         BookingStorage::release();
         $lock = $network ? NetworkMigration::lockName(get_current_network_id()) : null;
-        if ($lock !== null && $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 0)', $lock)) !== '1') {
+        $primary = $network ? PrimaryConnection::forTable($wpdb, $wpdb->blogs, 'blog_id') : null;
+        if ($lock !== null && self::networkValue($primary, 'SELECT GET_LOCK(%s, 0)', $lock) !== '1') {
             throw new AppointmentException('Appointment network maintenance is already running or unavailable.');
         }
         try {
-            $upper = $network ? $wpdb->get_var($wpdb->prepare(
+            $upper = $network ? self::networkValue(
+                $primary,
                 'SELECT MAX(blog_id) FROM %i WHERE site_id = %d', $wpdb->blogs, get_current_network_id()
-            )) : get_current_blog_id();
-            self::assertQuery();
+            ) : get_current_blog_id();
             $counts = ['phase' => $mode, 'checked' => 0, 'skipped' => 0, 'failed' => 0];
-            foreach (self::siteIds($network, (int) $upper) as $id) {
-                if ($lock !== null && $wpdb->get_var($wpdb->prepare('SELECT IS_USED_LOCK(%s) = CONNECTION_ID()', $lock)) !== '1') {
-                    throw new AppointmentException('The appointment network maintenance lock was lost.');
-                }
+            foreach (self::siteIds($lock, (int) $upper, $primary) as $id) {
                 $switched = $id !== get_current_blog_id();
                 if ($switched) {
                     switch_to_blog($id);
@@ -76,35 +74,90 @@ final class StorageMaintenance
             $report($counts);
             return $counts['failed'] === 0;
         } finally {
-            BookingStorage::release();
-            if ($lock !== null) {
-                $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock));
+            try {
+                BookingStorage::release();
+            } finally {
+                if ($lock !== null) {
+                    try {
+                        self::networkValue($primary, 'SELECT RELEASE_LOCK(%s)', $lock);
+                    } catch (\Throwable) {
+                        // A disconnected session loses its lock. Preserve any inspection failure.
+                    }
+                }
             }
         }
     }
 
     /**
-     * Streams site IDs in primary-key batches without loading an entire network.
+     * Runs a scalar network query on the same connection that acquired the maintenance lock.
      *
-     * @return \Generator<int> IDs in this pass's fixed upper bound.
+     * @param PrimaryConnection|null $primary Pinned writer for the blogs table on routed installations.
+     * @param string $query SQL template for the selected connection.
+     * @param int|string ...$args Template arguments.
+     * @return string|null First column or null if no value is available.
      */
-    private static function siteIds(bool $network, int $upper): \Generator
+    private static function networkValue(?PrimaryConnection $primary, string $query, int|string ...$args): ?string
     {
         global $wpdb;
-        if (!$network) {
+        $sql = ($primary ?? $wpdb)->prepare($query, ...$args);
+        if ($primary !== null) {
+            return $primary->value($sql);
+        }
+        $value = $wpdb->get_var($sql);
+        self::assertQuery();
+        return $value;
+    }
+
+    /**
+     * Requires the network lock and, for a routed connection, the original inventory database.
+     *
+     * @param PrimaryConnection|null $primary Pinned writer for the blogs table on routed installations.
+     * @param string $lock Network maintenance lock name.
+     * @throws AppointmentException When ownership or database selection has changed.
+     */
+    private static function assertNetworkLock(?PrimaryConnection $primary, string $lock): void
+    {
+        $owned = $primary !== null
+            ? $primary->ownsLock($lock)
+            : self::networkValue(null, 'SELECT IS_USED_LOCK(%s) = CONNECTION_ID()', $lock) === '1';
+        if (!$owned) {
+            throw new AppointmentException('The appointment network maintenance lock was lost.');
+        }
+    }
+
+    /**
+     * Streams site IDs from the network inventory in primary-key batches.
+     *
+     * @param string|null $lock Network maintenance lock, or null for a single-site check.
+     * @param int $upper Largest site ID included in this pass.
+     * @param PrimaryConnection|null $primary Pinned writer for the blogs table on routed installations.
+     * @return \Generator<int> IDs in this pass's fixed upper bound.
+     */
+    private static function siteIds(?string $lock, int $upper, ?PrimaryConnection $primary): \Generator
+    {
+        global $wpdb;
+        if ($lock === null) {
             yield get_current_blog_id();
             return;
         }
         $cursor = 0;
+        self::assertNetworkLock($primary, $lock);
         do {
-            $ids = $wpdb->get_col($wpdb->prepare(
+            $sql = ($primary ?? $wpdb)->prepare(
                 'SELECT blog_id FROM %i WHERE site_id = %d AND blog_id > %d AND blog_id <= %d ORDER BY blog_id ASC LIMIT %d',
                 $wpdb->blogs, get_current_network_id(), $cursor, $upper, 10
-            ));
-            self::assertQuery();
+            );
+            if ($primary !== null) {
+                $ids = array_column($primary->rows($sql), 'blog_id');
+            } else {
+                $ids = $wpdb->get_col($sql);
+                self::assertQuery();
+            }
             foreach ($ids as $id) {
                 $cursor = (int) $id;
                 yield $cursor;
+                // Site checks can switch databases before the next site or inventory batch.
+                self::assertNetworkLock($primary, $lock);
             }
         } while ($ids && $cursor < $upper);
     }

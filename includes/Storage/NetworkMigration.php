@@ -38,13 +38,15 @@ final class NetworkMigration
     }
 
     /**
-     * Selects active sites and dormant data for an explicitly requested CLI inspection.
+     * Selects active sites and checks dormant installations for data on their options table's writer.
      *
      * @return bool Active plugin installation or an inactive site retaining protected stores.
      */
     public static function isRelevantSite(): bool
     {
-        return self::activeOn(get_current_blog_id(), get_current_network_id()) || BookingStorage::hasStoredData();
+        global $wpdb;
+        return self::activeOn(get_current_blog_id(), get_current_network_id())
+            || BookingStorage::hasStoredData(PrimaryConnection::forTable($wpdb, $wpdb->options));
     }
 
     /** Returns the network lock for explicit CLI inspections, compatible with V1 maintenance. */

@@ -39,6 +39,25 @@ An interrupted transaction can be retried. After a lost commit acknowledgement,
 a fresh request reads the committed state. Confirmation mail follows the
 commit. An SMTP acceptance followed by a process crash can cause duplicate delivery.
 
+## Database routing with HyperDB
+
+On a primary/replica installation, Appointment asks HyperDB for the writable
+connection for the current site's options table before acquiring its booking
+lock. Protected reads, updates, transaction checks and lock release use that
+same connection. This matters because a MySQL named lock belongs to the
+session that acquired it, and a replica can still show an earlier booking
+state. HyperDB can continue routing unrelated reads to replicas. Its usual
+read-after-write rules apply to the table selected for writing in this request.
+After a lost connection the operation fails and a fresh request can
+check the committed state on the primary.
+
+For a network-wide CLI check, Appointment selects the writable connection for
+the network's blogs table. It holds the network maintenance lock and reads
+the site ID batches on that connection. It checks inactive sites for remaining
+booking data on the writer for each site's options table. Each site's storage
+verification also uses that writer. The blogs and options tables can belong
+to different HyperDB datasets.
+
 ## Scheduled work
 
 Expiration, reminder and opening jobs include their due times and delivery

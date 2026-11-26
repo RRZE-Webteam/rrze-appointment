@@ -14,6 +14,7 @@ if (!defined('WP_CLI') || !WP_CLI) {
     exit('Run with wp --skip-plugins --skip-themes eval-file.');
 }
 require_once dirname(__DIR__, 2) . '/includes/AppointmentException.php';
+require_once dirname(__DIR__, 2) . '/includes/Storage/PrimaryConnection.php';
 require_once dirname(__DIR__, 2) . '/includes/Storage/OptionDatabase.php';
 
 /** Asserts native SQL behavior without printing stored values or credentials. */

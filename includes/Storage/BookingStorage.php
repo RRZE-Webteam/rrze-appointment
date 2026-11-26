@@ -99,16 +99,25 @@ final class BookingStorage
         self::site()->database->pruneExpiredLocks();
     }
 
-    /** Includes dormant installations with booking data, without populating option caches. */
-    public static function hasStoredData(): bool
+    /**
+     * Detects booking data in active and dormant installations without populating option caches.
+     *
+     * @param PrimaryConnection|null $primary Optional writer when a network inspection needs current rows.
+     * @return bool Whether a legacy store or an encrypted record or marker exists.
+     */
+    public static function hasStoredData(?PrimaryConnection $primary = null): bool
     {
         global $wpdb;
         $names = [...self::OPTIONS, self::STATE_OPTION, self::MIXED_STATE_OPTION, MixedRecordStore::INDEX];
         $arguments = [$wpdb->options, ...$names, 'rrze!_appointment!_v2!_record!_%'];
-        $found = $wpdb->get_var($wpdb->prepare(
+        $sql = ($primary ?? $wpdb)->prepare(
             'SELECT option_name FROM %i WHERE option_name IN (' . implode(',', array_fill(0, count($names), '%s')) . ") OR option_name LIKE %s ESCAPE '!' LIMIT 1",
             ...$arguments
-        ));
+        );
+        if ($primary !== null) {
+            return $primary->value($sql) !== null;
+        }
+        $found = $wpdb->get_var($sql);
         if ($wpdb->last_error !== '') {
             throw new AppointmentException('Appointment site inventory could not be read.');
         }

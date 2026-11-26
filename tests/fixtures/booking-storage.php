@@ -40,6 +40,7 @@ final class BookingTestDatabase
     public array $locks = [];
     public array $activeLocks = [];
     public int $peakLocks = 0;
+    public string $schema = 'isolated-appointment-tests';
     public SQLite3 $db;
     public mysqli $dbh;
 
@@ -62,7 +63,10 @@ final class BookingTestDatabase
     public function prepare(string $query, ...$args): string
     {
         $index = 0;
-        return preg_replace_callback('/%[isd]/', static function ($match) use ($args, &$index): string {
+        return preg_replace_callback('/%[%isd]/', static function ($match) use ($args, &$index): string {
+            if ($match[0] === '%%') {
+                return '%';
+            }
             $value = $args[$index++];
             return match ($match[0]) {
                 '%i' => '"' . str_replace('"', '""', $value) . '"',
@@ -72,12 +76,21 @@ final class BookingTestDatabase
         }, $query);
     }
 
+    /** The SQLite formatter leaves percent signs unchanged in prepared SQL. */
+    public function remove_placeholder_escape(string $query): string
+    {
+        return $query;
+    }
+
     /** Reads SQL scalars; named locks are modeled rather than translated to SQLite. */
     public function get_var(string $query): ?string
     {
         $this->last_error = $this->failReads ? 'synthetic failure' : '';
         if ($this->failReads) {
             return null;
+        }
+        if ($query === 'SELECT DATABASE()') {
+            return $this->schema;
         }
         if (str_contains($query, 'information_schema.TABLES')) {
             return 'InnoDB';
@@ -92,7 +105,10 @@ final class BookingTestDatabase
             return $this->denyLock ? '0' : '1';
         }
         if (str_contains($query, 'IS_USED_LOCK(')) {
-            return $this->lostLock ? '0' : '1';
+            preg_match("/IS_USED_LOCK\\('([^']+)'/", $query, $match);
+            $schemaChanged = preg_match("/DATABASE\\(\\) = BINARY '([^']+)'/", $query, $schema)
+                && $schema[1] !== $this->schema;
+            return !$this->lostLock && !$schemaChanged && isset($this->activeLocks[$match[1]]) ? '1' : '0';
         }
         if (str_contains($query, 'RELEASE_LOCK(')) {
             preg_match("/RELEASE_LOCK\('([^']+)'/", $query, $match);

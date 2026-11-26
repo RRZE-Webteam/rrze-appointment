@@ -14,6 +14,9 @@ defined('ABSPATH') || exit;
  */
 final class OptionDatabase
 {
+    private readonly ?PrimaryConnection $primary;
+    /** @var \wpdb|PrimaryConnection Formats and executes SQL for the selected connection. */
+    private readonly object $sql;
     private string $lock;
     private bool $released = false;
     /** @var array<int, self> Only live locks are retained, even in long-running workers. */
@@ -29,8 +32,10 @@ final class OptionDatabase
      */
     public function __construct(#[\SensitiveParameter] private readonly object $database, #[\SensitiveParameter] private readonly string $table)
     {
+        $this->primary = PrimaryConnection::forTable($database, $table);
+        $this->sql = $this->primary ?? $database;
         $this->lock = 'rrze-appt:' . substr(hash('sha256', DB_NAME . ':' . $table), 0, 48);
-        if ($this->database->get_var($this->database->prepare('SELECT GET_LOCK(%s, 5)', $this->lock)) !== '1') {
+        if ($this->lockValue('SELECT GET_LOCK(%s, 5)') !== '1') {
             throw new AppointmentException('Appointment storage is busy or unavailable. Please try again.');
         }
         self::$active[spl_object_id($this)] = $this;
@@ -45,26 +50,42 @@ final class OptionDatabase
      */
     public function assertOwnership(): void
     {
-        if ($this->released || $this->database->get_var($this->database->prepare(
-            'SELECT IS_USED_LOCK(%s) = CONNECTION_ID()', $this->lock
-        )) !== '1') {
+        $ownsLock = !$this->released && ($this->primary !== null
+            ? $this->primary->ownsLock($this->lock)
+            : $this->lockValue('SELECT IS_USED_LOCK(%s) = CONNECTION_ID()') === '1');
+        if (!$ownsLock) {
             throw new AppointmentException('The appointment storage lock was lost. Please try again.');
         }
     }
 
     /**
+     * Runs a single-argument advisory lock function on this store's connection.
+     *
+     * @param string $sql SQL template with the lock name as its only placeholder.
+     * @return string|null Database lock function result.
+     */
+    private function lockValue(string $sql): ?string
+    {
+        $query = $this->sql->prepare($sql, $this->lock);
+        return $this->primary !== null ? $this->primary->value($query) : $this->database->get_var($query);
+    }
+
+    /**
      * Reads the database directly; absence and database failure are distinct.
      *
+     * @param string $name Option name in this site's table.
      * @return string|null Raw stored value, or null only when the row is absent.
      */
     public function read(#[\SensitiveParameter] string $name): ?string
     {
         $this->assertOwnership();
+        $query = $this->sql->prepare('SELECT option_value FROM %i WHERE option_name = %s', $this->table, $name);
+        if ($this->primary !== null) {
+            return $this->primary->value($query);
+        }
         // wpdb::get_var() also returns null for an existing empty string. A
         // damaged empty ciphertext must be distinguishable from a missing option.
-        $row = $this->database->get_row($this->database->prepare(
-            'SELECT option_value FROM %i WHERE option_name = %s', $this->table, $name
-        ), 'ARRAY_A');
+        $row = $this->database->get_row($query, 'ARRAY_A');
         if ($this->database->last_error !== '') {
             throw new AppointmentException('Appointment storage could not be read.');
         }
@@ -82,12 +103,17 @@ final class OptionDatabase
     public function recordRows(): array
     {
         $this->assertOwnership();
-        $rows = $this->database->get_results($this->database->prepare(
+        $query = $this->sql->prepare(
             "SELECT option_name, option_value FROM %i WHERE option_name LIKE %s ESCAPE '!' ORDER BY option_name",
             $this->table, 'rrze!_appointment!_v2!_record!_%'
-        ), 'ARRAY_A');
-        if ($this->database->last_error !== '' || !is_array($rows)) {
-            throw new AppointmentException('Appointment record inventory could not be read.');
+        );
+        if ($this->primary !== null) {
+            $rows = $this->primary->rows($query);
+        } else {
+            $rows = $this->database->get_results($query, 'ARRAY_A');
+            if ($this->database->last_error !== '' || !is_array($rows)) {
+                throw new AppointmentException('Appointment record inventory could not be read.');
+            }
         }
         return array_column($rows, 'option_value', 'option_name');
     }
@@ -107,16 +133,16 @@ final class OptionDatabase
     {
         $this->assertOwnership();
         $query = $previous === null
-            ? $this->database->prepare(
+            ? $this->sql->prepare(
                 'INSERT IGNORE INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s)',
                 $this->table, $name, $next, 'no'
             )
-            : $this->database->prepare(
+            : $this->sql->prepare(
                 'UPDATE %i SET option_value = %s, autoload = %s WHERE option_name = %s AND SHA2(option_value, 256) = %s',
                 $this->table, $next, 'no', $name, hash('sha256', $previous)
             );
         try {
-            if ($this->database->query($query) === false) {
+            if ($this->sql->query($query) === false) {
                 throw new AppointmentException('Appointment storage could not be written.');
             }
             // Also verify no-op writes; a failed verification must still evict caches.
@@ -136,14 +162,15 @@ final class OptionDatabase
     public function assertTransactional(): void
     {
         $this->assertOwnership();
-        $engine = $this->database->get_var($this->database->prepare(
+        $query = $this->sql->prepare(
             'SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s',
             $this->table
-        ));
-        if ($this->database->last_error !== '' || !is_string($engine) || strcasecmp($engine, 'InnoDB') !== 0) {
+        );
+        $engine = $this->primary !== null ? $this->primary->value($query) : $this->database->get_var($query);
+        if (!is_string($engine) || strcasecmp($engine, 'InnoDB') !== 0) {
             throw new AppointmentException('Atomic appointment confirmation requires an InnoDB options table.');
         }
-        if (!(($this->database->dbh ?? null) instanceof \mysqli)) {
+        if ($this->primary === null && !(($this->database->dbh ?? null) instanceof \mysqli)) {
             throw new AppointmentException('Atomic appointment confirmation requires a native mysqli connection.');
         }
     }
@@ -169,7 +196,7 @@ final class OptionDatabase
         $writes = $reads = [];
         ksort($previous);
         foreach ($previous as $name => $observed) {
-            $reads[$name] = $this->database->prepare(
+            $reads[$name] = $this->sql->prepare(
                 'SELECT option_value FROM %i WHERE option_name = %s FOR UPDATE', $this->table, $name
             );
         }
@@ -178,72 +205,56 @@ final class OptionDatabase
                 if ($previous[$name] === null) {
                     throw new AppointmentException('Invalid atomic appointment deletion.');
                 }
-                $writes[$name] = $this->database->prepare(
+                $writes[$name] = $this->sql->prepare(
                     'DELETE FROM %i WHERE option_name = %s AND SHA2(option_value, 256) = %s',
                     $this->table, $name, hash('sha256', $previous[$name])
                 );
                 continue;
             }
             $writes[$name] = $previous[$name] === null
-                ? $this->database->prepare(
+                ? $this->sql->prepare(
                     'INSERT INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s)',
                     $this->table, $name, $value, 'no'
                 )
-                : $this->database->prepare(
+                : $this->sql->prepare(
                     'UPDATE %i SET option_value = %s, autoload = %s WHERE option_name = %s AND SHA2(option_value, 256) = %s',
                     $this->table, $value, 'no', $name, hash('sha256', $previous[$name])
                 );
         }
-        $ownership = $this->database->prepare('SELECT IS_USED_LOCK(%s) = CONNECTION_ID()', $this->lock);
-        $connection = $this->database->dbh;
-        if (!$connection instanceof \mysqli) {
-            throw new AppointmentException('Atomic appointment confirmation requires a native mysqli connection.');
-        }
+        $ownership = $this->sql->prepare('SELECT IS_USED_LOCK(%s) = CONNECTION_ID()', $this->lock);
+        $connection = $this->primary ?? new PrimaryConnection($this->database, $this->database->dbh);
         $started = false;
         try {
-            if ($this->nativeValue($connection, $ownership) !== '1'
-                || $this->nativeValue($connection, 'SELECT @@session.autocommit') !== '1') {
+            if ($connection->value($ownership) !== '1'
+                || $connection->value('SELECT @@session.autocommit') !== '1') {
                 throw new AppointmentException('The appointment transaction connection is unavailable.');
             }
-            // SAVEPOINT is a no-op outside a transaction; RELEASE then reports 1305.
-            // Inside a caller transaction both succeed, letting us reject it safely.
-            $savepoint = 'rrze_appt_probe_' . bin2hex(random_bytes(8));
-            $this->nativeQuery($connection, 'SAVEPOINT ' . $savepoint);
-            try {
-                $released = @mysqli_query($connection, 'RELEASE SAVEPOINT ' . $savepoint);
-                $error = mysqli_errno($connection);
-            } catch (\mysqli_sql_exception $exception) {
-                $released = false;
-                $error = $exception->getCode();
-            }
-            if ($released !== false || $error !== 1305) {
-                throw new AppointmentException('Appointment confirmation cannot join an existing transaction.');
-            }
-            $this->nativeQuery($connection, 'START TRANSACTION');
+            $connection->assertNoTransaction();
+            $connection->query('START TRANSACTION');
             $started = true;
             foreach ($previous as $name => $observed) {
-                if ($this->nativeValue($connection, $reads[$name]) !== $observed) {
+                if ($connection->value($reads[$name]) !== $observed) {
                     throw new AppointmentException('Appointment data changed concurrently. Please reload and try again.');
                 }
             }
             foreach ($next as $name => $value) {
-                if ($this->nativeValue($connection, $ownership) !== '1') {
+                if ($connection->value($ownership) !== '1') {
                     throw new AppointmentException('The appointment storage lock was lost. Please try again.');
                 }
-                $this->nativeQuery($connection, $writes[$name]);
-                if ($this->nativeValue($connection, $reads[$name]) !== $value) {
+                $connection->query($writes[$name]);
+                if ($connection->value($reads[$name]) !== $value) {
                     throw new AppointmentException('Atomic appointment data could not be verified.');
                 }
             }
-            if ($this->nativeValue($connection, $ownership) !== '1') {
+            if ($connection->value($ownership) !== '1') {
                 throw new AppointmentException('The appointment storage lock was lost. Please try again.');
             }
-            $this->nativeQuery($connection, 'COMMIT');
+            $connection->query('COMMIT');
             $started = false;
         } catch (\Throwable $exception) {
             if ($started) {
                 try {
-                    $this->nativeQuery($connection, 'ROLLBACK');
+                    $connection->query('ROLLBACK');
                 } catch (\Throwable) {
                     // A lost connection rolls back server-side; commit acknowledgement may be uncertain.
                 }
@@ -259,45 +270,6 @@ final class OptionDatabase
     }
 
     /**
-     * Executes on the captured connection without reconnecting or exposing SQL errors.
-     *
-     * @param \mysqli $connection Connection that owns the storage lock and transaction.
-     * @param string $query Prepared SQL, potentially containing protected data.
-     * @return \mysqli_result|bool Native result; failures always throw a safe exception.
-     */
-    private function nativeQuery(#[\SensitiveParameter] \mysqli $connection, #[\SensitiveParameter] string $query): \mysqli_result|bool
-    {
-        try {
-            $result = @mysqli_query($connection, $query);
-            if ($result === false) {
-                throw new AppointmentException('The appointment transaction could not be completed.');
-            }
-            return $result;
-        } catch (\Throwable) {
-            throw new AppointmentException('The appointment transaction could not be completed.');
-        }
-    }
-
-    /**
-     * Reads one native scalar and promptly releases the result buffer.
-     *
-     * @return string|null First column, or null for an absent row/SQL NULL.
-     */
-    private function nativeValue(#[\SensitiveParameter] \mysqli $connection, #[\SensitiveParameter] string $query): ?string
-    {
-        $result = $this->nativeQuery($connection, $query);
-        if (!$result instanceof \mysqli_result) {
-            throw new AppointmentException('The appointment transaction could not be verified.');
-        }
-        try {
-            $value = $result->fetch_row()[0] ?? null;
-            return $value === null ? null : (string) $value;
-        } finally {
-            $result->free();
-        }
-    }
-
-    /**
      * Removes at most 100 expired slot locks, including legacy MD5 lock names.
      *
      * The old names allow guessing the appointment time. Only the two exact
@@ -309,22 +281,27 @@ final class OptionDatabase
         $this->assertOwnership();
         $pattern = '^rrze_appointment_(waitlist_lock|opening_claim)_([a-f0-9]{32}|v2_[a-f0-9]{64})$';
         $before = time() - 5 * MINUTE_IN_SECONDS;
-        $names = $this->database->get_col($this->database->prepare(
+        $query = $this->sql->prepare(
             "SELECT option_name FROM %i WHERE (option_name LIKE 'rrze_appointment_waitlist_lock_%%'
              OR option_name LIKE 'rrze_appointment_opening_claim_%%')
              AND option_name REGEXP %s AND option_value REGEXP '^[0-9]+$'
              AND CAST(option_value AS UNSIGNED) < %d ORDER BY option_name LIMIT 100",
             $this->table, $pattern, $before
-        ));
-        if ($this->database->last_error !== '') {
-            throw new AppointmentException('Expired appointment locks could not be checked.');
+        );
+        if ($this->primary !== null) {
+            $names = array_column($this->primary->rows($query), 'option_name');
+        } else {
+            $names = $this->database->get_col($query);
+            if ($this->database->last_error !== '') {
+                throw new AppointmentException('Expired appointment locks could not be checked.');
+            }
         }
         if (!$names) {
             return;
         }
         $this->assertOwnership();
         try {
-            if ($this->database->query($this->database->prepare(
+            if ($this->sql->query($this->sql->prepare(
                 'DELETE FROM %i WHERE option_name IN (' . implode(',', array_fill(0, count($names), '%s')) . ")
                  AND option_value REGEXP '^[0-9]+$' AND CAST(option_value AS UNSIGNED) < %d",
                 $this->table, ...[...$names, $before]
@@ -346,7 +323,11 @@ final class OptionDatabase
     public function release(): void
     {
         if (!$this->released) {
-            $this->database->get_var($this->database->prepare('SELECT RELEASE_LOCK(%s)', $this->lock));
+            try {
+                $this->lockValue('SELECT RELEASE_LOCK(%s)');
+            } catch (\Throwable) {
+                // A disconnected session loses its locks. Continue releasing other sites at shutdown.
+            }
             $this->released = true;
             unset(self::$active[spl_object_id($this)]);
         }
